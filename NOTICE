@@ -339,20 +339,15 @@ Source code
   Amended 2026-10-12 (ADR-0005): the families and the hashes are recorded;
   the pending design-system decision D10 is now O-112.
 
-2.13 Icons [pending the crate import, O-112]
-  Set           Material Symbols (Rounded), delivered as
-                MaterialSymbolsRounded-Tallyline.ttf, SHA-256
-                40c8c3a472c6978cedd5028194fa174b2c63edae4165f7686d88fbf174602234
-                (read from the delivered archive, not compared with upstream)
-  Licence       Apache-2.0
-  Modified      the delivered icon font is a modified subset of the upstream
-                font. Apache-2.0 section 4(b) requires a prominent notice of
-                the change: "modified subset, <date>, <glyph list and tool>"
-                [upstream version, source and tarball SHA-256, and the
-                modification record are filled in when the crate is imported
-                in M0]
-  Approval      the modified font is approved as a named exception to the
-                font rule by the project owner (O-112, 2026-10-12)
+2.13 Icons
+  Source        the Tallyline state icons are drawn from egui primitives in
+                crates/egui/src/icon.rs; no third-party icon font
+                or font file is distributed.
+  Change        amended 2026-11-01: the previously planned modified
+                Material Symbols subset was not present in the repository or
+                available crate source. Its claimed font hash could not be
+                verified, so that binary is not included. The replacement
+                icons are newly implemented as Rust drawing code.
   Amended 2026-10-12 (ADR-0005): replaces the line-icon set (Lucide under
   ISC, plus MIT for the icons derived from Feather) and the path-data
   extraction of the earlier plan.
