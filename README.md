@@ -81,3 +81,7 @@ The logo, the trademark line of the Fan Kit Guidelines §2b and the notice of th
 ## Disclaimer
 
 Independent community project, not made or endorsed by UEX Corp and not affiliated with UEX Corp or Cloud Imperium Games / Roberts Space Industries.
+
+## Corpus contributors
+
+Use the offline [corpus capture and annotation guide](docs/user/corpus-capture.md) and `cargo run -p ocr-eval --locked -- inspect` to inspect conditions, expected values and sample readiness. Recognition metrics are not implemented yet.

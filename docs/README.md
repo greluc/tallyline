@@ -12,7 +12,7 @@
 | [`prompts/`](prompts/) | Prompts for AI tools, each with its run status |
 | [`design-system/`](design-system/) | The design system Tallyline as the repository holds it: token documentation, states, accessibility report; the tokens themselves are in `ui/design-tokens/`; the JavaFX parts are historical since ADR-0005, and the recreated egui crate lives in `crates/egui/` (O-112) |
 | [`images/fankit/`](images/fankit/) | The Star Citizen Fan Kit logo files only; they are not under the project licence (`NOTICE` §4, `REUSE.toml`) |
-| `user/` | The user guide (R-DOC-1), from M1; its images are redacted screenshots only |
+| [`user/`](user/) | The user guide (R-DOC-1) and contributor corpus capture protocol; its images are redacted screenshots only |
 | [`release-process.md`](release-process.md) | Versioning, release checklist, upgrade and downgrade, Star Citizen patch-day and UEX API-change procedures |
 | [`dependency-pins.md`](dependency-pins.md) | The tags of SHA-pinned GitHub Actions and the versions and checksums of CI tools (including the pinned WiX and `cargo-packager`) |
 | [`cla-signatures.md`](cla-signatures.md) | The public roster of CLA signatures |

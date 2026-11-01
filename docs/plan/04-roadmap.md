@@ -223,3 +223,7 @@ Amended 2026-10-12 (ADR-0005): R-UI-17 is split. R-UI-17 (contrast, keyboard ope
 - Further OCR writing systems (Cyrillic/Korean)
 - Optionally a fine-tuned recognition model for the SC HUD font
 - Trade routes are deliberately **not** planned; specialised tools exist for that
+
+## M2 corpus inspection progress — 2026-11-01
+
+Issue #102 adds `tools/ocr-eval inspect` and separate `annotate` proposals, the schema-v2 Gateway migration and [the contributor capture protocol](../user/corpus-capture.md). Sample readiness distinguishes gated, insufficient, synthetic-only and missing classes before recognition. R-QA-1 schema tests moved to the tool; R-QA-3 recognition metrics, snapshot replay, baselines and release class completeness remain open.

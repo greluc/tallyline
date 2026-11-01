@@ -181,7 +181,7 @@ fn allowed_edges(name: &str) -> Option<BTreeSet<&'static str>> {
             "tallyline-adapter-files",
             "tallyline-adapter-platform",
         ],
-        "tallyline-ocr-eval" => &[
+        "ocr-eval" => &[
             "tallyline-recognition",
             "tallyline-reference-data",
             "tallyline-adapter-ocr",
