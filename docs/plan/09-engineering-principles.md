@@ -59,6 +59,7 @@ The `unsafe` code of the platform adapter is registered here too. Edition 2024 m
 
 | Location | Rule | Reason | Date | Revisit when |
 |---|---|---|---|---|
+| `crates/adapter-ocr/tests/{ctc,preprocessing}.rs`, requirement-tagged tests | `non_snake_case` | The required traceability grammar contains a double underscore | 2026-11-01 | the tag grammar changes or rustc accepts consecutive underscores |
 | `crates/adapter-files/tests/image_intake.rs`, requirement-tagged tests | `non_snake_case` | The required traceability grammar contains a double underscore | 2026-11-01 | the tag grammar changes or rustc accepts consecutive underscores |
 | `deny.toml` `moxcms@=0.8.1` | `multiple-versions` | image0.25.10 requires ^0.8; direct ICC intake uses latest eligible0.9.1, with disjoint ranges | 2026-11-01 | 2027-04-13 |
 | `crates/ui/tests/reference_browser/*.rs`, requirement-tagged tests | `non_snake_case` | The traceability grammar contains a double underscore | 2026-11-01 | the tag grammar changes or rustc accepts consecutive underscores |
