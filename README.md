@@ -4,7 +4,7 @@ Tallyline is a cross-platform desktop client (Windows + Linux) for Star Citizen 
 
 While the game is running, a lightweight local OCR does the work. Optionally, a local AI model (via Ollama) re-checks the results once the game is closed.
 
-> Status: **planning**. There is no runnable code yet. The client will be written in Rust with the egui toolkit; native code is allowed only in registered exceptions ([ADR-0005](docs/adr/0005-rust-and-egui.md)).
+> Status: **M0 foundation in progress**. The workspace contains repository checks, an egui design-system crate and a UEX API spike CLI; the desktop client is not yet available. The implementation uses Rust and egui, with native code only in registered exceptions ([ADR-0005](docs/adr/0005-rust-and-egui.md)).
 
 ## Plan
 
@@ -25,6 +25,7 @@ While the game is running, a lightweight local OCR does the work. Optionally, a 
 | [ADR-0002 – Modules by bounded context](docs/adr/0002-modules-by-bounded-context.md) | Why the core is cut by bounded context and adapters by technology (in Rust: Cargo workspace crates) |
 | [ADR-0005 – Rust and egui](docs/adr/0005-rust-and-egui.md) | Implementation in Rust with egui; native code only by registered exception (`ort`, bundled SQLite, the TLS provider); supply chain, licence allowlist and packaging for Rust |
 | [ADR-0003 – Licence and contributions](docs/adr/0003-licence-and-contributions.md) | GPL-3.0-or-later, DCO and CLA, the Star Citizen Fan Kit unit, notice and source duties, licence gate |
+| [ADR-0010 – Release token delivery](docs/adr/0010-release-token-delivery.md) | Separate protected packaging jobs and replacement-token releases |
 | [Open points](docs/adr/0000-open-points.md) | The single register of open owner decisions and open verifications |
 | [Dependency pins](docs/dependency-pins.md) | Tags of SHA-pinned GitHub Actions; versions and checksums of CI tools |
 | [Design-system brief](docs/prompts/design-system.md) | Staged brief for Claude Design: an original design system and a screens canvas, at genre level close to the current Star Citizen website and forum, with the Fan Kit unit and the About dialog; with its [stage messages](docs/prompts/design-system-kickoff.md), the [owner checklist](docs/prompts/design-system-owner-checklist.md) and the [JavaFX handoff](docs/prompts/design-system-javafx-handoff.md) for Claude Code (historical since ADR-0005; the egui rendition replaces it, O-112) |
@@ -53,11 +54,11 @@ Tallyline is free software, licensed under the GNU General Public License, versi
 
 Decisions and checks that are still open are tracked in [docs/adr/0000-open-points.md](docs/adr/0000-open-points.md). Among them:
 
-- the final project and package name (O-8);
+- the trademark search and possible repository rename (O-8, O-106);
 - the acceptance date of the Fankit Agreement (O-26), and which logo variant goes on light and on dark backgrounds (O-27; this README follows basetool's mapping until the project owner has checked the kit);
 - whether Cloud Imperium's terms allow the game screenshots in this public repository (O-28);
 - a legal review before the first release of the Windows app's dependency on the Microsoft Visual C++ Redistributable (x64), which ONNX Runtime needs; the packages do not ship it, so users install it as a prerequisite (O-12, ADR-0009);
-- the import of the `tallyline-egui` crate (O-112);
+- the remaining egui dependency audits and icon review (O-112);
 - the M1 spike for the installers (`cargo-packager` with a pre-installed, pinned WiX 3.11.2, decided in O-116): offline build, `.deb` and archive formats.
 
 ## Star Citizen fan content
