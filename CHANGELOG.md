@@ -16,6 +16,8 @@ All notable changes are recorded here.
 
 ### Fixed
 
+- A second launch restores a minimised window even when no view is being drawn. Ordinary background results remain unable to restore or focus it (R-NF-10, R-UI-16).
+
 - OCR test fixtures retry transient Windows directory-allocation denial within their existing limit, without skipping assertions or changing product storage behaviour.
 
 - Open-source licence rows show the documented elected option while retaining the upstream declaration and every original legal text; stale or incompatible elections fail generation (R-UI-18).
