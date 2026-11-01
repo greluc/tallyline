@@ -1,6 +1,6 @@
 # Local vision runtimes and complementary recognition readers
 
-> **Doc type:** Living reference — runtime research and proposals; product constraints accepted in ADR-0012, engine choice pending. Last reviewed: 2026-11-01.
+> **Doc type:** Living reference — runtime research and proposals; product constraints accepted in ADR-0012, engine choice pending. Last reviewed: 2026-11-02.
 
 ## 1. Conclusion and scope
 
@@ -26,7 +26,9 @@ The Basetool reference was verified as the real Kotlin application at [krt-profi
 
 Runtime source, official release APIs, crates.io metadata, model-author cards/configuration and model file manifests were read. Four small published source archives were checksum-verified and inspected as data: `mistralrs`/`mistralrs-core` 0.8.1 and `candle-core`/`candle-transformers` 0.11.0. This verified the published SDK source rather than assuming that newer GitHub documentation describes a published crate.
 
-**No inference, accuracy benchmark, installation, model-weight download, GUI operation, screenshot inspection, credential access or external write was performed.** The public corpus contains no human-verified golden entries at the inspected revision. Existing `ocr-eval` commands inspect metadata and produce annotation proposals; they do not yet establish recognition accuracy. No accuracy gain for Tallyline can be claimed from this research. [Corpus status](plan/07-ocr-concept.md)
+**Original source-research scope (2026-11-01): no inference, accuracy benchmark, installation, model-weight download, GUI operation, screenshot inspection, credential access or external write was performed in that research step.** The public corpus contains no human-verified golden entries at the inspected revision. Existing `ocr-eval` commands inspect metadata and produce annotation proposals; they do not yet establish recognition accuracy. No accuracy gain for Tallyline can be claimed from that source review. [Corpus status](plan/07-ocr-concept.md)
+
+Corrected 2026-11-02: later separately owned local experiments have now completed 310 responses on 155 shop-only crops. Their [dated campaign record](local-vision-first-campaign.md) reports inadequate structural coverage, an undefined paired main rate and a separately labelled exploratory name diagnostic. Those measurements do not alter the original research scope, verify the reference annotations, select a production backend or establish a recognition accuracy gain.
 
 The available machine has the class of a high-end 32 GiB NVIDIA GPU and roughly 96 GiB system RAM. That makes a later broad local comparison plausible, but supplies no weak-PC evidence. No usable running Ollama service inventory was available; this does not prove Ollama or its model files are absent.
 
