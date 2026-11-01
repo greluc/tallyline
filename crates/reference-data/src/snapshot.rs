@@ -1,0 +1,146 @@
+// SPDX-FileCopyrightText: 2026 Lucas Greuloch
+// SPDX-License-Identifier: GPL-3.0-or-later
+
+//! Owned environment-specific read state independent of cache workers.
+
+use crate::api::model::{
+    CachedReference, Commodity, Endpoint, EndpointData, GameVersions, ReferenceState, StatusLevels,
+    Terminal, UexEnvironment,
+};
+use tallyline_shared_kernel::api::model::Timestamp;
+
+/// Immutable reference data for one mapped UEX environment and one decision.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct ReferenceSnapshot {
+    environment: UexEnvironment,
+    state: ReferenceState,
+    entries: Vec<CachedReference>,
+}
+
+impl ReferenceSnapshot {
+    pub(crate) fn new(
+        environment: UexEnvironment,
+        state: ReferenceState,
+        entries: &[CachedReference],
+    ) -> Self {
+        let entries = entries
+            .iter()
+            .map(|entry| match entry.data() {
+                EndpointData::Commodities(items) => CachedReference::new(
+                    entry.fetched_at(),
+                    EndpointData::Commodities(
+                        items
+                            .iter()
+                            .filter(|item| item.available(environment))
+                            .map(|item| {
+                                Commodity::new(
+                                    item.id(),
+                                    item.name(),
+                                    item.code(),
+                                    item.available(UexEnvironment::Live),
+                                    item.average_price(environment),
+                                )
+                            })
+                            .collect(),
+                    ),
+                ),
+                EndpointData::Terminals(_)
+                | EndpointData::GameVersions(_)
+                | EndpointData::StatusLevels(_) => entry.clone(),
+            })
+            .collect();
+        Self {
+            environment,
+            state,
+            entries,
+        }
+    }
+
+    /// Returns the mapped UEX environment, independent of the launcher's channel name.
+    #[must_use]
+    pub const fn environment(&self) -> UexEnvironment {
+        self.environment
+    }
+
+    /// Returns matching commodities with no LIVE average retained in a PTU snapshot.
+    #[must_use]
+    pub fn commodities(&self, query: &str) -> Vec<&Commodity> {
+        let query = query.to_lowercase();
+        self.entries
+            .iter()
+            .flat_map(|entry| match entry.data() {
+                EndpointData::Commodities(items) => items.as_slice(),
+                EndpointData::Terminals(_)
+                | EndpointData::GameVersions(_)
+                | EndpointData::StatusLevels(_) => &[],
+            })
+            .filter(|item| {
+                item.name().to_lowercase().contains(&query)
+                    || item.code().to_lowercase().contains(&query)
+            })
+            .collect()
+    }
+
+    /// Searches selectable terminal labels and location context for this environment.
+    #[must_use]
+    pub fn terminals(&self, query: &str) -> Vec<&Terminal> {
+        let query = query.to_lowercase();
+        self.entries
+            .iter()
+            .flat_map(|entry| match entry.data() {
+                EndpointData::Terminals(items) => items.as_slice(),
+                EndpointData::Commodities(_)
+                | EndpointData::GameVersions(_)
+                | EndpointData::StatusLevels(_) => &[],
+            })
+            .filter(|terminal| {
+                let text = terminal.text();
+                terminal.available(self.environment)
+                    && [
+                        &text.name,
+                        &text.nickname,
+                        &text.display_name,
+                        &text.location,
+                    ]
+                    .iter()
+                    .any(|field| field.to_lowercase().contains(&query))
+            })
+            .collect()
+    }
+
+    /// Returns cached version read data, never a fresh network observation.
+    #[must_use]
+    pub fn game_versions(&self) -> Option<&GameVersions> {
+        self.entries.iter().find_map(|entry| match entry.data() {
+            EndpointData::GameVersions(versions) => Some(versions),
+            EndpointData::Commodities(_)
+            | EndpointData::Terminals(_)
+            | EndpointData::StatusLevels(_) => None,
+        })
+    }
+
+    /// Returns the cached per-side status vocabulary.
+    #[must_use]
+    pub fn status_levels(&self) -> Option<&StatusLevels> {
+        self.entries.iter().find_map(|entry| match entry.data() {
+            EndpointData::StatusLevels(levels) => Some(levels),
+            EndpointData::Commodities(_)
+            | EndpointData::Terminals(_)
+            | EndpointData::GameVersions(_) => None,
+        })
+    }
+    /// Returns one endpoint's successful fetch time without creating an observation.
+    #[must_use]
+    pub fn fetched_at(&self, endpoint: Endpoint) -> Option<Timestamp> {
+        self.entries
+            .iter()
+            .find(|entry| entry.endpoint() == endpoint)
+            .map(CachedReference::fetched_at)
+    }
+
+    /// Returns the connection state captured with these records.
+    #[must_use]
+    pub const fn state(&self) -> ReferenceState {
+        self.state
+    }
+}

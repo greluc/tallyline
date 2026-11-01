@@ -5,6 +5,7 @@
 
 use tallyline_shared_kernel::api::model::{CommodityId, TerminalId, Timestamp};
 
+pub use crate::snapshot::ReferenceSnapshot;
 pub use tallyline_shared_kernel::api::model::UexEnvironment;
 /// A reference endpoint with an independent freshness window.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -15,6 +16,8 @@ pub enum Endpoint {
     Terminals,
     /// Current LIVE and optional PTU versions.
     GameVersions,
+    /// Per-side inventory status labels.
+    StatusLevels,
 }
 
 impl Endpoint {
@@ -24,7 +27,7 @@ impl Endpoint {
         match self {
             Self::Commodities => 3_600,
             Self::Terminals => 43_200,
-            Self::GameVersions => 86_400,
+            Self::GameVersions | Self::StatusLevels => 86_400,
         }
     }
 }
@@ -104,6 +107,8 @@ pub enum EndpointData {
     Terminals(Vec<Terminal>),
     /// Current versions returned by a successful public request.
     GameVersions(GameVersions),
+    /// Current per-side inventory status vocabulary.
+    StatusLevels(StatusLevels),
 }
 
 /// One atomically persisted successful endpoint response.
@@ -127,6 +132,7 @@ impl CachedReference {
             EndpointData::Commodities(_) => Endpoint::Commodities,
             EndpointData::Terminals(_) => Endpoint::Terminals,
             EndpointData::GameVersions(_) => Endpoint::GameVersions,
+            EndpointData::StatusLevels(_) => Endpoint::StatusLevels,
         }
     }
 
@@ -226,4 +232,26 @@ pub struct ReferenceDataRefreshed {
     pub fetched_at: Timestamp,
     /// A new version-history observation only for a game-versions fetch.
     pub game_versions: Option<GameVersions>,
+}
+
+/// One non-zero inventory status code with its side-specific labels.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct StatusLevel {
+    /// The server's non-zero code, whose membership is checked against this vocabulary.
+    pub code: std::num::NonZeroU8,
+    /// The complete display label.
+    pub name: String,
+    /// The abbreviated display label.
+    pub short_name: String,
+    /// The server's abbreviation.
+    pub abbreviation: String,
+}
+
+/// Independent buy and sell inventory-status vocabularies.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct StatusLevels {
+    /// Buy-side labels in server order.
+    pub buy: Vec<StatusLevel>,
+    /// Sell-side labels in server order.
+    pub sell: Vec<StatusLevel>,
 }

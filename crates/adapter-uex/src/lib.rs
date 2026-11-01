@@ -31,3 +31,9 @@ mod terminal_contract_tests;
     reason = "Requirement tags use a double underscore separator."
 )]
 mod proxy_contract_tests;
+#[cfg(test)]
+#[expect(
+    non_snake_case,
+    reason = "Requirement tags use a double underscore separator."
+)]
+mod status_contract_tests;

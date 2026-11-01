@@ -23,7 +23,7 @@ PRAGMA user_version=1;";
 
 /// Owns the reference cache connection on its dedicated storage worker.
 pub struct SqliteReferenceCache {
-    connection: Connection,
+    pub(crate) connection: Connection,
 }
 
 impl SqliteReferenceCache {
@@ -98,7 +98,7 @@ struct GameVersionsDocument {
     live: String,
     ptu: Option<String>,
 }
-fn timestamp(fetched_at: &str) -> Result<Timestamp, StorageError> {
+pub(crate) fn timestamp(fetched_at: &str) -> Result<Timestamp, StorageError> {
     let millis = fetched_at
         .parse::<u128>()
         .map_err(|_| StorageError::InvalidCache)?;
@@ -162,6 +162,7 @@ fn decode(endpoint: &str, payload: &str) -> Result<EndpointData, StorageError> {
                 ptu: document.ptu,
             }))
         }
+        "status_levels" => crate::status_document::decode(payload).map(EndpointData::StatusLevels),
         _ => Err(StorageError::InvalidCache),
     }
 }
@@ -202,6 +203,12 @@ fn encode(data: &EndpointData) -> Result<(&'static str, String), StorageError> {
                 ptu: versions.ptu.clone(),
             }),
         ),
+        EndpointData::StatusLevels(levels) => {
+            if !crate::status_document::valid(levels) {
+                return Err(StorageError::InvalidCache);
+            }
+            ("status_levels", crate::status_document::encode(levels))
+        }
     };
     Ok((endpoint, payload.map_err(|_| StorageError::InvalidCache)?))
 }
@@ -211,7 +218,7 @@ impl ReferenceDataCache for SqliteReferenceCache {
 
     fn load(&mut self) -> Result<Vec<CachedReference>, Self::Error> {
         let mut entries = Vec::new();
-        for endpoint in ["commodities", "game_versions", "terminals"] {
+        for endpoint in ["commodities", "game_versions", "status_levels", "terminals"] {
             let cached = self
                 .connection
                 .query_row(
@@ -242,7 +249,9 @@ impl ReferenceDataCache for SqliteReferenceCache {
                         (commodity.id().0,commodity.name(),commodity.code(),commodity.available(UexEnvironment::Live)))?;
                 }
             }
-            EndpointData::Terminals(_) | EndpointData::GameVersions(_) => {}
+            EndpointData::Terminals(_)
+            | EndpointData::GameVersions(_)
+            | EndpointData::StatusLevels(_) => {}
         }
         transaction.commit()?;
         Ok(())

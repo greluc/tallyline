@@ -3,6 +3,8 @@
 
 //! SQLite repository operations and failures.
 
+pub mod model;
+
 pub use crate::reference_cache::SqliteReferenceCache;
 
 /// A reference database failure.
@@ -12,6 +14,8 @@ pub enum StorageError {
     Database(rusqlite::Error),
     /// Persisted cache data or its schema is invalid.
     InvalidCache,
+    /// A backup did not pass integrity or restore-marker validation.
+    InvalidBackup,
     /// The database file could not be inspected.
     Filesystem(std::io::Error),
     /// A newer application schema cannot be opened for writing.
@@ -27,6 +31,7 @@ impl std::fmt::Display for StorageError {
     fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::Database(_) => formatter.write_str("reference database operation failed"),
+            Self::InvalidBackup => formatter.write_str("database backup verification failed"),
             Self::InvalidCache => formatter.write_str("reference cache data or schema is invalid"),
             Self::Filesystem(_) => formatter.write_str("reference database file is inaccessible"),
             Self::UnsupportedSchema { found, supported } => write!(

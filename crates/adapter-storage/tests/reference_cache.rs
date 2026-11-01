@@ -198,3 +198,167 @@ fn r_cap_3b__version_cache_roundtrip_preserves_non_semver_live_and_absent_ptu() 
         assert_eq!(reopened.load().unwrap(), vec![entry]);
     }
 }
+
+#[test]
+#[expect(
+    non_snake_case,
+    reason = "Requirement tags use a double underscore separator."
+)]
+fn r_nf_11__sqlite_backup_includes_uncheckpointed_wal_and_a_restore_marker() {
+    use tallyline_adapter_storage::api::model::BackupMetadata;
+    let directory = TestDirectory::new().unwrap();
+    let path = directory.0.join("tallyline.db");
+    let mut cache = SqliteReferenceCache::open(&path).unwrap();
+    let writer = rusqlite::Connection::open(&path).unwrap();
+    writer.pragma_update(None, "journal_mode", "WAL").unwrap();
+    writer.pragma_update(None, "wal_autocheckpoint", 0).unwrap();
+    let entry = CachedReference::new(
+        Timestamp::from_millis(90_999),
+        EndpointData::Commodities(vec![Commodity::new(
+            CommodityId(7),
+            "WAL record",
+            "WAL",
+            true,
+            None,
+        )]),
+    );
+    cache.replace(&entry).unwrap();
+    assert!(
+        std::fs::metadata(path.with_extension("db-wal"))
+            .unwrap()
+            .len()
+            > 0
+    );
+    let destination = directory.0.join("before.db");
+    let taken_at = Timestamp::from_millis(123_456_789);
+    assert_eq!(
+        cache.backup_into(&destination, taken_at, Some(3)).unwrap(),
+        1
+    );
+    let mut backup = SqliteReferenceCache::open(&destination).unwrap();
+    assert_eq!(backup.load().unwrap(), vec![entry.clone()]);
+    assert_eq!(
+        backup.backup_metadata().unwrap(),
+        Some(BackupMetadata {
+            taken_at,
+            from_schema: 1,
+            configuration_schema: Some(3)
+        })
+    );
+    assert_eq!(cache.backup_metadata().unwrap(), None);
+    assert_eq!(cache.load().unwrap(), vec![entry]);
+}
+
+#[test]
+#[expect(
+    non_snake_case,
+    reason = "Requirement tags use a double underscore separator."
+)]
+fn r_nf_11__ambiguous_restore_markers_fail_closed() {
+    let directory = TestDirectory::new().unwrap();
+    let path = directory.0.join("tallyline.db");
+    let cache = SqliteReferenceCache::open(&path).unwrap();
+    let writer = rusqlite::Connection::open(&path).unwrap();
+    writer.execute_batch("CREATE TABLE backup_meta(taken_at TEXT NOT NULL,from_version INTEGER NOT NULL,config_schema INTEGER); INSERT INTO backup_meta VALUES('123456',1,3),('999999',1,3);").unwrap();
+    assert!(matches!(
+        cache.backup_metadata(),
+        Err(tallyline_adapter_storage::api::StorageError::InvalidBackup)
+    ));
+}
+
+#[test]
+#[expect(
+    non_snake_case,
+    reason = "Requirement tags use a double underscore separator."
+)]
+fn r_nf_11__backup_never_replaces_a_file_and_keeps_absent_config_and_exact_time() {
+    let directory = TestDirectory::new().unwrap();
+    let mut cache = SqliteReferenceCache::open(directory.0.join("tallyline.db")).unwrap();
+    let destination = directory.0.join("existing.db");
+    std::fs::write(&destination, b"keep existing bytes").unwrap();
+    assert!(matches!(
+        cache.backup_into(&destination, Timestamp::from_seconds(10), None),
+        Err(tallyline_adapter_storage::api::StorageError::Filesystem(_))
+    ));
+    assert_eq!(std::fs::read(&destination).unwrap(), b"keep existing bytes");
+    let fresh = directory.0.join("new.db");
+    let taken_at = Timestamp::from_seconds(u64::MAX);
+    cache.backup_into(&fresh, taken_at, None).unwrap();
+    let backup = SqliteReferenceCache::open(&fresh).unwrap();
+    let metadata = backup.backup_metadata().unwrap().unwrap();
+    assert_eq!(metadata.taken_at, taken_at);
+    assert_eq!(metadata.configuration_schema, None);
+}
+
+#[test]
+#[expect(
+    non_snake_case,
+    reason = "Requirement tags use a double underscore separator."
+)]
+fn r_api_1__status_vocabulary_reopens_without_collapsing_buy_and_sell_labels() {
+    use std::num::NonZeroU8;
+    use tallyline_reference_data::api::model::{StatusLevel, StatusLevels};
+    let directory = TestDirectory::new().unwrap();
+    let path = directory.0.join("tallyline.db");
+    let entry = CachedReference::new(
+        Timestamp::from_seconds(90),
+        EndpointData::StatusLevels(StatusLevels {
+            buy: vec![StatusLevel {
+                code: NonZeroU8::new(7).unwrap(),
+                name: "Maximum Inventory (Full)".to_owned(),
+                short_name: "Maximum".to_owned(),
+                abbreviation: "MA".to_owned(),
+            }],
+            sell: vec![StatusLevel {
+                code: NonZeroU8::new(7).unwrap(),
+                name: "Maximum Inventory (No Demand)".to_owned(),
+                short_name: "Maximum".to_owned(),
+                abbreviation: "ND".to_owned(),
+            }],
+        }),
+    );
+    {
+        let mut cache = SqliteReferenceCache::open(&path).unwrap();
+        cache.replace(&entry).unwrap();
+    }
+    let mut reopened = SqliteReferenceCache::open(&path).unwrap();
+    assert_eq!(reopened.load().unwrap(), vec![entry]);
+}
+
+#[test]
+#[expect(
+    non_snake_case,
+    reason = "Requirement tags use a double underscore separator."
+)]
+fn r_api_5__invalid_status_replacement_preserves_the_last_successful_snapshot() {
+    use std::num::NonZeroU8;
+    use tallyline_reference_data::api::model::{StatusLevel, StatusLevels};
+    let directory = TestDirectory::new().unwrap();
+    let mut cache = SqliteReferenceCache::open(directory.0.join("tallyline.db")).unwrap();
+    let level = StatusLevel {
+        code: NonZeroU8::new(1).unwrap(),
+        name: "Out of Stock".to_owned(),
+        short_name: "Empty".to_owned(),
+        abbreviation: "OS".to_owned(),
+    };
+    let old = CachedReference::new(
+        Timestamp::from_seconds(100),
+        EndpointData::StatusLevels(StatusLevels {
+            buy: vec![level.clone()],
+            sell: vec![],
+        }),
+    );
+    cache.replace(&old).unwrap();
+    let invalid = CachedReference::new(
+        Timestamp::from_seconds(200),
+        EndpointData::StatusLevels(StatusLevels {
+            buy: vec![level.clone(), level],
+            sell: vec![],
+        }),
+    );
+    assert!(matches!(
+        cache.replace(&invalid),
+        Err(tallyline_adapter_storage::api::StorageError::InvalidCache)
+    ));
+    assert_eq!(cache.load().unwrap(), vec![old]);
+}

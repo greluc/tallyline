@@ -7,7 +7,7 @@ pub mod model;
 
 use model::{
     CachedReference, Commodity, Endpoint, EndpointData, GameVersions, ReferenceDataRefreshed,
-    ReferenceState, Terminal, UexEnvironment,
+    ReferenceSnapshot, ReferenceState, StatusLevels, Terminal, UexEnvironment,
 };
 use tallyline_shared_kernel::api::Clock;
 use tallyline_shared_kernel::api::model::Timestamp;
@@ -79,7 +79,9 @@ impl<S: ReferenceDataCache, C: Clock> ReferenceApplication<S, C> {
             .iter()
             .flat_map(|entry| match entry.data() {
                 EndpointData::Commodities(items) => items.as_slice(),
-                EndpointData::Terminals(_) | EndpointData::GameVersions(_) => &[],
+                EndpointData::Terminals(_)
+                | EndpointData::GameVersions(_)
+                | EndpointData::StatusLevels(_) => &[],
             })
             .filter(|item| {
                 item.available(environment)
@@ -97,7 +99,9 @@ impl<S: ReferenceDataCache, C: Clock> ReferenceApplication<S, C> {
             .iter()
             .flat_map(|entry| match entry.data() {
                 EndpointData::Terminals(items) => items.as_slice(),
-                EndpointData::Commodities(_) | EndpointData::GameVersions(_) => &[],
+                EndpointData::Commodities(_)
+                | EndpointData::GameVersions(_)
+                | EndpointData::StatusLevels(_) => &[],
             })
             .filter(|terminal| {
                 let text = terminal.text();
@@ -118,7 +122,19 @@ impl<S: ReferenceDataCache, C: Clock> ReferenceApplication<S, C> {
     pub fn game_versions(&self) -> Option<&GameVersions> {
         self.entries.iter().find_map(|entry| match entry.data() {
             EndpointData::GameVersions(versions) => Some(versions),
-            EndpointData::Commodities(_) | EndpointData::Terminals(_) => None,
+            EndpointData::Commodities(_)
+            | EndpointData::Terminals(_)
+            | EndpointData::StatusLevels(_) => None,
+        })
+    }
+    /// Returns the cached status vocabulary with distinct buy and sell labels.
+    #[must_use]
+    pub fn status_levels(&self) -> Option<&StatusLevels> {
+        self.entries.iter().find_map(|entry| match entry.data() {
+            EndpointData::StatusLevels(levels) => Some(levels),
+            EndpointData::Commodities(_)
+            | EndpointData::Terminals(_)
+            | EndpointData::GameVersions(_) => None,
         })
     }
     /// Returns endpoints whose successful fetch has expired.
@@ -128,6 +144,7 @@ impl<S: ReferenceDataCache, C: Clock> ReferenceApplication<S, C> {
             Endpoint::Commodities,
             Endpoint::Terminals,
             Endpoint::GameVersions,
+            Endpoint::StatusLevels,
         ]
         .into_iter()
         .filter(|endpoint| self.expired(*endpoint, endpoint.ttl_seconds()))
@@ -164,7 +181,9 @@ impl<S: ReferenceDataCache, C: Clock> ReferenceApplication<S, C> {
             fetched_at: entry.fetched_at(),
             game_versions: match entry.data() {
                 EndpointData::GameVersions(versions) => Some(versions.clone()),
-                EndpointData::Commodities(_) | EndpointData::Terminals(_) => None,
+                EndpointData::Commodities(_)
+                | EndpointData::Terminals(_)
+                | EndpointData::StatusLevels(_) => None,
             },
         };
         self.entries
@@ -188,6 +207,11 @@ impl<S: ReferenceDataCache, C: Clock> ReferenceApplication<S, C> {
         }
     }
 
+    /// Captures immutable environment-specific read data for a consumer.
+    #[must_use]
+    pub fn snapshot(&self, environment: UexEnvironment) -> ReferenceSnapshot {
+        ReferenceSnapshot::new(environment, self.state, &self.entries)
+    }
     /// Returns the visible connection state.
     #[must_use]
     pub const fn state(&self) -> ReferenceState {
