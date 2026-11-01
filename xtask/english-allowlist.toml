@@ -5,3 +5,13 @@ reason = "The task's own source: the German word list and the German samples of 
 [[exception]]
 path = "supply-chain/imports.lock"
 reason = "Generated cargo-vet audit records preserve upstream publisher names verbatim."
+
+[[exception]]
+path = "supply-chain/audits.toml"
+line = "user-id = 91569 # Martin Kr\u00f6ning (mkroening)"
+reason = "Canonical cargo-vet generated publisher identity must remain verbatim; no other line or audit/trust note is exempt."
+
+[[exception]]
+path = "supply-chain/audits.toml"
+line = "user-id = 6134 # Bastian K\u00f6cher (bkchr)"
+reason = "Canonical cargo-vet generated publisher identity must remain verbatim; no other line or audit/trust note is exempt."

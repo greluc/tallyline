@@ -669,6 +669,8 @@ pub enum ImportMode { Manual, Automatic }
 
 ## 7. UI (`ui`, egui/eframe 0.36)
 
+Implementation note 2026-11-01 (M1 shell): `app` launches the wgpu shell and owns one settings worker with a one-command channel and a bounded result channel. The UI draws before directory self-tests and settings loading complete. `workflows::api::SettingsApplication` applies preferences only after `AppSettingsStore` succeeds. `adapter-files::api::ConfigFile` owns schema version 1 (`settings.json`), serialises read-modify-write on the settings worker and preserves other contexts' sections. Its initial migration is absent configuration to current defaults; future schema versions are refused without a write. The base message catalogue is `crates/ui/messages/en.json` (JSON key-to-string map). View state and commands are exposed through `ui::api` and `ui::api::model`; dialogs stay in `dialog_presenter`. The minimum shell viewport is 800 × 640 logical pixels. The approved static TTF files and OFL texts ship separately under `assets/fonts/`; the composition root loads them before starting the native event loop. A source build can explicitly select that resource directory with `--assets`.
+
 - **State per view:** each view is a function of an owned state value. `update` draws the view from its state and returns commands; the drawing code holds no logic. Commands go through channels to the application APIs of the context crates and `workflows`; dependencies are passed to the constructor (no DI framework, no global state). State transitions are plain functions, unit-testable without a window; the harness for tests that drive the drawn UI is O-114.
 - **Threading:**
   - The UI thread runs only `update` and never blocks on I/O or computation.

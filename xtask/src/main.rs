@@ -26,7 +26,7 @@ use xtask::listing::check_listing;
 use xtask::lockfile;
 use xtask::notices::{
     ComponentFile, Inputs, NOTICES_DIRECTORY, REVIEWED_LIST_PATH, Roots, assemble,
-    parse_deny_report, parse_reviewed_list, vendored_crates, write_directory,
+    parse_deny_report, parse_reviewed_list, vendored_crates, write_catalogue, write_directory,
 };
 use xtask::osv::{judge, shipped_packages, shipped_roots};
 use xtask::registry::Registry;
@@ -60,6 +60,12 @@ fn main() -> ExitCode {
     {
         ["check"] => run_check(&root),
         ["guard"] => run_guard(&root),
+        ["build-code"] => run_build_code(&root),
+        ["native-scope"] => run_native_scope(&root),
+        ["native-assembly"] => {
+            run_native_assembly(&root, Path::new(xtask::native_assembly::REVIEWED_PATH))
+        }
+        ["native-assembly", review] => run_native_assembly(&root, Path::new(review)),
         ["mutation"] => run_mutation(&root, None),
         ["mutation", "--in-diff", diff] => run_mutation(&root, Some(Path::new(diff))),
         ["dco", base, head] => run_dco(&root, base, head),
@@ -75,7 +81,7 @@ fn main() -> ExitCode {
 fn usage() -> io::Result<ExitCode> {
     writeln!(
         io::stderr(),
-        "usage: cargo xtask check | guard | mutation [--in-diff <diff>] | dco <base> <head> | osv-gate <report.json> | vendor-hashes write | vendor-hashes verify | notices"
+        "usage: cargo xtask check | guard | build-code | native-scope | native-assembly [<approved.json>] | mutation [--in-diff <diff>] | dco <base> <head> | osv-gate <report.json> | vendor-hashes write | vendor-hashes verify | notices"
     )?;
     Ok(ExitCode::FAILURE)
 }
@@ -95,6 +101,13 @@ fn run_check(root: &Path) -> io::Result<ExitCode> {
         writeln!(io::stderr(), "==> {}", step.name())?;
         if !run_step(&step, root)? {
             failed.push(step.name());
+            if matches!(step, Step::NativeAssembly) {
+                writeln!(
+                    io::stderr(),
+                    "native assembly gate failed before test/build work"
+                )?;
+                return Ok(ExitCode::FAILURE);
+            }
         }
     }
     if failed.is_empty() {
@@ -110,6 +123,10 @@ fn run_step(step: &Step, root: &Path) -> io::Result<bool> {
     match step {
         Step::SupplyChainGuard => guard_passes(root),
         Step::NativeScope => native_scope_passes(root),
+        Step::NativeAssembly => {
+            native_assembly_passes(root, Path::new(xtask::native_assembly::REVIEWED_PATH))
+        }
+        Step::BuildCode => build_code_passes(root),
         Step::DenySuppressions => deny_suppressions_pass(root),
         Step::VetExemptions => vet_exemptions_pass(root),
         Step::Dependabot => dependabot_passes(root),
@@ -230,6 +247,38 @@ fn coverage_passes(root: &Path) -> io::Result<bool> {
         .status()?
         .success())
 }
+fn run_build_code(root: &Path) -> io::Result<ExitCode> {
+    if !guard_passes(root)? {
+        return Ok(ExitCode::FAILURE);
+    }
+    Ok(exit_status(build_code_passes(root)?))
+}
+
+fn build_code_passes(root: &Path) -> io::Result<bool> {
+    let metadata = cargo_stdout(
+        root,
+        &["metadata", "--locked", "--offline", "--format-version", "1"],
+    )?;
+    let hashes = xtask::build_code::source_hashes(&metadata).map_err(io::Error::other)?;
+    let findings = xtask::build_code::violations(
+        &metadata,
+        &fs::read_to_string(root.join(LOCKFILE))?,
+        &fs::read_to_string(root.join(xtask::build_code::REVIEWED_PATH))?,
+        &hashes,
+    )
+    .map_err(io::Error::other)?;
+    for finding in &findings {
+        writeln!(io::stderr(), "{finding}")?;
+    }
+    Ok(findings.is_empty())
+}
+fn run_native_scope(root: &Path) -> io::Result<ExitCode> {
+    if !guard_passes(root)? {
+        return Ok(ExitCode::FAILURE);
+    }
+    Ok(exit_status(native_scope_passes(root)?))
+}
+
 fn native_scope_passes(root: &Path) -> io::Result<bool> {
     let mut passed = true;
     for target in SHIPPED_TARGETS {
@@ -570,6 +619,19 @@ fn write_notices(root: &Path) -> io::Result<ExitCode> {
                         repository: root,
                     },
                 )?;
+                if let Err(error) = write_catalogue(
+                    &work_dir.join(target).join(NOTICES_DIRECTORY),
+                    &assembly,
+                    Roots {
+                        vendor: vendor_dir,
+                        toolchain: &sysroot,
+                        repository: root,
+                    },
+                ) {
+                    writeln!(io::stderr(), "{target}: {error}")?;
+                    passed = false;
+                    continue;
+                }
                 writeln!(
                     io::stderr(),
                     "wrote {NOTICES_WORK_DIR}/{target}/{NOTICES_DIRECTORY}: {} files for {} shipped crates and the reviewed list",
@@ -606,4 +668,54 @@ fn check_requirement_tags(list: &[String], root: &Path) -> io::Result<bool> {
         writeln!(io::stderr(), "{}: {:?}", violation.test, violation.problem)?;
     }
     Ok(violations.is_empty())
+}
+
+fn run_native_assembly(root: &Path, review: &Path) -> io::Result<ExitCode> {
+    if !guard_passes(root)? {
+        return Ok(ExitCode::FAILURE);
+    }
+    Ok(exit_status(native_assembly_passes(root, review)?))
+}
+
+fn native_assembly_passes(root: &Path, review: &Path) -> io::Result<bool> {
+    let metadata = cargo_stdout(
+        root,
+        &["metadata", "--locked", "--offline", "--format-version", "1"],
+    )?;
+    let files = xtask::native_assembly::source_files(&metadata).map_err(io::Error::other)?;
+    writeln!(
+        io::stderr(),
+        "literal assembly inventory: {} Rust source files",
+        files.len()
+    )?;
+    let mut targets = std::collections::BTreeMap::new();
+    for target in SHIPPED_TARGETS {
+        targets.insert(
+            target.to_owned(),
+            cargo_stdout(
+                root,
+                &[
+                    "metadata",
+                    "--locked",
+                    "--offline",
+                    "--format-version",
+                    "1",
+                    "--filter-platform",
+                    target,
+                ],
+            )?,
+        );
+    }
+    let findings = xtask::native_assembly::violations(
+        &metadata,
+        &fs::read_to_string(root.join(LOCKFILE))?,
+        &fs::read_to_string(root.join(review))?,
+        &files,
+        &targets,
+    )
+    .map_err(io::Error::other)?;
+    for finding in &findings {
+        writeln!(io::stderr(), "{finding}")?;
+    }
+    Ok(findings.is_empty())
 }

@@ -314,31 +314,41 @@ Source code
   maintenance-fee EULA (O-11). cargo-packager and the WiX tools themselves
   are build tools and are not shipped.
 
-2.12 Fonts [pending O-112]
-  Families      IBM Plex Sans (Regular, SemiBold, Bold) and JetBrains Mono NL
-                (Regular, Bold), from the Tallyline design system
-  Per family    version, upstream source and commit [recorded when the fonts
-                are adopted; the delivered files are compared with upstream
-                first]
-  Licence       OFL-1.1. The OFL.txt ships next to the font files and comes
-                from the same source and commit as they do, because the
-                Reserved Font Name can differ between sources. The font files
-                are not subset, converted or otherwise modified.
-  SHA-256       read from the archive delivered with the Tallyline egui
-                rendition, not yet compared with upstream:
+2.12 Fonts
+  Families      IBM Plex Sans (Regular, SemiBold, Bold) 3.005 and JetBrains
+                Mono NL (Regular, Bold) 2.304, approved by ADR-0004/O-83 D4
+  Source        IBM/plex commit 71f558992315a12ca1f06a2215d57962a1992162,
+                packages/plex-sans/fonts/complete/ttf/ and its
+                packages/plex-sans/LICENSE.txt
+                JetBrains/JetBrainsMono v2.304, commit
+                cd5227bd1f61dff3bbd6c814ceaf7ffd95e947d9, fonts/ttf/
+                and the OFL.txt at the repository root
+  Copyright     Copyright © 2017 IBM Corp. with Reserved Font Name "Plex"
+                Copyright 2020 The JetBrains Mono Project Authors
+                (https://github.com/JetBrains/JetBrainsMono)
+  Licence       OFL-1.1. The source-specific OFL.txt ships next to each
+                family's font files. The files are separate and unmodified:
+                not subset, converted, renamed or embedded in the binary.
+  Location      assets/fonts/{ibm-plex,jetbrains-mono}/ in the app image;
+                crates/ui/assets/fonts/ in the source tree
+  SHA-256
     IBMPlexSans-Regular.ttf
       975dcda37d80f038dcd143c22e33ca2d97a0cc5a929aace1c749153b0fe1afa5
     IBMPlexSans-SemiBold.ttf
       a20caf8286023a6a7a85e40b1d2a4ae9fc3e3b1f9eda8f4c542dd4986af67bb1
     IBMPlexSans-Bold.ttf
       9e6c74a889a700d707613d24548fe4ffa6bc59559a0689d2cf9e133bdcdafb2f
+    ibm-plex/OFL.txt
+      7e6b2818edbd8f6a01ae80641cc8f16a51080d08fb4e532be3a0b6f74adb07da
     JetBrainsMonoNL-Regular.ttf
       fb3b2575d7b0657359707993288f12a7360344d39387bb26050e276d61f6bd2a
     JetBrainsMonoNL-Bold.ttf
       0198e841824025f8876e5c297f0b9b497ee8d6eb9969710a3328e1303f996ec3
-  Amended 2026-10-12 (ADR-0005): the families and the hashes are recorded;
-  the pending design-system decision D10 is now O-112.
-
+    jetbrains-mono/OFL.txt
+      30f0c136e3c88e422d0791acd97238870f9054a9729bc34cf2ff0d4ed8cac4ad
+  Corrected 2026-11-01: the static font files were fetched from these
+  immutable upstream sources and every TTF matches its previously recorded
+  hash. The earlier adoption and source-comparison placeholders are closed.
 2.13 Icons
   Source        the Tallyline state icons are drawn from egui primitives in
                 crates/egui/src/icon.rs; no third-party icon font
@@ -387,7 +397,10 @@ Source code
                 manifests and vendored sources]
   Text          legal/crates/, with the other crates
   Added texts   the published sources omit the licence files for accesskit,
-                ecolor, egui, emath, epaint and profiling. Their MIT and
+                ecolor, egui, emath, epaint and profiling. Added 2026-11-01:
+                eframe, egui-wgpu and egui-winit 0.36.2 omit the same files
+                and use the existing emilk/egui texts below, from the same
+                published VCS commit. Their MIT and
                 Apache-2.0 texts are copied unmodified from upstream:
     legal/accesskit/ (with accesskit 0.24.1)
       AccessKit/accesskit main at f3026222559c7f5f46d8f25cb7404de68eb149f0
@@ -395,7 +408,8 @@ Source code
       62c7a1e35f56406896d7aa7ca52d0cc0d272ac022b5d2796e7d6905db8a3636a
       LICENSE-MIT SHA-256
       23f18e03dc49df91622fe2a76176497404e46ced8a715d9d2b67a7446571cca3
-    legal/ecolor/, legal/egui/, legal/emath/ and legal/epaint/
+    legal/ecolor/, legal/egui/, legal/emath/, legal/epaint/,
+    legal/eframe/, legal/egui-wgpu/ and legal/egui-winit/
       emilk/egui tag 0.36.2, commit
       49682f8baa058bf49e011035cfbd6e825f88a5ef
       LICENSE-APACHE SHA-256
@@ -580,8 +594,10 @@ Which variant goes on which surface (light or dark background) is checked by
 the owner against the kit [open point O-27].
 
 The two notices follow verbatim. They stay in English in every locale, each
-as one unbroken line, and are never reworded, translated, wrapped or
-"tidied"; their quirks are part of the prescribed text.
+as one unbroken string, and are never reworded, translated or
+"tidied"; their quirks are part of the prescribed text. Corrected 2026-11-01:
+R-UI-19 permits layout flow over several lines without inserting line breaks
+into either stored string.
 
 Fan Kit Guidelines, section 2b (SHA-256 of the UTF-8 line without its line
 break: 154deedbb183aeec2ba7f05c3d16416e55ceee634a36ec1f9ee4785b26467fa1):
@@ -638,3 +654,90 @@ from the OpenJDK runtime and OpenJFX, which are no longer shipped. If the
 generated list (2.16) or the ONNX Runtime ThirdPartyNotices.txt (2.3) shows a
 shipped component whose licence requires a credit, it is added here in the
 licence's own wording.
+
+
+
+7. Disabled and unsupported native dependency metadata
+-----------------------------------------------------
+
+Approved 2026-11-01 for graph metadata only: wayland-backend 0.3.17 has two
+MIT-licensed C logging shims, but its log feature is disabled. Android-only
+android-activity 0.6.1 (crate MIT OR Apache-2.0; native GameActivity Apache-2.0)
+and Apple-only objc-sys 0.3.5 (MIT) are excluded from the Windows and Linux
+build graphs. These parts are not compiled or shipped. Any activation needs
+new owner approval; the restrictions and source evidence are in 09 section 3b.
+
+8. Additional omitted crate licence files adopted with the desktop shell
+-----------------------------------------------------------------------
+
+clipboard-win 5.4.3 declares BSL-1.0, but omits its licence file from the
+published archive. The unmodified LICENSE from DoumanAsh/clipboard-win commit
+ed27008ae5d1f10cfbb266de039f0fb35fd05a56 (the published .cargo_vcs_info.json)
+ships as legal/clipboard-win/LICENSE; SHA-256
+c9bff75738922193e67fa726fa225535870d2aa1059f91452c411736284ad566.
+
+spirv 0.4.0+sdk-1.4.341.0 declares Apache-2.0, but omits its licence file from
+the published archive. The unmodified LICENSE from gfx-rs/rspirv commit
+8afc3d0ac8e158128cd1410bb2e4b4c26ab11bb4 (the published .cargo_vcs_info.json)
+ships as legal/spirv/LICENSE; SHA-256
+cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30.
+
+Both entries are in the reviewed list of S-34 and were read on 2026-11-01.
+
+9. Copyright information not stated by upstream
+------------------------------------------------
+
+Reviewed 2026-11-01: the exact versions in
+supply-chain/copyright-absence.toml provide their licence terms but no named holder in
+the published source and licence material. The exact-version source evidence
+is recorded in supply-chain/copyright-absence.toml. Their catalogue entries
+explicitly say that upstream does not state a holder, and retain the actual
+source link, SPDX expression and full unmodified legal texts. Authors are
+not presented as copyright holders without a statement from upstream.
+
+10. AccessKit source copyright and Chromium notice
+-------------------------------------------------
+
+The AccessKit 0.24.1 licence files do not name holders. Its published
+common/src/lib.rs header does: Copyright 2021 The AccessKit Authors and
+Copyright 2018 The Chromium Authors. The exact initial comment block is
+preserved as legal/accesskit/NOTICE (SHA-256
+468e37a93c8dd8e5458b325dcc7ccf348bfd176dcc07e79cdcc023e53041c456).
+The header references LICENSE.chromium, omitted from the published archive;
+the unmodified file from AccessKit/accesskit commit
+a55d3e1a18bb9ef0e4bccc9083fb13c3e0ad8969 is included alongside it
+(SHA-256 845022e0c1db1abb41a6ba4cd3c4b674ec290f3359d9d3c78ae558d4c0ed9308).
+Source: https://github.com/AccessKit/accesskit/tree/a55d3e1a18bb9ef0e4bccc9083fb13c3e0ad8969
+Reviewed 2026-11-01. These notices preserve upstream attribution; generic
+Apache grant/template prose is not treated as a copyright-holder statement.
+
+
+11. Scoped Rust inline assembly
+------------------------------
+
+Owner-approved 2026-11-01, reviewed again by 2027-04-13 or before any
+version/source/feature/target/backend change: the exact 19 package versions
+and 98 Rust indicator files in supply-chain/native-assembly.json are the
+bounded assembly inventory for x86_64 Windows MSVC and Linux GNU. The native
+parts, reasons, elected licences, alternatives and activation limits are in
+docs/plan/09-engineering-principles.md section 3b. This does not approve any
+additional target, optional native activation or custom selector override.
+
+Active literal assembly is limited to libm 0.2.16 x86 maths, Linux raw syscall
+and vDSO paths in rustix 0.38.44/1.1.5, and instruction-free compiler/register
+barriers in zeroize 1.9.1 and zmij 1.0.23. cpufeatures 0.3.1, getrandom
+0.3.4/0.4.3, half 2.7.1, parking_lot 0.12.5, sha2 0.11.1 and zlib-rs 0.6.8
+retain their recorded inactive architecture/feature/backend assembly branches.
+concurrent-queue 2.5.0, objc2 0.5.3/0.6.5, portable-atomic 1.15.0 and
+redox_syscall 0.4.1/0.5.18/0.9.5 are absent from both supported graphs;
+none of their native code is approved for activation.
+
+MIT is elected for the dual MIT/Apache rows and the compatible libm notices;
+zlib-rs uses Zlib. Full shipped licence terms remain in the generated legal
+catalogue. The off-target objc2 archives omit their MIT text: 0.5.3 was read
+at https://raw.githubusercontent.com/madsmtm/objc2/5237cbf081d04ef75a1f6a207b4018e7c1ae7438/LICENSE.txt
+and 0.6.5 at https://raw.githubusercontent.com/madsmtm/objc2/d7d2fa23ceaa5e6096c923b081040e5d81b3b9df/LICENSE.md
+(the latter also records Apple SDK-derived licensing implications). No Apple
+build/distribution is approved. The archive/source hashes bind the inspected
+material; this native-effects review is separate from cargo-vet source audits
+and does not claim a complete unsafe-code or third-party-source audit.

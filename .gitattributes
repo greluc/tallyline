@@ -32,3 +32,5 @@ corpus/public/**/*.jpeg filter=lfs diff=lfs merge=lfs -text
 corpus/public/**/*.png filter=lfs diff=lfs merge=lfs -text
 
 Cargo.lock -linguist-generated
+crates/ui/assets/fonts/**/OFL.txt -text whitespace=-blank-at-eol
+supply-chain/notices/accesskit/NOTICE whitespace=-blank-at-eof

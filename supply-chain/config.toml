@@ -22,6 +22,11 @@ url = "https://raw.githubusercontent.com/mozilla/supply-chain/main/audits.toml"
 [imports.zcash]
 url = "https://raw.githubusercontent.com/zcash/rust-ecosystem/main/supply-chain/audits.toml"
 
+[[exemptions.android-properties]]
+version = "0.2.2"
+criteria = "safe-to-deploy"
+notes = "S-6 justified off-target exemption, not a source-soundness audit: absent from both shipped-target graphs x86_64-pc-windows-msvc and x86_64-unknown-linux-gnu, and native-scope rejects any reachable version including renamed edges. Complete source inspection found unsafe Android bionic-deprecated empty-CString 92-byte output buffer/reconstruction defects and Rust-ABI callback declarations; do not activate Android or conceal these defects. Final filtered metadata and native-scope passed 2026-11-01. Separate suppression register revisit 2027-04-13 or before any activation."
+
 [[exemptions.aws-lc-sys]]
 version = "0.46.0"
 criteria = "safe-to-deploy"
@@ -47,6 +52,11 @@ version = "0.10.1"
 criteria = "safe-to-deploy"
 notes = "not compiled for the shipped targets x86_64-pc-windows-msvc and x86_64-unknown-linux-gnu; locked only as a dependency of another platform"
 
+[[exemptions.core-graphics]]
+version = "0.23.2"
+criteria = "safe-to-deploy"
+notes = "S-6 justified off-target exemption only: Apple bindings absent from both shipped-target graphs x86_64-pc-windows-msvc and x86_64-unknown-linux-gnu; native-scope rejects any reachable version including renamed edges. Final filtered metadata and native-scope passed 2026-11-01. No source audit or new native-code approval is claimed. Separate suppression register revisit 2027-04-13 or before activation."
+
 [[exemptions.crypto-common]]
 version = "0.2.2"
 criteria = "safe-to-deploy"
@@ -57,15 +67,10 @@ version = "0.11.3"
 criteria = "safe-to-deploy"
 notes = "initial adoption, not yet audited"
 
-[[exemptions.hashbrown]]
-version = "0.17.1"
+[[exemptions.dispatch]]
+version = "0.2.0"
 criteria = "safe-to-deploy"
-notes = "initial adoption, not yet audited"
-
-[[exemptions.hermit-abi]]
-version = "0.5.3"
-criteria = "safe-to-run"
-notes = "not compiled for the shipped targets x86_64-pc-windows-msvc and x86_64-unknown-linux-gnu; locked only as a dependency of another platform"
+notes = "S-6 justified off-target exemption only: Apple dispatch bindings absent from both shipped-target graphs x86_64-pc-windows-msvc and x86_64-unknown-linux-gnu; native-scope rejects any reachable version including renamed edges. Final filtered metadata and native-scope passed 2026-11-01. No source audit or new native-code approval is claimed. Separate suppression register revisit 2027-04-13 or before activation."
 
 [[exemptions.hybrid-array]]
 version = "0.4.15"
@@ -99,11 +104,6 @@ notes = "not compiled for the shipped targets x86_64-pc-windows-msvc and x86_64-
 
 [[exemptions.js-sys]]
 version = "0.3.106"
-criteria = "safe-to-deploy"
-notes = "not compiled for the shipped targets x86_64-pc-windows-msvc and x86_64-unknown-linux-gnu; locked only as a dependency of another platform"
-
-[[exemptions.r-efi]]
-version = "6.0.0"
 criteria = "safe-to-deploy"
 notes = "not compiled for the shipped targets x86_64-pc-windows-msvc and x86_64-unknown-linux-gnu; locked only as a dependency of another platform"
 

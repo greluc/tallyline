@@ -60,3 +60,11 @@ Native libraries that ship with the app but do not come through Cargo (10 S-22, 
 ## Dependabot
 
 `.github/dependabot.yml` covers the `cargo` and `github-actions` ecosystems, weekly on Mondays, with a cooldown of 7 days for version updates (10 S-7; security updates are exempt by GitHub's design), at most five open pull requests per ecosystem, the maintainer as assignee and the commit prefixes `build(deps)` and `ci(deps)`. Dependabot never merges: nothing under `.github/` enables auto-merge, and `cargo xtask check` fails if that changes. It cannot update the tools of the table above, the Rust toolchain pin or the vendor hash list; a Dependabot pull request for a crate is red until the follow-up commits of the procedure in `supply-chain/README.md` land (10 S-8).
+
+## Desktop font resources
+
+Adopted 2026-11-01: unmodified static IBM Plex Sans 3.005 files from IBM/plex commit `71f558992315a12ca1f06a2215d57962a1992162` (`packages/plex-sans/fonts/complete/ttf/`, licence at `packages/plex-sans/LICENSE.txt`) and JetBrains Mono NL 2.304 from JetBrains/JetBrainsMono commit `cd5227bd1f61dff3bbd6c814ceaf7ffd95e947d9` (`v2.304`, `fonts/ttf/`, root `OFL.txt`). Each TTF matches the hash previously recorded in `NOTICE` §2.12. That section records every TTF and source-specific OFL SHA-256. Files ship separately under `assets/fonts/`; neither family is subset, converted or embedded in the binary. The canonical `LICENSES/OFL-1.1.txt` is the SPDX licence-list text; the font-specific notices remain next to each family's files.
+
+## Desktop security update exception — 2026-11-01
+
+`webbrowser` 1.2.6 replaces 1.2.4 for [GHSA-j2mc-vg6q-w75p](https://github.com/amodm/webbrowser-rs/security/advisories/GHSA-j2mc-vg6q-w75p), published 2026-10-31 and affecting versions through 1.2.5. S-7 explicitly exempts security updates from the seven-day cooldown. The published 1.2.6 `src/unix.rs` uses `rundll32.exe` without a command shell for WSL HTTP(S), and its fallback passes a UTF-16LE/base64 encoded PowerShell command with a quoted URL literal. The published MIT text and manifest were read; VCS commit `29065db6d08e3969238018d222876007f7c835a4`. No advisory payload or malicious URL was executed.

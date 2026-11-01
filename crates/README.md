@@ -5,3 +5,8 @@ The workspace crates of Tallyline: the core (`shared-kernel`, the context crates
 | Directory | Package | State |
 |---|---|---|
 | `adapter-uex/` | `tallyline-adapter-uex` | the read-only UEX client of the M0 API spike and its CLI `tallyline-uex-spike` (issue #24) |
+| `egui/` | `tallyline-egui` | Tallyline theme tokens and reusable widgets |
+| `workflows/` | `tallyline-workflows` | application preferences and save-before-apply workflows |
+| `adapter-files/` | `tallyline-adapter-files` | versioned atomic settings and installed/portable directory self-tests |
+| `ui/` | `tallyline-ui` | owned shell state, message catalogue, legal unit and user-driven dialogs |
+| `app/` | `tallyline-app` | native `tallyline` composition root and bounded settings worker |

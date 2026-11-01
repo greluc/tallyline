@@ -9,18 +9,33 @@ files = [
     { toolchain = "share/doc/rust/licenses/LLVM-exception.txt" },
     { toolchain = "share/doc/rust/licenses/Unicode-3.0.txt" },
 ]
+[component.catalogue]
+version = "1.99.0"
+licence = "MIT OR Apache-2.0 WITH LLVM-exception"
+source = "https://github.com/rust-lang/rust/tree/1.99.0/library"
+copyright = ["The Rust Project Developers (see https://thanks.rust-lang.org)"]
 
 [[component]]
 directory = "jitterentropy"
 name = "The jitterentropy library inside aws-lc-sys"
 shipped = { with-crate = "aws-lc-sys" }
 files = [{ repository = "supply-chain/notices/jitterentropy/LICENSE" }]
+[component.catalogue]
+version = "AWS-LC 5.11.0 snapshot"
+licence = "BSD-3-Clause"
+source = "https://github.com/aws/aws-lc/tree/fa9bc8d6f7cfb2cf849b247fb06bbbfc41ecc9d6"
+copyright = ["Copyright (C) 2017 - 2025, Stephan Mueller <smueller@chronox.de>"]
 
 [[component]]
 directory = "s2n-bignum"
 name = "The s2n-bignum library inside aws-lc-sys"
 shipped = { with-crate = "aws-lc-sys" }
 files = [{ repository = "supply-chain/notices/s2n-bignum/LICENSE" }]
+[component.catalogue]
+version = "AWS-LC 5.11.0 snapshot"
+licence = "Apache-2.0"
+source = "https://github.com/aws/aws-lc/tree/fa9bc8d6f7cfb2cf849b247fb06bbbfc41ecc9d6"
+copyright = ["Copyright Amazon.com, Inc. or its affiliates.", "Copyright (c) 2015 Andrew Gallant", "Copyright 2021-2024 Amazon.com, Inc. or its affiliates."]
 
 [[component]]
 directory = "egui"
@@ -65,6 +80,8 @@ shipped = { with-crate = "accesskit" }
 files = [
     { repository = "supply-chain/notices/accesskit/LICENSE-APACHE" },
     { repository = "supply-chain/notices/accesskit/LICENSE-MIT" },
+    { repository = "supply-chain/notices/accesskit/LICENSE.chromium" },
+    { repository = "supply-chain/notices/accesskit/NOTICE" },
 ]
 
 [[component]]
@@ -75,3 +92,67 @@ files = [
     { repository = "supply-chain/notices/profiling/LICENSE-APACHE" },
     { repository = "supply-chain/notices/profiling/LICENSE-MIT" },
 ]
+
+
+[[component]]
+directory = "ibm-plex"
+name = "IBM Plex Sans"
+shipped = "always"
+files = [{ repository = "crates/ui/assets/fonts/ibm-plex/OFL.txt" }]
+[component.catalogue]
+version = "3.005"
+licence = "OFL-1.1"
+source = "https://github.com/IBM/plex/tree/71f558992315a12ca1f06a2215d57962a1992162/packages/plex-sans"
+copyright = ['Copyright © 2017 IBM Corp. with Reserved Font Name "Plex"']
+
+[[component]]
+directory = "jetbrains-mono"
+name = "JetBrains Mono NL"
+shipped = "always"
+files = [{ repository = "crates/ui/assets/fonts/jetbrains-mono/OFL.txt" }]
+[component.catalogue]
+version = "2.304"
+licence = "OFL-1.1"
+source = "https://github.com/JetBrains/JetBrainsMono/tree/cd5227bd1f61dff3bbd6c814ceaf7ffd95e947d9"
+copyright = ["Copyright 2020 The JetBrains Mono Project Authors (https://github.com/JetBrains/JetBrainsMono)"]
+
+[[component]]
+directory = "fan-kit"
+name = "Star Citizen Fan Kit artwork and notices"
+shipped = "always"
+files = [{ repository = "LICENSES/LicenseRef-Fankit-Agreement.txt" }, { repository = "NOTICE" }]
+[component.catalogue]
+version = "Fankit_2025_11_19"
+licence = "LicenseRef-Fankit-Agreement"
+source = "https://github.com/greluc/tallyline/blob/main/NOTICE"
+copyright = ["Cloud Imperium Rights LLC and Cloud Imperium Rights Ltd."]
+
+[[component]]
+directory = "eframe"
+name = "The eframe crate from emilk/egui"
+shipped = { with-crate = "eframe" }
+files = [{ repository = "supply-chain/notices/egui/LICENSE-APACHE" }, { repository = "supply-chain/notices/egui/LICENSE-MIT" }]
+
+[[component]]
+directory = "egui-wgpu"
+name = "The egui-wgpu crate from emilk/egui"
+shipped = { with-crate = "egui-wgpu" }
+files = [{ repository = "supply-chain/notices/egui/LICENSE-APACHE" }, { repository = "supply-chain/notices/egui/LICENSE-MIT" }]
+
+[[component]]
+directory = "egui-winit"
+name = "The egui-winit crate from emilk/egui"
+shipped = { with-crate = "egui-winit" }
+files = [{ repository = "supply-chain/notices/egui/LICENSE-APACHE" }, { repository = "supply-chain/notices/egui/LICENSE-MIT" }]
+
+[[component]]
+directory = "clipboard-win"
+name = "The clipboard-win crate"
+shipped = { with-crate = "clipboard-win" }
+files = [{ repository = "supply-chain/notices/clipboard-win/LICENSE" }]
+
+[[component]]
+directory = "spirv"
+name = "The spirv crate"
+shipped = { with-crate = "spirv" }
+files = [{ repository = "supply-chain/notices/spirv/LICENSE" }]

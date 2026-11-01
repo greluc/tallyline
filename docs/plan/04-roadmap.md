@@ -10,7 +10,7 @@ Implementation tickets published 2026-11-01: [M1](https://github.com/greluc/tall
 
 Status 2026-11-01 (quality gates): core coverage is automatic in `cargo xtask check`; changed-line PR and full nightly mutation checks enforce the initial 70% floor. Both select exact core membership, fail malformed inputs and visibly skip while no core exists, so no baseline is claimed. Pinned tool Windows compatibility is checked; Linux CI and the first full-core measurement/ratchet remain open (09 §8, 11 §B3, `docs/dependency-pins.md`).
 
-Status 2026-11-01 (native scope): `cargo xtask check` enforces the three owner-approved issue #80 restrictions with negative metadata fixtures for native activation and supported-target leakage (09 §3b, `xtask/README.md`). The general native inventory and S-12 build-script/procedural-macro source review remain open; this guard does not complete M0.
+Status 2026-11-01 (native scope): `cargo xtask check` enforces the three owner-approved issue #80 restrictions with negative metadata fixtures for native activation and supported-target leakage (09 §3b, `xtask/README.md`). The current locked S-12 effects/source-review inventory is now recorded and enforced for 96 build/procedural-macro targets, with exact archive and entrypoint hashes and explicitly bounded review notes. Existing macro audit coverage and the AWS-LC source limitation retain their qualifications; no fresh whole-crate audit is implied. The separately owner-approved literal assembly inventory binds 19 versions and 98 indicator files to exact hashes, features and supported targets. General semantic detection of arbitrary native code, macro expansion and generated code remains limited as recorded in 09 section 3b; these current-graph checks do not complete unrelated M0 work.
 
 ## M0 – Foundation and verification
 
@@ -231,3 +231,7 @@ Amended 2026-10-12 (ADR-0005): R-UI-17 is split. R-UI-17 (contrast, keyboard ope
 ## M2 corpus inspection progress — 2026-11-01
 
 Issue #102 adds `tools/ocr-eval inspect` and separate `annotate` proposals, the schema-v2 Gateway migration and [the contributor capture protocol](../user/corpus-capture.md). Sample readiness distinguishes gated, insufficient, synthetic-only and missing classes before recognition. R-QA-1 schema tests moved to the tool; R-QA-3 recognition metrics, snapshot replay, baselines and release class completeness remain open.
+
+## M1 shell implementation record — 2026-11-01
+
+Issue #80 adds the native shell, first-launch legal screen, theme persistence, versioned settings, installed and portable directory probes, and user-driven legal dialogs. Tests are at the approved application, actual-filesystem and UI command/paint seams. The remaining M1 capture, account, reference and submission work is separate; this record does not complete M1 or close O-27 or the packaging spike O-116.

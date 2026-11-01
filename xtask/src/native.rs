@@ -41,7 +41,10 @@ pub fn violations(metadata: &str) -> Result<Vec<String>, String> {
             .iter()
             .map(string)
             .collect::<Result<Vec<_>, _>>()?;
-        if matches!(name, "android-activity" | "objc-sys") {
+        if matches!(
+            name,
+            "android-activity" | "objc-sys" | "android-properties" | "core-graphics" | "dispatch"
+        ) {
             findings.push(format!("{name} {version} must be absent from the supported target graph; new owner approval is required"));
         }
         if name == "wayland-backend" && features.contains(&"log") {
