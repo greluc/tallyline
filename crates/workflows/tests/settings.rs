@@ -80,3 +80,37 @@ fn r_ui_19_q_app__onboarding_completion_is_persisted_before_leaving_the_start_sc
 fn r_ui_7_q_theme__new_preferences_follow_the_system_theme() {
     assert_eq!(AppSettings::default().theme(), Theme::System);
 }
+
+#[test]
+#[expect(
+    non_snake_case,
+    reason = "Requirement tags use a double underscore separator."
+)]
+fn r_nf_7__release_versions_follow_numeric_stable_tag_order() {
+    use tallyline_workflows::api::model::ReleaseVersion;
+    assert!(ReleaseVersion::parse("v2.0.0").unwrap() > ReleaseVersion::parse("v1.99.99").unwrap());
+    assert!(ReleaseVersion::parse("v1.10.0").unwrap() > ReleaseVersion::parse("v1.9.9").unwrap());
+    assert_eq!(
+        ReleaseVersion::parse("v2.0.1").unwrap().release_url(),
+        "https://github.com/greluc/tallyline/releases/tag/v2.0.1"
+    );
+    assert_eq!(
+        ReleaseVersion::parse("v0.0.0").unwrap().to_string(),
+        "v0.0.0"
+    );
+    for tag in [
+        "v1.0.0-rc.1",
+        "v1.0.0+build",
+        "1.0.0",
+        "v01.0.0",
+        "v1.2",
+        "v1.2.3.4",
+        "v1.2.x",
+        "v+1.2.3",
+        "v1..3",
+        "v1.2.",
+        "v18446744073709551616.0.0",
+    ] {
+        assert!(ReleaseVersion::parse(tag).is_none(), "{tag}");
+    }
+}

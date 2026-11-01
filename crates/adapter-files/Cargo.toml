@@ -9,6 +9,7 @@ publish.workspace = true
 [dependencies]
 tallyline-workflows = { path = "../workflows" }
 serde_json.workspace = true
+serde.workspace = true
 png.workspace = true
 
 [lints]

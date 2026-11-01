@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 Lucas Greuloch
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! OS instance election and bounded local activation without network ports.
+//! OS instance election, bounded local activation and optional release metadata checks.
 
 #![deny(unsafe_code)]
 
@@ -13,3 +13,5 @@ mod protocol;
 mod socket;
 #[cfg(windows)]
 mod windows_socket;
+
+mod releases;

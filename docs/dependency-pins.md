@@ -68,3 +68,7 @@ Adopted 2026-11-01: unmodified static IBM Plex Sans 3.005 files from IBM/plex co
 ## Desktop security update exception — 2026-11-01
 
 `webbrowser` 1.2.6 replaces 1.2.4 for [GHSA-j2mc-vg6q-w75p](https://github.com/amodm/webbrowser-rs/security/advisories/GHSA-j2mc-vg6q-w75p), published 2026-10-31 and affecting versions through 1.2.5. S-7 explicitly exempts security updates from the seven-day cooldown. The published 1.2.6 `src/unix.rs` uses `rundll32.exe` without a command shell for WSL HTTP(S), and its fallback passes a UTF-16LE/base64 encoded PowerShell command with a quoted URL literal. The published MIT text and manifest were read; VCS commit `29065db6d08e3969238018d222876007f7c835a4`. No advisory payload or malicious URL was executed.
+
+## Release-check workspace wiring (2026-11-01)
+
+Issue #137 reuses only the existing locked `reqwest`, `rustls`, `rustls-platform-verifier`, `serde`, `serde_json`, `tokio` and `wiremock` packages for the platform adapter, exact-byte backup manifests and composition-root worker. The workflow crate also names the existing shared kernel and real file/HTTP adapters in acceptance-test dependencies. These are workspace-edge changes only: no external package version, source checksum, vendor hash, native exception or feature approval changes.

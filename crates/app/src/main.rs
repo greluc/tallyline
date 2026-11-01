@@ -9,6 +9,7 @@ mod executor;
 mod game_wiring;
 mod instance_wiring;
 mod settings_wiring;
+mod update_wiring;
 
 use tallyline_ui::api::{Catalogue, DesktopShell, configure_fonts};
 

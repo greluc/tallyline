@@ -34,6 +34,11 @@ impl Drop for TestDirectory {
     }
 }
 
+fn backed_store(path: PathBuf) -> ConfigFile {
+    let backup = path.with_extension("backup.json");
+    ConfigFile::new(path).with_migration_backup(move |_, bytes| std::fs::write(&backup, bytes))
+}
+
 #[test]
 #[expect(
     non_snake_case,
@@ -140,7 +145,7 @@ fn r_nf_5__saving_app_preferences_preserves_other_context_sections() {
     let directory = TestDirectory::new().unwrap();
     let path = directory.0.join("settings.json");
     std::fs::write(&path, br#"{"schema_version":1,"capture":{"folders":[]},"app":{"theme":"dark","onboarding_complete":false}}"#).unwrap();
-    ConfigFile::new(path.clone())
+    backed_store(path.clone())
         .save(&AppSettings::from_persisted(Theme::Light, false))
         .unwrap();
     let saved: serde_json::Value = serde_json::from_slice(&std::fs::read(path).unwrap()).unwrap();
@@ -234,7 +239,7 @@ fn r_ocr_20_r_nf_5__version_one_preferences_migrate_with_explicit_opt_in_and_pre
         br#"{"schema_version":1,"app":{"theme":"light","onboarding_complete":true}}"#,
     )
     .unwrap();
-    let mut store = ConfigFile::new(path.clone());
+    let mut store = backed_store(path.clone());
     assert_eq!(
         store.load_game_preferences().unwrap().settings,
         GameSettings::default()
@@ -259,7 +264,7 @@ fn r_ocr_20_r_nf_5__version_one_preferences_migrate_with_explicit_opt_in_and_pre
     );
     let document: serde_json::Value =
         serde_json::from_slice(&std::fs::read(&path).unwrap()).unwrap();
-    assert_eq!(document.get("schema_version"), Some(&serde_json::json!(2)));
+    assert_eq!(document.get("schema_version"), Some(&serde_json::json!(3)));
     store.change_game_channel("another-channel").unwrap();
     assert_eq!(
         store.load_game_preferences().unwrap().settings.witness,
@@ -284,4 +289,396 @@ fn r_ocr_20_r_nf_5__invalid_game_settings_default_off_without_echoing_private_re
     assert_eq!(loaded.channel_directory, None);
     assert_eq!(loaded.errors.len(), 2);
     assert!(!format!("{:?}", loaded.errors).contains("SYNTHETIC_"));
+}
+
+#[test]
+#[expect(
+    non_snake_case,
+    reason = "Requirement tags use a double underscore separator."
+)]
+fn r_nf_7_r_nf_5__previous_schemas_migrate_with_checks_off_and_invalid_values_are_visible() {
+    use tallyline_workflows::api::model::UpdateChecks;
+    let directory = TestDirectory::new().unwrap();
+    let path = directory.0.join("settings.json");
+    for schema in [1, 2] {
+        std::fs::write(&path, format!(r#"{{"schema_version":{schema},"app":{{"theme":"dark","onboarding_complete":true}},"game":{{"log_witness":true}}}}"#)).unwrap();
+        let mut store = backed_store(path.clone());
+        let loaded = store.load().unwrap();
+        assert_eq!(loaded.settings.update_checks(), UpdateChecks::Disabled);
+        assert_eq!(loaded.settings.last_update_attempt(), None);
+        assert!(loaded.errors.is_empty());
+        store.save(&loaded.settings).unwrap();
+        let reopened = store.load().unwrap();
+        assert_eq!(reopened.settings, loaded.settings);
+        assert!(
+            store.load_game_preferences().unwrap().settings.witness
+                == tallyline_game::api::model::WitnessMode::On
+        );
+    }
+    for value in [r#""private-marker""#, "-1", "{}"] {
+        std::fs::write(&path, format!(r#"{{"schema_version":3,"app":{{"theme":"dark","onboarding_complete":true,"update_checks":true,"last_update_attempt_ms":{value}}}}}"#)).unwrap();
+        let loaded = ConfigFile::new(path.clone()).load().unwrap();
+        assert_eq!(loaded.settings.update_checks(), UpdateChecks::Disabled);
+        assert!(
+            loaded
+                .errors
+                .iter()
+                .any(|issue| issue.key == "settings.last_update_attempt")
+        );
+        assert!(!format!("{:?}", loaded.errors).contains("private-marker"));
+    }
+}
+
+#[test]
+#[expect(
+    non_snake_case,
+    reason = "Requirement tags use a double underscore separator."
+)]
+fn r_nf_11_r_nf_7__migration_requires_backup_and_preserves_exact_old_bytes_on_failure() {
+    let directory = TestDirectory::new().unwrap();
+    let path = directory.0.join("settings.json");
+    let old = br#"{ "schema_version": 2, "app": {"theme":"dark","onboarding_complete":false},"other":{"value":42}}"#;
+    std::fs::write(&path, old).unwrap();
+    assert!(ConfigFile::new(path.clone()).migrate().is_err());
+    assert_eq!(std::fs::read(&path).unwrap(), old);
+    let original_path = path.clone();
+    let mut failed = ConfigFile::new(path.clone()).with_migration_backup(move |schema, bytes| {
+        assert_eq!(schema, 2);
+        assert_eq!(bytes, old);
+        assert_eq!(std::fs::read(&original_path)?, old);
+        Err(std::io::Error::other("backup unavailable"))
+    });
+    assert!(failed.migrate().is_err());
+    assert_eq!(std::fs::read(&path).unwrap(), old);
+    let backup = directory.0.join("previous.json");
+    let saved = backup.clone();
+    let mut store = ConfigFile::new(path.clone()).with_migration_backup(move |schema, bytes| {
+        assert_eq!(schema, 2);
+        std::fs::write(&saved, bytes)
+    });
+    store.migrate().unwrap();
+    assert_eq!(std::fs::read(backup).unwrap(), old);
+    let current: serde_json::Value =
+        serde_json::from_slice(&std::fs::read(&path).unwrap()).unwrap();
+    assert_eq!(current.get("schema_version"), Some(&serde_json::json!(3)));
+    assert_eq!(current.get("other"), Some(&serde_json::json!({"value":42})));
+}
+
+struct BackupClock(u64);
+impl tallyline_shared_kernel::api::Clock for BackupClock {
+    fn now(&self) -> tallyline_shared_kernel::api::model::Timestamp {
+        tallyline_shared_kernel::api::model::Timestamp::from_millis(self.0)
+    }
+}
+
+#[test]
+#[expect(
+    non_snake_case,
+    reason = "Requirement tags use a double underscore separator."
+)]
+fn r_nf_11__bootstrap_backups_require_database_absence_and_keep_three_recognised_sets() {
+    use tallyline_adapter_files::api::{BackupSetStore, StorageLayout};
+    let directory = TestDirectory::new().unwrap();
+    let layout = StorageLayout::portable(&directory.0);
+    assert!(layout.self_test().is_empty());
+    let old = b"exact previous config bytes";
+    let backups = BackupSetStore::new(layout.data().join("backup"));
+    for millis in 1..=4 {
+        let saved = backups
+            .backup_without_database(&layout, 2, old, &BackupClock(millis))
+            .unwrap();
+        assert_eq!(std::fs::read(saved.join("settings.json")).unwrap(), old);
+        let manifest: serde_json::Value =
+            serde_json::from_slice(&std::fs::read(saved.join("manifest.json")).unwrap()).unwrap();
+        assert_eq!(
+            manifest.get("taken_at_ms"),
+            Some(&serde_json::json!(millis))
+        );
+        assert_eq!(
+            manifest.get("database_schema"),
+            Some(&serde_json::Value::Null)
+        );
+    }
+    assert_eq!(
+        std::fs::read_dir(layout.data().join("backup"))
+            .unwrap()
+            .count(),
+        3
+    );
+    std::fs::write(layout.data().join("tallyline.db"), b"existing database").unwrap();
+    assert!(
+        backups
+            .backup_without_database(&layout, 2, old, &BackupClock(5))
+            .is_err()
+    );
+    assert_eq!(
+        std::fs::read_dir(layout.data().join("backup"))
+            .unwrap()
+            .count(),
+        3
+    );
+}
+
+#[test]
+#[expect(
+    non_snake_case,
+    reason = "Requirement tags use a double underscore separator."
+)]
+fn r_nf_7_r_ui_16__invalid_cached_tags_are_discarded_without_replaying_response_links() {
+    use tallyline_workflows::api::model::{ReleaseVersion, UpdateStatus};
+    let directory = TestDirectory::new().unwrap();
+    let path = directory.0.join("settings.json");
+    for tag in [
+        "https://untrusted.invalid/",
+        "v2.0.0-rc.1",
+        "v2.0.0/../../private",
+        "private-marker",
+    ] {
+        let document = serde_json::json!({"schema_version":3,"app":{"theme":"dark","onboarding_complete":true,"update_checks":true,"available_release":tag,"dismissed_release":tag}});
+        std::fs::write(&path, serde_json::to_vec(&document).unwrap()).unwrap();
+        let loaded = ConfigFile::new(path.clone()).load().unwrap();
+        assert_eq!(
+            loaded
+                .settings
+                .cached_update(ReleaseVersion::parse("v1.0.0").unwrap()),
+            UpdateStatus::NotChecked
+        );
+        assert!(
+            loaded
+                .errors
+                .iter()
+                .all(|issue| issue.key == "settings.update_notice")
+        );
+        assert!(!format!("{:?}", loaded.errors).contains("private-marker"));
+    }
+}
+
+#[test]
+#[expect(
+    non_snake_case,
+    reason = "Requirement tags use a double underscore separator."
+)]
+fn r_nf_11__backup_sets_preserve_foreign_files_and_publish_neither_failed_nor_overflowed_sets() {
+    use tallyline_adapter_files::api::BackupSetStore;
+    let directory = TestDirectory::new().unwrap();
+    let root = directory.0.join("backup");
+    let backups = BackupSetStore::new(root.clone());
+    assert!(
+        backups
+            .write(None, &BackupClock(1), |_, _| Err(std::io::Error::other(
+                "SQLite backup failed"
+            )))
+            .is_err()
+    );
+    assert_eq!(std::fs::read_dir(&root).unwrap().count(), 0);
+    let first = backups
+        .write(None, &BackupClock(2), |path, _| {
+            std::fs::write(path, b"synthetic callback bytes")?;
+            Ok(Some(1))
+        })
+        .unwrap();
+    let manifest: serde_json::Value =
+        serde_json::from_slice(&std::fs::read(first.join("manifest.json")).unwrap()).unwrap();
+    assert_eq!(manifest.get("config_file"), Some(&serde_json::Value::Null));
+    assert_eq!(
+        manifest.get("config_schema"),
+        Some(&serde_json::Value::Null)
+    );
+    std::fs::create_dir(root.join("unrecognised")).unwrap();
+    std::fs::write(root.join("unrecognised/private"), b"untouched").unwrap();
+    for millis in 3..=6 {
+        backups
+            .write(Some((2, b"config")), &BackupClock(millis), |_, _| Ok(None))
+            .unwrap();
+    }
+    assert_eq!(
+        std::fs::read(root.join("unrecognised/private")).unwrap(),
+        b"untouched"
+    );
+    assert!(!first.exists());
+    struct OverflowClock;
+    impl tallyline_shared_kernel::api::Clock for OverflowClock {
+        fn now(&self) -> tallyline_shared_kernel::api::model::Timestamp {
+            tallyline_shared_kernel::api::model::Timestamp::from_seconds(u64::MAX)
+        }
+    }
+    assert!(
+        backups
+            .write(None, &OverflowClock, |_, _| Ok(None))
+            .is_err()
+    );
+}
+
+#[test]
+#[expect(
+    non_snake_case,
+    reason = "Requirement tags use a double underscore separator."
+)]
+fn r_nf_7__legacy_unknown_release_fields_never_enable_network_checks_during_migration() {
+    use tallyline_workflows::api::model::UpdateChecks;
+    let directory = TestDirectory::new().unwrap();
+    let path = directory.0.join("settings.json");
+    std::fs::write(&path, br#"{"schema_version":2,"app":{"theme":"dark","onboarding_complete":true,"update_checks":true,"last_update_attempt_ms":5,"available_release":"v2.0.0"}}"#).unwrap();
+    let mut store = backed_store(path);
+    assert_eq!(
+        store.load().unwrap().settings.update_checks(),
+        UpdateChecks::Disabled
+    );
+    store.migrate().unwrap();
+    let loaded = store.load().unwrap();
+    assert_eq!(loaded.settings.update_checks(), UpdateChecks::Disabled);
+    assert_eq!(loaded.settings.available_release(), None);
+}
+
+#[test]
+#[expect(
+    non_snake_case,
+    reason = "Requirement tags use a double underscore separator."
+)]
+fn r_nf_7__unrepresentable_attempt_time_refuses_save_without_panicking_or_replacing_preferences() {
+    use tallyline_shared_kernel::api::model::Timestamp;
+    use tallyline_workflows::api::model::UpdateChecks;
+    let directory = TestDirectory::new().unwrap();
+    let path = directory.0.join("settings.json");
+    let mut store = ConfigFile::new(path.clone());
+    store.save(&AppSettings::default()).unwrap();
+    let previous = std::fs::read(&path).unwrap();
+    let settings = AppSettings::default().with_update_state(
+        UpdateChecks::Enabled,
+        Some(Timestamp::from_seconds(u64::MAX)),
+    );
+    assert!(store.save(&settings).is_err());
+    assert_eq!(std::fs::read(path).unwrap(), previous);
+}
+
+#[test]
+#[expect(
+    non_snake_case,
+    reason = "Requirement tags use a double underscore separator."
+)]
+fn r_nf_11__retention_keeps_latest_completed_creations_after_clock_rollback_and_restart() {
+    use tallyline_adapter_files::api::BackupSetStore;
+    let directory = TestDirectory::new().unwrap();
+    let root = directory.0.join("backup");
+    let store = BackupSetStore::new(root.clone());
+    let first = store
+        .write(Some((2, b"first")), &BackupClock(1000), |_, _| Ok(None))
+        .unwrap();
+    let second = store
+        .write(Some((2, b"second")), &BackupClock(2000), |_, _| Ok(None))
+        .unwrap();
+    let third = store
+        .write(Some((2, b"third")), &BackupClock(3000), |_, _| Ok(None))
+        .unwrap();
+    let rollback = store
+        .write(
+            Some((2, b"rollback snapshot")),
+            &BackupClock(500),
+            |path, _| {
+                std::fs::write(path, b"coupled database snapshot")?;
+                Ok(Some(1))
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        std::fs::read(rollback.join("settings.json")).unwrap(),
+        b"rollback snapshot"
+    );
+    assert_eq!(
+        std::fs::read(rollback.join("tallyline.db")).unwrap(),
+        b"coupled database snapshot"
+    );
+    assert!(!first.exists());
+    assert!(second.exists());
+    assert!(third.exists());
+    assert_eq!(std::fs::read_dir(&root).unwrap().count(), 3);
+    let reopened = BackupSetStore::new(root.clone());
+    let latest = reopened
+        .write(Some((2, b"after restart")), &BackupClock(100), |_, _| {
+            Ok(None)
+        })
+        .unwrap();
+    assert_eq!(
+        std::fs::read(latest.join("settings.json")).unwrap(),
+        b"after restart"
+    );
+    assert!(rollback.exists());
+    assert!(third.exists());
+    assert!(!second.exists());
+    assert_eq!(std::fs::read_dir(&root).unwrap().count(), 3);
+    assert!(
+        reopened
+            .write(Some((2, b"collision")), &BackupClock(100), |_, _| Ok(None))
+            .is_err()
+    );
+    assert!(
+        reopened
+            .write(Some((2, b"failed")), &BackupClock(50), |_, _| Err(
+                std::io::Error::other("backup failed")
+            ))
+            .is_err()
+    );
+    assert_eq!(
+        std::fs::read(latest.join("settings.json")).unwrap(),
+        b"after restart"
+    );
+    assert_eq!(
+        std::fs::read(rollback.join("settings.json")).unwrap(),
+        b"rollback snapshot"
+    );
+    assert_eq!(
+        std::fs::read(third.join("settings.json")).unwrap(),
+        b"third"
+    );
+    assert_eq!(std::fs::read_dir(root).unwrap().count(), 3);
+}
+
+#[test]
+#[expect(
+    non_snake_case,
+    reason = "Requirement tags use a double underscore separator."
+)]
+fn r_nf_11__retention_reads_unsequenced_manifests_and_refuses_exhausted_creation_order() {
+    use tallyline_adapter_files::api::BackupSetStore;
+    let directory = TestDirectory::new().unwrap();
+    let root = directory.0.join("backup");
+    std::fs::create_dir(&root).unwrap();
+    for (time, bytes) in [
+        (1000, b"first".as_slice()),
+        (2000, b"second".as_slice()),
+        (3000, b"third".as_slice()),
+    ] {
+        let folder = root.join(format!("{time}-v2"));
+        std::fs::create_dir(&folder).unwrap();
+        std::fs::write(folder.join("settings.json"), bytes).unwrap();
+        std::fs::write(folder.join("manifest.json"), format!(r#"{{"schema_version":1,"taken_at_ms":{time},"config_schema":2,"database_schema":null,"config_file":"settings.json","database_file":null}}"#)).unwrap();
+    }
+    let saved = BackupSetStore::new(root.clone())
+        .write(Some((2, b"new creation")), &BackupClock(500), |_, _| {
+            Ok(None)
+        })
+        .unwrap();
+    assert_eq!(
+        std::fs::read(saved.join("settings.json")).unwrap(),
+        b"new creation"
+    );
+    assert!(!root.join("1000-v2").exists());
+    assert!(root.join("2000-v2").exists());
+    assert!(root.join("3000-v2").exists());
+    assert_eq!(std::fs::read_dir(&root).unwrap().count(), 3);
+    let exhausted = directory.0.join("exhausted");
+    let previous = exhausted.join("1000-v2");
+    std::fs::create_dir_all(&previous).unwrap();
+    std::fs::write(previous.join("settings.json"), b"unchanged previous config").unwrap();
+    std::fs::write(previous.join("manifest.json"), br#"{"schema_version":1,"sequence":18446744073709551615,"taken_at_ms":1000,"config_schema":2,"database_schema":null,"config_file":"settings.json","database_file":null}"#).unwrap();
+    assert!(
+        BackupSetStore::new(exhausted.clone())
+            .write(Some((2, b"new")), &BackupClock(500), |_, _| Ok(None))
+            .is_err()
+    );
+    assert_eq!(
+        std::fs::read(previous.join("settings.json")).unwrap(),
+        b"unchanged previous config"
+    );
+    assert_eq!(std::fs::read_dir(exhausted).unwrap().count(), 1);
 }

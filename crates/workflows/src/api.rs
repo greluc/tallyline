@@ -43,7 +43,15 @@ impl<S: AppSettingsStore> SettingsApplication<S> {
     /// # Errors
     /// Returns a storage error and keeps the active preferences unchanged.
     pub fn change_theme(&mut self, theme: Theme) -> Result<(), S::Error> {
-        let next = AppSettings::from_persisted(theme, self.settings.onboarding_complete());
+        let next = AppSettings::from_persisted(theme, self.settings.onboarding_complete())
+            .with_update_state(
+                self.settings.update_checks(),
+                self.settings.last_update_attempt(),
+            )
+            .with_release_notice(
+                self.settings.available_release(),
+                self.settings.dismissed_release(),
+            );
         self.store.save(&next)?;
         self.settings = next;
         Ok(())
@@ -54,7 +62,15 @@ impl<S: AppSettingsStore> SettingsApplication<S> {
     /// # Errors
     /// Returns a storage error and keeps onboarding incomplete.
     pub fn complete_onboarding(&mut self) -> Result<(), S::Error> {
-        let next = AppSettings::from_persisted(self.settings.theme(), true);
+        let next = AppSettings::from_persisted(self.settings.theme(), true)
+            .with_update_state(
+                self.settings.update_checks(),
+                self.settings.last_update_attempt(),
+            )
+            .with_release_notice(
+                self.settings.available_release(),
+                self.settings.dismissed_release(),
+            );
         self.store.save(&next)?;
         self.settings = next;
         Ok(())
@@ -64,5 +80,116 @@ impl<S: AppSettingsStore> SettingsApplication<S> {
     #[must_use]
     pub fn into_store(self) -> S {
         self.store
+    }
+}
+
+impl<S: AppSettingsStore> SettingsApplication<S> {
+    /// Persists release-check permission before applying it.
+    ///
+    /// # Errors
+    /// Returns the storage failure and leaves permission unchanged.
+    pub fn change_update_checks(&mut self, checks: model::UpdateChecks) -> Result<(), S::Error> {
+        let next = self
+            .settings
+            .clone()
+            .with_update_state(checks, self.settings.last_update_attempt());
+        self.store.save(&next)?;
+        self.settings = next;
+        Ok(())
+    }
+
+    /// Reserves one request durably when enabled and a full day has elapsed.
+    /// A backwards clock delays requests until the persisted time plus one day.
+    ///
+    /// # Errors
+    /// Returns a storage failure without authorising a network request.
+    pub fn begin_update_check(
+        &mut self,
+        clock: &impl tallyline_shared_kernel::api::Clock,
+    ) -> Result<bool, S::Error> {
+        const DAY_MILLIS: u128 = 86_400_000;
+        if self.settings.update_checks() == model::UpdateChecks::Disabled {
+            return Ok(false);
+        }
+        let now = clock.now();
+        if self
+            .settings
+            .last_update_attempt()
+            .is_some_and(|last| now.millis().saturating_sub(last.millis()) < DAY_MILLIS)
+        {
+            return Ok(false);
+        }
+        let next = self
+            .settings
+            .clone()
+            .with_update_state(model::UpdateChecks::Enabled, Some(now));
+        self.store.save(&next)?;
+        self.settings = next;
+        Ok(true)
+    }
+}
+
+/// Reads only the latest published standard release metadata.
+pub trait UpdateCheck {
+    /// Returns no version when no eligible release exists.
+    fn latest(
+        &self,
+    ) -> impl std::future::Future<
+        Output = Result<Option<model::ReleaseVersion>, model::UpdateFailure>,
+    > + Send;
+}
+
+/// Checks release metadata and returns passive state without UI side effects.
+pub async fn check_update(
+    source: &impl UpdateCheck,
+    installed: model::ReleaseVersion,
+) -> model::UpdateStatus {
+    match source.latest().await {
+        Ok(Some(version)) if version > installed => model::UpdateStatus::Available(version),
+        Ok(Some(_) | None) => model::UpdateStatus::Current,
+        Err(model::UpdateFailure) => model::UpdateStatus::Unavailable,
+    }
+}
+
+impl<S: AppSettingsStore> SettingsApplication<S> {
+    /// Persists only validated release identities, retaining known updates on failures.
+    ///
+    /// # Errors
+    /// Returns a save failure without changing the known notice.
+    pub fn record_update(
+        &mut self,
+        status: model::UpdateStatus,
+        installed: model::ReleaseVersion,
+    ) -> Result<model::UpdateStatus, S::Error> {
+        let available = match status {
+            model::UpdateStatus::Available(version) => Some(version),
+            model::UpdateStatus::Current => None,
+            model::UpdateStatus::NotChecked
+            | model::UpdateStatus::Dismissed
+            | model::UpdateStatus::Unavailable => {
+                return Ok(self.settings.resolve_update(installed, status));
+            }
+        };
+        let next = self
+            .settings
+            .clone()
+            .with_release_notice(available, self.settings.dismissed_release());
+        self.store.save(&next)?;
+        self.settings = next;
+        Ok(self.settings.resolve_update(installed, status))
+    }
+
+    /// Persists dismissal of the known release without changing check permission.
+    ///
+    /// # Errors
+    /// Returns a save failure and keeps the notice visible.
+    pub fn dismiss_update(&mut self) -> Result<(), S::Error> {
+        let next = self.settings.clone().with_release_notice(
+            self.settings.available_release(),
+            self.settings.available_release(),
+        );
+        self.store.save(&next)?;
+        self.settings = next;
+        Ok(())
     }
 }

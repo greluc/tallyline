@@ -1,6 +1,6 @@
 # States: from the domain to the screen
 
-> **Doc type:** Living spec — draft (JavaFX handoff stage 2; ADR-0004 partly superseded by ADR-0005). Last reviewed: 2026-10-12.
+> **Doc type:** Living spec — draft (JavaFX handoff stage 2; ADR-0004 partly superseded by ADR-0005). Last reviewed: 2026-11-01.
 
 > **Note 2026-10-12:** [ADR-0005](../adr/0005-rust-and-egui.md) replaces JavaFX with egui. The state ids, their meaning and their plan sources stand. The JavaFX column below (pseudo-classes such as `:confidence-confirm`, `:row-selected`, and the style classes `tl-state-<id>`) names a CSS mechanism that no longer exists: in the egui rendition each state is a variant or flag on the widget (for example `Confidence`, `Deviation`, `ChipTone` of the Tallyline crate), keyed by the same state id, and the "Selection and focus in the review table (SP-9)" paragraph is a JavaFX finding (egui has no CSS pseudo-classes; the review table is our own work, ADR-0005 D3). Open point O-112 decides what of the crate is adopted; see [README.md](README.md), "egui rendition (ADR-0005)".
 
@@ -110,3 +110,7 @@ Found when version `1791537441-68f0` was checked against its brief and the plan 
 | 16 | `README.md` of the system still calls "unreviewed" a proposal | Decided 2026-10-09 (11 §A1) | Closed 2026-10-09 in `1791541897-0513`: "Unreviewed" is a listed domain term and has its own section |
 | 17 | `capture-ready` and `capture-refinery` lost their own table rows: they appear only in the capture summary line, without tokens or accessible text (`68f0` had `neutral-*` and "Capture ready to scan"); the refinery label reads "scan result: Refinery terminal – not supported" with a description folded into the label | Every state has a label, an icon, tokens and an accessible text (R-UI-4) | Closed 2026-10-09 in `1791542897-a5d3`: a new section "Capture states before and after the scan" gives `capture-waiting-version-data`, `capture-ready`, `capture-refinery` and `folder-polling` their own rows with `neutral-*` and an accessible text; the refinery label is "Refinery terminal – not supported" |
 | 18 | The ReleaseSplitNotice README gives the accessible name "Will be sent as 3 reports", while its preview and the boards say four | Defect 5 | Closed 2026-10-09 in `1791542897-a5d3`: the README says "Will be sent as 4 reports" |
+
+## Release update states (2026-11-01)
+
+The desktop shell draws release status with normal token-backed text and controls. A newer standard release has a persistent bordered notice with a version label, **Open release notes** and **Dismiss update notice**. Settings shows a distinct text status for not checked, no newer release and unavailable; none relies on colour alone. The setting is a labelled checkbox, off by default, and changes only after a successful save. Results never select another view, open a modal, request focus or change window state (R-UI-16). Dismissal waits for successful persistence and survives restarts; the same release stays hidden, while a different newer release can appear. A known available release survives unavailable checks and restarts without another request.
