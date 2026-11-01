@@ -17,6 +17,8 @@
 | [`game-log-validation.md`](game-log-validation.md) | Completed initial R-OCR-20 Game.log spike (issue #107): validated build/format and finite mapping allowlist, measured capture offsets, synthetic specimens and explicit unsupported scope; initial #108 parser/privacy scope, local header check and later integration obligations |
 | [`dependency-pins.md`](dependency-pins.md) | The tags of SHA-pinned GitHub Actions and the versions and checksums of CI tools (including the pinned WiX and `cargo-packager`) |
 | [`ci-release-reference.md`](ci-release-reference.md) | Reviewed P4KX build/release patterns, further M1–M5 applications, adaptation boundaries and upstream feedback |
+| [`local-vision-runtime-research.md`](local-vision-runtime-research.md) | Source-backed comparison of bundled local VLM runtimes, complementary OCR readers, hardware tiers and independent model evaluation; proposals and test plans, with no measured inference result claimed |
+| [`adr/0012-strictly-local-recognition-delivery.md`](adr/0012-strictly-local-recognition-delivery.md) | Owner-required local-only inference and complete initial recognition profiles; engine choice and the Windows OCR prerequisite remain under evaluation |
 | [`cla-signatures.md`](cla-signatures.md) | The public roster of CLA signatures |
 
 Diagrams are Mermaid or plain-text trees, never binary files. Images in `docs/` are only redacted user-guide screenshots and the Fan Kit logo files.

@@ -1,0 +1,366 @@
+# Local vision runtimes and complementary recognition readers
+
+> **Doc type:** Living reference — runtime research and proposals; product constraints accepted in ADR-0012, engine choice pending. Last reviewed: 2026-11-01.
+
+## 1. Conclusion and scope
+
+**Ollama is not required.** Tallyline can ship the inference engine, model weights and all supporting assets as components of its own installation. Users need neither an Ollama installation nor Python, a model command line, an account or a paid inference API. A local library can run inside the application or inside a private worker supplied with the application. The latter is still part of Tallyline, rather than a separately installed service.
+
+The proposed product direction is:
+
+1. Keep classic OCR as the immediate, usable primary path and retain AI **Off** by default.
+2. Ship an offline-ready recognition profile with the initial installation: the selected OCR assets, at least one useful small VLM if the evaluation supports it, and its complete inference runtime. Larger initial-install profiles can contain complementary models. A later optional download inside Tallyline is an additional convenience, **not a substitute** for the requested ready-after-install baseline.
+3. Use a serial, private Rust worker behind an engine-neutral adapter boundary. For this preferred library route, use private pipes rather than a TCP service. Cloud models, remote inference endpoints and inference API fees are excluded in every variant; a bundled local Ollama service remains a conditional alternative (§4.1), not a required extra user installation.
+4. Treat `llama.cpp` plus `libmtmd`, accessed through a published Rust binding, as the leading practical GGUF delivery candidate. Compare it with the genuinely usable published `mistralrs` SDK before accepting a backend: ADR-0005 requires preference for a mature Rust alternative when it satisfies the need. Neither “written in Rust” nor “has an LLM example” proves the complete shipped graph is free of native code or supports the required vision model.
+5. Evaluate additional OCR readers before paying the resource cost of several VLMs. PP-OCRv6 Medium is the lowest-friction first comparison; Tesseract provides a different recognition method. Additional models earn their place through fewer undetected errors and useful disagreement, rather than the number of agreeing votes.
+
+Corrected 2026-11-01: [ADR-0012](adr/0012-strictly-local-recognition-delivery.md) records the owner's strictly local inference and complete initial-installation requirements; R-VLM-6/7 now exclude the earlier remote-consent and separate-Ollama paths. The runtime comparisons below remain research recommendations, not dependency selections, native-code exceptions or approval to redistribute a backend. Local experiments are authorised separately by the user's request to test the models.
+
+There is a separate whole-application obstacle: accepted ADR-0009 currently requires a separately installed Visual C++ Redistributable for Windows OCR. Replacing Ollama alone therefore does **not** meet the new installation goal. Section 8 identifies the choices that need a new decision.
+
+## 2. Evidence inspected and limits
+
+Repository context was read at primary checkout `codex/implement-m1-m5`, commit `ef40bf6ec3cc93060c7b4db80ba5c256375ae12d`: AGENTS/CLAUDE, requirements, architecture, OCR concept, roadmap, security rules, dependency pins, NOTICE and ADR-0005–0009. Optional AI is currently planned M5 work, not an implemented Ollama backend; M1 source work can continue independently of this research. The newer owner-approved packaging direction was also read from frozen `codex/issue-97-packaging` commit `2627acb75eb1ae461c2d6fe868d7bc350508fba3`, especially ADR-0011: independently source-compiled **WiX 7.0.1**, upstream commit `642f1a0f7c857ffa4fc9fa3f9d1433aab895dd29`. The older primary-tree WiX 3 wording is not treated as the current owner choice.
+
+The Basetool reference was verified as the real Kotlin application at [krt-profit/basetool-sc-extractor, c15cc147](https://github.com/krt-profit/basetool-sc-extractor/tree/c15cc14769256bdf26ff9e866e368379a07d3cfd), dated 2026-10-24. Its production pipeline, model selection, HTTP client, parser, prompt, cross-model arbitration and dated measurement report were inspected. The current public main head observed during research was `0d0a9dd13c73d9ca5289a18c0b46bcbf921d0a36`; its model-selection file still names the same primary, fallback and verifier. The local `gallery-ds13` directory is an image gallery without Git metadata, not evidence of a separate inference implementation. No server-side Basetool code was needed to establish the extractor's behaviour.
+
+Runtime source, official release APIs, crates.io metadata, model-author cards/configuration and model file manifests were read. Four small published source archives were checksum-verified and inspected as data: `mistralrs`/`mistralrs-core` 0.8.1 and `candle-core`/`candle-transformers` 0.11.0. This verified the published SDK source rather than assuming that newer GitHub documentation describes a published crate.
+
+**No inference, accuracy benchmark, installation, model-weight download, GUI operation, screenshot inspection, credential access or external write was performed.** The public corpus contains no human-verified golden entries at the inspected revision. Existing `ocr-eval` commands inspect metadata and produce annotation proposals; they do not yet establish recognition accuracy. No accuracy gain for Tallyline can be claimed from this research. [Corpus status](plan/07-ocr-concept.md)
+
+The available machine has the class of a high-end 32 GiB NVIDIA GPU and roughly 96 GiB system RAM. That makes a later broad local comparison plausible, but supplies no weak-PC evidence. No usable running Ollama service inventory was available; this does not prove Ollama or its model files are absent.
+
+## 3. What Basetool actually does
+
+### 3.1 Implemented behaviour
+
+The application uses a configurable `HttpOllamaClient`, normally at localhost:11434. It sends a prepared image and a versioned prompt to `/api/chat`, with temperature zero, explicit context/output limits and `think: false`. It manages installed models and retention through Ollama. Ollama supplies inference and model management; the extractor owns localisation, crops, parsing, stitching, arbitration and validation. [HTTP client](https://github.com/krt-profit/basetool-sc-extractor/blob/c15cc14769256bdf26ff9e866e368379a07d3cfd/src/main/kotlin/com/basetool/bpextractor/refinery/OllamaClient.kt)
+
+Production model selection is:
+
+| Hardware policy in the reference | Primary | Additional VLM |
+|---|---|---|
+| Recommended tier | `qwen3-vl:8b-instruct` | `qwen3.5:9b`, when installed |
+| Minimum or CPU tier | `qwen3-vl:4b-instruct` | None |
+
+The primary batch is read and stitched first. It is explicitly unloaded before the verifier's batch. The verifier is then unloaded. A classical PP-OCR cross-reader and domain validation run afterwards. This is a small prescribed set of models, not arbitrary simultaneous N-model voting. [Model selection](https://github.com/krt-profit/basetool-sc-extractor/blob/c15cc14769256bdf26ff9e866e368379a07d3cfd/src/main/kotlin/com/basetool/bpextractor/refinery/Preflight.kt), [pipeline](https://github.com/krt-profit/basetool-sc-extractor/blob/c15cc14769256bdf26ff9e866e368379a07d3cfd/src/main/kotlin/com/basetool/bpextractor/refinery/RefineryPipeline.kt)
+
+The prompt requests literal transcription into key/value lines and a Markdown table; a deterministic parser interprets it. A truncated answer receives one larger-budget retry. Cross-model comparison requires comparable row sets. Disagreements are marked, and certain quantity/yield conflicts can be arbitrated by refinery-specific totals and physical constraints. Later validation also has a field-specific OCR/VLM quality vote and topology checks. Those refinery checks do not establish commodity price, stock or container-size rules. [Prompt](https://github.com/krt-profit/basetool-sc-extractor/blob/c15cc14769256bdf26ff9e866e368379a07d3cfd/src/main/resources/refinery/setup_panel_prompt_v1.txt), [reader](https://github.com/krt-profit/basetool-sc-extractor/blob/c15cc14769256bdf26ff9e866e368379a07d3cfd/src/main/kotlin/com/basetool/bpextractor/refinery/PanelReader.kt), [cross-model merge](https://github.com/krt-profit/basetool-sc-extractor/blob/c15cc14769256bdf26ff9e866e368379a07d3cfd/src/main/kotlin/com/basetool/bpextractor/refinery/CrossModelVerify.kt), [validation](https://github.com/krt-profit/basetool-sc-extractor/blob/c15cc14769256bdf26ff9e866e368379a07d3cfd/src/main/kotlin/com/basetool/bpextractor/refinery/Validation.kt)
+
+### 3.2 An important correction to the inherited rationale
+
+Tallyline 07 §2.7 cites an early observation that two Qwen3-VL sizes did not agree on a wrong cell. Basetool's **2026-10-22 addendum supersedes that generalisation**: the two sizes shared wrong digits and could outvote the correct OCR reader. It switched the verifier from Qwen3-VL 4B to Qwen3.5 9B. The report attributes the improvement to two specific corrected quality cells in a 35-order refinery set and explicitly limits the generality of that evidence. This supports measuring complementary errors; it does not prove general independence or a commodity-terminal accuracy gain. [Dated measurement report](https://github.com/krt-profit/basetool-sc-extractor/blob/c15cc14769256bdf26ff9e866e368379a07d3cfd/docs/refinery-extractor/PHASE0_FINDINGS.md#addendum-2026-10-22--bake-off-round-4-verify-partner-qwen359b-think-false)
+
+What carries over is the separation of runtime from recognition policy, explicit unload, literal transcription, deterministic parsing, preservation of competing readings and reproducible comparisons. Commodity prompts, complete-card association, numerical constraints, fusion confidence and model choice require Tallyline's own evidence. Merely translating the refinery majority rule or replacing an Ollama tag with a similarly named GGUF is insufficient.
+
+## 4. Runtime feasibility and version policy
+
+S-7 now requires the newest eligible non-yanked stable version after seven days, with weekly Dependabot and no implicit new prerelease exception. The following is a **2026-11-01 metadata snapshot**, not a pin or an adoption. Versions must be verified again at adoption/release.
+
+| Component | Latest eligible stable found | Material constraint |
+|---|---|---|
+| `llama.cpp` | v0.7.0, published 2026-10-15 | v0.8.0 was published 2026-10-28 and is still in cooldown. Rolling `b…` releases are marked prerelease. |
+| `llama-cpp-2` / `llama-cpp-sys-2` | 0.1.160, published 2026-10-15 | Bundles native `llama.cpp` **v0.6.0**, commit `d81235049384534c167caea52b85a694f6103d14`; not v0.7.0. This is a documented upstream transitive constraint, not permission to patch the native source silently. |
+| `mistralrs` / `mistralrs-core` | crates.io 0.8.1, published 2026-04-02 | GitHub's stable v0.9.5, published 2026-10-19, is newer but is not the published SDK. Its workspace also uses Git Candle dependencies. Published 0.8.1 constrains Candle to 0.10.x. |
+| Candle core/nn/transformers | 0.11.0, published 2026-06-26 | 0.11.1, published 2026-10-31, is in cooldown. No GitHub Release entry is needed to establish the crates.io stable release. |
+| ONNX Runtime GenAI | v0.17.0, published 2026-09-28 | A separate native library/API, not supplied by the existing `ort` crate. |
+| Existing OCR `ort` / ORT | Accepted =2.0.0-rc.14 / 1.31.0 | Existing exact exception remains; the existence of rc.15 does not authorise a change. |
+
+Sources: [llama stable release](https://github.com/ggml-org/llama.cpp/releases/tag/v0.7.0), [newer release](https://github.com/ggml-org/llama.cpp/releases/tag/v0.8.0), [binding release](https://github.com/utilityai/llama-cpp-rs/releases/tag/0.1.160), [binding source tree](https://github.com/utilityai/llama-cpp-rs/tree/0.1.160/llama-cpp-sys-2), [crates.io binding metadata](https://crates.io/api/v1/crates/llama-cpp-2), [Mistral SDK metadata](https://crates.io/api/v1/crates/mistralrs), [Mistral newer manifest](https://github.com/EricLBuehler/mistral.rs/blob/v0.9.5/Cargo.toml), [Candle metadata](https://crates.io/api/v1/crates/candle-core), [GenAI releases](https://github.com/microsoft/onnxruntime-genai/releases).
+
+### 4.1 Decision matrix
+
+| Option | Actual multimodal capability | Windows/Linux and delivery | Assessment |
+|---|---|---|---|
+| Embedded `llama.cpp` + `libmtmd` through `llama-cpp-2` | Published binding exposes image bitmaps, vision context, preprocessing/tokenisation and multimodal chunk evaluation. Native code implements many vision families. GGUF normally needs the matching vision/projector component as well as the language weights. | CPU backend; optional GPU backends. Engine/assets can be application components, with no Ollama server. C/C++, FFI, assembler/build code and any optional GPU libraries require exact review/registered exceptions. | Leading practical candidate for compact quantised weights and broad model screening. Evolving multimodal ABI, thin bindings and exact model support need a spike. |
+| Published `mistralrs` 0.8.1 | Actual Qwen3-VL and Qwen3.5 model/processor implementations, Rust image-message API, model templates and pre-quantised UQFF loading. This is more than text inference. | CPU without accelerator features; optional CUDA. Rust-first, but Candle activates native Oniguruma through tokenizers even in the CPU graph. Newer GitHub capabilities cannot be assumed available in the published crate. | Credible alternative to test before accepting new C++ scope. Potentially more SDK/scheduler/configuration surface; a complete offline model bundle and resource control need proof. |
+| Direct Candle 0.11.0 | Qwen3-VL vision/text/DeepStack implementation exists, as does TrOCR. | Rust APIs and CPU backend; CUDA optional. Default CPU dependencies still include tokenizers with `onig`. | Good building blocks, but more preprocessing, templates, generation, quantisation and cancellation integration must be owned. A generic quantised Qwen text example is not a Qwen3-VL GGUF pipeline. |
+| Existing `ort` alone | Runs ONNX tensors. It does not by itself supply a VLM tokenizer, image processor, cache/generation loop or compatible exported vision/decoder graphs. | Already planned for CPU OCR with a bundled native library and a Windows prerequisite. | Useful for more OCR models. Not a drop-in replacement for Ollama VLM inference. |
+| ONNX Runtime GenAI | Native image processor and generation API; Qwen vision runtime code exists. Microsoft also publishes real Phi-3.5 Vision CPU INT4 graphs, tokenizer and processor configuration. | Official API matrix lists C/C++, Python, C#, Java; no first-party Rust API. New safe binding/FFI or worker needed. Separate native dependencies and telemetry review. | Technically possible, but greater export/binding/packaging work. Not the first VLM route merely because OCR uses ORT. |
+| Bundled private Rust helper containing one of the above | Same model functionality as the embedded library inside it. | One Tallyline installation; private pipes, no TCP service. Process separation aids crash recovery and forced resource release. | Preferred execution boundary for expensive optional recognition. It does not remove licence, native-code or supply-chain duties. |
+| User-installed Ollama | Existing API route works in the reference application. | Requires an external service/runtime and separate model management. | Fails the requested default. A future expert local-only compatibility adapter is unnecessary to achieve the goal and must never become a prerequisite or cloud fallback. |
+| App-bundled private Ollama | The same local multimodal API can use models supplied with Tallyline. | Upstream provides a standalone CLI explicitly for embedding; no separate user installer is inherently required. Own the endpoint, stores and process lifecycle. | Conditionally meets the installation goal, but adds server/configuration/cloud/update surface. Requires artefact, isolation, no-network and lifecycle proof, and does not remove the OCR runtime prerequisite. |
+
+**Bundled Ollama is a distinct alternative to user-installed Ollama.** Its MIT source licence permits redistribution with the required notices; GPU components and weights still need their own review. Upstream Windows documentation explicitly provides a standalone CLI for embedding in applications. Source exposes `OLLAMA_HOST`, `OLLAMA_MODELS` and `OLLAMA_NO_CLOUD=1`; the last disables cloud features. A controlled `ollama serve` can therefore be a Tallyline component with bundled models. Use the standalone server without the desktop GUI/updater: the FAQ documents automatic desktop update downloads, while the inspected CLI serve path directly starts the server. Complete isolation of home/configuration, generated keys, logs, model store and runner locations, plus no-updater/no-egress behaviour, **has not been proved here**. These are acceptance requirements, not guarantees from setting one environment variable. An owned loopback service is allowed by the installation goal, but has a larger service/lifecycle surface than the preferred library-and-pipe route and does not solve ADR-0009's OCR prerequisite. [MIT licence](https://github.com/ollama/ollama/blob/c1db5f9ef203b2e946161bf4c6bd4f2ec7f123b3/LICENSE), [standalone embedding](https://github.com/ollama/ollama/blob/c1db5f9ef203b2e946161bf4c6bd4f2ec7f123b3/docs/windows.mdx#standalone-cli), [local-only and update documentation](https://github.com/ollama/ollama/blob/c1db5f9ef203b2e946161bf4c6bd4f2ec7f123b3/docs/faq.mdx), [configuration source](https://github.com/ollama/ollama/blob/c1db5f9ef203b2e946161bf4c6bd4f2ec7f123b3/envconfig/config.go), [CLI serve path](https://github.com/ollama/ollama/blob/c1db5f9ef203b2e946161bf4c6bd4f2ec7f123b3/cmd/cmd.go#L2269)
+
+Implementation evidence: [native multimodal design](https://github.com/ggml-org/llama.cpp/blob/v0.7.0/tools/mtmd/README.md), [published Rust vision API](https://github.com/utilityai/llama-cpp-rs/blob/0.1.160/llama-cpp-2/src/mtmd.rs), [vision example](https://github.com/utilityai/llama-cpp-rs/blob/0.1.160/examples/mtmd/src/mtmd.rs), [published Mistral vision loader](https://github.com/EricLBuehler/mistral.rs/blob/9397956728e6508d1c7a288043161ad1d70b658f/mistralrs-core/src/pipeline/loaders/multimodal_loaders.rs), [Qwen3-VL image processor](https://github.com/EricLBuehler/mistral.rs/blob/9397956728e6508d1c7a288043161ad1d70b658f/mistralrs-core/src/vision_models/qwen3_vl/inputs_processor.rs), [UQFF documentation](https://github.com/EricLBuehler/mistral.rs/blob/9397956728e6508d1c7a288043161ad1d70b658f/docs/UQFF.md), [Candle Qwen3-VL](https://github.com/huggingface/candle/tree/0.11.0/candle-transformers/src/models/qwen3_vl), [Candle CPU dependencies](https://github.com/huggingface/candle/blob/0.11.0/candle-core/Cargo.toml), [GenAI API matrix](https://github.com/microsoft/onnxruntime-genai/blob/v0.17.0/README.md), [actual Phi ONNX assets](https://huggingface.co/microsoft/Phi-3.5-vision-instruct-onnx/tree/672d73375fa86f3d7787e40ac593e33a4f04a055/cpu_and_mobile/cpu-int4-rtn-block-32-acc-level-4).
+
+### 4.2 Details that an embedding must preserve
+
+A vision model is not just an LLM accepting a PNG file. Qwen3-VL, for example, requires its vision encoder, patch/merge processing, image normalisation, special vision tokens, positional handling and DeepStack features. Its official configuration has patch size 16, temporal patch size 2 and merge size 2; the processor and chat template are separate model resources. A different resize or missing image marker can change the task before generation begins. [Model configuration](https://huggingface.co/Qwen/Qwen3-VL-4B-Instruct/blob/ebb281ec70b05090aa6165b016eac8ec08e71b17/config.json), [image processor](https://huggingface.co/Qwen/Qwen3-VL-4B-Instruct/blob/ebb281ec70b05090aa6165b016eac8ec08e71b17/preprocessor_config.json), [template](https://huggingface.co/Qwen/Qwen3-VL-4B-Instruct/blob/ebb281ec70b05090aa6165b016eac8ec08e71b17/chat_template.json).
+
+For GGUF, inspect the exact package's embedded tokenizer/template metadata and matching projector; some families use different or combined arrangements. For UQFF, quantised shards alone are insufficient: residual tensors, tokenizer, configuration and processor resources also belong in the bundle. Do not resolve a model ID against a mutable online cache during inference. Mistral's default builder can read the user's Hugging Face token cache, so a Tallyline adapter must explicitly use local assets and a no-token policy; it must not inherit that default. [Published builder defaults](https://github.com/EricLBuehler/mistral.rs/blob/9397956728e6508d1c7a288043161ad1d70b658f/mistralrs/src/multimodal_model.rs)
+
+Keep the current versioned plain transcription format as the baseline. Compare grammar-constrained JSON as a separate experiment: the binding exposes grammar and greedy samplers, but valid syntax does not establish correct digits. Temperature zero/greedy selection is an evaluation setting, not a promise of identical output across GPU kernels, hardware or quantisations. Freeze template, preprocessing, generation settings and parser alongside each evaluated runtime/model pair. [Sampler API](https://github.com/utilityai/llama-cpp-rs/blob/0.1.160/llama-cpp-2/src/sampling.rs)
+
+GenAI has its **own** 1DS telemetry enabled by default in supported official packages. Its source documents compilation/runtime opt-outs; existing ADR-0008's acceptance of particular ORT Windows ETW events does not cover this additional uploader. Its build also fetches ONNX Runtime by default unless a reviewed `ORT_HOME` is supplied; the tagged source defaults to an older ORT version than Tallyline's 1.31.0. Reuse of the existing library and combined-process compatibility must be demonstrated. Qwen runtime classes and dummy test graphs alone do not prove a complete, validated export of each candidate model. [GenAI privacy](https://github.com/microsoft/onnxruntime-genai/blob/v0.17.0/docs/Privacy.md), [build options](https://github.com/microsoft/onnxruntime-genai/blob/v0.17.0/cmake/options.cmake), [ORT selection](https://github.com/microsoft/onnxruntime-genai/blob/v0.17.0/cmake/ortlib.cmake), [Qwen test package](https://github.com/microsoft/onnxruntime-genai/tree/v0.17.0/test/models/qwen3-vl)
+
+
+## 5. Additional OCR readers
+
+**Yes: another OCR reader can be useful. Its value must be measured as complementary evidence.** Switching runtimes while keeping identical weights does not create a new reader. Changing preprocessing or quantisation of the same recogniser is a useful robustness experiment, but not an independent vote.
+
+| Candidate | Actual local integration route and licence evidence | Proposed experiment / limitation |
+|---|---|---|
+| Existing PP-OCRv6 Small det + rec | Baseline, official ONNX assets through accepted ORT. | Establish full-pipeline and recognition-only baselines first. |
+| **PP-OCRv6 Medium rec**, with Small det initially | Official author supplies `PP-OCRv6_medium_rec_onnx`, configuration and dictionary data under Apache-2.0. Existing ORT can be the runtime, subject to model I/O/operator checks. | First added recogniser. Read the same complete-card fields; separately test changing detection to Medium so localisation and transcription effects are distinguishable. |
+| PP-OCRv6 Tiny det/rec | Official ONNX variants, Apache-2.0. | Weak-PC resource alternative and error-diversity control. No assumption that two sizes of the same family make independent mistakes. |
+| PP-OCRv5 Server rec | Official Paddle checkpoint/configuration under Apache-2.0; conversion and exact ONNX output need verification if a matching author-exported asset is not selected. | Older architecture as a deliberate comparison, especially numeric/glyph disagreement. Not a replacement selected from unrelated publisher benchmark percentages. |
+| **Tesseract 5.5.3**, `tessdata_best` and `tessdata_fast` | Real C/C++ library/API; Rust wrappers include `tesseract` 0.15.2 or `leptess` 0.14.0. Engine and trained data are Apache-2.0; Leptonica uses BSD-2-Clause. Bundle reviewed native parts and language assets, rather than asking users to install Tesseract. | Second priority for a different recognition method. Compare LSTM line/word profiles on field crops, best versus fast data, and an explicitly constrained numeric profile. Whitelisting must never silently drop a sign, separator, unit or valid name character. |
+| `ocrs` 0.13.1 with its CRNN recogniser | Rust API, RTen inference and model I/O; current author documentation calls it an early preview and Latin-only. The published crate constrains RTen to 0.26.x although standalone RTen 0.27.0 is newer. **Weights are CC-BY-SA-4.0**, separately from MIT/Apache code. | Interesting different neural reader and possible research route away from native OCR prerequisites. Weight redistribution needs owner approval under the project's allowlist; language coverage and PP-OCR compatibility must not be assumed. Do not use the CLI's first-run model auto-download. |
+| **TrOCR printed**, base initially, small as a feasibility candidate | Candle 0.11.0 has a TrOCR model, ViT image processing and a base-printed example. A public small-printed ONNX export also contains encoder and decoder graphs. | Independent transformer recogniser for individual lines/fields, not a shop-panel detector. The Candle example uses model PR refs and a third-party tokenizer; inspected Microsoft HF cards do not declare a weight licence. Resolve exact weight/tokenizer permission and release provenance before redistribution. Small-model architecture compatibility is still unproven here. |
+
+Official evidence: [PP-OCR variants and non-comparable publisher test sets](https://github.com/PaddlePaddle/PaddleOCR/blob/main/docs/version3.x/module_usage/text_recognition.en.md), [Medium recognition ONNX, revision 50c7eaca](https://huggingface.co/PaddlePaddle/PP-OCRv6_medium_rec_onnx/tree/50c7eacafc52fa7bcf4194e8cd08e46f8558504b), [Medium detection ONNX](https://huggingface.co/PaddlePaddle/PP-OCRv6_medium_det_onnx/tree/61323801669c338b7891481ec7bac61ce31b576a), [Tiny recognition ONNX](https://huggingface.co/PaddlePaddle/PP-OCRv6_tiny_rec_onnx/tree/2612ab37152ae0a677521bae4e1e3d4fb4cf7c30), [v5 Server assets](https://huggingface.co/PaddlePaddle/PP-OCRv5_server_rec/tree/b26c3587fda8da3c8ec0ce357214b4d661ff1558).
+
+Tesseract: [eligible 5.5.3](https://github.com/tesseract-ocr/tesseract/releases/tag/5.5.3) versus [5.5.4, 2026-10-28, still in cooldown](https://github.com/tesseract-ocr/tesseract/releases/tag/5.5.4), [library and component licences](https://github.com/tesseract-ocr/tesseract/blob/5.5.3/README.md), [trained-data choices](https://tesseract-ocr.github.io/tessdoc/Data-Files), [weight licence](https://github.com/tesseract-ocr/tessdata_best/blob/main/README.md), [Rust wrapper metadata](https://crates.io/api/v1/crates/tesseract), [alternative binding metadata](https://crates.io/api/v1/crates/leptess).
+
+Other neural readers: [ocrs status](https://github.com/robertknight/ocrs/blob/main/README.md), [published dependency constraint](https://crates.io/api/v1/crates/ocrs/0.13.1/dependencies), [author weight card](https://huggingface.co/robertknight/ocrs/tree/df0edd170279ab971b53e094c627255a87e1a503), [explicit maintainer licence statement](https://github.com/robertknight/ocrs-models/issues/34#issuecomment-5085587667), [Candle TrOCR example](https://github.com/huggingface/candle/blob/0.11.0/candle-examples/examples/trocr/main.rs), [Microsoft base model](https://huggingface.co/microsoft/trocr-base-printed/tree/93450be3f1ed40a930690d951ef3932687cc1892), [Microsoft small model](https://huggingface.co/microsoft/trocr-small-printed/tree/04e994ab854b0089d4929f48c2b4dbe2ce78a340), [small ONNX export](https://huggingface.co/Xenova/trocr-small-printed/tree/56c1626ea0b4aab378f3228235be2e824d4256bd).
+
+Model-specific dictionaries, tensor layouts, colour order, resize policy, decoding and confidence scales must be frozen. A raw confidence from Tesseract, a CTC probability and a VLM token probability are not interchangeable. Compare raw transcription before shared parsing and then compare the complete validated result. A different detector is evaluated as a separate stage; a recogniser should not be blamed for a crop that omitted half a digit.
+
+Python-first pipelines such as EasyOCR/docTR may be researched later for exports, but a Python/OpenCV installation is not a suitable user prerequisite, and “it can export ONNX” is insufficient evidence for the exact shipped weights/operators/licence. The first campaign already contains additional local OCR implementations without adopting that entire stack.
+
+## 6. VLM and generative-OCR screening catalogue
+
+### 6.1 How to read the catalogue
+
+This is a screened longlist, **not a claim that every entry has been run or can be bundled unchanged**. Size labels are model names, not measured RAM or VRAM. The official author metadata/cards of the linked revisions were inspected. Apache-2.0 and MIT are compatible starting points under repository policy, subject to exact artefact and notice checks; custom terms are not silently accepted.
+
+Backend notation:
+
+- **L7:** the eligible native `llama.cpp` v0.7.0 has the relevant family/projector implementation. Each converted package, template and CPU/GPU execution path still needs validation. The published Rust wrapper currently bundles **L6**, so availability in L7 is not automatically availability in that wrapper.
+- **R8:** relevant architecture and processor exist in published `mistralrs` 0.8.1 source. UQFF/local safetensors packaging is a different artefact from GGUF.
+- **C11:** model implementation exists in Candle 0.11.0; application preprocessing/generation/quantisation work may remain.
+- A family implementation does not prove support for every checkpoint revision, quantisation, vision head or provider.
+
+The native family code includes Qwen3-VL, Idefics3, Pixtral/LightOnOCR, InternVL, MiniCPM-V 4.6, PaddleOCR, DeepSeek-OCR and dots.ocr. R8 explicitly recognises Qwen3-VL, Qwen3.5, Mistral3 and Phi4MM architectures. [Native family dispatch](https://github.com/ggml-org/llama.cpp/blob/v0.7.0/tools/mtmd/clip.cpp), [native family implementations](https://github.com/ggml-org/llama.cpp/tree/v0.7.0/tools/mtmd/models), [published Rust loader](https://github.com/EricLBuehler/mistral.rs/blob/9397956728e6508d1c7a288043161ad1d70b658f/mistralrs-core/src/pipeline/loaders/multimodal_loaders.rs)
+
+### 6.2 General vision readers
+
+| Family / concrete candidates | Weight evidence | Actual route / proposed reason to test |
+|---|---|---|
+| **Qwen3-VL 2B, 4B, 8B Instruct** | Official [2B GGUF](https://huggingface.co/Qwen/Qwen3-VL-2B-Instruct-GGUF/tree/52d6c8ffea26cc873ac5ad116f8631268d7eb503), [4B GGUF](https://huggingface.co/Qwen/Qwen3-VL-4B-Instruct-GGUF/tree/1cd86afb9a95c410a6038ab3b40d8b578c892266), [8B GGUF](https://huggingface.co/Qwen/Qwen3-VL-8B-Instruct-GGUF/tree/f982a07559d4a2f6c8744d840bf6fccab30eea96); Apache-2.0. | L6/L7, R8, C11 model code. First-wave size ladder and continuity with Basetool; highly correlated family, not three independent votes. Test Q4 and one Q8 control after the initial screen. |
+| **Qwen3.5 2B, 4B, 9B** | Apache-2.0 author revisions: [2B](https://huggingface.co/Qwen/Qwen3.5-2B/tree/15852e8c16360a2fea060d615a32b45270f8a8fc), [4B](https://huggingface.co/Qwen/Qwen3.5-4B/tree/851bf6e806efd8d0a36b00ddf55e13ccb7b8cd0a), [9B](https://huggingface.co/Qwen/Qwen3.5-9B/tree/c202236235762e1c871ad0ccb60c8ee5ba337b9a). | R8 has full conditional-generation processors; L6/L7 has Qwen3.5 language architecture with the relevant vision path. Useful second family/size ladder; Basetool currently uses 9B as verifier. Exact GGUF/UQFF conversion, non-thinking template and state handling must be pinned. |
+| Qwen3.5 27B; **Qwen3.8 27B** | Apache-2.0: [3.5](https://huggingface.co/Qwen/Qwen3.5-27B/tree/fc05daec18b0a78c049392ed2e771dde82bdf654), [3.8](https://huggingface.co/Qwen/Qwen3.8-27B/tree/1d4bf0f2ff6012fd82039f2fa52739d0dd7c60c0). The 3.8 author configuration still declares `Qwen3_5ForConditionalGeneration`. | Strong-host candidates, not a default weak-PC package. Model-name similarity or an architecture match alone does not establish identical preprocessing or supported kernels. Screen after small/medium models and include the newer checkpoint rather than assuming bigger improves transcription. |
+| **SmolVLM 256M**; **SmolVLM2 500M**, 2.2B | Apache-2.0: [256M](https://huggingface.co/HuggingFaceTB/SmolVLM-256M-Instruct/tree/7e3e67edbbed1bf9888184d9df282b700a323964), [500M](https://huggingface.co/HuggingFaceTB/SmolVLM2-500M-Video-Instruct/tree/7b375e1b73b11138ff12fe22c8f2822d8fe03467), [2.2B](https://huggingface.co/HuggingFaceTB/SmolVLM2-2.2B-Instruct/tree/482adb537c021c86670beed01cd58990d01e72e4). | L7 documents SmolVLM/SmolVLM2; Idefics3 exists in R8, but SmolVLM2's distinct architecture name needs explicit loader compatibility proof. Weak-PC/compact-package candidates, with no assumed numeric accuracy. |
+| **Ministral 3 3B and 8B**, then 14B | Apache-2.0: [3B](https://huggingface.co/mistralai/Ministral-3-3B-Instruct-2512/tree/b35d4dfe56c142746f54dbd64f579faab2744308), [8B](https://huggingface.co/mistralai/Ministral-3-8B-Instruct-2512/tree/5b26027e7b19eeb4b7352e1fed3926375dd2cb4d), [14B](https://huggingface.co/mistralai/Ministral-3-14B-Instruct-2512/tree/29439f81c2be264d8d393273f99e7db9c0961120). | Author checkpoints declare Mistral3 conditional generation; R8 has that loader, L7 has the Pixtral-family vision code. High-priority non-Qwen comparison, with model-specific conversion/template validation. |
+| Mistral Small 3.2 24B | [Author revision](https://huggingface.co/mistralai/Mistral-Small-3.2-24B-Instruct-2506/tree/95a6d26c4bfb886c58daf9d3f7332c857cb27b43), Apache-2.0. | R8/L7 Mistral vision route; larger comparison on strong hardware if smaller models leave useful errors unresolved. |
+| InternVL3.5 4B | [Author revision](https://huggingface.co/OpenGVLab/InternVL3_5-4B/tree/481f6e32467eab4e922ccd7fd6cf420441a62331), Apache-2.0. | L7 InternVL projector. Official non-HF and HF formats are not interchangeable in the converter; inspect the exact configuration and conversion recipe before admitting it. Different-family candidate in the second wave. |
+| MiniCPM-V 4.6 | [Author revision](https://huggingface.co/openbmb/MiniCPM-V-4.6/tree/36f34a661a4bd35d0dc2294cb044d2584646c7d3), Apache-2.0; author documents llama.cpp inference. | L7 has a specific 4.6 vision implementation. Second-wave candidate; do not infer total memory from an incomplete safetensors parameter count or assume the older MiniCPM loader is sufficient. |
+| Phi-4 Multimodal; Phi-3.5 Vision ONNX | [Phi-4 author revision](https://huggingface.co/microsoft/Phi-4-multimodal-instruct/tree/93f923e1a7727d1c4f446756212d9d3e8fcc5d81) and [Phi-3.5 ONNX](https://huggingface.co/microsoft/Phi-3.5-vision-instruct-onnx/tree/672d73375fa86f3d7787e40ac593e33a4f04a055), MIT. | R8 Phi4MM or GenAI's concrete Phi-3.5 CPU package; useful different-family and ORT feasibility comparisons. Only image input is required; no audio/video/Python program belongs in the user install. |
+
+### 6.3 OCR-specialist vision models and screened exclusions
+
+| Candidate | Weight/runtime evidence | How it enters evaluation |
+|---|---|---|
+| **PaddleOCR-VL 1.6**, with 1.5 as a compatibility control | [Author 1.6 weights](https://huggingface.co/PaddlePaddle/PaddleOCR-VL-1.6/tree/c5630abae1d940eafe0697512a0325494b02ab42), [official GGUF/projector/template](https://huggingface.co/PaddlePaddle/PaddleOCR-VL-1.6-GGUF/tree/511b09642bb324401f15f97cc23bc67e8f0a291d), Apache-2.0. L7 has PaddleOCR vision code. | First-wave specialist. The complete author's document pipeline also uses Python/layout components; a Tallyline worker should use only the verified local recogniser on its own redacted regions. Prove prompt/output compatibility instead of copying that pipeline. |
+| **LightOnOCR-2-1B** | [Author revision](https://huggingface.co/lightonai/LightOnOCR-2-1B/tree/be7c41313c30e940fe5571de59e5fabc779e00c8), Apache-2.0; L7 has an explicit LightOnOCR/Pixtral path. | First-wave specialist for literal transcription. Its page/document task is different from a shop-card prompt; compare field/line crops and a documented task prompt. |
+| **GLM-OCR** | [Author revision](https://huggingface.co/zai-org/GLM-OCR/tree/2e85a62840ccac27daa451df36c736c4636b8628), MIT. Card documents local frameworks and a restricted task/schema interface. | First establish the exact GLM-OCR conversion and eligible runtime path; generic GLM4V code is not sufficient proof. Structured extraction is a model-specific experiment. The card's remote API is excluded. |
+| DeepSeek-OCR-2 | [Author revision](https://huggingface.co/deepseek-ai/DeepSeek-OCR-2/tree/aaa02f3811945a91062062994c5c4a3f4c0af2b0), Apache-2.0; L7 has explicit DeepSeek-OCR-2 vision code. | Second-wave recogniser with different vision compression; check tiny-glyph losses and deterministic row/cell mapping. No execution of downloaded Python/remote model code. |
+| dots.ocr | [Author revision, now dots-studio](https://huggingface.co/dots-studio/dots.ocr/tree/c0111ce6bc07803dbc267932ffef0ae3a51dc951), MIT; L7 has a dots.ocr vision implementation. | Second-wave document recogniser. Layout output must not create complete commodity cards that Tallyline's own Layout did not find. |
+| Gemma 3 4B and LiquidAI LFM2.5-VL 1.6B | [Gemma card](https://huggingface.co/google/gemma-3-4b-it/tree/093f9f388b31de276ce2de164bdc2081324b9767) reports custom Gemma terms and manual gating; [LiquidAI card](https://huggingface.co/LiquidAI/LFM2.5-VL-1.6B/tree/919fde3d022e3f90a4716006f993938ee8c2eb97) reports `lfm1.0`, not Apache/MIT. | Screened, **not proposed for default redistribution or this initial test set without owner licence approval**. Existing runtime support does not settle weight terms. |
+
+This covers over twenty concrete general/specialist checkpoints before quantisation, image-size and OCR variants. The first practical pass should admit roughly 12–16 feasible, licence-cleared configurations, then expand the strong-host set. A failed loader, unreviewed weight licence or unsupported prompt is recorded as such, not scored as zero recognition accuracy or hidden from the report. A model may contribute useful error detection without being suitable as the primary reader.
+
+
+## 7. Proposed module and execution boundary
+
+Keep the `Reader` seam and raw field structures planned in 02 §4b. These are specification types, not a claim that the M5 adapter already exists. Domain code should not know whether inference uses GGUF, UQFF, ONNX or an optional local compatibility protocol. Within the proposed local VLM adapter, separate:
+
+| Responsibility | Proposed boundary |
+|---|---|
+| Workflow policy | Mode, game state, serial queue, cancellation, Draft/version checks, scheduling/escalation and the user's confirmed values |
+| Reader adapter | Versioned transcription prompt, response parser, model-specific task formatting and conversion to the existing raw fields |
+| Local runtime | Load an explicit verified bundle, preprocess/embed images, generate bounded output, report resources, cancel and release |
+| Model catalogue | Immutable bundle identity, source/licence/hashes, supported backend/architecture, evaluated hardware profiles and status |
+| Fusion | Per-field evidence and disagreement, shared parsing/resolution/validation; no inference-library types |
+| Platform composition | Private worker lifecycle, resource/priority limits and any newly reviewed unsafe/FFI sites |
+
+The planned `ReaderKind { Ocr, Vlm }` alone cannot distinguish two OCR engines or two VLM profiles. Add an opaque reader/profile identity to proposed evidence results, tied to the model, runtime, preprocessing and prompt fingerprint; use it in persistence and replay rather than counting every VLM result as the same reader.
+
+These are proposed responsibilities, not new existing crates or API names. A worker would be another composition root requiring an architecture-rule update; it must not introduce a global runtime, HTTP clients or thread creation into domain crates.
+
+An illustrative private-pipe protocol is `Hello → Load(bundle fingerprint, resource profile) → Read(job ID, redacted pixels, prompt/settings revision) → Result | Failed | Cancelled`, with separate `Cancel`, `Unload` and `Exit` commands. It needs a protocol version, bounded framed messages, request IDs, deadlines, explicit stop reasons and a handshake tying the worker to the installed release. Model paths come from a verified catalogue, not model output. An optional advanced local-file import can create an unevaluated catalogue entry for a supported architecture; it keeps the confirmation cap and does not turn a user acknowledgement into evaluation evidence. No command accepts a URL, shell fragment, plugin, arbitrary DLL or executable model code.
+
+Prefer already decoded bounded RGB pixels from the typed redacted-crop boundary; the published mtmd binding can accept RGB image data. This avoids asking a native helper to reopen an original image or find an external codec program. Only complete cards found by Layout can receive resulting field evidence. [RGB bitmap API](https://github.com/utilityai/llama-cpp-rs/blob/0.1.160/llama-cpp-2/src/mtmd.rs), [redacted-crop architecture](plan/02-architecture.md)
+
+The worker must inherit no credentials/token cache, start no web/agent/MCP/tool execution, read only its supplied local resources, and produce no crop/prompt/complete-answer logs or crash uploads. Model SDK support for downloading, remote image URLs or web tools remains unreachable. A private process is **crash isolation, not automatically an OS security sandbox**; network-denied operation and path restrictions need explicit verification.
+
+Run models sequentially and unload between them when required by the profile. Peak memory is measured over the **whole application plus worker**, so moving allocations to a child cannot evade R-NF-3. Reuse bounded buffers; retaining every model context or every full-size crop is not acceptable.
+
+On game start in Automatic mode, signal cancellation immediately and stop accepting output. The existing roadmap acceptance criterion requires the AI run to abort within **≤ 5 s**, including the two-second in-run polling interval and abort work, and requires model unloading. Verify that unload separately and record the time until model allocations and RAM/VRAM are released; the abort deadline is not evidence of a guaranteed five-second GPU-memory release. If cooperative work cannot meet the abort deadline, terminate the owned worker within the remaining abort budget and restore the job to Pending. Test load, image encoding, prompt evaluation and generation separately. The native llama header says its decode abort callback currently works only for CPU execution; dropping a Rust future does not prove a GPU operation stopped. [M5 acceptance criterion](plan/04-roadmap.md), [native abort/lifecycle API](https://github.com/ggml-org/llama.cpp/blob/v0.7.0/include/llama.h)
+
+A worker crash/OOM never replaces OCR output with an empty successful read. Obsolete or partial results are discarded; missing assets, unsupported hardware and unevaluated profiles have explicit non-modal states. A concurrent user edit or confirmation always wins, as required by I7/R-VLM-4.
+
+## 8. Installation, model size and existing runtime prerequisites
+
+### 8.1 Weights are a separate delivery problem
+
+Runtime code is not the model. A small executable cannot recreate missing weights offline. The following file sizes are from official Qwen manifests at the immutable revisions in §6; they are disk/download sizes, **not measured RAM/VRAM or installer sizes**.
+
+| Example bundle | Language GGUF bytes | Matching projector bytes | Total model bytes |
+|---|---:|---:|---:|
+| Qwen3-VL 2B Q4_K_M + Q8_0 projector | 1,107,409,952 | 445,053,216 | **1,552,463,168** |
+| Qwen3-VL 2B Q4_K_M + F16 projector | 1,107,409,952 | 819,394,848 | **1,926,804,800** |
+| Qwen3-VL 4B Q4_K_M + F16 projector | 2,497,281,664 | 836,180,256 | **3,333,461,920** |
+| Qwen3-VL 8B Q4_K_M + F16 projector | 5,027,784,800 | 1,159,029,824 | **6,186,814,624** |
+
+The last two together are about 9.52 decimal GB before the app, OCR, an additional family, legal material, caches or installation staging. Changing projector precision is a separate evaluated configuration. It cannot inherit the accuracy result of another projector or of an Ollama tag.
+
+An illustrative **calculation, not a measurement**: an F16 K/V cache for 4,096 tokens in the published dense Qwen3-VL 4B configuration is `2 × 36 layers × 8 KV heads × 128 dimensions × 4096 tokens × 2 bytes = 603,979,776 bytes` (576 MiB), beyond its weights. Images, activations, work buffers, allocation policy and temporary copies add more; hybrid Qwen3.5 state has a different calculation. Never set the full advertised context length by default. A larger-output retry must also fit the input/image/context and memory budget. [4B configuration](https://huggingface.co/Qwen/Qwen3-VL-4B-Instruct/blob/ebb281ec70b05090aa6165b016eac8ec08e71b17/config.json)
+
+GitHub currently requires **each release asset to be under 2 GiB**; it permits many assets and does not impose that total-release-size limit. This is distinct from installer limits. [GitHub release limits](https://docs.github.com/en/repositories/releasing-projects-on-github/about-releases#storage-and-bandwidth-quotas)
+
+The selected **WiX 7.0.1** source rejects an individual source file larger than `Int32.MaxValue` during file binding. Its own cabinet error explains the 2 GB CAB constraint and splitting into cabinets. The Windows Installer File table uses a four-byte size field. Thus a monolithic 4B/8B GGUF cannot simply become an ordinary file in the current MSI authoring. This finding is verified against the selected WiX 7 source, not inferred from the historical WiX 3 plan. [WiX file-size check](https://github.com/wixtoolset/wix/blob/642f1a0f7c857ffa4fc9fa3f9d1433aab895dd29/src/wix/WixToolset.Core.WindowsInstaller/Bind/UpdateFileFacadesCommand.cs#L200), [cabinet error](https://github.com/wixtoolset/wix/blob/642f1a0f7c857ffa4fc9fa3f9d1433aab895dd29/src/wix/WixToolset.Core.WindowsInstaller/WindowsInstallerBackendErrors.cs#L124), [Microsoft File table](https://learn.microsoft.com/en-us/windows/win32/msi/file-table), [size data type](https://learn.microsoft.com/en-us/windows/win32/msi/doubleinteger)
+
+The native project supplies GGUF splitting by file size/tensor count. Split shards can address individual-file limits, but do not reduce total installation size or turn a multi-gigabyte installer into a sub-2-GiB GitHub asset. Exact shard loading through the chosen binding, MSI/CAB layout, ZIP64/archive support, repair/upgrade/uninstall and peak disk space must be proved. Never split arbitrary byte ranges and assume the runtime can load them. [GGUF splitting](https://github.com/ggml-org/llama.cpp/blob/v0.7.0/tools/gguf-split/README.md)
+
+| Distribution choice | Meets no separate runtime/program install? | Meets no later model setup and offline readiness? |
+|---|---|---|
+| Full initial package/profile with runtime + selected model(s) | Yes, if all transitive runtimes are supplied/avoided | Yes; preferred interpretation of the request |
+| Compact initial package with a useful validated small model | Yes | Yes for that profile; larger models remain optional. 2B Q4/Q8-projector is a size candidate, not yet an accuracy-qualified default |
+| One initial installer which fetches fixed verified model packs before completing | Potentially | Can avoid post-install steps, but is not an offline installer; a separate distribution/security decision |
+| First-run/later model download inside Tallyline | Yes for the runtime | Does not satisfy the strict ready-after-install baseline |
+| Separate Ollama or Python installer/model pull | No | No |
+
+If no useful compact profile fits the release-asset limit, the choices are a reviewed larger initial-distribution route or a first-install package-download design. A collection of assets that users must manually fetch, join or move is not presented as a seamless solution. Include optional high-accuracy profiles in the **initial distribution** if the requirement is that those models also need no later download. Do not bundle every screened model by default.
+
+Keep large weights out of Git, as CLAUDE requires. Build/release preparation uses reviewed, fixed model revisions and verified manifests before the protected token-injection stage. The existing packaging boundary forbids new downloads or project code after injection; supplying weights is not a reason to weaken it.
+
+### 8.2 The existing Windows OCR prerequisite must be resolved
+
+ADR-0007 fixes official ORT 1.31.0 loaded dynamically. ADR-0009/R-NF-13 explicitly ship no Microsoft runtime files and require users to install the Visual C++ Redistributable. The actual imported modules are `MSVCP140.dll`, `MSVCP140_1.dll`, `VCRUNTIME140.dll` and `VCRUNTIME140_1.dll`, with the recorded 14.44 floor. A statically linked Rust executable or VLM library cannot remove these imports from the separate OCR DLL.
+
+Technical options, requiring a new reviewed decision:
+
+| Route | Installation effect | Remaining work |
+|---|---|---|
+| App-local approved runtime DLLs | No separate redistributable installation | Supersedes ADR-0009; proprietary redistribution/GPL System Library review, licensed source, servicing and mapped-module checks remain |
+| Bundle/run the Microsoft redistributable during setup | Removes a manual step | Still installs an additional system runtime, needs redistribution review, conflicts with the strictest “only our program” interpretation and the current prohibition |
+| Build a pinned ORT with static MSVC runtime | Can remove that separate prerequisite | New reproducible source-build/provenance, dependency/native review, licence review and repeated import/telemetry/functional tests; not the same official artefact as ADR-0007 |
+| Prove another OCR runtime/model path, e.g. Rust RTen/tract or ocrs | Could avoid the dependency | Needs actual model/operator, correctness, resource, language and licence evidence; would amend R-OCR-1/ADR-0007 rather than bypass them |
+
+Microsoft documents app-local deployment but attaches redistribution terms and recommends centrally serviced packages. ORT's tagged build script has a static-runtime option, proving technical availability rather than legal approval or a completed no-prerequisite build. [Microsoft redistribution](https://learn.microsoft.com/en-us/cpp/windows/redistributing-visual-cpp-files), [ORT static-runtime build logic](https://github.com/microsoft/onnxruntime/blob/v1.31.0/tools/ci_build/build.py#L860), [accepted prerequisite ADR](adr/0009-visual-cpp-runtime-as-prerequisite.md)
+
+The same discipline applies to the new VLM engine. The Rust binding defaults to OpenMP and dynamic CRT behaviour unless configured otherwise; its build script exposes `LLAMA_STATIC_CRT` and optional static C++/OpenMP linkage. Selecting those settings is future review work, not proof from a successful build on a developer PC. Disable unneeded networking, server, video/audio, system-library discovery and accelerator features for the CPU profile. Linux also needs a documented supported system-library/ABI floor and testing on the oldest supported distribution. [Binding features](https://github.com/utilityai/llama-cpp-rs/blob/0.1.160/llama-cpp-2/Cargo.toml), [native build script](https://github.com/utilityai/llama-cpp-rs/blob/0.1.160/llama-cpp-sys-2/build.rs)
+
+A CPU profile must work without CUDA Toolkit or a dedicated GPU. GPU acceleration may use compatible **already installed** drivers plus reviewed application components; it must fail back to the tested CPU profile rather than require a toolkit/driver installation. CUDA and Vulkan variants introduce their own deployment/licence and hardware checks. “Local and without API fees” does not mean zero RAM, disk, electricity or execution time.
+
+## 9. Licence, provenance and supply-chain acceptance
+
+Runtime and model permissions are separate. MIT/Apache Rust wrappers do not license every native component, model, projector, tokenizer or template. Apache-2.0 can be included in a GPLv3 project; retain its required attribution/licence/notices and modification information. [Apache's compatibility explanation](https://apache.org/licenses/GPL-compatibility.html)
+
+For every selected bundle, record:
+
+- Author repository, exact revision, original filenames, byte sizes and SHA-256; each projector, tokenizer/dictionary, processor and template is covered.
+- Declared weight licence, full authoritative text/required notices and any gated/custom terms, separately from code licences. Keep O-20 open until exact shipped assets are reviewed.
+- Conversion/quantisation/splitting tool version/source, recipe and resulting hashes. Unchanged model names do not identify an evaluated artefact.
+- Native libraries, assembler, build scripts, procedural macros, compiler inputs and GPU components in the appropriate S-12/09 §3b registers; no new exception is inferred from this research.
+- Shipped-component SBOM and generated notices, source links/archives and any Corresponding Source obligations under R-DOC-4. Existing protected source/package verification must cover the actual worker and model manifests.
+
+The ocrs author explicitly selects CC-BY-SA-4.0 for the weights. Creative Commons describes one-way GPLv3 compatibility for adaptations, but this does **not** make the original weights MIT/Apache or put CC-BY-SA on Tallyline's current dependency allowlist. A reviewed attribution/distribution decision is still needed. TrOCR's inspected weight/tokenizer permissions remain unresolved; custom Gemma/LiquidAI terms also require an explicit owner decision. [Maintainer statement](https://github.com/robertknight/ocrs-models/issues/34#issuecomment-5085587667), [CC compatibility conditions](https://creativecommons.org/compatible-licenses/)
+
+Install native code only in verified application locations, hash-check it before loading and restrict loader searches consistently with S-24. Optional downloaded weights are data, installed atomically into an owned model store with size/hash checks and an immutable catalogue entry; they never fetch executable code or enable Python `trust_remote_code`. No automatic model update, telemetry, runtime model-registry query or new product network destination is authorised. The strict baseline needs no inference-time network at all.
+
+
+## 10. Concrete evaluation program
+
+### 10.1 Establish trustworthy data before scoring
+
+Start with human annotation of the existing redacted public captures and newly captured ladders. Use two independent transcriptions, resolve disagreements against pixels, and mark genuinely unreadable fields as such. A model-assisted annotation proposal is never human verification by itself. Record geometry, complete/partial/dimmed cards, side, terminal, displayed commodity name, status, price, SCU and container-size sets. Preserve raw displayed strings alongside canonical parsed values.
+
+A practical first screen is **24–40 verified captures** from at least four terminals, both sides and more than one theme, with small-text, blur, compression, HDR/tone and occlusion cases. This is a proposed pilot size, not sufficient release coverage. Expand according to R-QA-2's ladders and per-class minimums: at least four verified captures, two terminals and forty numeric fields for a covered class. Current coverage is insufficient.
+
+Freeze development, calibration and final held-out groups **by capture session/order and terminal**, with a held-out terminal/theme where possible. All scroll neighbours, recrops, resized/JPEG variants and repeated observations of the same screen remain in the same group. Use an older/newer game-build holdout when available. Do not tune a prompt, confidence rule, dictionary correction or model combination on the final holdout. Report the number of independent sessions/terminals as well as fields; near-duplicate fields are not independent trials. [Corpus protocol and measurement rules](plan/07-ocr-concept.md#4-measurement-and-test-concept)
+
+Run both recognition-only tests on verified field crops and full-pipeline tests with actual locate/layout. Give independent readers the pixels and frozen layout instructions, **not the baseline OCR answer or reference prices**. An OCR-assisted VLM experiment may be useful, but is labelled dependent evidence and cannot count as a blind independent witness. Apply the same frozen reference snapshot, clock, parser, vocabulary, validation and complete-card rules after reading.
+
+### 10.2 Stage the comparison instead of taking a cross product
+
+| Phase | Concrete work | Output / advancement rule |
+|---|---|---|
+| A. Artefact feasibility | Check exact eligible runtime/model licences, hashes, architecture, tokenizer/projector/template and offline CPU load path. Resolve the no-extra-runtime OCR issue. Prepare a precise reviewed download/build/run plan before obtaining weights or executing native inference. | Admit only known artefact/profile combinations; record blocked/unsupported entries explicitly. No accuracy claims. |
+| B. Baselines and additional OCR | Measure PP-OCRv6 Small; Small-det + Medium-rec; Medium det+rec; Tiny resource control; Tesseract best/fast; add licence-cleared ocrs/TrOCR only after their gates. Include a v5 recognition control if the export is verified. | Per-field raw and validated outcomes, resource cost, error-overlap matrix. Keep cheap useful complementary readers even if their overall single-reader accuracy is lower. |
+| C. Broad VLM singles | On strong hardware, screen the §6 first wave: Qwen3-VL 2/4/8B, Qwen3.5 2/4/9B, three Smol sizes, Ministral 3/8B, PaddleOCR-VL 1.6, LightOnOCR-2 and GLM-OCR if its backend is proved. One frozen format/image policy initially. | About 12–16 admitted configurations; reject parse/row/card failures visibly. Expand to remaining different-family and large-model candidates where resources permit. |
+| D. Targeted settings | For competitive models, compare Q4 versus Q8, F16 versus quantised vision where available, bounded image/token sizes, greedy repeated runs, Markdown baseline versus schema/grammar. Specialist task prompts are separate profiles. | Freeze settings on development/calibration only. A changed quantisation/preprocessor/backend is a changed evaluated configuration. |
+| E. Complementarity | Compare OCR pairs, each useful OCR + each shortlisted VLM, then OCR + two VLMs. Include same-family/quantisation controls and genuinely different families; use recorded raw outputs for deterministic fusion replays. | Rank pairs by joint wrong agreement, added error detection, false corrections and review burden, not agreement rate alone. |
+| F. Top combinations and escalation | Evaluate the best few combinations, plus ablations removing each reader. Compare always-running them with selective escalation on low evidence/disagreement. Audit a random sample of seemingly confident un-escalated fields too. | Demonstrate that savings do not hide correlated errors. No exhaustive (2^N) combination campaign is necessary. |
+| G. Cross-hardware and held-out acceptance | Run Pareto candidates on real weak/medium/strong hardware and both OSes; then one frozen final holdout and packaging/privacy/interruption tests. | Release profile per hardware class, evidence/sample coverage, explicit unsupported classes; no recommendation based only on the development machine. |
+
+Cache each blind read's raw answer, parsed raw fields, stop reason and timing under the input/crop, model/projector/quantisation, runtime, prompt, preprocessing and parser hashes, plus sampling seed (or explicit absence) and run index. Reuse those immutable outputs to evaluate pairs, triples and fusion ablations locally without repeating inference for every combination. A parser change creates a new derived result; a model/prompt/preprocessing change invalidates its inference cache. This is a bounded, explicitly inventoried evaluation store, not application request/response logging.
+
+For repeatability, run at least three warm repeats on a representative stability subset and repeat cold loads separately. Record exact output differences rather than claiming temperature-zero determinism. For CPU-heavy models, use a small feasibility subset first, then run survivors over the whole relevant corpus; a timeout/OOM is a resource outcome, not a wrong transcription. Long runs need cancellation/checkpointing and bounded disk retention.
+
+### 10.3 Required result columns
+
+Report separately for **price, SCU, status, commodity name/ID, terminal, side and container-size set**, and per resolution/text-height, theme, locale, source fidelity and tone class:
+
+- Exact raw transcription and exact canonical field match; numeric near-matches are errors, with the differing glyphs classified.
+- Incorrect and unflagged/sendable (**silently wrong**) count/rate, with its denominator; wrong-but-correctly-flagged share.
+- False correction: a previously correct baseline field made wrong; unnecessary flags on correct fields.
+- Sendable-field coverage, abstention/unreadable rate, mandatory confirmation burden, missing/invented rows and partial-card leakage. An all-abstain system must not win by having no sendable errors.
+- Error-detection recall, disagreements on correct versus wrong fields, and agreement on the **same wrong** value for each reader pair/family.
+- Per-capture/report success, with micro and per-class aggregates; session-grouped uncertainty intervals and counts. Zero observed silent errors is not a claim of zero real risk.
+- Cold load, image preprocessing, prompt evaluation, generation, parsing/fusion and total time; median/tail latency, token/image budgets, timeout/cancellation and load/unload time.
+- Peak whole-application RSS/working set/private bytes, GPU allocations and shared-memory use, idle retained memory, disk/model size and installation peak space.
+
+Store a reproducibility manifest with corpus/annotation/reference hashes, prompt/parser/preprocessor hashes, runtime/binding/source versions, exact model/projector/quantisation hashes, all relevant settings, OS/CPU/GPU/driver class and stop reasons. Raw outputs and metrics stay local; any public artefacts must obey the existing crop/privacy/licence rules.
+
+Fusion initially keeps conservative rules: preserve USER/confirmed values; unevaluated configurations never increase sendability; differing values remain visible/ambiguous unless an already specified independent witness resolves them. Do not derive confidence by adding model votes or treating model self-assessment as a probability. Additional readers and any new classifier/confidence calibration require held-out evidence and an explicit requirement change.
+
+### 10.4 Hardware matrix and automatic selection
+
+These are **test targets and starting candidate ranges**, not measured minimum requirements:
+
+| Tier to test | Representative hardware | Initial candidate range |
+|---|---|---|
+| Weak CPU | Older four-core x64, 8 GiB RAM, no usable discrete GPU | OCR variants; 256M/500M VLM; 2B only if measured available memory permits |
+| Ordinary CPU | Six/eight cores, 16 GiB RAM, no usable GPU | OCR plus 0.5–4B quantised candidates, bounded context; latency may limit the useful set |
+| Integrated GPU | 16–32 GiB shared system memory, Intel/AMD iGPU | Compare compatible Vulkan path against CPU; count shared GPU allocations against RAM |
+| Small discrete GPU | 4–6 GiB VRAM, 16 GiB RAM | Small/2B profiles and measured partial-offload 4B candidates |
+| Mid-range GPU | 8 GiB VRAM, 16–32 GiB RAM | 4B; larger partial offload only after measurement, not assumed from model-file size |
+| Upper-mid GPU | 12–16 GiB VRAM, 32–64 GiB RAM | 4/8/9B profiles; serial complementary models |
+| Strong GPU | 24–32 GiB VRAM, 64–96 GiB RAM | 8/9/14B and selected 24/27B experiments; multiple readers serially |
+
+At least one actual weak CPU system, one ordinary/iGPU or low-VRAM system and one strong GPU system are needed. Windows and Linux compatibility must be exercised, including the minimum supported CPU features and driver/backend versions. CPU thread limits or GPU-memory caps on the high-end host are useful **labelled proxies**, not proof of older CPU memory bandwidth, instructions, low-end GPU kernels or shared-memory behaviour.
+
+Hardware selection should choose among release-evaluated profiles using CPU features, currently available RAM/VRAM, driver/backend capability and measured load/peak data, with explicit reserve for the application/OS. It should not select solely by “has NVIDIA” or the advertised parameter count. Keep a CPU functional profile and allow a slower, explicit profile choice. Bound worker threads and queue parallelism; a second model is not required to remain resident with the first.
+
+For Automatic mode, preserve game-closed hysteresis and fail closed on unknown game state. Test a simulated game-start transition during **each load/read stage**, and later measure ordinary OCR beside an already running game in a separately reviewed session: frame-time/FPS impact, CPU peaks, working set and UI responsiveness. The strong-host model benchmark alone is not R-NF-3/R-VLM-3 acceptance.
+
+The no-extra-install test requires clean supported Windows/Linux images without developer tools, a preinstalled redistributable or CUDA Toolkit, with networking unavailable for inference. A developer/CI runner that already has those components cannot establish that result. No such test has been run here.
+
+## 11. Affected decisions, requirements and existing issues
+
+No normative file or GitHub issue was changed by this research. The owner goal supplies direction, but choosing new native dependencies, trust scope or proprietary redistribution still requires the existing precise review/approval.
+
+| Area | Required follow-up if the proposal is adopted |
+|---|---|
+| R-VLM-6 | Replace remote-host/cloud consent capability with strictly local inference. Any optional adapter must also forbid remote/cloud execution, rather than treating localhost as proof. |
+| R-VLM-7, R-VLM-8, R-VLM-11, R-VLM-12 | Replace mandatory Ollama installation/pull/HTTP resource checks with bundled model/runtime profiles, per-asset/runtime fingerprints and no-prerequisite startup behaviour; distinguish initial bundles from optional later data downloads. |
+| R-VLM-1–5, R-VLM-9–10; R-VAL-2b | Retain modes, game interruption, redacted inputs, complete cards, deterministic parsing and confirmed values. Specify multiple-reader evidence, resource release and model-specific stop reasons without silently inventing a majority/confidence rule. |
+| R-OCR-1; R-NF-3/12/13 | Explicitly scope additional OCR readers, whole-process-tree resources, any telemetry changes and removal of the separately installed Windows runtime prerequisite. |
+| ADR-0005 and 09 §3a/3b | Record justified exact native/assembler/build/unsafe exceptions and any new composition root. Existing exceptions do not cover llama.cpp, Tesseract, onig or GenAI automatically. |
+| ADR-0007/0008/0009; O-12/O-108 | A custom/replaced OCR runtime may supersede/amend these through new ADRs; accepted records are not rewritten in place. Repeat import and telemetry evidence for the actual artefacts. |
+| ADR-0011 packaging direction; O-116 | Extend the source-compiled WiX 7/immutable protected packaging design to model shards/packs and actual size/lifecycle proof; do not revert to the old WiX 3 plan. |
+| O-20/O-45/O-59/O-61; A8/A20 | Exact weight licensing and corpus measurements remain open. Revisit unevaluated-profile and independent-witness rules; A20 becomes irrelevant unless an Ollama adapter remains. |
+| 01/02/04/07/09/10/11, release process, NOTICE, pins, REUSE/SBOM and user documentation | Update requirements/coverage, the local worker/data-flow inventory, model/resource manifests, fusion language and installation/source/notice procedures together with implementation. Add a dated correction for the superseded Basetool correlation claim. |
+
+Existing issue scope was checked read-only against GitHub:
+
+- [#143](https://github.com/greluc/tallyline/issues/143) and [#149](https://github.com/greluc/tallyline/issues/149): currently Ollama connection, privacy and model pull; substantial scope changes.
+- [#144](https://github.com/greluc/tallyline/issues/144), [#145](https://github.com/greluc/tallyline/issues/145), [#146](https://github.com/greluc/tallyline/issues/146), [#147](https://github.com/greluc/tallyline/issues/147): parser, fusion, persistent queue and interruption remain useful, with backend-neutral and multiple-reader refinements.
+- [#148](https://github.com/greluc/tallyline/issues/148) and [#150](https://github.com/greluc/tallyline/issues/150): expand the bake-off and acceptance gate to OCR alternatives, hardware profiles, strict locality and offline packaging.
+- [#102](https://github.com/greluc/tallyline/issues/102), [#104](https://github.com/greluc/tallyline/issues/104), [#106](https://github.com/greluc/tallyline/issues/106), [#112](https://github.com/greluc/tallyline/issues/112): annotation, OCR runtime, field reading and reproducible baseline; additional-reader experiments need explicit scope.
+- [#117](https://github.com/greluc/tallyline/issues/117), [#120](https://github.com/greluc/tallyline/issues/120), [#126](https://github.com/greluc/tallyline/issues/126), [#140](https://github.com/greluc/tallyline/issues/140): preserve redaction, independent witnesses, confidence/resource gates and game-impact measurement.
+- [#25](https://github.com/greluc/tallyline/issues/25), [#26](https://github.com/greluc/tallyline/issues/26), [#27](https://github.com/greluc/tallyline/issues/27), [#29](https://github.com/greluc/tallyline/issues/29), [#97](https://github.com/greluc/tallyline/issues/97), [#98](https://github.com/greluc/tallyline/issues/98): prior ORT evidence, notices and packaging/release protection are affected, not automatically reopened or completed.
+
+## 12. Next concrete experiments
+
+1. Produce a human-verified pilot and frozen session/terminal split; publish only eligible redacted evidence and metadata. This is the prerequisite for numerical comparisons.
+2. Prepare a reviewable **artefact-only feasibility plan** for the published Rust binding/native pair and published Mistral SDK, including exact files, licences, hashes, features, CPU/GPU libraries, no-token/no-network configuration, resource limits and cancellation. Resolve the Windows OCR prerequisite alongside it.
+3. After the required native/licence/run approval, prove one complete local CPU vision path on both OSes, with a tiny public synthetic/redacted fixture and the complete bundled assets. Compare the two runtime candidates using the **same supported model/profile** before choosing an ADR.
+4. Run PP-OCRv6 Medium versus Small and Tesseract as the first extra-reader bake-off; then the staged VLM catalogue and its useful pairs. Expand to real weak hardware and strong-host larger models rather than presenting simulated limits as hardware coverage.
+5. Freeze only combinations that improve the held-out error/confirmation trade-off within the measured hardware profile. Build and verify the complete offline initial package, including model hashes, notices/source evidence, no-runtime-prerequisite checks and interrupted-load/unload behaviour.
+
+The intended outcome is a hardware-appropriate local recognition system that can detect its own disagreements. The number of bundled models, final backend and confidence changes remain dependent on those concrete results.

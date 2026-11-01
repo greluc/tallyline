@@ -58,6 +58,8 @@ All notable changes are recorded here.
 
 ### Changed
 
+- Require strictly local optional AI and an initially complete recognition profile without a separately installed Ollama. Runtime, complementary OCR and hardware-specific model selection remain under evaluation; the existing Windows OCR prerequisite still needs a verified replacement (R-VLM-6, R-VLM-7, R-VLM-11; ADR-0012).
+
 - Refresh the desktop UI, TLS and async dependencies to eligible stable releases while preserving the approved native boundaries and complete legal notices (R-SEC-1, R-SEC-10).
 
 - Migrated the Pyro Gateway transcription to schema version two with unknown conditions left null; human verification is still required (R-QA-1).
