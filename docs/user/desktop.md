@@ -65,7 +65,9 @@ Crash recovery releases OS locks automatically. The next lock holder removes the
 
 ## UEX proxy support under implementation
 
-The UEX adapter uses proxy environment variables and Windows static Internet Settings through the system-proxy feature. Tallyline does not alter those settings. PAC/autodiscovery and per-protocol Windows ProxyServer lists are not supported by the current upstream path; full system-proxy acceptance remains pending. The desktop shell still makes no UEX requests while reference-data wiring is being implemented.
+The UEX adapter uses proxy environment variables and Windows static Internet Settings through the system-proxy feature. Tallyline does not alter those settings. PAC/autodiscovery and per-protocol Windows ProxyServer lists are not supported by the current upstream path; full system-proxy acceptance remains pending.
+
+Corrected 2026-11-01: the native reference worker now makes credential-free GET requests to the primary UEX host, `api.uexcorp.uk`. It publishes the local cache before refreshing and keeps browsing available when a request fails. The earlier statement that the desktop made no UEX requests described the shell before this worker was connected.
 
 ## Release updates
 
