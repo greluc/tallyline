@@ -6,6 +6,9 @@
 use serde_json::Value;
 use std::collections::{BTreeMap, BTreeSet};
 
+/// The non-decreasing score floor established by the full core measurement.
+pub const MUTATION_SCORE_FLOOR: f64 = 100.0;
+
 /// Selects the documented core crates from locked Cargo metadata.
 ///
 /// # Errors
@@ -55,7 +58,7 @@ pub fn core_packages(metadata: &str) -> Result<Vec<String>, String> {
     Ok(selected.into_iter().collect())
 }
 
-/// Validates a completed pinned-tool mutation report and enforces the initial score floor.
+/// Validates a completed pinned-tool mutation report and enforces the frozen score floor.
 ///
 /// # Errors
 /// Returns an error for malformed, incomplete, failed or below-floor results.
@@ -128,8 +131,10 @@ pub fn mutation_score(report: &str) -> Result<f64, String> {
         return Err("mutation run has no viable mutants; no score measured".to_owned());
     }
     let score = caught as f64 / (caught + missed) as f64 * 100.0;
-    if score < 70.0 {
-        return Err(format!("mutation score {score:.2}% is below 70%"));
+    if score < MUTATION_SCORE_FLOOR {
+        return Err(format!(
+            "mutation score {score:.2}% is below {MUTATION_SCORE_FLOOR:.0}%"
+        ));
     }
     Ok(score)
 }

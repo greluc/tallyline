@@ -164,6 +164,7 @@ fn run_mutation(root: &Path, diff: Option<&Path>) -> io::Result<ExitCode> {
         OsString::from("mutants"),
         OsString::from("--cargo-arg=--locked"),
         OsString::from("--test-workspace=true"),
+        OsString::from("--minimum-test-timeout=120"),
         OsString::from("--output"),
         output.clone().into_os_string(),
     ];
@@ -209,7 +210,8 @@ fn run_mutation(root: &Path, diff: Option<&Path>) -> io::Result<ExitCode> {
         Ok(score) => {
             writeln!(
                 io::stderr(),
-                "core mutation score: {score:.2}% (initial floor 70%; baseline ratchet requires a recorded full run)"
+                "core mutation score: {score:.2}% (frozen floor {:.0}%)",
+                xtask::quality::MUTATION_SCORE_FLOOR
             )?;
             Ok(ExitCode::SUCCESS)
         }

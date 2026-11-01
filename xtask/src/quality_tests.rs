@@ -31,28 +31,28 @@ fn mutation_report(caught: usize, missed: usize) -> serde_json::Value {
 }
 
 #[test]
-fn rejects_mutation_score_below_initial_floor() {
-    assert!(crate::quality::mutation_score(&mutation_report(6, 4).to_string()).is_err());
+fn rejects_mutation_score_below_frozen_floor() {
+    assert!(crate::quality::mutation_score(&mutation_report(99, 1).to_string()).is_err());
 }
 
 #[test]
 fn accepts_boundary_mutation_score_and_rejects_incomplete_reports() {
     assert_eq!(
-        crate::quality::mutation_score(&mutation_report(7, 3).to_string()),
-        Ok(70.0)
+        crate::quality::mutation_score(&mutation_report(10, 0).to_string()),
+        Ok(100.0)
     );
     for key in ["end_time", "caught", "outcomes", "cargo_mutants_version"] {
-        let mut report = mutation_report(7, 3);
+        let mut report = mutation_report(10, 0);
         report.as_object_mut().unwrap().remove(key);
         assert!(
             crate::quality::mutation_score(&report.to_string()).is_err(),
             "{key}"
         );
     }
-    let mut report = mutation_report(7, 3);
+    let mut report = mutation_report(10, 0);
     report["timeout"] = 1.into();
     assert!(crate::quality::mutation_score(&report.to_string()).is_err());
-    let mut report = mutation_report(7, 3);
+    let mut report = mutation_report(10, 0);
     report["outcomes"][0]["summary"] = "Failure".into();
     assert!(crate::quality::mutation_score(&report.to_string()).is_err());
 }
@@ -81,7 +81,7 @@ fn permits_ui_to_use_the_approved_design_system() {
 
 #[test]
 fn excludes_unviable_mutants_but_rejects_disagreeing_totals() {
-    let mut report = mutation_report(7, 3);
+    let mut report = mutation_report(10, 0);
     report["unviable"] = 5.into();
     report["total_mutants"] = 15.into();
     for _ in 0..5 {
@@ -92,7 +92,7 @@ fn excludes_unviable_mutants_but_rejects_disagreeing_totals() {
     }
     assert_eq!(
         crate::quality::mutation_score(&report.to_string()),
-        Ok(70.0)
+        Ok(100.0)
     );
     report["total_mutants"] = 16.into();
     assert!(crate::quality::mutation_score(&report.to_string()).is_err());
