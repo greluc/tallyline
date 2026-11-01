@@ -136,3 +136,39 @@ fn r_api_1__failed_transaction_preserves_previous_content_and_successful_fetch_t
     let mut reopened = SqliteReferenceCache::open(&path).unwrap();
     assert_eq!(reopened.load().unwrap(), vec![old]);
 }
+
+#[test]
+#[expect(
+    non_snake_case,
+    reason = "Requirement tags use a double underscore separator."
+)]
+fn r_api_1_r_ui_8__terminals_and_commodities_reopen_with_independent_fetch_times() {
+    use tallyline_reference_data::api::model::{Terminal, TerminalText};
+    use tallyline_shared_kernel::api::model::TerminalId;
+    let directory = TestDirectory::new().unwrap();
+    let path = directory.0.join("tallyline.db");
+    let commodity = CachedReference::new(
+        Timestamp::from_millis(10_001),
+        EndpointData::Commodities(vec![]),
+    );
+    let terminals = CachedReference::new(
+        Timestamp::from_millis(90_999),
+        EndpointData::Terminals(vec![Terminal::new(
+            TerminalId(17),
+            TerminalText {
+                name: "Trade Centre".to_owned(),
+                nickname: "TDD".to_owned(),
+                display_name: "Trade Centre".to_owned(),
+                location: "Stanton / ArcCorp / Area18".to_owned(),
+            },
+            false,
+        )]),
+    );
+    {
+        let mut cache = SqliteReferenceCache::open(&path).unwrap();
+        cache.replace(&commodity).unwrap();
+        cache.replace(&terminals).unwrap();
+    }
+    let mut cache = SqliteReferenceCache::open(&path).unwrap();
+    assert_eq!(cache.load().unwrap(), vec![commodity, terminals]);
+}

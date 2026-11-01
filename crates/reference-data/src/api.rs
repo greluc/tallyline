@@ -5,7 +5,9 @@
 
 pub mod model;
 
-use model::{CachedReference, Commodity, Endpoint, EndpointData, ReferenceState, UexEnvironment};
+use model::{
+    CachedReference, Commodity, Endpoint, EndpointData, ReferenceState, Terminal, UexEnvironment,
+};
 use tallyline_shared_kernel::api::Clock;
 use tallyline_shared_kernel::api::model::Timestamp;
 
@@ -33,6 +35,7 @@ pub struct ReferenceApplication<S, C> {
     clock: C,
     entries: Vec<CachedReference>,
     state: ReferenceState,
+    failed: Vec<Endpoint>,
 }
 
 impl<S: ReferenceDataCache, C: Clock> ReferenceApplication<S, C> {
@@ -52,6 +55,7 @@ impl<S: ReferenceDataCache, C: Clock> ReferenceApplication<S, C> {
             clock,
             entries,
             state,
+            failed: Vec::new(),
         })
     }
 
@@ -62,7 +66,8 @@ impl<S: ReferenceDataCache, C: Clock> ReferenceApplication<S, C> {
         self.entries
             .iter()
             .flat_map(|entry| match entry.data() {
-                EndpointData::Commodities(items) => items.iter(),
+                EndpointData::Commodities(items) => items.as_slice(),
+                EndpointData::Terminals(_) => &[],
             })
             .filter(|item| {
                 item.available(environment)
@@ -72,10 +77,34 @@ impl<S: ReferenceDataCache, C: Clock> ReferenceApplication<S, C> {
             .collect()
     }
 
+    /// Searches terminal labels and location context without merging identities.
+    #[must_use]
+    pub fn terminals(&self, environment: UexEnvironment, query: &str) -> Vec<&Terminal> {
+        let query = query.to_lowercase();
+        self.entries
+            .iter()
+            .flat_map(|entry| match entry.data() {
+                EndpointData::Terminals(items) => items.as_slice(),
+                EndpointData::Commodities(_) => &[],
+            })
+            .filter(|terminal| {
+                let text = terminal.text();
+                terminal.available(environment)
+                    && [
+                        &text.name,
+                        &text.nickname,
+                        &text.display_name,
+                        &text.location,
+                    ]
+                    .iter()
+                    .any(|field| field.to_lowercase().contains(&query))
+            })
+            .collect()
+    }
     /// Returns endpoints whose successful fetch has expired.
     #[must_use]
     pub fn due(&self) -> Vec<Endpoint> {
-        [Endpoint::Commodities]
+        [Endpoint::Commodities, Endpoint::Terminals]
             .into_iter()
             .filter(|endpoint| {
                 self.fetched_at(*endpoint).is_none_or(|at| {
@@ -98,12 +127,20 @@ impl<S: ReferenceDataCache, C: Clock> ReferenceApplication<S, C> {
         self.store.replace(&entry)?;
         self.entries
             .retain(|old| old.endpoint() != entry.endpoint());
+        self.failed.retain(|endpoint| *endpoint != entry.endpoint());
         self.entries.push(entry);
-        self.state = ReferenceState::Cached;
+        self.state = if self.failed.is_empty() {
+            ReferenceState::Cached
+        } else {
+            ReferenceState::Offline
+        };
         Ok(())
     }
     /// Retains previous data and fetch times after a failed request.
-    pub fn refresh_failed(&mut self, _endpoint: Endpoint) {
+    pub fn refresh_failed(&mut self, endpoint: Endpoint) {
+        if !self.failed.contains(&endpoint) {
+            self.failed.push(endpoint);
+        }
         if !self.entries.is_empty() {
             self.state = ReferenceState::Offline;
         }

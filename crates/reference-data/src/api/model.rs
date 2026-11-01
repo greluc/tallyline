@@ -3,7 +3,7 @@
 
 //! Immutable cached reference records and application state.
 
-use tallyline_shared_kernel::api::model::{CommodityId, Timestamp};
+use tallyline_shared_kernel::api::model::{CommodityId, TerminalId, Timestamp};
 
 pub use tallyline_shared_kernel::api::model::UexEnvironment;
 /// A reference endpoint with an independent freshness window.
@@ -11,6 +11,8 @@ pub use tallyline_shared_kernel::api::model::UexEnvironment;
 pub enum Endpoint {
     /// Commodity vocabulary and LIVE averages.
     Commodities,
+    /// Selectable commodity terminal vocabulary.
+    Terminals,
 }
 
 impl Endpoint {
@@ -19,6 +21,7 @@ impl Endpoint {
     pub const fn ttl_seconds(self) -> u64 {
         match self {
             Self::Commodities => 3_600,
+            Self::Terminals => 43_200,
         }
     }
 }
@@ -94,6 +97,8 @@ impl Commodity {
 pub enum EndpointData {
     /// Commodity vocabulary.
     Commodities(Vec<Commodity>),
+    /// Selectable commodity terminals.
+    Terminals(Vec<Terminal>),
 }
 
 /// One atomically persisted successful endpoint response.
@@ -115,6 +120,7 @@ impl CachedReference {
     pub const fn endpoint(&self) -> Endpoint {
         match self.data {
             EndpointData::Commodities(_) => Endpoint::Commodities,
+            EndpointData::Terminals(_) => Endpoint::Terminals,
         }
     }
 
@@ -140,4 +146,58 @@ pub enum ReferenceState {
     Cached,
     /// A refresh failed while retaining cached data.
     Offline,
+}
+
+/// Decoded terminal names and location context, none of which is a unique key.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct TerminalText {
+    /// The full terminal name.
+    pub name: String,
+    /// The terminal's abbreviated name.
+    pub nickname: String,
+    /// The API's display label.
+    pub display_name: String,
+    /// Available location names, retained for disambiguation.
+    pub location: String,
+}
+
+/// One selectable commodity terminal identified by its UEX ID.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct Terminal {
+    id: TerminalId,
+    text: TerminalText,
+    available_live: bool,
+}
+
+impl Terminal {
+    /// Creates a terminal after the adapter excludes unsupported terminal types.
+    #[must_use]
+    pub const fn new(id: TerminalId, text: TerminalText, available_live: bool) -> Self {
+        Self {
+            id,
+            text,
+            available_live,
+        }
+    }
+
+    /// Returns the numeric UEX identity.
+    #[must_use]
+    pub const fn id(&self) -> TerminalId {
+        self.id
+    }
+
+    /// Returns decoded display and search text.
+    #[must_use]
+    pub const fn text(&self) -> &TerminalText {
+        &self.text
+    }
+
+    /// Reports availability without applying LIVE flags to PTU.
+    #[must_use]
+    pub const fn available(&self, environment: UexEnvironment) -> bool {
+        match environment {
+            UexEnvironment::Live => self.available_live,
+            UexEnvironment::Ptu => true,
+        }
+    }
 }

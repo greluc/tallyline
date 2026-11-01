@@ -126,7 +126,7 @@ fn r_api_1__successful_refresh_becomes_visible_only_after_atomic_persistence() {
         Some(Timestamp::from_seconds(7_200))
     );
     assert_eq!(application.commodities(UexEnvironment::Live, "").len(), 1);
-    assert!(application.due().is_empty());
+    assert!(!application.due().contains(&Endpoint::Commodities));
 }
 
 #[test]
@@ -265,5 +265,141 @@ fn r_api_1__freshness_keeps_milliseconds_and_rechecks_future_dated_cache() {
         let application =
             ReferenceApplication::load(MemoryCache(vec![entry]), MillisecondClock(now)).unwrap();
         assert_eq!(application.due().contains(&Endpoint::Commodities), due);
+    }
+}
+
+#[test]
+#[expect(
+    non_snake_case,
+    reason = "Requirement tags use a double underscore separator."
+)]
+fn r_api_1_r_api_6_r_ui_8__cached_terminal_search_preserves_identity_and_location_context() {
+    use tallyline_reference_data::api::model::{Terminal, TerminalText};
+    use tallyline_shared_kernel::api::model::TerminalId;
+    let terminals = vec![
+        Terminal::new(
+            TerminalId(17),
+            TerminalText {
+                name: "Trade and Development Division".to_owned(),
+                nickname: "TDD".to_owned(),
+                display_name: "Trade Centre".to_owned(),
+                location: "Stanton / ArcCorp / Area18".to_owned(),
+            },
+            true,
+        ),
+        Terminal::new(
+            TerminalId(18),
+            TerminalText {
+                name: "Trade and Development Division".to_owned(),
+                nickname: "TDD".to_owned(),
+                display_name: "Trade Centre".to_owned(),
+                location: "Pyro / Test Station".to_owned(),
+            },
+            false,
+        ),
+    ];
+    let cached = CachedReference::new(
+        Timestamp::from_seconds(100),
+        EndpointData::Terminals(terminals),
+    );
+    let mut application =
+        ReferenceApplication::load(MemoryCache(vec![cached]), FixedClock).unwrap();
+    for query in ["DEVELOPMENT", "tdd", "trade centre", "AREA18"] {
+        assert_eq!(
+            application
+                .terminals(UexEnvironment::Live, query)
+                .iter()
+                .map(|terminal| terminal.id())
+                .collect::<Vec<_>>(),
+            vec![TerminalId(17)]
+        );
+    }
+    assert_eq!(
+        application
+            .terminals(UexEnvironment::Ptu, "tdd")
+            .iter()
+            .map(|terminal| terminal.id())
+            .collect::<Vec<_>>(),
+        vec![TerminalId(17), TerminalId(18)]
+    );
+    assert_eq!(
+        application
+            .terminals(UexEnvironment::Ptu, "test station")
+            .first()
+            .unwrap()
+            .text()
+            .location,
+        "Pyro / Test Station"
+    );
+    assert!(
+        application
+            .terminals(UexEnvironment::Live, "unmatched")
+            .is_empty()
+    );
+    assert!(!application.due().contains(&Endpoint::Terminals));
+    application.refresh_failed(Endpoint::Terminals);
+    assert_eq!(application.state(), ReferenceState::Offline);
+    assert_eq!(application.terminals(UexEnvironment::Live, "tdd").len(), 1);
+}
+
+#[test]
+#[expect(
+    non_snake_case,
+    reason = "Requirement tags use a double underscore separator."
+)]
+fn r_api_1__another_endpoint_success_does_not_clear_an_unrecovered_failure() {
+    let mut application = ReferenceApplication::load(
+        MemoryCache(vec![CachedReference::new(
+            Timestamp::from_seconds(100),
+            EndpointData::Commodities(vec![]),
+        )]),
+        FixedClock,
+    )
+    .unwrap();
+    application.refresh_failed(Endpoint::Commodities);
+    application
+        .refreshed(EndpointData::Terminals(vec![]))
+        .unwrap();
+    assert_eq!(application.state(), ReferenceState::Offline);
+    assert_eq!(
+        application.fetched_at(Endpoint::Commodities),
+        Some(Timestamp::from_seconds(100))
+    );
+    assert_eq!(
+        application.fetched_at(Endpoint::Terminals),
+        Some(Timestamp::from_seconds(7_200))
+    );
+    application
+        .refreshed(EndpointData::Commodities(vec![]))
+        .unwrap();
+    assert_eq!(application.state(), ReferenceState::Cached);
+}
+
+#[test]
+#[expect(
+    non_snake_case,
+    reason = "Requirement tags use a double underscore separator."
+)]
+fn r_api_1__terminal_refresh_expires_at_twelve_hours_independently_of_commodities() {
+    for (now, terminal_due) in [(43_299, false), (43_300, true)] {
+        let application = ReferenceApplication::load(
+            MemoryCache(vec![
+                CachedReference::new(
+                    Timestamp::from_seconds(100),
+                    EndpointData::Terminals(vec![]),
+                ),
+                CachedReference::new(
+                    Timestamp::from_seconds(100),
+                    EndpointData::Commodities(vec![]),
+                ),
+            ]),
+            At(now),
+        )
+        .unwrap();
+        assert_eq!(
+            application.due().contains(&Endpoint::Terminals),
+            terminal_due
+        );
+        assert!(application.due().contains(&Endpoint::Commodities));
     }
 }
