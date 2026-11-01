@@ -1,6 +1,6 @@
 [workspace]
 resolver = "3"
-members = ["xtask", "crates/adapter-uex", "crates/egui", "tools/ocr-eval", "crates/workflows", "crates/adapter-files", "crates/ui"]
+members = ["xtask", "crates/adapter-uex", "crates/egui", "tools/ocr-eval", "crates/workflows", "crates/adapter-files", "crates/ui", "crates/app"]
 
 [workspace.dependencies]
 reqwest = { version = "0.13.5", default-features = false, features = ["rustls-no-provider"] }

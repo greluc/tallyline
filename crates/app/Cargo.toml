@@ -1,0 +1,23 @@
+[package]
+name = "tallyline-app"
+version = "0.1.0"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[[bin]]
+name = "tallyline"
+path = "src/main.rs"
+
+[dependencies]
+eframe.workspace = true
+egui.workspace = true
+tracing.workspace = true
+tallyline-workflows = { path = "../workflows" }
+tallyline-adapter-files = { path = "../adapter-files" }
+tallyline-ui = { path = "../ui" }
+
+
+[lints]
+workspace = true

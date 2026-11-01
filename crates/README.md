@@ -9,3 +9,4 @@ The workspace crates of Tallyline: the core (`shared-kernel`, the context crates
 | `workflows/` | `tallyline-workflows` | application preferences and save-before-apply workflows |
 | `adapter-files/` | `tallyline-adapter-files` | versioned atomic settings and installed/portable directory self-tests |
 | `ui/` | `tallyline-ui` | owned shell state, message catalogue, legal unit and user-driven dialogs |
+| `app/` | `tallyline-app` | native `tallyline` composition root and bounded settings worker |

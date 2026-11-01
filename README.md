@@ -6,7 +6,11 @@ Tallyline is a cross-platform desktop client (Windows + Linux) for Star Citizen 
 
 While the game is running, a lightweight local OCR does the work. Optionally, a local AI model (via Ollama) re-checks the results once the game is closed.
 
-> Status: **M1 application-library foundation in progress**. The workspace now includes tested application preferences, atomic settings storage and a native UI rendering library. The runnable desktop composition follows separately. The implementation uses Rust and egui, with native code only in registered exceptions ([ADR-0005](docs/adr/0005-rust-and-egui.md)).
+> Status: **M1 desktop foundation in progress**. The native shell provides first-launch onboarding, themes, legal notices and atomic application settings. Capture and submission workflows are still being implemented. The implementation uses Rust and egui, with native code only in registered exceptions ([ADR-0005](docs/adr/0005-rust-and-egui.md)).
+
+## Run the desktop shell from source
+
+Build with `cargo build --locked -p tallyline-app`, then run `target/debug/tallyline --assets crates/ui/assets` (on Windows, `target/debug/tallyline.exe`). The explicit assets argument selects the separately shipped font files; an installed or portable image instead keeps `assets/fonts/` next to the executable. See the [desktop guide](docs/user/desktop.md) for the storage paths, portable marker and settings errors. The shell does not send reports or contact UEX.
 
 ## Plan
 

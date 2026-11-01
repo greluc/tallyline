@@ -232,6 +232,6 @@ Amended 2026-10-12 (ADR-0005): R-UI-17 is split. R-UI-17 (contrast, keyboard ope
 
 Issue #102 adds `tools/ocr-eval inspect` and separate `annotate` proposals, the schema-v2 Gateway migration and [the contributor capture protocol](../user/corpus-capture.md). Sample readiness distinguishes gated, insufficient, synthetic-only and missing classes before recognition. R-QA-1 schema tests moved to the tool; R-QA-3 recognition metrics, snapshot replay, baselines and release class completeness remain open.
 
-## M1 application-library record — 2026-11-01
+## M1 shell implementation record — 2026-11-01
 
-Issue #80 establishes preference workflows, atomic settings, installed/portable probes, native UI state/rendering, legal dialogs and complete generated offline notices. Tests use the approved application, real-filesystem and UI command/paint seams. The native executable composition follows separately. This record does not complete M1, capture/account/reference/submission workflows, O-27 or the packaging spike O-116.
+Issue #80 adds the native shell, first-launch legal screen, theme persistence, versioned settings, installed and portable directory probes, and user-driven legal dialogs. Tests are at the approved application, actual-filesystem and UI command/paint seams. The remaining M1 capture, account, reference and submission work is separate; this record does not complete M1 or close O-27 or the packaging spike O-116.

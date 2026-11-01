@@ -3198,6 +3198,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "tallyline-app"
+version = "0.1.0"
+dependencies = [
+ "eframe",
+ "egui",
+ "tallyline-adapter-files",
+ "tallyline-ui",
+ "tallyline-workflows",
+ "tracing",
+]
+
+[[package]]
 name = "tallyline-egui"
 version = "0.1.0"
 dependencies = [
