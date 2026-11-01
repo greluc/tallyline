@@ -8,6 +8,8 @@
 pub enum Step {
     /// The supply-chain guard of 10 S-4 over the repository files; it runs before any Cargo call.
     SupplyChainGuard,
+    /// Line coverage for the documented core crates.
+    CoreCoverage,
     /// The justification rule of 10 S-6 over the suppressions in `deny.toml`.
     DenySuppressions,
     /// The bootstrap rule of 10 S-6 over the `cargo-vet` exemptions in `supply-chain/`.
@@ -44,6 +46,7 @@ impl Step {
     pub fn name(&self) -> &'static str {
         match self {
             Self::SupplyChainGuard => "supply-chain guard",
+            Self::CoreCoverage => "core coverage",
             Self::DenySuppressions => "cargo-deny suppressions",
             Self::VetExemptions => "cargo-vet exemptions",
             Self::Dependabot => "dependabot",
@@ -102,6 +105,7 @@ pub fn plan() -> Vec<Step> {
             env: vec![("RUSTDOCFLAGS", "-D warnings")],
         },
         cargo("tests", &["test", "--workspace", "--locked"]),
+        Step::CoreCoverage,
         Step::RequirementTags {
             list: ["test", "--workspace", "--locked", "--", "--list"]
                 .map(str::to_owned)
@@ -132,7 +136,8 @@ mod tests {
             | Step::LicenceCopy
             | Step::SourceHeaders
             | Step::English
-            | Step::Architecture => Vec::new(),
+            | Step::Architecture
+            | Step::CoreCoverage => Vec::new(),
         }
     }
 
@@ -175,6 +180,7 @@ mod tests {
                 "clippy",
                 "rustdoc",
                 "tests",
+                "core coverage",
                 "requirement tags"
             ]
         );

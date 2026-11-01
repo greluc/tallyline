@@ -103,7 +103,7 @@ pub fn violations(metadata: &str) -> Vec<Violation> {
 
 const PURE_CORE_DEPENDENCIES: &[&str] = &["tracing"];
 
-fn is_core(name: &str) -> bool {
+pub(crate) fn is_core(name: &str) -> bool {
     matches!(
         name,
         "tallyline-shared-kernel"
@@ -153,6 +153,7 @@ fn allowed_edges(name: &str) -> Option<BTreeSet<&'static str>> {
             "tallyline-shared-kernel",
         ],
         "tallyline-ui" => &[
+            "tallyline-egui",
             "tallyline-workflows",
             "tallyline-capture",
             "tallyline-recognition",

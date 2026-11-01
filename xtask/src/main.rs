@@ -60,6 +60,8 @@ fn main() -> ExitCode {
     {
         ["check"] => run_check(&root),
         ["guard"] => run_guard(&root),
+        ["mutation"] => run_mutation(&root, None),
+        ["mutation", "--in-diff", diff] => run_mutation(&root, Some(Path::new(diff))),
         ["dco", base, head] => run_dco(&root, base, head),
         ["osv-gate", report] => run_osv_gate(&root, Path::new(report)),
         ["vendor-hashes", "write"] => write_hash_list(&root),
@@ -73,7 +75,7 @@ fn main() -> ExitCode {
 fn usage() -> io::Result<ExitCode> {
     writeln!(
         io::stderr(),
-        "usage: cargo xtask check | guard | dco <base> <head> | osv-gate <report.json> | vendor-hashes write | vendor-hashes verify | notices"
+        "usage: cargo xtask check | guard | mutation [--in-diff <diff>] | dco <base> <head> | osv-gate <report.json> | vendor-hashes write | vendor-hashes verify | notices"
     )?;
     Ok(ExitCode::FAILURE)
 }
@@ -114,6 +116,7 @@ fn run_step(step: &Step, root: &Path) -> io::Result<bool> {
         Step::SourceHeaders => source_headers_pass(root),
         Step::English => english_passes(root),
         Step::Architecture => architecture_passes(root),
+        Step::CoreCoverage => coverage_passes(root),
         Step::Cargo { args, env, .. } => Ok(Command::new(cargo_program())
             .args(args)
             .envs(env.iter().copied())
@@ -124,6 +127,108 @@ fn run_step(step: &Step, root: &Path) -> io::Result<bool> {
     }
 }
 
+fn run_mutation(root: &Path, diff: Option<&Path>) -> io::Result<ExitCode> {
+    let metadata = cargo_stdout(
+        root,
+        &["metadata", "--locked", "--no-deps", "--format-version", "1"],
+    )?;
+    let packages = xtask::quality::core_packages(&metadata).map_err(io::Error::other)?;
+    if packages.is_empty() {
+        writeln!(
+            io::stderr(),
+            "SKIP core mutation: no core crates; no baseline measured"
+        )?;
+        return Ok(ExitCode::SUCCESS);
+    }
+    let output = root.join("target/core-mutation");
+    fs::create_dir_all(&output)?;
+    let mut args = vec![
+        OsString::from("mutants"),
+        OsString::from("--cargo-arg=--locked"),
+        OsString::from("--test-workspace=true"),
+        OsString::from("--output"),
+        output.clone().into_os_string(),
+    ];
+    for package in packages {
+        args.extend([OsString::from("--package"), package.into()]);
+    }
+    if let Some(diff) = diff {
+        args.extend([OsString::from("--in-diff"), diff.as_os_str().to_owned()]);
+    }
+    let listed = Command::new(cargo_program())
+        .args(&args)
+        .args(["--list", "--json"])
+        .current_dir(root)
+        .output()?;
+    if !listed.status.success() {
+        io::stderr().write_all(&listed.stderr)?;
+        return Ok(ExitCode::FAILURE);
+    }
+    let mutants: serde_json::Value =
+        serde_json::from_slice(&listed.stdout).map_err(io::Error::other)?;
+    let mutants = mutants
+        .as_array()
+        .ok_or_else(|| io::Error::other("mutation list is not an array"))?;
+    if mutants.is_empty() {
+        writeln!(
+            io::stderr(),
+            "SKIP core mutation: no selected mutants; no baseline measured"
+        )?;
+        return Ok(ExitCode::SUCCESS);
+    }
+    let report = output.join("mutants.out/outcomes.json");
+    if report.exists() {
+        fs::remove_file(&report)?;
+    }
+    let status = Command::new(cargo_program())
+        .args(args)
+        .current_dir(root)
+        .status()?;
+    if !matches!(status.code(), Some(0 | 2)) {
+        return Ok(ExitCode::FAILURE);
+    }
+    match xtask::quality::mutation_score(&fs::read_to_string(report)?) {
+        Ok(score) => {
+            writeln!(
+                io::stderr(),
+                "core mutation score: {score:.2}% (initial floor 70%; baseline ratchet requires a recorded full run)"
+            )?;
+            Ok(ExitCode::SUCCESS)
+        }
+        Err(error) => {
+            writeln!(io::stderr(), "{error}")?;
+            Ok(ExitCode::FAILURE)
+        }
+    }
+}
+fn coverage_passes(root: &Path) -> io::Result<bool> {
+    let metadata = cargo_stdout(
+        root,
+        &["metadata", "--locked", "--no-deps", "--format-version", "1"],
+    )?;
+    let packages = xtask::quality::core_packages(&metadata).map_err(io::Error::other)?;
+    if packages.is_empty() {
+        writeln!(
+            io::stderr(),
+            "SKIP core coverage: no core crates in the workspace"
+        )?;
+        return Ok(true);
+    }
+    let mut args = vec![
+        "llvm-cov".to_owned(),
+        "--locked".to_owned(),
+        "--fail-under-lines".to_owned(),
+        "85".to_owned(),
+    ];
+    for package in packages {
+        args.extend(["--package".to_owned(), package]);
+    }
+    Ok(Command::new(cargo_program())
+        .args(args)
+        .current_dir(root)
+        .status()?
+        .success())
+}
 fn architecture_passes(root: &Path) -> io::Result<bool> {
     let metadata = cargo_stdout(
         root,

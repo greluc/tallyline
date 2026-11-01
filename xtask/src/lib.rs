@@ -21,6 +21,7 @@ pub mod listing;
 pub mod lockfile;
 pub mod notices;
 pub mod osv;
+pub mod quality;
 pub mod register;
 pub mod registry;
 pub mod requirement;
@@ -38,3 +39,6 @@ mod negative;
 mod scratch;
 #[cfg(test)]
 mod token_reconciliation;
+
+#[cfg(test)]
+mod quality_tests;

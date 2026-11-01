@@ -8,6 +8,8 @@ Order by risk and benefit: first the API uncertainties are clarified. Then follo
 
 Implementation tickets published 2026-11-01: [M1](https://github.com/greluc/tallyline/issues?q=is%3Aissue+in%3Atitle+%22%5BM1%5D%22), [M2](https://github.com/greluc/tallyline/issues?q=is%3Aissue+in%3Atitle+%22%5BM2%5D%22), [M3](https://github.com/greluc/tallyline/issues?q=is%3Aissue+in%3Atitle+%22%5BM3%5D%22), [M4](https://github.com/greluc/tallyline/issues?q=is%3Aissue+in%3Atitle+%22%5BM4%5D%22), [M5](https://github.com/greluc/tallyline/issues?q=is%3Aissue+in%3Atitle+%22%5BM5%5D%22).
 
+Status 2026-11-01 (quality gates): core coverage is automatic in `cargo xtask check`; changed-line PR and full nightly mutation checks enforce the initial 70% floor. Both select exact core membership, fail malformed inputs and visibly skip while no core exists, so no baseline is claimed. Pinned tool Windows compatibility is checked; Linux CI and the first full-core measurement/ratchet remain open (09 §8, 11 §B3, `docs/dependency-pins.md`).
+
 ## M0 – Foundation and verification
 
 - [x] Licence decided by the project owner: GPL-3.0-or-later, contributions under a DCO 1.1 sign-off plus the CLA, Star Citizen Fan Kit unit adopted ([ADR-0003](../adr/0003-licence-and-contributions.md), 2026-10-08)

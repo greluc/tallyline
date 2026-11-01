@@ -133,6 +133,8 @@ Further test rules:
 - **Flaky tests** are not tolerated: fix the cause, do not disable them.
 - **Coverage gate (`cargo-llvm-cov`):** initial value ≥ 85 % lines for the core crates. There is no quota for adapters; integration tests instead. The quota serves to find gaps, not as an end in itself.
 
+Status 2026-11-01: `cargo xtask check` enforces the 85% line-coverage floor over the exact present core packages from locked Cargo metadata, with a visible no-core skip. `cargo xtask mutation` enforces the initial 70% mutation floor from completed `cargo-mutants` reports; changed PR lines and full nightly runs are wired in `.github/workflows/mutation.yml`. The first actual full-core score must still be measured and recorded as the non-decreasing baseline (11 §B3); no core exists yet. Pinned tools were smoke-tested on Windows under Rust 1.99.0; Linux workflow execution remains pending. Corrected 2026-11-01: the architecture allowlist permits `tallyline-ui` to depend on the adopted `tallyline-egui` design system, matching 02 §7 and O-112.
+
 ## 9. Dependencies and build
 
 - Versions are declared once, in `[workspace.dependencies]` of the root `Cargo.toml`; member crates inherit them. Shared lint settings live in the workspace `[lints]` table. Repository checks and generators are the `xtask` crate (D12), run through `cargo xtask …`.
