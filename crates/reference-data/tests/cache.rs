@@ -243,3 +243,27 @@ fn r_api_1__later_success_replaces_old_records_and_clears_offline_state() {
         Some(Timestamp::from_seconds(7_200))
     );
 }
+
+struct MillisecondClock(u64);
+impl Clock for MillisecondClock {
+    fn now(&self) -> Timestamp {
+        Timestamp::from_millis(self.0)
+    }
+}
+
+#[test]
+#[expect(
+    non_snake_case,
+    reason = "Requirement tags use a double underscore separator."
+)]
+fn r_api_1__freshness_keeps_milliseconds_and_rechecks_future_dated_cache() {
+    for (now, due) in [(3_699_998, false), (3_699_999, true), (99_998, true)] {
+        let entry = CachedReference::new(
+            Timestamp::from_millis(99_999),
+            EndpointData::Commodities(vec![]),
+        );
+        let application =
+            ReferenceApplication::load(MemoryCache(vec![entry]), MillisecondClock(now)).unwrap();
+        assert_eq!(application.due().contains(&Endpoint::Commodities), due);
+    }
+}

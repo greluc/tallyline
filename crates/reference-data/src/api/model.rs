@@ -5,15 +5,7 @@
 
 use tallyline_shared_kernel::api::model::{CommodityId, Timestamp};
 
-/// The mapped UEX reference environment.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum UexEnvironment {
-    /// Production universe.
-    Live,
-    /// Public test universe.
-    Ptu,
-}
-
+pub use tallyline_shared_kernel::api::model::UexEnvironment;
 /// A reference endpoint with an independent freshness window.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Endpoint {

@@ -79,8 +79,11 @@ impl<S: ReferenceDataCache, C: Clock> ReferenceApplication<S, C> {
             .into_iter()
             .filter(|endpoint| {
                 self.fetched_at(*endpoint).is_none_or(|at| {
-                    self.clock.now().seconds().saturating_sub(at.seconds())
-                        >= endpoint.ttl_seconds()
+                    self.clock
+                        .now()
+                        .millis()
+                        .checked_sub(at.millis())
+                        .is_none_or(|age| age >= u128::from(endpoint.ttl_seconds()) * 1_000)
                 })
             })
             .collect()
