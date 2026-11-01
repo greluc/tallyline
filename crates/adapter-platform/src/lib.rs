@@ -14,4 +14,5 @@ mod socket;
 #[cfg(windows)]
 mod windows_socket;
 
+mod release_token;
 mod releases;

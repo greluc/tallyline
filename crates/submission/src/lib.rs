@@ -6,6 +6,11 @@
 //! Secret-bearing public values cannot be debug-logged (R-NF-4).
 //!
 //! ```compile_fail,E0277
+//! use tallyline_submission::api::model::ReleaseToken;
+//! fn log(value: &ReleaseToken) { let _ = format!("{value:?}"); }
+//! ```
+//!
+//! ```compile_fail,E0277
 //! use tallyline_submission::api::model::CredentialValues;
 //! fn log(value: &CredentialValues) { let _ = format!("{value:?}"); }
 //! ```
