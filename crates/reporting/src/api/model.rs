@@ -21,3 +21,4 @@ pub enum ReportType {
     /// Vehicle rental observations, without an entry UI.
     VehicleRent,
 }
+pub use crate::assessment::{Deviation, StatusAssessment};

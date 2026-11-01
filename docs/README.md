@@ -1,6 +1,6 @@
 # Documentation
 
-> **Doc type:** Living reference — current. Last reviewed: 2026-11-01.
+> **Doc type:** Living reference — current. Last reviewed: 2026-11-02.
 
 `docs/` is the project's single source of truth ([`CLAUDE.md`](../CLAUDE.md), "The documentation is the project"). This file says what belongs where. A new directory or top-level file under `docs/` gets its row here in the same commit.
 
@@ -17,7 +17,8 @@
 | [`game-log-validation.md`](game-log-validation.md) | Completed initial R-OCR-20 Game.log spike (issue #107): validated build/format and finite mapping allowlist, measured capture offsets, synthetic specimens and explicit unsupported scope; initial #108 parser/privacy scope, local header check and later integration obligations |
 | [`dependency-pins.md`](dependency-pins.md) | The tags of SHA-pinned GitHub Actions and the versions and checksums of CI tools (including the pinned WiX and `cargo-packager`) |
 | [`ci-release-reference.md`](ci-release-reference.md) | Reviewed P4KX build/release patterns, further M1–M5 applications, adaptation boundaries and upstream feedback |
-| [`local-vision-runtime-research.md`](local-vision-runtime-research.md) | Source-backed comparison of bundled local VLM runtimes, complementary OCR readers, hardware tiers and independent model evaluation; proposals and test plans, with no measured inference result claimed |
+| [`local-vision-runtime-research.md`](local-vision-runtime-research.md) | Source-backed comparison of bundled local VLM runtimes, complementary OCR readers, hardware tiers and evaluation plans; original research scope and later experimental evidence are distinguished |
+| [`local-vision-first-campaign.md`](local-vision-first-campaign.md) | Completed 310-response local VLM experiment: exact inputs, structural coverage failures, separately labelled exploratory discrepancies and evidence limits; no validated accuracy or backend selection |
 | [`adr/0012-strictly-local-recognition-delivery.md`](adr/0012-strictly-local-recognition-delivery.md) | Owner-required local-only inference and complete initial recognition profiles; engine choice and the Windows OCR prerequisite remain under evaluation |
 | [`cla-signatures.md`](cla-signatures.md) | The public roster of CLA signatures |
 

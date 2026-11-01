@@ -210,3 +210,50 @@ impl<R: ReportRepository, C: Clock> ReportingApplication<R, C> {
         Ok(report)
     }
 }
+
+impl<R: ReportRepository, C: Clock> ReportingApplication<R, C> {
+    /// Assesses entered statuses against an immutable reference without changing Draft values.
+    ///
+    /// # Errors
+    /// Refuses an unavailable Draft, mismatched environment or repository failure.
+    pub fn review_statuses(
+        &mut self,
+        id: ReportId,
+        snapshot: &ReferenceSnapshot,
+    ) -> Result<Vec<crate::api::model::StatusAssessment>, RepositoryError> {
+        let report = self
+            .repository
+            .load_draft(id)?
+            .ok_or(RepositoryError::Invalid)?;
+        if self.mapping.environment(report.key().environment()) != snapshot.environment() {
+            return Err(RepositoryError::Invalid);
+        }
+        let priors = snapshot.terminal_priors(report.key().terminal());
+        Ok(report
+            .rows()
+            .iter()
+            .filter_map(|row| {
+                let value = row.status()?;
+                let prior = priors.and_then(|priors| {
+                    priors.rows().iter().find(|prior| {
+                        prior.commodity() == row.commodity() && prior.side() == report.key().side()
+                    })
+                });
+                let reference = prior.and_then(|prior| prior.values().status);
+                let age = prior.filter(|_| reference.is_some()).and_then(|prior| {
+                    self.clock
+                        .now()
+                        .millis()
+                        .checked_sub(prior.provenance().modified_at.millis())
+                });
+                Some(crate::api::model::StatusAssessment::assess(
+                    row.id(),
+                    value,
+                    reference,
+                    age,
+                    snapshot.effective_staleness(None).days(),
+                ))
+            })
+            .collect())
+    }
+}

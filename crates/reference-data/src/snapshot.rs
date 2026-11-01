@@ -200,3 +200,18 @@ fn fuzzy_match(field: &str, query: &str) -> bool {
         .filter(|character| !character.is_whitespace())
         .all(|expected| characters.any(|actual| actual == expected))
 }
+
+impl ReferenceSnapshot {
+    /// Computes the shared prior staleness limit with a raise-only optional override.
+    #[must_use]
+    pub fn effective_staleness(
+        &self,
+        override_days: Option<std::num::NonZeroU32>,
+    ) -> crate::api::model::EffectiveStaleness {
+        crate::api::model::EffectiveStaleness::from_constraints(
+            self.parameters()
+                .map(crate::api::model::ReferenceParameters::constraints),
+            override_days,
+        )
+    }
+}
