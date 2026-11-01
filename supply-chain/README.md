@@ -4,11 +4,13 @@ Committed records of the supply-chain measures of `docs/plan/10-supply-chain-sec
 
 | File | What it is |
 |---|---|
+| `build-code.json` | Exact reviewed custom-build/proc-macro targets and contextual generator-consumer restrictions (10 S-12); validated by `cargo xtask build-code` and `check` |
 | `vendor-hashes.txt` | The per-package hash list of the vendored dependency tree (10 S-4, O-120). The tree itself is never committed; CI regenerates it and compares it with this list |
 | `config.toml` | The `cargo-vet` configuration: the audit sources we import from and the exemptions (10 S-6) |
 | `audits.toml` | Trusted publisher records and audits we certify ourselves with `cargo vet certify` |
 | `imports.lock` | The audits imported from the sources of `config.toml`, as fetched when `cargo vet regenerate imports` last ran |
 | `bootstrap-exemptions.txt` | The crates that the bootstrap exemptions of `config.toml` cover; the set only shrinks (10 S-6) |
+| `copyright-absence.toml` | Exact-version source evidence for a shipped crate whose reviewed upstream material names no copyright holder; the generated catalogue distinguishes this from provided attribution |
 | `notices.toml` | The reviewed list of 10 S-34: the shipped components whose licence texts `cargo-deny` cannot see, read by `cargo xtask notices` (R-DOC-3) |
 | `notices/<directory>/` | Licence and notice files omitted from a published crate, copied unmodified from upstream and shipped when the related crate is in the dependency graph: aws-lc bundled texts (NOTICE §2.19, O-134) and the egui/AccessKit/profiling texts (NOTICE §2.17) |
 
@@ -29,7 +31,7 @@ files = [{ repository = "supply-chain/notices/jitterentropy/LICENSE" }]
 - `files` are copied unmodified under their file names. A `toolchain` path is relative to the sysroot of the pinned toolchain (`rustc --print sysroot`), a `repository` path to the workspace root. A repository file is third-party text: it is committed unmodified under `notices/<directory>/`, and its origin and SHA-256 go into `NOTICE`. REUSE does not read files named `LICENSE`, `COPYING` and the like; a file with any other name gets an override in `REUSE.toml` with its own licence and copyright.
 - A reviewed entry for a crate may supply its missing licence text when the published crate contains no licence or notice file. The notices check accepts that reviewed text as the crate's legal material and still fails if a listed source file is missing.
 
-`cargo xtask notices` fails when a file of a shipped entry is missing or an entry names a crate outside `Cargo.lock`.
+`cargo xtask notices` fails when a file of a shipped entry is missing or an entry names a crate outside `Cargo.lock`. It also generates `legal/catalogue.json` for the offline About view (schema version 1): name, version, declared/elected SPDX expression, source URL, a typed provided/not-stated-by-upstream copyright record and complete unmodified notice texts. A not-stated record requires exact-version evidence in `copyright-absence.toml`; an unreviewed extraction gap fails generation. Cargo component metadata comes from the locked shipped graph and vendor manifests; reviewed non-Cargo components carry a `[component.catalogue]` table with non-empty `version`, `licence`, `source` and `copyright` fields. The generator rejects missing reviewed metadata instead of inventing attribution. A missing or unreadable runtime catalogue produces the R-UI-18 message and does not fail app startup. The network-dependent assembly stays CI-only per O-135; fake-filesystem tests run in the aggregate check.
 
 ## `vendor-hashes.txt`
 
@@ -71,3 +73,52 @@ The steps below apply to every pull request that adds a crate or moves a version
 5. **Name the result in the pull request:** which crates were imported, audited or exempted, and which sources. Commit the store files in the same pull request as the dependency change (10 S-5).
 
 A version bump of a crate that is in `bootstrap-exemptions.txt` may move its exemption to the new version: `cargo vet regenerate exemptions` writes the entry without `notes`, so add the shared text again by hand. The crate stays in the baseline and nothing new enters it; an audit or an import of the new version is better and shrinks the baseline.
+
+
+
+## `build-code.json`
+
+The S-12 registry records exact package name/version/target kind, crates.io archive SHA-256, actual target entrypoint SHA-256, build-time behaviour and honest source-review scope. The checker obtains full locked offline metadata and fails on missing/stale records, changed source/identity, duplicate IDs and malformed graph data. Updating a dependency with build-time code therefore requires a source review and registry update in the same pull request. The list also includes inactive/off-target metadata packages; it does not grant permission to activate native code.
+
+The initial source review read all production build-script entrypoints and the newly adopted macro implementation modules. Existing macro entries retain established cargo-vet coverage with a narrower fresh entrypoint/import/capability inspection; their notes do not claim a fresh full unsafe-source audit. AWS-LC keeps ADR-0006's accepted native-source limitation. Entry hashes supplement Cargo archive checksums and S-4 vendor hashes; the inventory is not a substitute for cargo-vet or a claim that every runtime crate was line-audited.
+
+The `contexts` entry for gl_generator 0.14.0 separately pins its full reverse-consumer set and each consumer's exact version/archive/build-script hash. Current scripts select StructGenerator/StaticGenerator/StaticStructGenerator. GlobalGenerator's safe mutable-global loaders can race and DebugStructGenerator logs arguments; neither is selected. Any contextual cargo-vet notes must retain this caveat and the current-project discretion. A new consumer or code/version change fails pending review; ordinary publisher trust does not establish that script review.
+
+Bootstrap reduction 2026-11-01: `hashbrown` leaves the one-time baseline because the exact 0.17.1 publisher is covered by verified same-crate trust. No crate was added to that baseline. Desktop publication dates were checked against the seven-day boundary: `ordered-float` 5.5.0, `rustix` 1.1.5 and `unicode-width` 0.2.2 replace younger transitive selections; only `webbrowser` 1.2.6 uses the documented security-update exception. CI runs `cargo fetch --locked` after the supply-chain guard before the offline metadata checks; the aggregate check itself adds no network step.
+
+The offline catalogue recognises explicit year-bearing copyright notices,
+marked `(c)`/© notices and SPDX copyright statements. Apache grant prose and
+unfilled templates remain in the full legal texts but never become holder
+metadata. The AccessKit source-header attribution and referenced Chromium BSD
+licence are preserved in its reviewed notice directory (NOTICE §10).
+
+
+## Desktop dependency adoption (issue #80)
+
+`desktop-adoption.json` records every new locked identity with its purpose,
+reverse consumers, SPDX expression, declared upstream repository, crates.io
+owners and exact selected release/publisher/checksum. Its applied-record
+section preserves the actual new trust and source-review records and their
+scope notes. This includes current own-project maintenance evidence for the
+egui/wgpu, windowing, image/colour, Objective-C and Windows families, the
+same-crate imported publisher endorsements, and exact upstream trusted
+publishing identities. Publisher trust is not labelled as a fresh source
+audit. The six existing import sources are unchanged.
+
+The narrower AI source reviews name what was actually read and retain their
+limits; examples include the contextual three-consumer `gl_generator`
+constraint, the byte/string preconditions of `plain`, and off-target-only
+coverage where applicable. The separate `build-code.json` review does not
+infer script safety from publisher trust. Native activation remains subject
+to §3b and the fail-closed target/assembly inventory guards.
+
+`hashbrown` is the only bootstrap removal in this adoption. Existing
+nonbootstrap `hermit-abi` and `r-efi` exemptions also disappear because their
+exact releases are covered by verified publisher trust. No bootstrap entry
+was added. The owner approved the exact final thirteen records on 2026-11-01;
+the locked gate passed with 406 fully vetted packages, 28 justified exemptions
+and no partial coverage. There are 294 trusted rows and 32 audit rows, including
+19 explicitly attributed Sol AI source reviews. The exemptions are seven
+shrinking bootstrap entries, the existing AWS-LC native-source limitation, and
+twenty off-target entries, including the three separately registered exact-version
+exclusions.

@@ -10,6 +10,10 @@ pub enum Step {
     SupplyChainGuard,
     /// The approved disabled-feature and off-target native package restrictions.
     NativeScope,
+    /// The exact owner-approved literal assembly inventory and activation scope.
+    NativeAssembly,
+    /// The reviewed build-script and procedural-macro inventory of S-12.
+    BuildCode,
     /// Line coverage for the documented core crates.
     CoreCoverage,
     /// The justification rule of 10 S-6 over the suppressions in `deny.toml`.
@@ -49,6 +53,8 @@ impl Step {
         match self {
             Self::SupplyChainGuard => "supply-chain guard",
             Self::NativeScope => "native scope",
+            Self::NativeAssembly => "native assembly",
+            Self::BuildCode => "build-time code",
             Self::CoreCoverage => "core coverage",
             Self::DenySuppressions => "cargo-deny suppressions",
             Self::VetExemptions => "cargo-vet exemptions",
@@ -76,7 +82,9 @@ fn cargo(name: &'static str, args: &[&str]) -> Step {
 pub fn plan() -> Vec<Step> {
     vec![
         Step::SupplyChainGuard,
+        Step::BuildCode,
         Step::NativeScope,
+        Step::NativeAssembly,
         cargo(
             "cargo-deny",
             &["deny", "--locked", "check", "licenses", "sources", "bans"],
@@ -134,7 +142,9 @@ mod tests {
             Step::Cargo { args, .. } => args.iter().map(String::as_str).collect(),
             Step::RequirementTags { list } => list.iter().map(String::as_str).collect(),
             Step::SupplyChainGuard
+            | Step::BuildCode
             | Step::NativeScope
+            | Step::NativeAssembly
             | Step::DenySuppressions
             | Step::VetExemptions
             | Step::Dependabot
@@ -173,7 +183,9 @@ mod tests {
             names,
             [
                 "supply-chain guard",
+                "build-time code",
                 "native scope",
+                "native assembly",
                 "cargo-deny",
                 "cargo-deny suppressions",
                 "cargo-vet exemptions",

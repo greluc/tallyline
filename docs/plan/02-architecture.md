@@ -669,6 +669,8 @@ pub enum ImportMode { Manual, Automatic }
 
 ## 7. UI (`ui`, egui/eframe 0.36)
 
+Implementation note 2026-11-01 (M1 libraries): `workflows::api::SettingsApplication` applies preferences only after `AppSettingsStore` succeeds. `adapter-files::api::ConfigFile` owns schema version 1 (`settings.json`), preserves other contexts' sections and refuses future schemas without a write. The initial migration is absent configuration to defaults. `ui::api::DesktopShell` implements the native rendering interface with injected bounded channels and predecoded artwork; it owns no file I/O or worker creation. Its state/commands and models are exposed through `ui::api` and `ui::api::model`, while dialogs stay in `dialog_presenter`. The base message catalogue is `crates/ui/messages/en.json`. Approved static TTF/OFL resources are separate files; `configure_fonts` receives their bytes from the future composition root.
+
 - **State per view:** each view is a function of an owned state value. `update` draws the view from its state and returns commands; the drawing code holds no logic. Commands go through channels to the application APIs of the context crates and `workflows`; dependencies are passed to the constructor (no DI framework, no global state). State transitions are plain functions, unit-testable without a window; the harness for tests that drive the drawn UI is O-114.
 - **Threading:**
   - The UI thread runs only `update` and never blocks on I/O or computation.

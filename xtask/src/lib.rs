@@ -6,6 +6,7 @@
 #![forbid(unsafe_code)]
 
 pub mod architecture;
+pub mod build_code;
 pub mod check;
 pub mod dco;
 pub mod deny;
@@ -19,6 +20,7 @@ pub mod licence;
 pub mod listing;
 pub mod lockfile;
 pub mod native;
+pub mod native_assembly;
 pub mod notices;
 pub mod osv;
 pub mod quality;
@@ -45,3 +47,9 @@ mod quality_tests;
 
 #[cfg(test)]
 mod native_scope_tests;
+
+#[cfg(test)]
+mod build_code_tests;
+
+#[cfg(test)]
+mod native_assembly_tests;

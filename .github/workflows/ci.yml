@@ -111,6 +111,9 @@ jobs:
       - name: Guard the supply-chain configuration
         run: cargo xtask guard
 
+      - name: Fetch the complete locked dependency graph
+        run: cargo fetch --locked
+
       - name: Verify the vendor hash list against a clean vendor
         run: cargo xtask vendor-hashes verify
 

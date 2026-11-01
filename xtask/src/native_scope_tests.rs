@@ -161,3 +161,42 @@ fn packages_excluded_from_the_resolve_graph_are_allowed() {
         assert!(violations(&input.to_string()).unwrap().is_empty());
     }
 }
+
+#[test]
+fn android_properties_must_stay_outside_supported_graphs() {
+    for version in ["0.2.2", "0.3.0"] {
+        let excluded = metadata("android-properties", version, &[], false);
+        assert!(violations(&excluded.to_string()).unwrap().is_empty());
+        let reachable = metadata("android-properties", version, &["unexpected"], true);
+        assert!(
+            violations(&reachable.to_string())
+                .unwrap()
+                .iter()
+                .any(|finding| finding.contains("android-properties"))
+        );
+    }
+}
+
+#[test]
+fn apple_ffi_bindings_must_stay_outside_supported_graphs() {
+    for (name, version) in [
+        ("core-graphics", "0.23.2"),
+        ("dispatch", "0.2.0"),
+        ("core-graphics", "99.0.0"),
+        ("dispatch", "99.0.0"),
+    ] {
+        let excluded = metadata(name, version, &[], false);
+        assert!(
+            violations(&excluded.to_string()).unwrap().is_empty(),
+            "{name}"
+        );
+        let reachable = metadata(name, version, &["unexpected"], true);
+        assert!(
+            violations(&reachable.to_string())
+                .unwrap()
+                .iter()
+                .any(|finding| finding.contains(name)),
+            "{name}"
+        );
+    }
+}
