@@ -1,6 +1,6 @@
 # Engineering Principles: Modularisation, Maintainability, Clean Code
 
-> **Doc type:** Living spec — binding. Last reviewed: 2026-11-01.
+> **Doc type:** Living spec — binding. Last reviewed: 2026-11-02.
 
 This document makes "best practices" **verifiable**: every rule states *how* it is enforced. Where possible this happens automatically (compiler, the Cargo crate graph, Clippy, `cargo-deny`, `xtask`, CI), otherwise via the review checklist and the Definition of Done.
 
@@ -136,6 +136,16 @@ Corrected 2026-11-01 (narrow enforcement): the `native scope` step of `cargo xta
 
 Owner approval 2026-11-01 binds the 19 versions, 14 crates and 98 source-indicator files of `supply-chain/native-assembly.json`, including exact archive/source hashes, full-resolution features and supported-target reachability. It covers only x86_64 Windows MSVC and Linux GNU with the recorded selectors; custom cfg/RUSTFLAGS/backend overrides and activation of excluded branches require fresh review. The conservative lexical guard is not macro expansion, a full unsafe-code audit or proof of arbitrary native-code absence. The source review compared the published archives and read native effects, selectors, licences and alternatives. For omitted off-target objc2 licence texts, see NOTICE section 11.
 
+Target-activation evidence added 2026-11-02: an assembly entry may additionally
+bind `resolved_targets` with exact features or explicit absence for every
+supported target. The original conservative metadata selectors remain binding.
+The independent live Cargo tree evidence is source-bound to Cargo 1.99.0 commit
+`5f94df478`, records host and target, validates all workspace roots and every
+observed identity/edge/feature against full metadata, and fails on missing or
+malformed proof. Host build/procedural-macro and target occurrences are unioned;
+a Linux tree collected on Windows is not matching-host Linux build acceptance.
+No native scope is widened by this additional selector. See the exact collection
+and verification limits in [xtask](../../xtask/README.md#literal-inline-assembly-inventory).
 ## 4. Error handling, logging, observability
 
 - **Error categories:**
