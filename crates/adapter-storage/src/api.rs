@@ -18,6 +18,8 @@ pub enum StorageError {
     InvalidBackup,
     /// The database file could not be inspected.
     Filesystem(std::io::Error),
+    /// An existing schema cannot migrate without a coordinated backup.
+    MigrationBackupRequired,
     /// A newer application schema cannot be opened for writing.
     UnsupportedSchema {
         /// The persisted schema version.
@@ -32,6 +34,9 @@ impl std::fmt::Display for StorageError {
         match self {
             Self::Database(_) => formatter.write_str("reference database operation failed"),
             Self::InvalidBackup => formatter.write_str("database backup verification failed"),
+            Self::MigrationBackupRequired => {
+                formatter.write_str("database migration requires a coordinated backup")
+            }
             Self::InvalidCache => formatter.write_str("reference cache data or schema is invalid"),
             Self::Filesystem(_) => formatter.write_str("reference database file is inaccessible"),
             Self::UnsupportedSchema { found, supported } => write!(

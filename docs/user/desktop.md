@@ -75,6 +75,9 @@ Source builds compare against the fixed development package version. The signed-
 
 Settings schema 4 retains the independent UEX environment choice for each game channel. Migration backs up the exact old settings before replacement and preserves release checks, saved notices and the optional Game.log witness. The mapping controls save before applying; changing the witness directory preserves these mappings.
 
+If a local database already exists, settings migration backs it up consistently alongside the old settings in `data/backup`. A failed backup stops startup processing; it never falls back to a settings-only copy of an existing database.
+
+Database schema 2 retains separate exact buy/sell commodity averages and known terminal container limits. Before an older database migrates, startup saves it together with the original settings. Old side-ambiguous averages are discarded; cached names and fetch times remain available. PTU never borrows LIVE averages.
 
 ## Browsing cached reference data
 

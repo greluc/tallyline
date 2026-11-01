@@ -5,7 +5,7 @@
 
 use tallyline_game::api::model::GameEnvironment;
 use tallyline_reference_data::api::model::{
-    CachedReference, Commodity, EndpointData, UexEnvironment,
+    CachedReference, Commodity, CommodityAverages, EndpointData, UexEnvironment,
 };
 use tallyline_reference_data::api::{ReferenceApplication, ReferenceDataCache};
 use tallyline_shared_kernel::api::Clock;
@@ -50,7 +50,7 @@ fn r_api_1_r_ui_16__passive_refresh_preserves_environment_search_selection_and_s
                 "Agricium",
                 "AGRI",
                 true,
-                None,
+                CommodityAverages::default(),
             )]),
         )]),
         FixedClock,
@@ -298,7 +298,7 @@ fn r_api_1_r_ui_8_r_ui_13__empty_cache_and_offline_refresh_report_real_data_age(
                 "Agricium",
                 "AGRI",
                 true,
-                None,
+                CommodityAverages::default(),
             )]),
         )]),
         FixedClock,

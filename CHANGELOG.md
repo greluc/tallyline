@@ -8,6 +8,8 @@ All notable changes are recorded here.
 
 - Added environment-specific terminal and commodity browsing with searchable cached records, passive refresh status and endpoint ages. Channel-to-UEX mapping controls save before applying and remain independent of the optional Game.log witness; native reference-worker wiring remains in progress (R-API-1, R-API-2, R-API-6, R-CAP-3a, R-UI-8, R-UI-13, R-UI-16).
 
+- Cached commodity averages retain exact buy/sell values and terminal container limits. SQLite schema 2 backs up old data before migration, preserves vocabulary and fetch times, and removes the ambiguous legacy average without introducing LIVE values into PTU (R-API-1, R-API-6, R-VAL-2a, R-NF-11).
+
 - Game-channel mappings persist independently of the optional Game.log witness in settings schema 4. Migration preserves release-check preferences and backs up old settings before replacement (R-CAP-3a, R-NF-11).
 
 - Added exact decimal price/quantity value types and enabled environment/static Windows proxy support in the UEX adapter. PAC and per-protocol Windows proxy lists remain unsupported; desktop reference-data wiring is still in progress (R-API-3, R-API-5).
@@ -23,6 +25,8 @@ All notable changes are recorded here.
 - Offline corpus inspection reports schema-v2 conditions, expected values, frozen reference metadata, sample readiness and unavailable inputs. Anchor annotation writes a separate unverified proposal, and a contributor capture guide explains reproducible ladders and privacy protections (R-QA-1, R-QA-3, R-DOC-1).
 
 ### Fixed
+
+- Settings migration with an existing SQLite database now creates one integrity-checked database/config backup set before replacement. Backup failure stops startup processing and preserves the previous files (R-NF-11).
 
 - Backup retention preserves the newly created snapshot when the clock moves backwards and retains the newest three completed creations across restarts. Failed backups and timestamp collisions leave existing snapshots untouched (R-NF-11).
 

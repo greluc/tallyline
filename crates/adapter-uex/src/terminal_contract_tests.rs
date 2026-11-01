@@ -60,11 +60,13 @@ async fn r_api_1_r_api_5_r_api_6__terminal_vocabulary_is_public_decoded_once_and
         vec![TerminalId(17), TerminalId(18)]
     );
     let first = terminals.first().unwrap();
+    assert_eq!(first.max_container_size().unwrap().get(), 32);
     assert_eq!(first.text().name, "Grey's Market");
     assert_eq!(first.text().nickname, "Grey&apos;s");
     assert_eq!(first.text().display_name, "Trading & Shipping");
     assert_eq!(first.text().location, "Stanton / ArcCorp / Area18");
     let last = terminals.last().unwrap();
+    assert_eq!(last.max_container_size(), None);
     assert_eq!(last.text().location, "Stanton / Area18");
     assert!(!last.available(UexEnvironment::Live));
     assert!(last.available(UexEnvironment::Ptu));
@@ -122,7 +124,7 @@ async fn r_api_1_r_api_6_r_cap_3b__fetcher_port_returns_typed_public_vocabulary_
     for (endpoint, data) in [
         (
             "commodities",
-            json!([{"id":"7","name":"Ore &amp; Metal","code":"SAME","is_available_live":"0","price_buy":"9007199254740993.125"},{"id":8,"name":"Refined Metal","code":"SAME","is_available_live":1}]),
+            json!([{"id":"7","name":"Ore &amp; Metal","code":"SAME","is_available_live":"0","price_buy":"9007199254740993.125","price_sell":0},{"id":8,"name":"Refined Metal","code":"SAME","is_available_live":1,"price_buy":0,"price_sell":0}]),
         ),
         ("game_versions", json!({"live":"4.9","ptu":null})),
         ("terminals", json!([])),
@@ -248,4 +250,43 @@ async fn r_api_5__json_price_numbers_reach_typed_values_without_binary_float_rou
     assert_eq!(rows[1].side, TradedSide::Sell);
     assert_eq!(rows[2].price, None);
     assert_eq!(rows[3].price, None);
+}
+
+#[tokio::test]
+#[expect(
+    non_snake_case,
+    reason = "Requirement tags use a double underscore separator."
+)]
+async fn r_api_5_r_val_2a__commodity_averages_keep_exact_numbers_and_separate_missing_sides() {
+    use tallyline_reference_data::api::ReferenceDataFetcher;
+    use tallyline_reference_data::api::model::{Endpoint, EndpointData};
+    use tallyline_shared_kernel::api::model::TradeSide;
+    let server = MockServer::start().await;
+    Mock::given(method("GET")).and(path("/2.0/commodities/"))
+        .respond_with(ResponseTemplate::new(200).set_body_raw(r#"{"status":"ok","data":[{"id":1,"name":"Exact","code":"EX","is_available_live":1,"price_buy":9007199254740993.125,"price_sell":"9.7e-7"},{"id":2,"name":"Missing","code":"NO","is_available_live":"0","price_buy":0,"price_sell":"0"}]}"#,"application/json")).mount(&server).await;
+    let settings = ReaderSettings::new(
+        &format!("{}/2.0/", server.uri()),
+        ClientIdentity::new("test", "1.0.0"),
+    )
+    .unwrap();
+    let EndpointData::Commodities(rows) = UexReader::new(&settings)
+        .unwrap()
+        .fetch(Endpoint::Commodities)
+        .await
+        .unwrap()
+    else {
+        panic!("wrong endpoint")
+    };
+    assert_eq!(
+        rows[0].average_price(UexEnvironment::Live, TradeSide::Buy),
+        Some("9007199254740993.125".parse().unwrap())
+    );
+    assert_eq!(
+        rows[0].average_price(UexEnvironment::Live, TradeSide::Sell),
+        Some("0.00000097".parse().unwrap())
+    );
+    for side in [TradeSide::Buy, TradeSide::Sell] {
+        assert_eq!(rows[1].average_price(UexEnvironment::Live, side), None);
+        assert_eq!(rows[0].average_price(UexEnvironment::Ptu, side), None);
+    }
 }
