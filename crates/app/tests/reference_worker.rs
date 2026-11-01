@@ -180,7 +180,9 @@ fn next_snapshot(
                 observed_at,
             } => return Ok((live, ptu, observed_at)),
             BackgroundEvent::ReferenceRefreshStarted | BackgroundEvent::ReferenceDiagnostic(_) => {}
-            other @ (BackgroundEvent::UpdateChecked(_)
+            other @ (BackgroundEvent::ReportsLoaded { .. }
+            | BackgroundEvent::ReportFailed(_)
+            | BackgroundEvent::UpdateChecked(_)
             | BackgroundEvent::GameWitnessLoaded(_)
             | BackgroundEvent::Failure(_)
             | BackgroundEvent::SettingsLoaded(_)
@@ -568,7 +570,9 @@ fn r_api_3__non_json_metadata_uses_the_injected_observation_time_without_replaci
             }
             BackgroundEvent::ReferenceRefreshStarted | BackgroundEvent::ReferenceUpdated { .. } => {
             }
-            other @ (BackgroundEvent::UpdateChecked(_)
+            other @ (BackgroundEvent::ReportsLoaded { .. }
+            | BackgroundEvent::ReportFailed(_)
+            | BackgroundEvent::UpdateChecked(_)
             | BackgroundEvent::GameWitnessLoaded(_)
             | BackgroundEvent::Failure(_)
             | BackgroundEvent::SettingsLoaded(_)

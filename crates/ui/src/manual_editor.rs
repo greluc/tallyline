@@ -1,0 +1,123 @@
+// SPDX-FileCopyrightText: 2026 Lucas Greuloch
+// SPDX-License-Identifier: GPL-3.0-or-later
+
+//! User-owned manual editor state and bounded persistence commands.
+
+use tallyline_game::api::model::GameEnvironment;
+use tallyline_reference_data::api::model::ReferenceSnapshot;
+use tallyline_reporting::api::model::{Report, ReportId, ReportKey, RowId};
+use tallyline_reporting::api::{ManualEdit, RepositoryError};
+use tallyline_shared_kernel::api::model::{CommodityId, TerminalId, TradeSide};
+
+/// A manual Report operation handled by the app-owned storage worker.
+#[derive(Clone, Debug)]
+pub enum ManualCommand {
+    /// Create an empty Draft with explicit context.
+    Create {
+        /// User-selected context.
+        key: ReportKey,
+        /// Immutable vocabulary and values shown for this decision.
+        snapshot: ReferenceSnapshot,
+    },
+    /// Persist an explicit edit against its observed version and reference snapshot.
+    Edit {
+        /// Persistent Draft identity.
+        id: ReportId,
+        /// Version last displayed to the user.
+        expected: u64,
+        /// Explicit input or context change.
+        edit: ManualEdit,
+        /// Immutable data used for this decision.
+        snapshot: ReferenceSnapshot,
+    },
+}
+
+pub(crate) struct RowInput {
+    pub(crate) id: RowId,
+    pub(crate) commodity: CommodityId,
+    pub(crate) price: String,
+    pub(crate) stock: String,
+    pub(crate) status: String,
+}
+
+/// Manual Draft choices, with reference values kept outside the inputs.
+#[derive(Default)]
+pub struct ManualEditor {
+    pub(crate) reports: Vec<Report>,
+    pub(crate) selected: Option<ReportId>,
+    pub(crate) environment: Option<GameEnvironment>,
+    pub(crate) terminal: Option<TerminalId>,
+    pub(crate) side: Option<TradeSide>,
+    pub(crate) terminal_query: String,
+    pub(crate) location_query: String,
+    pub(crate) commodity_query: String,
+    pub(crate) rows: Vec<RowInput>,
+    pub(crate) ready: bool,
+    pub(crate) busy: bool,
+    pub(crate) notice: Option<String>,
+    command: Option<ManualCommand>,
+}
+impl ManualEditor {
+    /// Returns the selected durable Draft.
+    #[must_use]
+    pub fn selected(&self) -> Option<&Report> {
+        self.reports
+            .iter()
+            .find(|report| Some(report.id()) == self.selected)
+    }
+    /// Returns the next explicit request without changing keyboard focus.
+    pub fn take_command(&mut self) -> Option<ManualCommand> {
+        self.command.take()
+    }
+    /// Clears a failed delivery while keeping the user's input visible.
+    pub fn failed(&mut self, error: RepositoryError) {
+        self.busy = false;
+        self.notice = Some(error.to_string());
+    }
+    pub(crate) fn queue(&mut self, command: ManualCommand) {
+        if self.ready && !self.busy {
+            self.command = Some(command);
+            self.busy = true;
+            self.notice = None;
+        }
+    }
+    pub(crate) fn loaded(&mut self, reports: Vec<Report>, selected: Option<ReportId>) {
+        self.reports = reports;
+        self.ready = true;
+        self.busy = false;
+        self.notice = None;
+        if let Some(id) = selected {
+            self.select(id);
+        } else if self.selected.is_none() {
+            self.environment = self
+                .reports
+                .first()
+                .map(|report| report.key().environment());
+        }
+    }
+    pub(crate) fn select(&mut self, id: ReportId) {
+        if let Some(report) = self.reports.iter().find(|report| report.id() == id) {
+            self.selected = Some(id);
+            self.environment = Some(report.key().environment());
+            self.terminal = Some(report.key().terminal());
+            self.side = Some(report.key().side());
+            self.rows = report
+                .rows()
+                .iter()
+                .map(|row| RowInput {
+                    id: row.id(),
+                    commodity: row.commodity(),
+                    price: row.price().map(|v| v.to_string()).unwrap_or_default(),
+                    stock: row.stock().map(|v| v.to_string()).unwrap_or_default(),
+                    status: row.status().map(|v| v.to_string()).unwrap_or_default(),
+                })
+                .collect();
+        }
+    }
+    pub(crate) fn new_draft(&mut self) {
+        self.selected = None;
+        self.terminal = None;
+        self.side = None;
+        self.rows.clear();
+    }
+}

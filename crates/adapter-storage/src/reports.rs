@@ -1,0 +1,223 @@
+// SPDX-FileCopyrightText: 2026 Lucas Greuloch
+// SPDX-License-Identifier: GPL-3.0-or-later
+
+//! Atomic manual Draft persistence in the coordinated application database.
+
+use crate::api::SqliteReferenceCache;
+use rusqlite::OptionalExtension;
+use serde::{Deserialize, Serialize};
+use tallyline_reporting::api::model::{Report, ReportId, ReportKey, RowId, StoredReport};
+use tallyline_reporting::api::{ReportRepository, RepositoryError};
+use tallyline_shared_kernel::api::model::{CommodityId, TerminalId, Timestamp, TradeSide};
+
+impl ReportRepository for SqliteReferenceCache {
+    fn create_manual(
+        &mut self,
+        key: ReportKey,
+        observed_at: Timestamp,
+        game_version: Option<&str>,
+    ) -> Result<Report, RepositoryError> {
+        let transaction = self.connection.transaction().map_err(unavailable)?;
+        transaction
+            .execute("INSERT INTO reports(version,payload) VALUES(0,'')", [])
+            .map_err(unavailable)?;
+        let id =
+            u64::try_from(transaction.last_insert_rowid()).map_err(|_| RepositoryError::Invalid)?;
+        let report = Report::manual(ReportId(id), key, observed_at, game_version)
+            .map_err(|_| RepositoryError::Invalid)?;
+        let payload = encode(&report)?;
+        transaction
+            .execute(
+                "UPDATE reports SET payload=?1 WHERE id=?2",
+                (&payload, sql_integer(id)?),
+            )
+            .map_err(unavailable)?;
+        transaction.execute("INSERT INTO report_recents(report_id,changed_order) VALUES(?1,(SELECT COALESCE(MAX(changed_order),0)+1 FROM report_recents))", [sql_integer(id)?]).map_err(unavailable)?;
+        transaction.commit().map_err(unavailable)?;
+        Ok(report)
+    }
+    fn load_draft(&mut self, id: ReportId) -> Result<Option<Report>, RepositoryError> {
+        let record: Option<(i64, String)> = self
+            .connection
+            .query_row(
+                "SELECT version,payload FROM reports WHERE id=?1",
+                [sql_integer(id.0)?],
+                |row| Ok((row.get(0)?, row.get(1)?)),
+            )
+            .optional()
+            .map_err(unavailable)?;
+        record
+            .map(|(version, payload)| decode(id, domain_integer(version)?, &payload))
+            .transpose()
+    }
+    fn drafts(&mut self) -> Result<Vec<Report>, RepositoryError> {
+        let mut query = self.connection.prepare("SELECT r.id,r.version,r.payload FROM reports r JOIN report_recents o ON o.report_id=r.id ORDER BY o.changed_order DESC").map_err(unavailable)?;
+        let rows = query
+            .query_map([], |row| {
+                Ok((
+                    row.get::<_, i64>(0)?,
+                    row.get::<_, i64>(1)?,
+                    row.get::<_, String>(2)?,
+                ))
+            })
+            .map_err(unavailable)?;
+        rows.map(|row| {
+            let (id, version, payload) = row.map_err(unavailable)?;
+            decode(
+                ReportId(domain_integer(id)?),
+                domain_integer(version)?,
+                &payload,
+            )
+        })
+        .collect()
+    }
+    fn save_draft(
+        &mut self,
+        report: &Report,
+        expected_version: u64,
+    ) -> Result<(), RepositoryError> {
+        if report.version() <= expected_version {
+            return Err(RepositoryError::Invalid);
+        }
+        let payload = encode(report)?;
+        let transaction = self.connection.transaction().map_err(unavailable)?;
+        let changed = transaction
+            .execute(
+                "UPDATE reports SET version=?1,payload=?2 WHERE id=?3 AND version=?4",
+                (
+                    sql_integer(report.version())?,
+                    payload,
+                    sql_integer(report.id().0)?,
+                    sql_integer(expected_version)?,
+                ),
+            )
+            .map_err(unavailable)?;
+        if changed != 1 {
+            return Err(RepositoryError::Conflict);
+        }
+        transaction.execute("UPDATE report_recents SET changed_order=(SELECT MAX(changed_order)+1 FROM report_recents) WHERE report_id=?1", [sql_integer(report.id().0)?]).map_err(unavailable)?;
+        transaction.commit().map_err(unavailable)
+    }
+}
+fn unavailable(_: rusqlite::Error) -> RepositoryError {
+    RepositoryError::Unavailable
+}
+
+#[derive(Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct Document {
+    terminal: u32,
+    side: String,
+    environment: String,
+    observed_at: String,
+    game_version: Option<String>,
+    rows: Vec<RowDocument>,
+}
+#[derive(Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct RowDocument {
+    id: u64,
+    commodity: u32,
+    price: Option<String>,
+    stock: Option<String>,
+    status: Option<std::num::NonZeroU8>,
+}
+fn encode(report: &Report) -> Result<String, RepositoryError> {
+    let document = Document {
+        terminal: report.key().terminal().0,
+        side: match report.key().side() {
+            TradeSide::Buy => "buy",
+            TradeSide::Sell => "sell",
+        }
+        .to_owned(),
+        environment: environment_name(report.key().environment()).to_owned(),
+        observed_at: report.observed_at().millis().to_string(),
+        game_version: report.game_version().map(str::to_owned),
+        rows: report
+            .rows()
+            .iter()
+            .map(|row| RowDocument {
+                id: row.id().0,
+                commodity: row.commodity().0,
+                price: row.price().map(|v| v.to_string()),
+                stock: row.stock().map(|v| v.to_string()),
+                status: row.status(),
+            })
+            .collect(),
+    };
+    serde_json::to_string(&document).map_err(|_| RepositoryError::Invalid)
+}
+fn decode(id: ReportId, version: u64, payload: &str) -> Result<Report, RepositoryError> {
+    use tallyline_reporting::api::model::StoredRow;
+    let document: Document = serde_json::from_str(payload).map_err(|_| RepositoryError::Invalid)?;
+    let side = match document.side.as_str() {
+        "buy" => TradeSide::Buy,
+        "sell" => TradeSide::Sell,
+        _ => return Err(RepositoryError::Invalid),
+    };
+    let environment = parse_environment(&document.environment)?;
+    let key = ReportKey::new(TerminalId(document.terminal), side, environment)
+        .map_err(|_| RepositoryError::Invalid)?;
+    let observed_at = crate::reference_cache::timestamp(&document.observed_at)
+        .map_err(|_| RepositoryError::Invalid)?;
+    let rows = document
+        .rows
+        .into_iter()
+        .map(|row| {
+            Ok(StoredRow {
+                id: RowId(row.id),
+                commodity: CommodityId(row.commodity),
+                price: row
+                    .price
+                    .map(|v| v.parse())
+                    .transpose()
+                    .map_err(|_| RepositoryError::Invalid)?,
+                stock: row
+                    .stock
+                    .map(|v| v.parse())
+                    .transpose()
+                    .map_err(|_| RepositoryError::Invalid)?,
+                status: row.status,
+            })
+        })
+        .collect::<Result<Vec<_>, RepositoryError>>()?;
+    Report::reconstitute(StoredReport {
+        id,
+        key,
+        observed_at,
+        game_version: document.game_version,
+        version,
+        rows,
+    })
+    .map_err(|_| RepositoryError::Invalid)
+}
+fn environment_name(environment: tallyline_game::api::model::GameEnvironment) -> &'static str {
+    use tallyline_game::api::model::GameEnvironment;
+    match environment {
+        GameEnvironment::Live => "live",
+        GameEnvironment::Hotfix => "hotfix",
+        GameEnvironment::Ptu => "ptu",
+        GameEnvironment::Eptu => "eptu",
+        GameEnvironment::TechPreview => "tech-preview",
+    }
+}
+fn parse_environment(
+    value: &str,
+) -> Result<tallyline_game::api::model::GameEnvironment, RepositoryError> {
+    use tallyline_game::api::model::GameEnvironment;
+    match value {
+        "live" => Ok(GameEnvironment::Live),
+        "hotfix" => Ok(GameEnvironment::Hotfix),
+        "ptu" => Ok(GameEnvironment::Ptu),
+        "eptu" => Ok(GameEnvironment::Eptu),
+        "tech-preview" => Ok(GameEnvironment::TechPreview),
+        _ => Err(RepositoryError::Invalid),
+    }
+}
+
+fn sql_integer(value: u64) -> Result<i64, RepositoryError> {
+    i64::try_from(value).map_err(|_| RepositoryError::Invalid)
+}
+fn domain_integer(value: i64) -> Result<u64, RepositoryError> {
+    u64::try_from(value).map_err(|_| RepositoryError::Invalid)
+}

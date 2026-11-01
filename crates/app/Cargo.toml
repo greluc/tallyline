@@ -34,3 +34,6 @@ path = "../game"
 [dev-dependencies]
 rusqlite.workspace = true
 serde_json.workspace = true
+
+[dependencies.tallyline-reporting]
+workspace = true
