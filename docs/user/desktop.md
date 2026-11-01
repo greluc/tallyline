@@ -14,7 +14,7 @@ Corrected 2026-11-01: the owner requires image recognition to stay entirely on t
 
 ## Running a source build
 
-Keep the committed lockfile when building. The [dependency adoption record](../../supply-chain/latest-stable-adoption.json) records the current eligible stable versions, retained upstream constraints and native boundaries; complete third-party legal texts remain available offline.
+Keep the committed lockfile when building. The [dependency adoption record](../../supply-chain/latest-stable-adoption.json) and [image intake record](../../supply-chain/image-intake-adoption.json) document the reviewed stable selections, retained upstream constraints and native boundaries; complete third-party legal texts remain available offline.
 
 Run `cargo build --locked -p tallyline-app`, followed by `target/debug/tallyline --assets crates/ui/assets` (Windows: `target/debug/tallyline.exe --assets crates/ui/assets`). The `--assets` argument selects the asset directory for a source build. Packaged images keep the same `fonts/` subtree under `assets/` next to the executable; font files and their OFL texts stay separate and unmodified.
 

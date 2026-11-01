@@ -1,8 +1,9 @@
 [workspace]
 resolver = "3"
-members = ["crates/shared-kernel", "crates/reference-data", "xtask", "crates/adapter-uex", "crates/egui", "tools/ocr-eval", "crates/workflows", "crates/adapter-files", "crates/ui", "crates/app", "crates/adapter-platform", "crates/adapter-storage", "crates/game"]
+members = ["crates/shared-kernel", "crates/reference-data", "xtask", "crates/adapter-uex", "crates/egui", "tools/ocr-eval", "crates/workflows", "crates/adapter-files", "crates/ui", "crates/app", "crates/adapter-platform", "crates/adapter-storage", "crates/game", "crates/submission"]
 
 [workspace.dependencies]
+tallyline-submission = { path = "crates/submission" }
 tallyline-adapter-storage = { path = "crates/adapter-storage" }
 rusqlite = { version = "=0.41.1", default-features = false, features = ["bundled"] }
 tallyline-shared-kernel = { path = "crates/shared-kernel" }
