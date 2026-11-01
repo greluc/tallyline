@@ -184,6 +184,16 @@ impl ConfigFile {
 impl AppSettingsStore for ConfigFile {
     type Error = io::Error;
     fn save(&mut self, settings: &AppSettings) -> io::Result<()> {
+        let attempt = settings
+            .last_update_attempt()
+            .map(|time| u64::try_from(time.millis()))
+            .transpose()
+            .map_err(|_| {
+                io::Error::new(
+                    io::ErrorKind::InvalidData,
+                    "release-check time exceeds the settings range",
+                )
+            })?;
         let theme = match settings.theme() {
             Theme::System => "system",
             Theme::Dark => "dark",
@@ -193,7 +203,7 @@ impl AppSettingsStore for ConfigFile {
         let mut document = self.read_document()?;
         Self::object(&mut document)?.insert(
             "app".to_owned(),
-            serde_json::json!({"theme":theme,"onboarding_complete":settings.onboarding_complete(), "update_checks": settings.update_checks() == tallyline_workflows::api::model::UpdateChecks::Enabled, "last_update_attempt_ms": settings.last_update_attempt().map(|time| time.millis()), "available_release": settings.available_release().map(|version| version.to_string()), "dismissed_release": settings.dismissed_release().map(|version| version.to_string())}),
+            serde_json::json!({"theme":theme,"onboarding_complete":settings.onboarding_complete(), "update_checks": settings.update_checks() == tallyline_workflows::api::model::UpdateChecks::Enabled, "last_update_attempt_ms": attempt, "available_release": settings.available_release().map(|version| version.to_string()), "dismissed_release": settings.dismissed_release().map(|version| version.to_string())}),
         );
         self.write_document(document)
     }

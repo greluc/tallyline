@@ -529,3 +529,24 @@ fn r_nf_7__legacy_unknown_release_fields_never_enable_network_checks_during_migr
     assert_eq!(loaded.settings.update_checks(), UpdateChecks::Disabled);
     assert_eq!(loaded.settings.available_release(), None);
 }
+
+#[test]
+#[expect(
+    non_snake_case,
+    reason = "Requirement tags use a double underscore separator."
+)]
+fn r_nf_7__unrepresentable_attempt_time_refuses_save_without_panicking_or_replacing_preferences() {
+    use tallyline_shared_kernel::api::model::Timestamp;
+    use tallyline_workflows::api::model::UpdateChecks;
+    let directory = TestDirectory::new().unwrap();
+    let path = directory.0.join("settings.json");
+    let mut store = ConfigFile::new(path.clone());
+    store.save(&AppSettings::default()).unwrap();
+    let previous = std::fs::read(&path).unwrap();
+    let settings = AppSettings::default().with_update_state(
+        UpdateChecks::Enabled,
+        Some(Timestamp::from_seconds(u64::MAX)),
+    );
+    assert!(store.save(&settings).is_err());
+    assert_eq!(std::fs::read(path).unwrap(), previous);
+}

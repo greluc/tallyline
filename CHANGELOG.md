@@ -18,6 +18,8 @@ All notable changes are recorded here.
 
 ### Fixed
 
+- Update-check timestamps outside the settings format are refused without panicking or replacing saved preferences (R-NF-7, R-NF-5).
+
 - Settings upgrades require a successful backup before replacement. The bootstrap without a database preserves exact previous settings and retains the last three recognised backup sets; a database requires coordinated backup (R-NF-11).
 
 - A second launch restores a minimised window even when no view is being drawn. Ordinary background results remain unable to restore or focus it (R-NF-10, R-UI-16).
