@@ -18,6 +18,8 @@ pub enum View {
     Home,
     /// Cached environment-specific terminal and commodity browsing.
     Reference,
+    /// Persistent keyboard-driven manual Report entry.
+    Manual,
     /// Application preferences.
     Settings,
 }
@@ -25,6 +27,15 @@ pub enum View {
 /// A worker result that never requests a dialog or window command.
 #[derive(Debug)]
 pub enum BackgroundEvent {
+    /// Durable Drafts loaded after storage commits, without changing focus or view.
+    ReportsLoaded {
+        /// Most recently edited Drafts first.
+        reports: Vec<tallyline_reporting::api::model::Report>,
+        /// Draft explicitly created or edited by this user action.
+        selected: Option<tallyline_reporting::api::model::ReportId>,
+    },
+    /// A manual Report operation failed without losing the displayed input.
+    ReportFailed(tallyline_reporting::api::RepositoryError),
     /// A passive refresh starts without replacing cached records.
     ReferenceRefreshStarted,
     /// Environment-specific cache state and its injected clock observation.
@@ -54,6 +65,7 @@ pub enum BackgroundEvent {
 #[derive(Default)]
 pub struct ShellState {
     view: View,
+    manual: crate::manual_editor::ManualEditor,
     references: crate::reference_browser::ReferenceBrowser,
     notice: Option<String>,
     reference_notice: Option<String>,
@@ -131,6 +143,10 @@ impl ShellState {
     /// Applies a worker result without changing the view or window state.
     pub fn receive(&mut self, event: BackgroundEvent) {
         match event {
+            BackgroundEvent::ReportsLoaded { reports, selected } => {
+                self.manual.loaded(reports, selected)
+            }
+            BackgroundEvent::ReportFailed(error) => self.manual.failed(error),
             BackgroundEvent::ReferenceRefreshStarted => self.references.started(),
             BackgroundEvent::ReferenceUpdated {
                 live,
@@ -293,3 +309,19 @@ impl ShellState {
 }
 
 mod reference;
+
+impl ShellState {
+    /// Returns manual Draft editing state.
+    #[must_use]
+    pub const fn manual(&self) -> &crate::api::model::ManualEditor {
+        &self.manual
+    }
+    /// Returns mutable manual input and command state.
+    pub fn manual_mut(&mut self) -> &mut crate::api::model::ManualEditor {
+        &mut self.manual
+    }
+    /// Opens manual entry in direct response to a user action.
+    pub fn show_manual(&mut self) {
+        self.view = View::Manual;
+    }
+}

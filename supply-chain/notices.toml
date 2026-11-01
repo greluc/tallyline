@@ -171,7 +171,7 @@ copyright = ["The author disclaims copyright to this source code."]
 [[component]]
 directory = "opencv-linear"
 name = "OpenCV generic eight-bit linear interpolation arithmetic (safe Rust adaptation)"
-shipped = { with-crate = "tallyline-adapter-ocr" }
+shipped = "always"
 files = [{ repository = "supply-chain/notices/opencv-linear/LICENSE" }]
 [component.catalogue]
 version = "5.0.0 source; portable Rust profile ppocr-bgr48-linear8u-v1"

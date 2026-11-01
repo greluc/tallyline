@@ -14,6 +14,7 @@ use tallyline_workflows::api::SettingsApplication;
 type WorkerChannels = (
     SyncSender<SettingsCommand>,
     SyncSender<ReferenceCommand>,
+    SyncSender<tallyline_ui::api::model::ManualCommand>,
     Receiver<BackgroundEvent>,
     std::thread::JoinHandle<()>,
 );
@@ -21,15 +22,29 @@ type WorkerChannels = (
 pub(crate) fn start(context: egui::Context, layout: StorageLayout) -> io::Result<WorkerChannels> {
     let (commands, incoming) = mpsc::sync_channel(1);
     let (reference_commands, reference_incoming) = mpsc::sync_channel(1);
+    let (manual_commands, manual_incoming) = mpsc::sync_channel(1);
     let (outgoing, events) = mpsc::sync_channel(16);
     let worker = crate::executor::spawn("tallyline-settings", move || {
-        let result = run(&incoming, &outgoing, &context, layout, reference_incoming);
+        let result = run(
+            &incoming,
+            &outgoing,
+            &context,
+            layout,
+            reference_incoming,
+            manual_incoming,
+        );
         if let Err(error) = result {
             let _sent = outgoing.try_send(BackgroundEvent::Failure(error.to_string()));
             wake_up(&context);
         }
     })?;
-    Ok((commands, reference_commands, events, worker))
+    Ok((
+        commands,
+        reference_commands,
+        manual_commands,
+        events,
+        worker,
+    ))
 }
 
 fn deliver(
@@ -48,6 +63,7 @@ fn run(
     context: &egui::Context,
     layout: StorageLayout,
     reference_incoming: Receiver<ReferenceCommand>,
+    manual_incoming: Receiver<tallyline_ui::api::model::ManualCommand>,
 ) -> io::Result<()> {
     let executable = std::env::current_exe()?;
     let directory = executable
@@ -103,6 +119,24 @@ fn run(
         reference_incoming,
         outgoing.clone(),
         context.clone(),
+    )?;
+    let manual_store = tallyline_adapter_storage::api::SqliteReferenceCache::open(
+        layout.data().join("tallyline.db"),
+    )
+    .map_err(io::Error::other)?;
+    let manual_settings = ConfigFile::new(settings_path.clone());
+    let manual_context = context.clone();
+    let manual_worker = tallyline_app::api::ManualWorker::start(
+        manual_store,
+        crate::update_wiring::SystemClock,
+        manual_incoming,
+        outgoing.clone(),
+        move || {
+            manual_settings
+                .load_game_preferences()
+                .map(|loaded| loaded.settings.environment_mapping)
+        },
+        move || wake_up(&manual_context),
     )?;
     let mut settings = SettingsApplication::new(loaded.settings, store);
     let installed = tallyline_workflows::api::model::ReleaseVersion::parse(concat!(
@@ -237,11 +271,13 @@ fn run(
         }
         Ok(())
     })();
+    let manual_result = manual_worker.finish();
     let reference_result = reference_worker.finish();
     drop(update_requests);
     update_worker
         .join()
         .map_err(|_| io::Error::other("update worker terminated unexpectedly"))?;
+    manual_result?;
     reference_result?;
     result
 }

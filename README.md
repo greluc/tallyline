@@ -6,7 +6,7 @@ Tallyline is a cross-platform desktop client (Windows + Linux) for Star Citizen 
 
 While the game is running, lightweight local OCR does the work. Optional local AI can re-check results once the game is closed. The planned installation supplies its selected recognition runtime and models without a separate Ollama installation; the engine and model combinations are still being evaluated. Images are never sent to cloud or LAN inference services ([ADR-0012](docs/adr/0012-strictly-local-recognition-delivery.md)).
 
-> Status: **M1 desktop foundation in progress**. The native shell provides first-launch onboarding, themes, legal notices and atomic application settings. Capture and submission workflows are still being implemented. The implementation uses Rust and egui, with native code only in registered exceptions ([ADR-0005](docs/adr/0005-rust-and-egui.md)).
+> Status: **M1 desktop foundation in progress**. The native shell provides first-launch onboarding, themes, legal notices and atomic application settings. Manual commodity Drafts can be created, edited by keyboard and resumed after restart without credentials. Shared validation, capture and submission workflows are still being implemented. The implementation uses Rust and egui, with native code only in registered exceptions ([ADR-0005](docs/adr/0005-rust-and-egui.md)).
 
 ## Run the desktop shell from source
 
@@ -106,7 +106,7 @@ Game preferences now persist independent channel-to-UEX mappings in settings sch
 
 Startup config migration coordinates existing SQLite and exact settings bytes in one verified backup set, and refuses processing if the backup fails.
 
-The schema-two reference cache preserves exact buy/sell averages and known terminal container limits; PTU snapshots contain no LIVE averages.
+The schema-three application database stores manual Drafts and preserves exact buy/sell averages and known terminal container limits; PTU snapshots contain no LIVE averages.
 
 Reference snapshots now retain UEX acceptance switches, commodity tolerances and capped literal staff information independently of browsing availability.
 

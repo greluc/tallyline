@@ -3311,7 +3311,9 @@ dependencies = [
  "rusqlite",
  "serde",
  "serde_json",
+ "tallyline-game",
  "tallyline-reference-data",
+ "tallyline-reporting",
  "tallyline-shared-kernel",
 ]
 
@@ -3345,6 +3347,7 @@ dependencies = [
  "tallyline-adapter-uex",
  "tallyline-game",
  "tallyline-reference-data",
+ "tallyline-reporting",
  "tallyline-shared-kernel",
  "tallyline-ui",
  "tallyline-workflows",
@@ -3370,6 +3373,15 @@ dependencies = [
 name = "tallyline-reference-data"
 version = "0.1.0"
 dependencies = [
+ "tallyline-shared-kernel",
+]
+
+[[package]]
+name = "tallyline-reporting"
+version = "0.1.0"
+dependencies = [
+ "tallyline-game",
+ "tallyline-reference-data",
  "tallyline-shared-kernel",
 ]
 
@@ -3404,6 +3416,7 @@ dependencies = [
  "tallyline-egui",
  "tallyline-game",
  "tallyline-reference-data",
+ "tallyline-reporting",
  "tallyline-shared-kernel",
  "tallyline-workflows",
 ]

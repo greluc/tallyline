@@ -73,7 +73,7 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
             let (activation_commands, activation_events) = std::sync::mpsc::sync_channel(1);
             let activation_worker =
                 instance_wiring::start(listener, activation_commands, creation.egui_ctx.clone())?;
-            let (commands, reference_commands, events, worker) =
+            let (commands, reference_commands, manual_commands, events, worker) =
                 settings_wiring::start(creation.egui_ctx.clone(), layout)?;
             lifecycle_sender.send((worker, activation_worker))?;
             Ok(Box::new(
@@ -86,7 +86,8 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
                     events,
                 )
                 .with_window_commands(activation_events)
-                .with_reference_commands(reference_commands),
+                .with_reference_commands(reference_commands)
+                .with_manual_commands(manual_commands),
             ))
         }),
     );

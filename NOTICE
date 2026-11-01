@@ -845,7 +845,7 @@ Third party copyrights are property of their respective owners.
 
 The unmodified file-specific BSD-3-Clause licence header is preserved in
 supply-chain/notices/opencv-linear/LICENSE and is included in the offline
-catalogue whenever the OCR adapter ships. The Rust adaptation is under
+catalogue with the project source-port attribution. The Rust adaptation is under
 GPL-3.0-or-later with those retained BSD-3-Clause obligations. This source
 attribution does not select or bundle an OpenCV native library.
 Licence-header SHA-256: 3540f4621f2ea804dbc271ee623b324fde7fcb79eb2edff14c15a8c84d183499.

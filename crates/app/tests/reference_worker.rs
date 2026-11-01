@@ -180,7 +180,9 @@ fn next_snapshot(
                 observed_at,
             } => return Ok((live, ptu, observed_at)),
             BackgroundEvent::ReferenceRefreshStarted => (),
-            other @ (BackgroundEvent::UpdateChecked(_)
+            other @ (BackgroundEvent::ReportsLoaded { .. }
+            | BackgroundEvent::ReportFailed(_)
+            | BackgroundEvent::UpdateChecked(_)
             | BackgroundEvent::GameWitnessLoaded(_)
             | BackgroundEvent::Failure(_)
             | BackgroundEvent::SettingsLoaded(_)
