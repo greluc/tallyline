@@ -12,7 +12,10 @@ const OK_STATUS: &str = "ok";
 /// Returns the `data` of an `ok` envelope, or the [`ReadError`] the answer stands for.
 pub(crate) fn data(http_status: u16, body: &[u8]) -> Result<Value, ReadError> {
     let Ok(answer) = serde_json::from_slice::<Value>(body) else {
-        return Err(ReadError::NotJson { http_status });
+        return Err(ReadError::NotJson {
+            http_status,
+            cf_ray: None,
+        });
     };
     let Value::Object(mut envelope) = answer else {
         return Err(ReadError::Malformed {

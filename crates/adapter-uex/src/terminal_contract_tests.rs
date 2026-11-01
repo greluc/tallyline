@@ -42,7 +42,7 @@ async fn r_api_1_r_api_5_r_api_6__terminal_vocabulary_is_public_decoded_once_and
         .expect(1)
         .mount(&server)
         .await;
-    let settings = ReaderSettings::new(
+    let settings = ReaderSettings::for_test_server(
         &format!("{}/2.0/", server.uri()),
         ClientIdentity::new("tallyline-test", "1.2.3"),
     )
@@ -104,7 +104,7 @@ async fn r_api_5__malformed_or_duplicate_terminal_identity_rejects_the_whole_res
             .expect(1)
             .mount(&server)
             .await;
-        let settings = ReaderSettings::new(
+        let settings = ReaderSettings::for_test_server(
             &format!("{}/2.0/", server.uri()),
             ClientIdentity::new("tallyline-test", "1.2.3"),
         )
@@ -138,7 +138,7 @@ async fn r_api_1_r_api_6_r_cap_3b__fetcher_port_returns_typed_public_vocabulary_
             .mount(&server)
             .await;
     }
-    let settings = ReaderSettings::new(
+    let settings = ReaderSettings::for_test_server(
         &format!("{}/2.0/", server.uri()),
         ClientIdentity::new("tallyline-test", "1.2.3"),
     )
@@ -200,7 +200,7 @@ async fn r_api_5__invalid_price_numbers_cannot_become_a_traded_side() {
             .expect(1)
             .mount(&server)
             .await;
-        let settings = ReaderSettings::new(
+        let settings = ReaderSettings::for_test_server(
             &format!("{}/2.0/", server.uri()),
             ClientIdentity::new("tallyline-test", "1.2.3"),
         )
@@ -234,7 +234,7 @@ async fn r_api_5__json_price_numbers_reach_typed_values_without_binary_float_rou
         .expect(1)
         .mount(&server)
         .await;
-    let settings = ReaderSettings::new(
+    let settings = ReaderSettings::for_test_server(
         &format!("{}/2.0/", server.uri()),
         ClientIdentity::new("tallyline-test", "1.2.3"),
     )
@@ -264,7 +264,7 @@ async fn r_api_5_r_val_2a__commodity_averages_keep_exact_numbers_and_separate_mi
     let server = MockServer::start().await;
     Mock::given(method("GET")).and(path("/2.0/commodities/"))
         .respond_with(ResponseTemplate::new(200).set_body_raw(r#"{"status":"ok","data":[{"id":1,"name":"Exact","code":"EX","is_available_live":1,"price_buy":9007199254740993.125,"price_sell":"9.7e-7"},{"id":2,"name":"Missing","code":"NO","is_available_live":"0","price_buy":0,"price_sell":"0"}]}"#,"application/json")).mount(&server).await;
-    let settings = ReaderSettings::new(
+    let settings = ReaderSettings::for_test_server(
         &format!("{}/2.0/", server.uri()),
         ClientIdentity::new("test", "1.0.0"),
     )

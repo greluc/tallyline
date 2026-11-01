@@ -16,4 +16,4 @@ pub use crate::licences::{
 };
 
 pub use crate::manual_editor::{ManualCommand, ManualEditor};
-pub use crate::reference_browser::{ReferenceBrowser, ReferenceCommand};
+pub use crate::reference_browser::{ReferenceBrowser, ReferenceCommand, ReferenceDiagnostic};

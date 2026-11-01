@@ -179,7 +179,7 @@ fn next_snapshot(
                 ptu,
                 observed_at,
             } => return Ok((live, ptu, observed_at)),
-            BackgroundEvent::ReferenceRefreshStarted => (),
+            BackgroundEvent::ReferenceRefreshStarted | BackgroundEvent::ReferenceDiagnostic(_) => {}
             other @ (BackgroundEvent::ReportsLoaded { .. }
             | BackgroundEvent::ReportFailed(_)
             | BackgroundEvent::UpdateChecked(_)
@@ -507,5 +507,85 @@ fn r_nf_10_r_api_1__worker_drop_joins_even_when_the_ui_has_not_drained_its_bound
         BackgroundEvent::ReferenceUpdated { .. }
     ));
     assert_eq!(observed.load(Ordering::SeqCst), 0);
+    drop(commands);
+}
+
+struct NonJsonFetcher;
+impl ReferenceDataFetcher for NonJsonFetcher {
+    type Error = ReadError;
+    async fn fetch(&self, _: Endpoint) -> Result<EndpointData, ReadError> {
+        Err(ReadError::NotJson {
+            http_status: 503,
+            cf_ray: Some("230b030023ae2822-SJC".to_owned()),
+        })
+    }
+    async fn fetch_terminal_priors(
+        &self,
+        _: &[TerminalId],
+    ) -> Result<Vec<TerminalPriors>, ReadError> {
+        Err(ReadError::Transport("unused batch".to_owned()))
+    }
+}
+
+#[test]
+#[expect(
+    non_snake_case,
+    reason = "Requirement tags use a double underscore separator."
+)]
+fn r_api_3__non_json_metadata_uses_the_injected_observation_time_without_replacing_cache() {
+    use tallyline_ui::api::model::ReferenceDiagnostic;
+    let store = MemoryCache {
+        entries: Arc::new(Mutex::new(vec![cached_commodity()])),
+        writes: Arc::new(AtomicUsize::new(0)),
+        read_only: false,
+    };
+    let (commands, incoming) = mpsc::sync_channel(1);
+    let (outgoing, events) = mpsc::sync_channel(16);
+    let worker = ReferenceWorker::start(
+        store,
+        TestClock,
+        incoming,
+        outgoing,
+        || Ok::<_, ()>(NonJsonFetcher),
+        || {},
+    )
+    .unwrap();
+    let (cached, _, _) = next_snapshot(&events).unwrap();
+    assert_eq!(
+        cached.fetched_at(Endpoint::Commodities),
+        Some(Timestamp::from_seconds(0))
+    );
+    loop {
+        match events.recv_timeout(Duration::from_secs(5)).unwrap() {
+            BackgroundEvent::ReferenceDiagnostic(diagnostic) => {
+                assert_eq!(
+                    diagnostic,
+                    ReferenceDiagnostic {
+                        http_status: 503,
+                        cf_ray: Some("230b030023ae2822-SJC".to_owned()),
+                        observed_at: Timestamp::from_millis(7200000)
+                    }
+                );
+                break;
+            }
+            BackgroundEvent::ReferenceRefreshStarted | BackgroundEvent::ReferenceUpdated { .. } => {
+            }
+            other @ (BackgroundEvent::ReportsLoaded { .. }
+            | BackgroundEvent::ReportFailed(_)
+            | BackgroundEvent::UpdateChecked(_)
+            | BackgroundEvent::GameWitnessLoaded(_)
+            | BackgroundEvent::Failure(_)
+            | BackgroundEvent::SettingsLoaded(_)
+            | BackgroundEvent::LicencesLoaded(_)
+            | BackgroundEvent::LicencesUnavailable) => panic!("unexpected event: {other:?}"),
+        }
+    }
+    let (offline, _, _) = next_snapshot(&events).unwrap();
+    assert_eq!(offline.commodities("cached").len(), 1);
+    assert_eq!(
+        offline.fetched_at(Endpoint::Commodities),
+        Some(Timestamp::from_seconds(0))
+    );
+    finish(worker).unwrap();
     drop(commands);
 }

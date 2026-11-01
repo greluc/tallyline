@@ -27,6 +27,8 @@ pub enum View {
 /// A worker result that never requests a dialog or window command.
 #[derive(Debug)]
 pub enum BackgroundEvent {
+    /// Historical non-JSON metadata, without changing current cache or window state.
+    ReferenceDiagnostic(crate::api::model::ReferenceDiagnostic),
     /// Durable Drafts loaded after storage commits, without changing focus or view.
     ReportsLoaded {
         /// Most recently edited Drafts first.
@@ -143,6 +145,9 @@ impl ShellState {
     /// Applies a worker result without changing the view or window state.
     pub fn receive(&mut self, event: BackgroundEvent) {
         match event {
+            BackgroundEvent::ReferenceDiagnostic(diagnostic) => {
+                self.references.report_diagnostic(diagnostic)
+            }
             BackgroundEvent::ReportsLoaded { reports, selected } => {
                 self.manual.loaded(reports, selected)
             }

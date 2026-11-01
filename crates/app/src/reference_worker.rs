@@ -19,7 +19,7 @@ use tallyline_reference_data::api::{
 };
 use tallyline_shared_kernel::api::Clock;
 use tallyline_shared_kernel::api::model::{TerminalId, Timestamp};
-use tallyline_ui::api::model::{BackgroundEvent, ReferenceCommand};
+use tallyline_ui::api::model::{BackgroundEvent, ReferenceCommand, ReferenceDiagnostic};
 
 const CONTROL_POLL: Duration = Duration::from_millis(100);
 const RETRY_CHECK: Duration = Duration::from_secs(60);
@@ -207,7 +207,26 @@ where
                             application.refresh_failed(endpoint);
                         }
                     }
-                    Err(_) => application.refresh_failed(endpoint),
+                    Err(error) => {
+                        application.refresh_failed(endpoint);
+                        if let ReadError::NotJson {
+                            http_status,
+                            cf_ray,
+                        } = error
+                            && !deliver(
+                                BackgroundEvent::ReferenceDiagnostic(ReferenceDiagnostic {
+                                    http_status,
+                                    cf_ray,
+                                    observed_at: clock.now(),
+                                }),
+                                outgoing,
+                                wake,
+                                stop,
+                            )
+                        {
+                            return Ok(());
+                        }
+                    }
                 }
             } else {
                 application.refresh_failed(endpoint);

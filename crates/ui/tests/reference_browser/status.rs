@@ -241,3 +241,99 @@ fn r_ui_8_r_api_6__staff_notice_is_capped_literal_text_and_closed_submissions_le
     assert!(harness.query_by_label(&expected).is_some());
     assert_eq!(harness.state().view(), View::Settings);
 }
+
+#[test]
+#[expect(
+    non_snake_case,
+    reason = "Requirement tags use a double underscore separator."
+)]
+fn r_api_3_r_ui_16__historical_ray_and_time_are_plain_global_text_and_preserve_browsing() {
+    use egui_kittest::{Harness, kittest::Queryable};
+    use tallyline_ui::api::model::ReferenceDiagnostic;
+    use tallyline_ui::api::{Catalogue, configure_fonts, show_shell};
+    let app = ReferenceApplication::load(
+        MemoryCache(vec![CachedReference::new(
+            Timestamp::from_seconds(60),
+            EndpointData::Commodities(vec![Commodity::new(
+                CommodityId(42),
+                "Agricium",
+                "AGRI",
+                true,
+                CommodityAverages::default(),
+            )]),
+        )]),
+        FixedClock,
+    )
+    .unwrap();
+    let mut state = ShellState::default();
+    state.receive(BackgroundEvent::ReferenceUpdated {
+        live: app.snapshot(UexEnvironment::Live),
+        ptu: app.snapshot(UexEnvironment::Ptu),
+        observed_at: Timestamp::from_seconds(120),
+    });
+    state.show_reference();
+    state
+        .references_mut()
+        .choose_channel(tallyline_game::api::model::GameEnvironment::Eptu);
+    let catalogue = Catalogue::english().unwrap();
+    let mut fonts = Some(resources::font_files().unwrap());
+    let mut unit = None;
+    let mut harness = Harness::builder()
+        .with_size(egui::vec2(1100.0, 1100.0))
+        .build_ui_state(
+            move |ui, state| {
+                if let Some(fonts) = fonts.take() {
+                    configure_fonts(ui.ctx(), fonts);
+                }
+                let unit = unit.get_or_insert_with(|| {
+                    resources::load_unit(ui.ctx(), &catalogue, tallyline_egui::Theme::Light)
+                        .unwrap()
+                });
+                show_shell(ui, state, &catalogue, unit);
+            },
+            state,
+        );
+    harness.run();
+    harness.get_by_label("Agricium · AGRI · UEX ID 42").click();
+    harness.run();
+    harness.get_by_label("Search commodities").focus();
+    harness.run();
+    harness
+        .state_mut()
+        .receive(BackgroundEvent::ReferenceDiagnostic(ReferenceDiagnostic {
+            http_status: 503,
+            cf_ray: Some("230b030023ae2822-SJC".to_owned()),
+            observed_at: Timestamp::from_millis(123456),
+        }));
+    harness.run();
+    let expected = "Last non-JSON reference response: HTTP 503; cf-ray: 230b030023ae2822-SJC; UTC Unix ms: 123456";
+    assert!(harness.query_by_label(expected).is_some());
+    assert!(harness.get_by_label("Search commodities").is_focused());
+    assert_eq!(
+        harness.state().references().channel(),
+        tallyline_game::api::model::GameEnvironment::Eptu
+    );
+    assert_eq!(
+        harness.state().references().selected_commodity(),
+        Some(CommodityId(42))
+    );
+    assert_eq!(harness.state().view(), View::Reference);
+    assert!(
+        harness
+            .state_mut()
+            .references_mut()
+            .take_command()
+            .is_none()
+    );
+    harness
+        .state_mut()
+        .receive(BackgroundEvent::ReferenceUpdated {
+            live: app.snapshot(UexEnvironment::Live),
+            ptu: app.snapshot(UexEnvironment::Ptu),
+            observed_at: Timestamp::from_seconds(121),
+        });
+    harness.state_mut().show_settings();
+    harness.run();
+    assert!(harness.query_by_label(expected).is_some());
+    assert_eq!(harness.state().view(), View::Settings);
+}

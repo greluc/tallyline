@@ -50,6 +50,8 @@ pub fn violations(metadata: &str) -> Result<Vec<String>, String> {
                 | "dispatch"
                 | "system-configuration"
                 | "system-configuration-sys"
+                | "memoffset"
+                | "uds_windows"
         ) {
             findings.push(format!("{name} {version} must be absent from the supported target graph; new owner approval is required"));
         }

@@ -35,6 +35,8 @@ Amended 2026-10-12: the mechanisms were converted from Java 27, JavaFX and Gradl
 
 ## 3. Clean Code
 
+Credential dependency exclusion guard, 2026-11-01: `cargo xtask native-scope` and `check` reject any reachable `memoffset` or `uds_windows` version on either supported target, including renamed transitive edges. These identities remain outside the approved credential scope; a lockfile-only disposition is not activation permission. Their credential dependency graph and S-6 records have not yet been adopted.
+
 | Rule | Enforcement |
 |---|---|
 | **Meaningful names** in the ubiquitous language of [11 §A1](11-ddd-and-tdd.md) (e.g. `Capture`, `Scan`, `Report`, `PricePrior`, `Finding`) – the same everywhere | Review; 11 §A1 is binding |

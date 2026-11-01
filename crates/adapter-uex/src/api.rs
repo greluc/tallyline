@@ -15,6 +15,10 @@ use model::{
     UexAccount,
 };
 
+/// Warning that must precede explicit confirmation of a credentialled expert host.
+pub const EXPERT_HOST_WARNING: &str =
+    "Warning: this expert host receives your UEX secret key and app token.";
+
 const DEFAULT_MAX_BODY_BYTES: usize = 16 * 1024 * 1024;
 #[cfg(test)]
 const LOOPBACK_HOSTS: [&str; 3] = ["127.0.0.1", "localhost", "[::1]"];
@@ -51,30 +55,102 @@ pub struct ReaderSettings {
     pub(crate) base_url: reqwest::Url,
     pub(crate) identity: ClientIdentity,
     pub(crate) max_body_bytes: usize,
+    pub(crate) expert_host_confirmed: bool,
+    #[cfg(test)]
+    pub(crate) test_http: bool,
 }
 
 impl ReaderSettings {
     /// Creates settings for `base_url` with a 16 MiB response cap; requests time out after 30 s.
     ///
-    /// The base URL ends with a slash and uses `https` (R-API-3).
+    /// The base URL ends with a slash, uses `https` and has no user information, query or
+    /// fragment (R-API-3). Every request must retain its configured HTTPS origin.
     ///
     /// # Errors
     ///
-    /// [`SettingsError::InvalidBaseUrl`] when the URL cannot be parsed or does not end with a
-    /// slash, [`SettingsError::InsecureScheme`] for any other scheme.
+    /// [`SettingsError::InvalidBaseUrl`] when the URL has no authority, contains user information,
+    /// a query or fragment, cannot be parsed or lacks a trailing slash;
+    /// [`SettingsError::InsecureScheme`] for any other scheme.
     pub fn new(base_url: &str, identity: ClientIdentity) -> Result<Self, SettingsError> {
-        let parsed = reqwest::Url::parse(base_url).map_err(|_| SettingsError::InvalidBaseUrl)?;
-        if !parsed.path().ends_with('/') || parsed.query().is_some() {
+        let (_, address) = base_url
+            .split_once("://")
+            .ok_or(SettingsError::InvalidBaseUrl)?;
+        if address
+            .split(['/', '\\', '?', '#'])
+            .next()
+            .is_some_and(|authority| authority.contains('@'))
+        {
             return Err(SettingsError::InvalidBaseUrl);
         }
-        if parsed.scheme() != "https" && !test_loopback(&parsed) {
+        let parsed = reqwest::Url::parse(base_url).map_err(|_| SettingsError::InvalidBaseUrl)?;
+        if !parsed.path().ends_with('/')
+            || parsed.query().is_some()
+            || parsed.fragment().is_some()
+            || !parsed.username().is_empty()
+            || parsed.password().is_some()
+        {
+            return Err(SettingsError::InvalidBaseUrl);
+        }
+        if parsed.scheme() != "https" {
             return Err(SettingsError::InsecureScheme);
         }
         Ok(Self {
             base_url: parsed,
             identity,
             max_body_bytes: DEFAULT_MAX_BODY_BYTES,
+            expert_host_confirmed: false,
+            #[cfg(test)]
+            test_http: false,
         })
+    }
+
+    #[cfg(test)]
+    pub(crate) fn for_test_server(
+        base_url: &str,
+        identity: ClientIdentity,
+    ) -> Result<Self, SettingsError> {
+        let parsed = reqwest::Url::parse(base_url).map_err(|_| SettingsError::InvalidBaseUrl)?;
+        if !test_loopback(&parsed) {
+            return Err(SettingsError::InsecureScheme);
+        }
+        let mut secure = parsed.clone();
+        secure
+            .set_scheme("https")
+            .map_err(|()| SettingsError::InvalidBaseUrl)?;
+        let mut settings = Self::new(secure.as_str(), identity)?;
+        settings.base_url = parsed;
+        settings.test_http = true;
+        Ok(settings)
+    }
+
+    pub(crate) fn permits_url(&self, url: &reqwest::Url) -> bool {
+        let secure = url.scheme() == "https";
+        #[cfg(test)]
+        let secure = secure || (self.test_http && test_loopback(url));
+        secure
+            && url.origin() == self.base_url.origin()
+            && url.username().is_empty()
+            && url.password().is_none()
+            && url.fragment().is_none()
+    }
+
+    /// Permits credentialled requests to this configured expert origin.
+    ///
+    /// The caller must first display [`EXPERT_HOST_WARNING`] and obtain the user's explicit
+    /// confirmation. This is not required for public reference GETs or the primary UEX origin.
+    #[must_use]
+    pub fn with_expert_host_confirmation(self) -> Self {
+        Self {
+            expert_host_confirmed: true,
+            ..self
+        }
+    }
+
+    pub(crate) fn credentials_allowed(&self) -> bool {
+        self.expert_host_confirmed
+            || (self.base_url.scheme() == "https"
+                && self.base_url.host_str() == Some("api.uexcorp.uk")
+                && self.base_url.port_or_known_default() == Some(443))
     }
 
     /// Returns these settings with another response body cap in bytes (R-API-5).
@@ -101,15 +177,10 @@ fn test_loopback(url: &reqwest::Url) -> bool {
             .is_some_and(|host| LOOPBACK_HOSTS.contains(&host))
 }
 
-#[cfg(not(test))]
-fn test_loopback(_: &reqwest::Url) -> bool {
-    false
-}
-
 /// Why [`ReaderSettings`] refused a value.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum SettingsError {
-    /// The base URL cannot be parsed, has a query or does not end with a slash.
+    /// The base URL has invalid authority, user information, query, fragment or trailing slash.
     InvalidBaseUrl,
     /// The base URL does not use `https`.
     InsecureScheme,
@@ -188,6 +259,8 @@ pub enum ReadError {
     NotJson {
         /// The HTTP status of the answer.
         http_status: u16,
+        /// A bounded validated Cloudflare Ray identifier, without response body content.
+        cf_ray: Option<String>,
     },
     /// UEX answered with a redirect, which is never followed (R-API-3).
     Redirect {
