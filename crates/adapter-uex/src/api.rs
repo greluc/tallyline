@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 Lucas Greuloch
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The read-only UEX client, its settings, the credentials it sends and its failure outcomes.
+//! UEX client settings, credentials, request outcomes and the read and dry-run operations.
 
 pub mod model;
 
@@ -9,7 +9,10 @@ use std::fmt;
 
 use crate::transport::Transport;
 use crate::wire;
-use model::{GameVersions, PriceRow, ReportAccess, StatusLevels, TerminalId, UexAccount};
+use model::{
+    DryRunReport, GameVersions, PriceRow, ReportAccess, StatusLevels, SubmitSuccess, TerminalId,
+    UexAccount,
+};
 
 const DEFAULT_MAX_BODY_BYTES: usize = 16 * 1024 * 1024;
 #[cfg(test)]
@@ -177,6 +180,8 @@ pub enum ReadError {
         code: String,
         /// The envelope's `message`, empty when UEX sent none.
         message: String,
+        /// Structured error details such as `data.row` or `data.report`.
+        data: Option<RejectedData>,
     },
     /// The answer was not JSON, for example the HTML page of an unknown resource.
     NotJson {
@@ -202,10 +207,70 @@ pub enum ReadError {
     Transport(String),
 }
 
-/// The read-only UEX API 2.0 client: GET requests only, no redirects, a capped body size.
+/// Sanitised structured fields returned with a rejected UEX request.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum RejectedData {
+    /// Zero-based index of the `prices[]` row that failed validation.
+    Row(usize),
+    /// Report identity attached to `duplicated_report`.
+    Report {
+        /// UEX terminal ID.
+        id_terminal: u64,
+        /// UEX commodity ID.
+        id_commodity: u64,
+    },
+    /// UEX returned structured data outside the shapes currently modelled here.
+    Other,
+}
+
+/// The UEX API 2.0 reader: GET requests only, no redirects, a capped body size.
 #[derive(Debug)]
 pub struct UexReader {
     transport: Transport,
+}
+
+/// The UEX submission client. Its only write operation is a `data_submit` dry run.
+#[derive(Debug)]
+pub struct UexSubmitter {
+    transport: Transport,
+}
+
+impl UexSubmitter {
+    /// Builds the submitter with the same TLS and response safeguards as [`UexReader`].
+    ///
+    /// # Errors
+    ///
+    /// [`BuildError::Tls`] or [`BuildError::Client`] when the TLS stack or HTTP client fails.
+    pub fn new(settings: &ReaderSettings) -> Result<Self, BuildError> {
+        Ok(Self {
+            transport: Transport::new(settings)?,
+        })
+    }
+
+    /// Submits a report with `is_production=0` and parses the success response.
+    ///
+    /// # Errors
+    ///
+    /// Returns a [`ReadError`] for an HTTP, UEX-envelope, or response-shape failure.
+    pub async fn dry_run(
+        &self,
+        token: &AppToken,
+        key: &SecretKey,
+        report: &DryRunReport,
+    ) -> Result<SubmitSuccess, ReadError> {
+        let bearer = format!("Bearer {}", token.expose());
+        let data = self
+            .transport
+            .post(
+                "data_submit/",
+                report,
+                &[("authorization", &bearer), ("secret-key", key.expose())],
+            )
+            .await?;
+        serde_json::from_value(data).map_err(|error| ReadError::Malformed {
+            detail: format!("data_submit success data: {error}"),
+        })
+    }
 }
 
 impl UexReader {

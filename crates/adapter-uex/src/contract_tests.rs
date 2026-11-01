@@ -1,14 +1,15 @@
 // SPDX-FileCopyrightText: 2026 Lucas Greuloch
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Contract tests of the read-only UEX client against responses written from the documented schema.
+//! Contract tests of the UEX client against responses written from documented and confirmed shapes.
 
 use crate::api::model::{
-    CommodityId, ContainerSize, GameVersions, ReportAccess, StatusLevel, TerminalId, TradedSide,
-    UexAccount,
+    CommodityId, ContainerSize, DryRunReport, GameVersions, ReportAccess, StatusLevel, SubmitPrice,
+    SubmitSuccess, TerminalId, TradedSide, UexAccount,
 };
 use crate::api::{
-    AppToken, ClientIdentity, ReadError, ReaderSettings, SecretKey, SettingsError, UexReader,
+    AppToken, ClientIdentity, ReadError, ReaderSettings, RejectedData, SecretKey, SettingsError,
+    UexReader, UexSubmitter,
 };
 use serde_json::{Value, json};
 use wiremock::matchers::{header, method, path, query_param};
@@ -92,6 +93,244 @@ async fn r_api_7__every_request_carries_the_user_agent_and_the_client_version() 
 }
 
 #[tokio::test]
+async fn data_submit__dry_run_sends_zero_and_parses_report_ids_in_order() -> Outcome {
+    let server = MockServer::start().await;
+    let report = DryRunReport::new(
+        89,
+        "4.10.2".to_owned(),
+        1_790_000_000,
+        Some("c2NyZWVuc2hvdA==".to_owned()),
+        vec![SubmitPrice {
+            id_commodity: 24,
+            price_buy: Some(136),
+            price_sell: None,
+            status_buy: Some(2),
+            status_sell: None,
+            scu_buy: Some(529),
+            scu_sell: None,
+            container_sizes: Some("1,2,4,8,16".to_owned()),
+        }],
+    );
+    Mock::given(method("POST"))
+        .and(path("/2.0/data_submit/"))
+        .and(header("authorization", format!("Bearer {APP_TOKEN}")))
+        .and(header("secret-key", SECRET_KEY))
+        .and(header("x-client-version", "1.2.3"))
+        .and(wiremock::matchers::body_json(json!({
+            "id_terminal": 89,
+            "type": "commodity",
+            "is_production": 0,
+            "game_version": "4.10.2",
+            "date_added": 1_790_000_000_i64,
+            "screenshot": "c2NyZWVuc2hvdA==",
+            "prices": [{
+                "id_commodity": 24,
+                "price_buy": 136,
+                "status_buy": 2,
+                "scu_buy": 529,
+                "container_sizes": "1,2,4,8,16"
+            }]
+        })))
+        .respond_with(ok(
+            json!({"ids_reports": ["0"], "date_added": 1_790_000_001_i64}),
+        ))
+        .expect(1)
+        .mount(&server)
+        .await;
+    let settings = settings_for(&server)?;
+    let submitter = UexSubmitter::new(&settings).map_err(|error| format!("{error:?}"))?;
+
+    let result = submitter
+        .dry_run(
+            &AppToken::new(APP_TOKEN),
+            &SecretKey::new(SECRET_KEY),
+            &report,
+        )
+        .await;
+
+    assert_eq!(
+        result,
+        Ok(SubmitSuccess {
+            ids_reports: vec!["0".to_owned()],
+            date_added: 1_790_000_001,
+        })
+    );
+    Ok(())
+}
+
+#[tokio::test]
+async fn data_submit__validation_error_preserves_zero_based_row_index() -> Outcome {
+    let server = MockServer::start().await;
+    Mock::given(method("POST"))
+        .and(wiremock::matchers::body_json(json!({
+            "id_terminal": 89,
+            "type": "commodity",
+            "is_production": 0,
+            "game_version": "4.10.2",
+            "date_added": 1_790_000_000_i64,
+            "prices": [
+                {
+                    "id_commodity": 1,
+                    "price_buy": 8379,
+                    "status_buy": 3,
+                    "scu_buy": 86,
+                    "container_sizes": "1,2,4,8,16"
+                },
+                {
+                    "id_commodity": 19,
+                    "price_buy": 1,
+                    "price_sell": 1
+                }
+            ]
+        })))
+        .respond_with(
+            rejected(
+                400,
+                "has_both_price_buy_and_price_sell",
+                "Both buy and sell prices are set.",
+            )
+            .set_body_json(json!({
+                "status": "has_both_price_buy_and_price_sell",
+                "http_code": 400,
+                "data": {"row": 1},
+                "message": "Both buy and sell prices are set."
+            })),
+        )
+        .mount(&server)
+        .await;
+    let submitter =
+        UexSubmitter::new(&settings_for(&server)?).map_err(|error| format!("{error:?}"))?;
+
+    let result = submitter
+        .dry_run(
+            &AppToken::new(APP_TOKEN),
+            &SecretKey::new(SECRET_KEY),
+            &DryRunReport::new(
+                89,
+                "4.10.2".to_owned(),
+                1_790_000_000,
+                None,
+                vec![
+                    SubmitPrice {
+                        id_commodity: 1,
+                        price_buy: Some(8379),
+                        price_sell: None,
+                        status_buy: Some(3),
+                        status_sell: None,
+                        scu_buy: Some(86),
+                        scu_sell: None,
+                        container_sizes: Some("1,2,4,8,16".to_owned()),
+                    },
+                    SubmitPrice {
+                        id_commodity: 19,
+                        price_buy: Some(1),
+                        price_sell: Some(1),
+                        status_buy: None,
+                        status_sell: None,
+                        scu_buy: None,
+                        scu_sell: None,
+                        container_sizes: None,
+                    },
+                ],
+            ),
+        )
+        .await;
+
+    assert!(matches!(
+        result,
+        Err(ReadError::Rejected {
+            data: Some(RejectedData::Row(1)),
+            ..
+        })
+    ));
+    Ok(())
+}
+
+#[tokio::test]
+async fn data_submit__duplicate_error_preserves_report_identity() -> Outcome {
+    let server = MockServer::start().await;
+    Mock::given(method("POST"))
+        .respond_with(ResponseTemplate::new(400).set_body_json(json!({
+            "status": "duplicated_report",
+            "http_code": 400,
+            "data": {"report": {"id_terminal": 89, "id_commodity": 24}},
+            "message": "Duplicate."
+        })))
+        .mount(&server)
+        .await;
+    let submitter =
+        UexSubmitter::new(&settings_for(&server)?).map_err(|error| format!("{error:?}"))?;
+
+    let result = submitter
+        .dry_run(
+            &AppToken::new(APP_TOKEN),
+            &SecretKey::new(SECRET_KEY),
+            &DryRunReport::new(89, "4.10.2".to_owned(), 1_790_000_000, None, Vec::new()),
+        )
+        .await;
+
+    assert!(matches!(
+        result,
+        Err(ReadError::Rejected {
+            data: Some(RejectedData::Report {
+                id_terminal: 89,
+                id_commodity: 24
+            }),
+            ..
+        })
+    ));
+    Ok(())
+}
+
+#[tokio::test]
+async fn data_submit__report_level_invalid_date_keeps_its_error_code() -> Outcome {
+    let server = MockServer::start().await;
+    Mock::given(method("POST"))
+        .respond_with(rejected(400, "invalid_date", "Invalid date."))
+        .mount(&server)
+        .await;
+    let submitter =
+        UexSubmitter::new(&settings_for(&server)?).map_err(|error| format!("{error:?}"))?;
+
+    let result = submitter
+        .dry_run(
+            &AppToken::new(APP_TOKEN),
+            &SecretKey::new(SECRET_KEY),
+            &DryRunReport::new(89, "4.10.2".to_owned(), 1_790_000_000, None, Vec::new()),
+        )
+        .await;
+
+    assert!(
+        matches!(result, Err(ReadError::Rejected { code, data: None, .. }) if code == "invalid_date")
+    );
+    Ok(())
+}
+
+#[tokio::test]
+async fn data_submit__screenshot_check_keeps_its_error_code() -> Outcome {
+    let server = MockServer::start().await;
+    Mock::given(method("POST"))
+        .respond_with(rejected(400, "screenshot_required", "Screenshot required."))
+        .mount(&server)
+        .await;
+    let submitter =
+        UexSubmitter::new(&settings_for(&server)?).map_err(|error| format!("{error:?}"))?;
+
+    let result = submitter
+        .dry_run(
+            &AppToken::new(APP_TOKEN),
+            &SecretKey::new(SECRET_KEY),
+            &DryRunReport::new(89, "4.10.2".to_owned(), 1_790_000_000, None, Vec::new()),
+        )
+        .await;
+
+    assert!(
+        matches!(result, Err(ReadError::Rejected { code, data: None, .. }) if code == "screenshot_required")
+    );
+    Ok(())
+}
+
+#[tokio::test]
 async fn an_empty_or_missing_ptu_version_means_no_ptu() -> Outcome {
     for ptu in [json!(""), Value::Null] {
         let server = MockServer::start().await;
@@ -129,6 +368,7 @@ async fn r_api_5__an_error_envelope_becomes_a_rejection_with_its_code() -> Outco
             http_status: 400,
             code: "missing_required_input".to_owned(),
             message: "Missing input.".to_owned(),
+            data: None,
         })
     );
     Ok(())
@@ -486,6 +726,7 @@ async fn r_api_4__an_invalid_secret_key_is_rejected_with_its_code() -> Outcome {
             http_status: 403,
             code: "invalid_secret_key".to_owned(),
             message: String::new(),
+            data: None,
         })
     );
     Ok(())
@@ -542,6 +783,7 @@ async fn r_api_4__a_refused_app_token_keeps_the_uex_code() -> Outcome {
             http_status: 403,
             code: "access_denied".to_owned(),
             message: "Invalid bearer token.".to_owned(),
+            data: None,
         })
     );
     Ok(())
