@@ -1,10 +1,12 @@
 # Domain-Driven Design and Test-Driven Development
 
-> **Doc type:** Living spec — binding. Last reviewed: 2026-10-26.
+> **Doc type:** Living spec — binding. Last reviewed: 2026-11-01.
 
 > Amended 2026-10-12 (ADR-0005): the implementation language is Rust. Domain terms, aggregates, invariants, events and the TDD rules are unchanged; the technology terms (Java records, JPMS, JUnit, jqwik, PIT, ArchUnit, TestFX) are replaced by their Rust counterparts of ADR-0005 D13, and command and type names keep their domain spelling in prose (`snake_case` functions in code, 02 §3). Tools not named in ADR-0005 are chosen and verified at source in M0.
 
 How we model the domain (DDD) and how we let code come into being (TDD). Both complement [02-architecture.md](02-architecture.md) (Ports & Adapters) and [09-engineering-principles.md](09-engineering-principles.md) (enforcement).
+
+**Owner review completed 2026-11-01:** @greluc confirmed the existing ubiquitous language, bounded contexts and Report invariants I1–I7 for M1, together with the Capture and Recognition model for M2. The review covered the Report key and commodity uniqueness; the release gate, observation age, game version and screenshot evidence; value-bound confirmations and preservation of user decisions; immutable submitted Reports; durable serial submission and resolution of unknown outcomes; and the separation of Capture from Recognition, complete-card rows, balance-free evidence and independent witnesses. This confirmation completes the owner-review prerequisite in [04 M0](04-roadmap.md); it changes no requirement or accepted decision. The remaining foundation checks and the architecture enforcement in §A8 are separate implementation work.
 
 **Principle "as far as possible":**
 
