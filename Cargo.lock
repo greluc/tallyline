@@ -3298,6 +3298,7 @@ dependencies = [
  "serde_json",
  "tallyline-reference-data",
  "tallyline-shared-kernel",
+ "tallyline-submission",
  "tokio",
  "wiremock",
 ]
@@ -3349,6 +3350,14 @@ name = "tallyline-shared-kernel"
 version = "0.1.0"
 dependencies = [
  "rust_decimal",
+]
+
+[[package]]
+name = "tallyline-submission"
+version = "0.1.0"
+dependencies = [
+ "tallyline-shared-kernel",
+ "tokio",
 ]
 
 [[package]]

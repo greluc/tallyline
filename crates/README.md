@@ -15,3 +15,4 @@ The workspace crates of Tallyline: the core (`shared-kernel`, the context crates
 | `reference-data/` | `tallyline-reference-data` | immutable environment snapshots, cached vocabulary, versions/statuses and per-endpoint freshness |
 | `adapter-storage/` | `tallyline-adapter-storage` | schema-versioned SQLite reference cache, atomic indexed replacements and consistent marked backups |
 | `game/` | `tallyline-game` | read-only witness port, typed facts and durable opt-in workflow |
+| `submission/` | `tallyline-submission` | credential validation and secure-store ports, save-before-publish account state, revalidation and session lifetime; native stores and desktop integration pending |

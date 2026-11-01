@@ -56,6 +56,8 @@ Guiding principles:
 
 ## 2. Modules (Cargo workspace, one crate per context) – bounded contexts + ports & adapters
 
+Implementation 2026-11-01 (R-API-4, R-API-7, R-NF-4): `submission` owns `CredentialApplication`, `CredentialValidator` and `SecretStore`. A candidate validates before the application saves one complete record and publishes its username. Failed replacements preserve the previous record; request generations reject superseded results. Current-identity refusals persist independently of availability failures, and session-only credentials retain that lifetime through revalidation. The UEX adapter implements read-only validation with `/user` followed by username-filtered `data_info`; an empty report list succeeds. Only closed failure enums cross this boundary, including a distinct client-version-header failure. The application API accepts release-token installation data for a check without saving it in the credential record. Native stores, desktop wiring and onboarding acceptance remain pending; this application slice does not complete issue #82.
+
 The cut combines **DDD bounded contexts** with **ports & adapters** (decision and trade-offs: [ADR-0002](../adr/0002-modules-by-bounded-context.md), technology terms amended by [ADR-0005](../adr/0005-rust-and-egui.md)). Below, "module" means a Cargo workspace crate:
 
 - **Core** = one crate per bounded context ([11 §A2](11-ddd-and-tdd.md)), plus `shared-kernel` and `workflows`.
