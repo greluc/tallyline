@@ -1194,3 +1194,48 @@ fn r_man_1__manual_terminal_search_accepts_fuzzy_names_without_resolving_shared_
         TerminalId(2)
     );
 }
+
+#[test]
+#[expect(
+    non_snake_case,
+    reason = "Requirement tags use a double underscore separator."
+)]
+fn r_ui_11_q_manual_r_nf_5__effective_staleness_uses_fifteen_days_until_uex_and_only_accepts_raises()
+ {
+    use std::num::NonZeroU32;
+    use tallyline_reference_data::api::model::{
+        AcceptanceSwitch, CommodityConstraints, ReferenceParameters, SubmissionAcceptance,
+    };
+    let mut application = ReferenceApplication::load(MemoryCache(vec![]), FixedClock).unwrap();
+    let snapshot = application.snapshot(UexEnvironment::Live);
+    assert_eq!(snapshot.effective_staleness(None).days(), 15);
+    assert_eq!(
+        snapshot.effective_staleness(None).source(),
+        tallyline_reference_data::api::model::StalenessSource::SettingsFallback
+    );
+    assert_eq!(snapshot.effective_staleness(NonZeroU32::new(2)).days(), 15);
+    application
+        .refreshed(EndpointData::Parameters(ReferenceParameters::new(
+            SubmissionAcceptance {
+                datacenter: AcceptanceSwitch::Enabled,
+                reports: AcceptanceSwitch::Enabled,
+                commodity: AcceptanceSwitch::Enabled,
+                ptu: AcceptanceSwitch::Disabled,
+            },
+            CommodityConstraints {
+                price_variation_percent: 25,
+                prior_ttl_days: NonZeroU32::new(20).unwrap(),
+                scu_variation_percent: 5000,
+            },
+            None,
+        )))
+        .unwrap();
+    let snapshot = application.snapshot(UexEnvironment::Live);
+    assert_eq!(snapshot.effective_staleness(NonZeroU32::new(16)).days(), 20);
+    assert_eq!(snapshot.effective_staleness(NonZeroU32::new(30)).days(), 30);
+    assert_eq!(snapshot.effective_staleness(None).days(), 20);
+    assert_eq!(
+        snapshot.effective_staleness(None).source(),
+        tallyline_reference_data::api::model::StalenessSource::Uex
+    );
+}
