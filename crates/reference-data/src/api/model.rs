@@ -8,6 +8,9 @@ use tallyline_shared_kernel::api::model::{
 };
 
 pub use crate::averages::CommodityAverages;
+pub use crate::parameters::{
+    AcceptanceSwitch, CommodityConstraints, ReferenceParameters, SubmissionAcceptance,
+};
 pub use crate::snapshot::ReferenceSnapshot;
 pub use tallyline_shared_kernel::api::model::UexEnvironment;
 /// A reference endpoint with an independent freshness window.
@@ -21,6 +24,8 @@ pub enum Endpoint {
     GameVersions,
     /// Per-side inventory status labels.
     StatusLevels,
+    /// Submission acceptance, tolerances and bounded staff text.
+    Parameters,
 }
 
 impl Endpoint {
@@ -30,7 +35,7 @@ impl Endpoint {
         match self {
             Self::Commodities => 3_600,
             Self::Terminals => 43_200,
-            Self::GameVersions | Self::StatusLevels => 86_400,
+            Self::GameVersions | Self::StatusLevels | Self::Parameters => 86_400,
         }
     }
 }
@@ -116,6 +121,8 @@ pub enum EndpointData {
     GameVersions(GameVersions),
     /// Current per-side inventory status vocabulary.
     StatusLevels(StatusLevels),
+    /// Current submission policy and commodity constraints.
+    Parameters(ReferenceParameters),
 }
 
 /// One atomically persisted successful endpoint response.
@@ -140,6 +147,7 @@ impl CachedReference {
             EndpointData::Terminals(_) => Endpoint::Terminals,
             EndpointData::GameVersions(_) => Endpoint::GameVersions,
             EndpointData::StatusLevels(_) => Endpoint::StatusLevels,
+            EndpointData::Parameters(_) => Endpoint::Parameters,
         }
     }
 

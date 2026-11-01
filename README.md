@@ -103,3 +103,5 @@ Game preferences now persist independent channel-to-UEX mappings in settings sch
 Startup config migration coordinates existing SQLite and exact settings bytes in one verified backup set, and refuses processing if the backup fails.
 
 The schema-two reference cache preserves exact buy/sell averages and known terminal container limits; PTU snapshots contain no LIVE averages.
+
+Reference snapshots now retain UEX acceptance switches, commodity tolerances and capped literal staff information independently of browsing availability.

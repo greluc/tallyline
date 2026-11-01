@@ -6,6 +6,8 @@ All notable changes are recorded here.
 
 ### Added
 
+- Cached UEX submission switches, commodity tolerances and bounded staff messages remain available offline. Submission closure leaves browsing usable; parameters refresh daily and require a fresh observation before sending (R-API-1, R-UI-8, R-SUB-5).
+
 - Cached commodity averages retain exact buy/sell values and terminal container limits. SQLite schema 2 backs up old data before migration, preserves vocabulary and fetch times, and removes the ambiguous legacy average without introducing LIVE values into PTU (R-API-1, R-API-6, R-VAL-2a, R-NF-11).
 
 - Game-channel mappings persist independently of the optional Game.log witness in settings schema 4. Migration preserves release-check preferences and backs up old settings before replacement (R-CAP-3a, R-NF-11).

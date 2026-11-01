@@ -479,3 +479,44 @@ fn r_nf_11_r_api_6__schema_one_requires_backup_and_drops_ambiguous_legacy_averag
     drop(migrated);
     assert!(SqliteReferenceCache::open(&path).is_ok());
 }
+
+#[test]
+#[expect(
+    non_snake_case,
+    reason = "Requirement tags use a double underscore separator."
+)]
+fn r_api_1_r_ui_8__parameter_cache_preserves_all_acceptance_switches_constraints_and_capped_text() {
+    use tallyline_reference_data::api::model::{
+        CommodityConstraints, ReferenceParameters, SubmissionAcceptance,
+    };
+    let directory = TestDirectory::new().unwrap();
+    let path = directory.0.join("tallyline.db");
+    for bits in 0..16 {
+        let parameters = ReferenceParameters::new(
+            SubmissionAcceptance {
+                datacenter: (bits & 1 != 0).into(),
+                reports: (bits & 2 != 0).into(),
+                commodity: (bits & 4 != 0).into(),
+                ptu: (bits & 8 != 0).into(),
+            },
+            CommodityConstraints {
+                price_variation_percent: 25,
+                prior_ttl_days: std::num::NonZeroU32::new(15).unwrap(),
+                scu_variation_percent: 5000,
+            },
+            Some("<b>&amp;</b>"),
+        );
+        let entry = CachedReference::new(
+            Timestamp::from_millis(1234),
+            EndpointData::Parameters(parameters),
+        );
+        {
+            let mut cache = SqliteReferenceCache::open(&path).unwrap();
+            cache.replace(&entry).unwrap();
+        }
+        assert_eq!(
+            SqliteReferenceCache::open(&path).unwrap().load().unwrap(),
+            vec![entry]
+        );
+    }
+}

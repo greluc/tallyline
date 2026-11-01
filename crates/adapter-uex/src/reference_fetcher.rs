@@ -14,6 +14,10 @@ impl ReferenceDataFetcher for UexReader {
 
     async fn fetch(&self, endpoint: Endpoint) -> Result<EndpointData, ReadError> {
         match endpoint {
+            Endpoint::Parameters => {
+                let data = self.transport.get("data_parameters/", &[], &[]).await?;
+                crate::parameter_wire::parameters(data).map(EndpointData::Parameters)
+            }
             Endpoint::Commodities => {
                 let data = self.transport.get("commodities/", &[], &[]).await?;
                 crate::reference_wire::commodities(data).map(EndpointData::Commodities)

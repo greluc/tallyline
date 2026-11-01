@@ -195,6 +195,7 @@ pub(crate) fn decode(endpoint: &str, payload: &str) -> Result<EndpointData, Stor
                 ptu: document.ptu,
             }))
         }
+        "parameters" => crate::parameter_document::decode(payload).map(EndpointData::Parameters),
         "status_levels" => crate::status_document::decode(payload).map(EndpointData::StatusLevels),
         _ => Err(StorageError::InvalidCache),
     }
@@ -202,6 +203,9 @@ pub(crate) fn decode(endpoint: &str, payload: &str) -> Result<EndpointData, Stor
 
 pub(crate) fn encode(data: &EndpointData) -> Result<(&'static str, String), StorageError> {
     let (endpoint, payload) = match data {
+        EndpointData::Parameters(parameters) => {
+            ("parameters", crate::parameter_document::encode(parameters))
+        }
         EndpointData::Commodities(commodities) => {
             let documents = commodities
                 .iter()
@@ -257,7 +261,13 @@ impl ReferenceDataCache for SqliteReferenceCache {
 
     fn load(&mut self) -> Result<Vec<CachedReference>, Self::Error> {
         let mut entries = Vec::new();
-        for endpoint in ["commodities", "game_versions", "status_levels", "terminals"] {
+        for endpoint in [
+            "commodities",
+            "game_versions",
+            "status_levels",
+            "terminals",
+            "parameters",
+        ] {
             let cached = self
                 .connection
                 .query_row(
@@ -291,7 +301,9 @@ impl ReferenceDataCache for SqliteReferenceCache {
             EndpointData::Terminals(terminals) => {
                 crate::migration::index_terminals(&transaction, terminals)?
             }
-            EndpointData::GameVersions(_) | EndpointData::StatusLevels(_) => {}
+            EndpointData::GameVersions(_)
+            | EndpointData::StatusLevels(_)
+            | EndpointData::Parameters(_) => {}
         }
         transaction.commit()?;
         Ok(())
