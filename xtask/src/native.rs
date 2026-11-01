@@ -41,6 +41,9 @@ pub fn violations(metadata: &str) -> Result<Vec<String>, String> {
             .iter()
             .map(string)
             .collect::<Result<Vec<_>, _>>()?;
+        if let Some(finding) = crate::ort_scope::violation(name, version, &features) {
+            findings.push(finding);
+        }
         if matches!(
             name,
             "android-activity"
@@ -66,7 +69,16 @@ pub fn violations(metadata: &str) -> Result<Vec<String>, String> {
         }
         for dependency in array(node, "deps")? {
             field(dependency, "name")?;
-            pending.push(field(dependency, "pkg")?);
+            let dependency_id = field(dependency, "pkg")?;
+            let dependency_package = packages
+                .get(dependency_id)
+                .ok_or_else(|| format!("missing package {dependency_id}"))?;
+            if let Some(finding) =
+                crate::ort_scope::edge_violation(name, field(dependency_package, "name")?)
+            {
+                findings.push(finding);
+            }
+            pending.push(dependency_id);
         }
     }
     Ok(findings)
