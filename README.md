@@ -1,6 +1,8 @@
 # Tallyline
 
-Tallyline is a cross-platform desktop client (Windows + Linux) for Star Citizen DataRunners. It captures commodity terminal data – **manually or via screenshot OCR** – and submits it to [UEX Corp](https://uexcorp.space). Current UEX data serves as default values and plausibility bounds for recognition. The repository keeps its former name `uex-datarunner-client` until it is renamed.
+Tallyline is a cross-platform desktop client (Windows + Linux) for Star Citizen DataRunners. It captures commodity terminal data – **manually or via screenshot OCR** – and submits it to [UEX Corp](https://uexcorp.space). Current UEX data serves as default values and plausibility bounds for recognition.
+
+> Corrected 2026-11-01: the GitHub repository is now [greluc/tallyline](https://github.com/greluc/tallyline).
 
 While the game is running, a lightweight local OCR does the work. Optionally, a local AI model (via Ollama) re-checks the results once the game is closed.
 
@@ -54,7 +56,7 @@ Tallyline is free software, licensed under the GNU General Public License, versi
 
 Decisions and checks that are still open are tracked in [docs/adr/0000-open-points.md](docs/adr/0000-open-points.md). Among them:
 
-- the trademark search and possible repository rename (O-8, O-106);
+- the trademark and conflict search (O-8);
 - the acceptance date of the Fankit Agreement (O-26), and which logo variant goes on light and on dark backgrounds (O-27; this README follows basetool's mapping until the project owner has checked the kit);
 - whether Cloud Imperium's terms allow the game screenshots in this public repository (O-28);
 - a legal review before the first release of the Windows app's dependency on the Microsoft Visual C++ Redistributable (x64), which ONNX Runtime needs; the packages do not ship it, so users install it as a prerequisite (O-12, ADR-0009);

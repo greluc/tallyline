@@ -2,7 +2,7 @@
 
 This file is the shared source of truth for Claude Code and Codex. Codex also reads `AGENTS.md`, which points here. Apply the same repository, privacy, contribution and review rules regardless of which agent is working. Where a global agent instruction conflicts with this project file, the more specific project rule applies; ask @greluc when the conflict changes a requirement, accepted decision or external-write boundary.
 
-**Tallyline** (the product name, decided 2026-10-12, O-8; the GitHub repository is still `uex-datarunner-client`) is a desktop client (Windows + Linux) for capturing Star Citizen commodity terminal data – **manually or via screenshot OCR** – and submitting it to the **UEX API 2.0** (`POST /data_submit`). Current UEX data (terminals, commodities, latest prices, status levels, tolerances) are **constraints and default values** for recognition and selection.
+**Tallyline** (the product name, decided 2026-10-12, O-8; the GitHub repository is `greluc/tallyline`) is a desktop client (Windows + Linux) for capturing Star Citizen commodity terminal data – **manually or via screenshot OCR** – and submitting it to the **UEX API 2.0** (`POST /data_submit`). Current UEX data (terminals, commodities, latest prices, status levels, tolerances) are **constraints and default values** for recognition and selection.
 
 **Status:** planning phase, milestone M0 in `docs/plan/04-roadmap.md` has started. The code so far is the `xtask` crate (`cargo xtask check`, the supply-chain guard and the vendor hash list, `rust-toolchain.toml`, workspace lints) `crates/adapter-uex` (`tallyline-adapter-uex`: the UEX M0 API spike read client and `data_submit` dry-run client, issue #67), and the recreated `crates/egui` design-system crate (issue #32); other crates is created with its first test, under `crates/`. Implementation language: Rust with egui; our own code is Rust only and native code in a dependency is allowed only as a registered exception (ADR-0005, accepted 2026-10-12; it supersedes ADR-0001's Java 27 + JavaFX choice). Licence: GPL-3.0-or-later (ADR-0003). Do not invent build commands, file paths, crates or type names that exist neither in `docs/` nor in the tree; if something is not written down, it has not been decided: ask. A crate, version or command that ADR-0005 does not name is "chosen and verified at source in M0".
 
@@ -329,7 +329,7 @@ This project rule is stricter than the global Claude comment rule: technical com
 
 ### Issue tracker
 
-Issues are tracked in GitHub Issues of `greluc/uex-datarunner-client`, through the `gh` CLI; creating or changing issues needs @greluc's yes (see "External writes"). See `docs/agents/issue-tracker.md`.
+Issues are tracked in GitHub Issues of `greluc/tallyline`, through the `gh` CLI; creating or changing issues needs @greluc's yes (see "External writes"). See `docs/agents/issue-tracker.md`.
 
 ### Triage labels
 

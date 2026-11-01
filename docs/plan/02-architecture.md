@@ -70,7 +70,7 @@ The cut combines **DDD bounded contexts** with **ports & adapters** (decision an
 Detailed rules and their enforcement are in [09-engineering-principles.md](09-engineering-principles.md).
 
 ```
-uex-datarunner-client/
+tallyline/
 ├── Cargo.toml              Workspace manifest (members, shared lint table, shared dependency versions); Cargo.lock; rust-toolchain.toml
 ├── supply-chain/           Committed supply-chain records: the vendor hash list (10 S-4); the cargo-vet files join it (10 S-6)
 ├── xtask/                  Repository checks and generators in Rust (English check, header check, token and icon generation, architecture rules over cargo metadata, packaging); replaces build-logic
