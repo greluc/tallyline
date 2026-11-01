@@ -28,6 +28,14 @@ The images in `corpus/public/` are screenshots of Star Citizen. The game content
 
 ## Entries
 
+## `expected.json` schema
+
+The schema test tagged `R-QA-1` validates every `corpus/public/*/expected.json` with `cargo xtask check`. The hand-authored entries use schema version 1 or 2; recognition output must never regenerate them, and `verified` remains `false` until a human independently checks the transcription.
+
+Both versions require an integer `schemaVersion` (1 or 2), string `id`, `transcription` and `theme`, boolean `verified`, object `source` and `location`, and a non-empty `captures` object. Each capture requires `side` (`BUY` or `SELL`) and a `cards` array. Each card has a numeric `screenOrder`. A complete card has `name`, `status`, `scu`, `pricePerScu` and `containerSizes`; `scu`, `pricePerScu` and `containerSizes` may be `null` when unknown. A partial card may omit those complete-card fields and carries `partial: true`.
+
+Version 1 stores the capture's `section`. Version 2 stores `capturedAt`, `conditions` and `sectionHeaders` per capture, `measured` per entry, and `section` per card. `expectedTerminalId` is an optional numeric entry field. Additional fields documented in [07 §4](../docs/plan/07-ocr-concept.md#4-measurement-and-test-concept) retain their documented types; unknown measured and condition values are represented as `null`, never guessed.
+
 | Entry | Content | Status |
 |---|---|---|
 | `pyro-gateway-stanton-01` | Pyro Gateway (Stanton), blue theme: 4× Buy (scrolled, without overlap), 1× Sell | transcribed, not verified |
