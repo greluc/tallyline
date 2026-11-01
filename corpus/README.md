@@ -46,6 +46,24 @@ Version 1 stores the capture's `section`. Version 2 stores `capturedAt`, `condit
 
 The originals of `patch-city-01`, `ruin-station-01`, `seraphim-station-01` and `levski-01` and the game's language file `global.ini` in use when they were taken belong in the private corpus; each `expected.json` records their SHA-256.
 
+### Human-confirmed completeness corrections
+
+Corrected 2026-11-01: the project owner confirmed that the container boxes and cards listed below are clipped at the bottom of the Levski list viewport. Each card now carries `partial: true` and `partialEdge: "bottom"`, as required by [07 §2.3](../docs/plan/07-ocr-concept.md#23-layout). The existing names, statuses, quantities, prices, container-size values and commodity IDs are retained as transcription evidence; these partial cards must produce no row and supply no field values for stitching or conflict resolution.
+
+| Capture in `levski-01` | Material | `screenOrder` |
+|---|---|---|
+| `v2-sell-10.jpg` | HEART OF THE WOODS | 5 |
+| `v2-sell-11.jpg` | HYDROGEN | 5 |
+| `v2-sell-12.jpg` | KOPION HORN | 5 |
+| `v2-sell-13.jpg` | MEDICAL SUPPLIES | 5 |
+| `v3-sell-5.jpg` | BORASE | 5 |
+| `v3-sell-12.jpg` | HEART OF THE WOODS | 5 |
+| `v3-sell-13.jpg` | HYDROGEN | 5 |
+| `v3-sell-14.jpg` | KOPION HORN | 5 |
+| `v3-sell-15.jpg` | MEDICAL SUPPLIES | 5 |
+
+This confirmation covers these nine completeness corrections. It does not promote the entry to a fully human-verified transcription; `levski-01/expected.json` remains `verified: false`.
+
 ## Offline inspection
 
 Corrected 2026-11-01: O-50 and UEX API notes §Terms of use permit small anonymised public reference fixtures for the entry's own terminals and commodities; full price dumps remain forbidden. Earlier statements above that every reference recording must stay private describe the previous default. Larger snapshots, originals and localisation files remain private. The structural scope checks do not replace human anonymisation and fixture-size review.
