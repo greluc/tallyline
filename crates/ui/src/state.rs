@@ -23,6 +23,8 @@ pub enum View {
 /// A worker result that never requests a dialog or window command.
 #[derive(Debug)]
 pub enum BackgroundEvent {
+    /// Passive release metadata result with no window command.
+    UpdateChecked(tallyline_workflows::api::model::UpdateStatus),
     /// Local witness settings and sanitised facts from the file worker.
     GameWitnessLoaded(GameWitnessView),
     /// An actionable failure that stays visible across view changes.
@@ -46,6 +48,7 @@ pub struct ShellState {
     ready: bool,
     game_witness: GameWitnessView,
     game_channel_draft: String,
+    update_status: tallyline_workflows::api::model::UpdateStatus,
 }
 
 impl ShellState {
@@ -98,6 +101,8 @@ impl ShellState {
         }
         self.busy = true;
         Some(match action {
+            UserAction::DismissUpdate => SettingsCommand::DismissUpdate,
+            UserAction::ChangeUpdateChecks(checks) => SettingsCommand::ChangeUpdateChecks(checks),
             UserAction::ChooseTheme(theme) => SettingsCommand::ChangeTheme(theme),
             UserAction::ChooseGameChannel(channel) => SettingsCommand::ChangeGameChannel(channel),
             UserAction::RefreshWitness => SettingsCommand::RefreshWitness,
@@ -108,6 +113,13 @@ impl ShellState {
     /// Applies a worker result without changing the view or window state.
     pub fn receive(&mut self, event: BackgroundEvent) {
         match event {
+            BackgroundEvent::UpdateChecked(status) => {
+                if self.settings.update_checks()
+                    == tallyline_workflows::api::model::UpdateChecks::Enabled
+                {
+                    self.update_status = status;
+                }
+            }
             BackgroundEvent::GameWitnessLoaded(view) => {
                 self.game_channel_draft = view.channel_directory.clone().unwrap_or_default();
                 self.game_witness = view;
@@ -124,6 +136,11 @@ impl ShellState {
             BackgroundEvent::SettingsLoaded(settings) => {
                 if self.view == View::Onboarding && settings.onboarding_complete() {
                     self.view = View::Home;
+                }
+                if settings.update_checks()
+                    == tallyline_workflows::api::model::UpdateChecks::Disabled
+                {
+                    self.update_status = tallyline_workflows::api::model::UpdateStatus::NotChecked;
                 }
                 self.settings = settings;
                 self.ready = true;
@@ -168,6 +185,10 @@ impl ShellState {
 
 /// A direct user request that requires durable preferences.
 pub enum UserAction {
+    /// Persist dismissal of the available release.
+    DismissUpdate,
+    /// Change permission for daily release metadata checks.
+    ChangeUpdateChecks(tallyline_workflows::api::model::UpdateChecks),
     /// Choose a channel directory and revoke the previous opt-in.
     ChooseGameChannel(String),
     /// Refresh only after an explicit user request.
@@ -183,6 +204,10 @@ pub enum UserAction {
 /// A settings operation handled outside the UI thread.
 #[derive(Clone, PartialEq, Eq)]
 pub enum SettingsCommand {
+    /// Save the explicit release notice dismissal.
+    DismissUpdate,
+    /// Persist release-check permission.
+    ChangeUpdateChecks(tallyline_workflows::api::model::UpdateChecks),
     /// Persist a channel directory and disable witness access.
     ChangeGameChannel(String),
     /// Read sanitised facts under the durable opt-in preference.
@@ -198,6 +223,11 @@ pub enum SettingsCommand {
 impl std::fmt::Debug for SettingsCommand {
     fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
+            Self::DismissUpdate => formatter.write_str("DismissUpdate"),
+            Self::ChangeUpdateChecks(checks) => formatter
+                .debug_tuple("ChangeUpdateChecks")
+                .field(checks)
+                .finish(),
             Self::ChangeGameChannel(_) => {
                 formatter.write_str("ChangeGameChannel(<local selection>)")
             }
@@ -209,5 +239,13 @@ impl std::fmt::Debug for SettingsCommand {
             Self::ChangeTheme(theme) => formatter.debug_tuple("ChangeTheme").field(theme).finish(),
             Self::CompleteOnboarding => formatter.write_str("CompleteOnboarding"),
         }
+    }
+}
+
+impl ShellState {
+    /// Returns the most recent passive update status.
+    #[must_use]
+    pub const fn update_status(&self) -> &tallyline_workflows::api::model::UpdateStatus {
+        &self.update_status
     }
 }

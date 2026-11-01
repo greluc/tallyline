@@ -8,3 +8,12 @@ publish.workspace = true
 
 [lints]
 workspace = true
+
+[dependencies]
+tallyline-shared-kernel.workspace = true
+
+[dev-dependencies]
+tallyline-adapter-files = { path = "../adapter-files" }
+tallyline-adapter-platform = { path = "../adapter-platform" }
+wiremock.workspace = true
+tokio = { workspace = true, features = ["macros", "rt"] }

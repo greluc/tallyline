@@ -3248,6 +3248,7 @@ dependencies = [
 name = "tallyline-adapter-files"
 version = "0.1.0"
 dependencies = [
+ "serde",
  "image",
  "png",
  "serde_json",
@@ -3260,6 +3261,14 @@ dependencies = [
 name = "tallyline-adapter-platform"
 version = "0.1.0"
 dependencies = [
+ "reqwest",
+ "rustls",
+ "rustls-platform-verifier",
+ "serde",
+ "serde_json",
+ "tallyline-workflows",
+ "tokio",
+ "wiremock",
  "rustix 1.1.5",
  "socket2",
  "tracing",
@@ -3296,6 +3305,8 @@ dependencies = [
 name = "tallyline-app"
 version = "0.1.0"
 dependencies = [
+ "tallyline-shared-kernel",
+ "tokio",
  "eframe",
  "egui",
  "tallyline-adapter-files",
@@ -3355,6 +3366,13 @@ dependencies = [
 [[package]]
 name = "tallyline-workflows"
 version = "0.1.0"
+dependencies = [
+ "tallyline-adapter-files",
+ "tallyline-adapter-platform",
+ "wiremock",
+ "tokio",
+ "tallyline-shared-kernel",
+]
 
 [[package]]
 name = "tempfile"

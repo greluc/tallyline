@@ -63,5 +63,15 @@
   "witness.refresh": "Refresh witness facts",
   "witness.not_configured": "Game log witness unavailable: select a game channel directory.",
   "witness.explanation": "Optional, local and read-only. Only validated terminal, buy-side assortment, container-size and major/minor version facts are inspected. No prices, quantities or status values are read into reports. Game.log is never included in diagnostics.",
-  "witness.commodity": "Commodity ID:"
+  "witness.commodity": "Commodity ID:",
+  "update.title": "Release updates",
+  "update.explanation": "Optional daily checks for standard Tallyline releases on GitHub. Only the app name and version are sent. Open release notes to choose whether to download an update yourself.",
+  "update.enable": "Check for release updates daily",
+  "update.available": "A new Tallyline release is available:",
+  "update.open": "Open release notes",
+  "update.dismiss": "Dismiss update notice",
+  "update.current": "No newer standard release is available.",
+  "update.not_checked": "No release update information is available yet.",
+  "update.unavailable": "Release updates are unavailable. Work can continue. Checks will resume after the daily interval; Settings can turn them off.",
+  "update.dismissed": "The available release notice was dismissed."
 }

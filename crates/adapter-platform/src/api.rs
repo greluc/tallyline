@@ -6,3 +6,5 @@ pub use crate::instance::{
     ActivationListener, ActivationOutcome, Election, InstancePaths, PrimaryInstance, WriterLease,
     elect,
 };
+
+pub use crate::releases::ReleaseClient;

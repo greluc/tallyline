@@ -21,3 +21,5 @@ mod game_witness;
 mod legal_views;
 mod licences;
 mod theme;
+
+mod updates;

@@ -9,3 +9,5 @@ pub use crate::config::ConfigFile;
 pub use crate::game_log::GameLogFiles;
 pub use crate::layout::StorageLayout;
 pub use crate::logo::decode_logo;
+
+pub use crate::backup::BackupSetStore;

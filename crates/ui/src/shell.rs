@@ -48,6 +48,7 @@ pub fn show_shell(
             ui.separator();
         }
     });
+    commands.extend(crate::updates::notice(ui, state, catalogue));
     if let Some(notice) = state.notice() {
         ui.label(catalogue.text("status.action_required"));
         ui.label(notice);
@@ -91,6 +92,7 @@ pub fn show_shell(
                     commands.extend(state.act(UserAction::ChooseTheme(theme)));
                 }
             }
+            commands.extend(crate::updates::settings(ui, state, catalogue));
             commands.extend(crate::game_witness::show(ui, state, catalogue));
             if ui.button(catalogue.text("action.done")).clicked() {
                 state.leave_settings();

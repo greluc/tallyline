@@ -10,9 +10,11 @@ While the game is running, a lightweight local OCR does the work. Optionally, a 
 
 ## Run the desktop shell from source
 
-Build with `cargo build --locked -p tallyline-app`, then run `target/debug/tallyline --assets crates/ui/assets` (on Windows, `target/debug/tallyline.exe`). The explicit assets argument selects the separately shipped font files; an installed or portable image instead keeps `assets/fonts/` next to the executable. See the [desktop guide](docs/user/desktop.md) for the storage paths, portable marker and settings errors. The shell does not send reports or contact UEX. Reference-data adapters are being implemented with exact decimal values and environment/static Windows proxy support; PAC and per-protocol Windows proxy lists remain unsupported by the current upstream path.
+Build with `cargo build --locked -p tallyline-app`, then run `target/debug/tallyline --assets crates/ui/assets` (on Windows, `target/debug/tallyline.exe`). The explicit assets argument selects the separately shipped font files; an installed or portable image instead keeps `assets/fonts/` next to the executable. See the [desktop guide](docs/user/desktop.md) for the storage paths, portable marker and settings errors. An explicit second launch restores the existing window even when it is minimised. The shell does not send reports or contact UEX. Reference-data adapters are being implemented with exact decimal values and environment/static Windows proxy support; PAC and per-protocol Windows proxy lists remain unsupported by the current upstream path.
 
 The optional **Game log witness** in Settings reads only version-validated local facts after explicit opt-in. Choose a channel, enable the witness and refresh to inspect sanitised buy-side observations; `cargo run -p ocr-eval --locked -- witness --channel <directory>` offers the same bounded read-only inspection. Prices, quantities and status values are never filled from the log (R-OCR-20).
+
+Settings also offers optional **daily release updates**, off by default. A newer standard GitHub release appears as a passive notice with release notes; offline checks never interrupt work or take focus, and failed settings validation preserves saved preferences. Settings backup retention also survives clock changes. Downloads and installation remain your choice (R-NF-7, R-UI-16).
 
 Starting Tallyline again activates the existing installed or portable instance. If activation fails, an already-running notice appears and no second writer starts (R-NF-10).
 

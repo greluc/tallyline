@@ -203,6 +203,7 @@ fn r_ui_7_q_theme__native_root_transitions_paint_readable_surfaces() -> Result<(
                 ));
             }
             if let Some(shell) = &mut shell {
+                shell.logic(ui.ctx(), &mut frame);
                 let background = ui.painter().add(egui::Shape::Noop);
                 shell.ui(ui, &mut frame);
                 let clear = shell.clear_color(&ui.ctx().global_style().visuals);
