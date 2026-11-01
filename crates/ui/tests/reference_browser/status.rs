@@ -80,7 +80,7 @@ fn r_api_1_r_ui_8_r_ui_13__empty_cache_and_offline_refresh_report_real_data_age(
     );
     assert!(
         harness
-            .query_by_label("Refreshing reference data in the background")
+            .query_by_label("Refreshing reference data (1 request)")
             .is_some()
     );
     harness

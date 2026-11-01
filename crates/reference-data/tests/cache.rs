@@ -1079,3 +1079,65 @@ fn r_api_5__invalid_prior_identity_price_version_and_duplicate_assortments_are_r
     );
     assert!(InvalidPrior.to_string().contains("prior"));
 }
+
+#[test]
+#[expect(
+    non_snake_case,
+    reason = "Requirement tags use a double underscore separator."
+)]
+fn r_api_1__failed_forced_refresh_retries_even_when_the_previous_success_is_still_fresh() {
+    use tallyline_reference_data::api::model::{GameVersions, TerminalPriors};
+    use tallyline_shared_kernel::api::model::TerminalId;
+    let versions = EndpointData::GameVersions(GameVersions {
+        live: "4.9".to_owned(),
+        ptu: None,
+    });
+    let priors = EndpointData::TerminalPriors(TerminalPriors::new(TerminalId(17), vec![]).unwrap());
+    let mut application = ReferenceApplication::load(
+        MemoryCache(vec![
+            CachedReference::new(Timestamp::from_seconds(0), versions.clone()),
+            CachedReference::new(Timestamp::from_seconds(0), priors.clone()),
+        ]),
+        At(0),
+    )
+    .unwrap();
+    assert!(!application.due().contains(&Endpoint::GameVersions));
+    assert!(!application.terminal_priors_due(TerminalId(17)));
+    application.refresh_failed(Endpoint::GameVersions);
+    application.refresh_failed(Endpoint::TerminalPriors(TerminalId(17)));
+    assert!(application.due().contains(&Endpoint::GameVersions));
+    assert!(
+        application
+            .due_before_send()
+            .contains(&Endpoint::GameVersions)
+    );
+    assert!(
+        application
+            .due()
+            .contains(&Endpoint::TerminalPriors(TerminalId(17)))
+    );
+    assert!(application.terminal_priors_due(TerminalId(17)));
+    assert_eq!(
+        application.fetched_at(Endpoint::GameVersions),
+        Some(Timestamp::from_seconds(0))
+    );
+    assert_eq!(
+        application
+            .snapshot(UexEnvironment::Live)
+            .game_versions()
+            .unwrap()
+            .live,
+        "4.9"
+    );
+    application.refreshed(versions).unwrap();
+    assert!(!application.due().contains(&Endpoint::GameVersions));
+    assert_eq!(application.state(), ReferenceState::Offline);
+    application.refreshed(priors).unwrap();
+    assert!(
+        !application
+            .due()
+            .contains(&Endpoint::TerminalPriors(TerminalId(17)))
+    );
+    assert!(!application.terminal_priors_due(TerminalId(17)));
+    assert_eq!(application.state(), ReferenceState::Cached);
+}

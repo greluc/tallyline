@@ -150,10 +150,10 @@ impl<S: ReferenceDataCache, C: Clock> ReferenceApplication<S, C> {
             | EndpointData::TerminalPriors(_) => None,
         })
     }
-    /// Returns endpoints whose successful fetch has expired.
+    /// Returns endpoints with expired cache data or a failed last refresh.
     #[must_use]
     pub fn due(&self) -> Vec<Endpoint> {
-        [
+        let mut due: Vec<_> = [
             Endpoint::Commodities,
             Endpoint::Terminals,
             Endpoint::GameVersions,
@@ -162,7 +162,13 @@ impl<S: ReferenceDataCache, C: Clock> ReferenceApplication<S, C> {
         ]
         .into_iter()
         .filter(|endpoint| self.expired(*endpoint, endpoint.ttl_seconds()))
-        .collect()
+        .collect();
+        for endpoint in &self.failed {
+            if !due.contains(endpoint) {
+                due.push(*endpoint);
+            }
+        }
+        due
     }
 
     /// Reports whether a requested terminal needs its own fresh LIVE assortment.
@@ -172,7 +178,7 @@ impl<S: ReferenceDataCache, C: Clock> ReferenceApplication<S, C> {
         terminal: tallyline_shared_kernel::api::model::TerminalId,
     ) -> bool {
         let endpoint = Endpoint::TerminalPriors(terminal);
-        self.expired(endpoint, endpoint.ttl_seconds())
+        self.failed.contains(&endpoint) || self.expired(endpoint, endpoint.ttl_seconds())
     }
 
     /// Returns send-gate endpoints that need a new successful observation.
@@ -180,7 +186,7 @@ impl<S: ReferenceDataCache, C: Clock> ReferenceApplication<S, C> {
     pub fn due_before_send(&self) -> Vec<Endpoint> {
         [Endpoint::GameVersions, Endpoint::Parameters]
             .into_iter()
-            .filter(|endpoint| self.expired(*endpoint, 900))
+            .filter(|endpoint| self.failed.contains(endpoint) || self.expired(*endpoint, 900))
             .collect()
     }
 

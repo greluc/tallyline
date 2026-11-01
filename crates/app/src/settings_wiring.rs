@@ -7,27 +7,29 @@ use std::io;
 use std::path::PathBuf;
 use std::sync::mpsc::{self, Receiver, SyncSender};
 use tallyline_adapter_files::api::{ConfigFile, StorageLayout};
-use tallyline_ui::api::model::{BackgroundEvent, SettingsCommand};
+use tallyline_ui::api::model::{BackgroundEvent, ReferenceCommand, SettingsCommand};
 use tallyline_ui::api::wake_up;
 use tallyline_workflows::api::SettingsApplication;
 
 type WorkerChannels = (
     SyncSender<SettingsCommand>,
+    SyncSender<ReferenceCommand>,
     Receiver<BackgroundEvent>,
     std::thread::JoinHandle<()>,
 );
 
 pub(crate) fn start(context: egui::Context, layout: StorageLayout) -> io::Result<WorkerChannels> {
     let (commands, incoming) = mpsc::sync_channel(1);
+    let (reference_commands, reference_incoming) = mpsc::sync_channel(1);
     let (outgoing, events) = mpsc::sync_channel(16);
     let worker = crate::executor::spawn("tallyline-settings", move || {
-        let result = run(&incoming, &outgoing, &context, layout);
+        let result = run(&incoming, &outgoing, &context, layout, reference_incoming);
         if let Err(error) = result {
             let _sent = outgoing.try_send(BackgroundEvent::Failure(error.to_string()));
             wake_up(&context);
         }
     })?;
-    Ok((commands, events, worker))
+    Ok((commands, reference_commands, events, worker))
 }
 
 fn deliver(
@@ -45,6 +47,7 @@ fn run(
     outgoing: &SyncSender<BackgroundEvent>,
     context: &egui::Context,
     layout: StorageLayout,
+    reference_incoming: Receiver<ReferenceCommand>,
 ) -> io::Result<()> {
     let executable = std::env::current_exe()?;
     let directory = executable
@@ -72,7 +75,7 @@ fn run(
     let settings_path = layout.config().join("settings.json");
     let tallyline_app::api::model::PreparedStorage {
         settings: store,
-        cache: _reference_cache,
+        cache,
     } = tallyline_app::api::initialise_storage(&layout, &crate::update_wiring::SystemClock)?;
     let loaded = store.load()?;
     deliver(
@@ -95,6 +98,12 @@ fn run(
         )?;
     }
     deliver_game(outgoing, context, &settings_path)?;
+    let reference_worker = crate::reference_wiring::start(
+        cache,
+        reference_incoming,
+        outgoing.clone(),
+        context.clone(),
+    )?;
     let mut settings = SettingsApplication::new(loaded.settings, store);
     let installed = tallyline_workflows::api::model::ReleaseVersion::parse(concat!(
         "v",
@@ -228,10 +237,12 @@ fn run(
         }
         Ok(())
     })();
+    let reference_result = reference_worker.finish();
     drop(update_requests);
     update_worker
         .join()
         .map_err(|_| io::Error::other("update worker terminated unexpectedly"))?;
+    reference_result?;
     result
 }
 

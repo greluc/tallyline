@@ -8,9 +8,11 @@ All notable changes are recorded here.
 
 - Added shared bounded PNG/JPEG/BMP intake with explicit colour conversion, full-precision 16-bit PNG handling, HDR/unsupported-colour advice and original-size findings after integer box reduction. The capture UI and recognition pipeline remain in progress (R-CAP-8, R-OCR-17).
 
+- The desktop reference worker now loads SQLite data before network responses, rechecks versions at startup and fetches terminal priors on opening. Failed saves retain old visible records; closing cancels pending GETs and joins the cache owner before releasing the writer lease (R-API-1, R-API-2, R-UI-13, R-NF-10).
+
 - Per-terminal LIVE priors retain exact prices and SCU, container sizes, status and source age across restarts, with independent 30-minute freshness and bounded ten-terminal requests. PTU contains no borrowed LIVE priors (R-API-1, R-API-5, R-API-6).
 
-- Added environment-specific terminal and commodity browsing with searchable cached records, passive refresh status and endpoint ages. Channel-to-UEX mapping controls save before applying and remain independent of the optional Game.log witness; native reference-worker wiring remains in progress. Global staff notices are capped literal text, and resolved reference failures clear without hiding settings errors (R-API-1, R-API-2, R-API-6, R-CAP-3a, R-UI-8, R-UI-13, R-UI-16).
+- Added environment-specific terminal and commodity browsing with searchable cached records, passive refresh status and endpoint ages. Channel-to-UEX mapping controls save before applying and remain independent of the optional Game.log witness; cached records now load before HTTP and refresh on the app-owned worker. Global staff notices are capped literal text, and resolved reference failures clear without hiding settings errors (R-API-1, R-API-2, R-API-6, R-CAP-3a, R-UI-8, R-UI-13, R-UI-16).
 
 - Cached UEX submission switches, commodity tolerances and bounded staff messages remain available offline. Submission closure leaves browsing usable; parameters refresh daily and require a fresh observation before sending (R-API-1, R-UI-8, R-SUB-5).
 
@@ -57,6 +59,8 @@ All notable changes are recorded here.
 - Theme changes now repaint the native root surface and text together, including dark/light/dark transitions. The offline licence catalogue excludes Apache boilerplate from copyright-holder metadata and preserves the actual AccessKit source attribution.
 
 ### Changed
+
+- Require strictly local optional AI and an initially complete recognition profile without a separately installed Ollama. Runtime, complementary OCR and hardware-specific model selection remain under evaluation; the existing Windows OCR prerequisite still needs a verified replacement (R-VLM-6, R-VLM-7, R-VLM-11; ADR-0012).
 
 - Refresh the desktop UI, TLS and async dependencies to eligible stable releases while preserving the approved native boundaries and complete legal notices (R-SEC-1, R-SEC-10).
 

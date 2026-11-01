@@ -8,6 +8,10 @@ Choose **Settings** to select Follow OS (the default), Dark, Light or High contr
 
 The minimum window size is 800 × 640 logical pixels. Both Fan Kit notices use 14 egui points, above the 10 pt floor (13.33 egui points at 100 % scale). Their stored strings have no inserted line break; the layout can flow them over several lines. The logo is not tinted or modified. The existing light/dark asset mapping follows the README; the owner's kit check remains O-27.
 
+## Recognition delivery under evaluation
+
+Corrected 2026-11-01: the owner requires image recognition to stay entirely on this computer and the chosen initial installation profile to include its runtime and models. A separate Ollama or Python installation is not a product prerequisite. [The runtime and reader comparison](../local-vision-runtime-research.md) and [ADR-0012](../adr/0012-strictly-local-recognition-delivery.md) record this direction; the desktop does not yet perform recognition. Additional OCR and local VLM combinations are being evaluated rather than advertised as proven improvements. The existing Visual C++ Redistributable prerequisite for the planned Windows OCR runtime remains a delivery obstacle to resolve before release.
+
 ## Running a source build
 
 Keep the committed lockfile when building. The [dependency adoption record](../../supply-chain/latest-stable-adoption.json) records the current eligible stable versions, retained upstream constraints and native boundaries; complete third-party legal texts remain available offline.
@@ -65,7 +69,9 @@ Crash recovery releases OS locks automatically. The next lock holder removes the
 
 ## UEX proxy support under implementation
 
-The UEX adapter uses proxy environment variables and Windows static Internet Settings through the system-proxy feature. Tallyline does not alter those settings. PAC/autodiscovery and per-protocol Windows ProxyServer lists are not supported by the current upstream path; full system-proxy acceptance remains pending. The desktop shell still makes no UEX requests while reference-data wiring is being implemented.
+The UEX adapter uses proxy environment variables and Windows static Internet Settings through the system-proxy feature. Tallyline does not alter those settings. PAC/autodiscovery and per-protocol Windows ProxyServer lists are not supported by the current upstream path; full system-proxy acceptance remains pending.
+
+Corrected 2026-11-01: the native reference worker now makes credential-free GET requests to the primary UEX host, `api.uexcorp.uk`. It publishes the local cache before refreshing and keeps browsing available when a request fails. The earlier statement that the desktop made no UEX requests described the shell before this worker was connected.
 
 ## Release updates
 
@@ -89,9 +95,9 @@ Open **Reference data** to select LIVE, HOTFIX, PTU, EPTU or TECH-PREVIEW. The s
 
 Search terminals by name, nickname, display name or location and commodities by name or code. Rows show the UEX ID to distinguish duplicate labels and codes. Selecting a terminal issues a background terminal-price request; selecting a commodity only changes the local selection. PTU browsing includes entries unavailable on LIVE. It never displays LIVE prices as PTU reference data.
 
-The global status distinguishes **No reference data yet**, usable cached data and an offline cache. Each loaded endpoint shows **Age at last update**, the elapsed seconds from its last successful fetch to the worker's clock observation; missing endpoints show **Not loaded yet**. A reversed clock shows an unknown age rather than a fresh value. **Refresh reference data** queues a background refresh without clearing records, search, selection or keyboard focus. A failed refresh retains the last successful data and fetch times. Background results never switch pages, open dialogs or change the window state.
+The global status distinguishes **No reference data yet**, usable cached data and an offline cache. Each loaded catalogue endpoint shows **Age at last update**, the elapsed seconds from its last successful fetch to the worker's clock observation; missing endpoints show **Not loaded yet**. A reversed clock shows an unknown age rather than a fresh value. **Refresh reference data** queues a background refresh without clearing records, search, selection or keyboard focus. A failed refresh retains the last successful data and fetch times. Background results never switch pages, open dialogs or change the window state.
 
-The browser accepts immutable cache snapshots from its worker. Native worker composition remains in progress in this implementation slice; until connected, the page shows the explicit no-data state and an unavailable-refresh notice for a refresh request.
+The browser loads the local SQLite cache before the first network response, then refreshes in the background through the primary UEX host. Reference requests need no credential. If the client cannot initialise or a request fails, cached records remain usable; an empty offline installation shows the explicit no-data state.
 
 UEX staff notices appear in the global status area in every view, limited to 280 Unicode characters and displayed literally without interpreting markup or links. Paused submissions or Datacenter maintenance leave cached reference browsing available; the last successful parameters remain available offline.
 
