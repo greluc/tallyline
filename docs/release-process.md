@@ -1,6 +1,6 @@
 # Release and hotfix process
 
-> **Doc type:** Living spec — binding; followed from release 0.1 on. Last reviewed: 2026-10-26.
+> **Doc type:** Living spec — binding; followed from release 0.1 on. Last reviewed: 2026-11-01.
 
 Implements R-NF-11 and the release-related parts of [10-supply-chain-security.md](plan/10-supply-chain-security.md). This is a plan; it is followed from release 0.1 on and refined with experience. Amended 2026-10-12: the implementation language is Rust ([ADR-0005](adr/0005-rust-and-egui.md)), so the Java, Gradle, jlink and jpackage steps became their Rust equivalents (`cargo xtask`, `cargo-packager`, the Rust toolchain pin); commands and tool versions that ADR-0005 does not name are chosen and verified in M0.
 
@@ -78,3 +78,4 @@ Users get fixes for the linked crates and native libraries only through our rele
 3. Fix test-first and make a PATCH release.
 4. If the faulty version sent bad data, coordinate with UEX: User-Agent and `X-Client-Version` identification (R-API-7), withdrawal via `data_remove` per row if needed (only rows not yet consolidated, R-SUB-4).
 5. An HTML (non-JSON) HTTP 404 on a write holds the whole queue as "API changed" (R-SUB-11) until a PATCH release adapts the client or the user retries.
+6. If the Tallyline app token is misused, @greluc writes to UEX, which sees the app's traffic and can disable the token on its side. Replacing the token means deleting and re-creating the app in "My Apps", which stops the old token at once for every installed release ([06](plan/06-uex-api.md) "Basics"); how a release then gets the new token is O-139.

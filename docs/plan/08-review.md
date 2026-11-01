@@ -1,6 +1,6 @@
 # Review of the plan (2026-10-08)
 
-> **Doc type:** Historical record — corrections are new dated sections. Last reviewed: 2026-10-26.
+> **Doc type:** Historical record — corrections are new dated sections. Last reviewed: 2026-11-01.
 
 All documents under `docs/plan/` were reviewed, plus `CLAUDE.md` and `README.md`. The criteria were completeness, factual errors, logic gaps and contradictions between the documents. The findings have been corrected directly in the documents. This list records **what** was wrong or incomplete, so that the changes remain traceable.
 
@@ -489,3 +489,14 @@ UEX answered the 22 questions of issue #19 by e-mail on 2026-10-25, and a follow
 - **Answered without plan change:** O-19, O-50 (new default), O-106 (UEX may be named, with an independence statement; README updated), O-53, O-55, O-89, O-98.
 - **Asked again:** 06 open points 30 to 36.
 - **Decided the same day after the options were laid out:** O-138 (D): a report-level error answer without a row takes effect only after one `data_info` check, so A25 is no longer relied on (R-SUB-9, 02 §6, 06). O-140 (D): the SCU tolerance is a percentage plus an absolute minimum, both to be exceeded, calibrated in M1; UEX's `scu_variation` never loosens it (R-VAL-2, A15, 02 §6).
+
+## S. UEX answers to the follow-up questions (2026-10-31)
+
+UEX answered the eight follow-up questions of 2026-10-26 (06 open points 30 to 36) by e-mail on 2026-10-31 (06 tag [UEX]). The sections above stay as written; where they call these points open, this section and the documents it names supersede them.
+
+- **Facts:** rows are checked and stored one at a time, and UEX listed every code that can only come before the first row is stored, which verifies A25; `database_error` carries `data.row`, while `invalid_prices_array_format` and `reference_key_not_supplied` carry no `data`; a dry run can meet every error but `database_error`. An extractable Tallyline token is fine with UEX; a token is replaced only by re-creating the app, which stops it at once for every installed release; UEX can disable a misused token. The version lock takes one exact version. The reference endpoints may go without the token; `data_info` polls count on its quota, and 288 a day per active player are fine. A reported SCU of 0 equals no SCU; sell-side "OUT OF STOCK" is `status_sell` 1 with the SCU shown. `is_missing` goes as a bare row inside a normal request. `too_many_reports` is still 1000 in 30 minutes of the user's own reports, checked once per request. `date_added` tolerates no clock difference. One request per capture is welcome. `data_info` lists every datarunner's reports, with a `username` filter and an `is_owner` flag. Three undocumented codes were named: `missing_client_version`, `upgrade_required`, `invalid_screenshot`.
+- **Requirements that followed their own condition:** R-VAL-5 offers `is_missing` for scanned reports, since 06 open point 12 is verified (02 §6); A25 is verified.
+- **Confirmed without plan change:** O-85 (shared token, unlocked, reference requests without it), O-131 (sell-side "OUT OF STOCK" with stock), O-137 (one submission per capture), R-SUB-2 (row budget), R-SUB-4 (the `username` filter is enough).
+- **Defaults applied:** the two per-row codes without a row index leave every row unmapped, like `database_error` without one (R-SUB-9, O-142).
+- **For @greluc's decision:** O-139 gains the rotation question; new points O-141 (classes of the three new codes), O-142 (keep or drop the `data_info` check of O-138), O-143 (`data_info` poll backoff), O-144 (a `date_added` ahead of the server clock), O-145 (an SCU of 0 sent without `scu_*`). The release process gains the token-misuse step ("UEX API change", step 6).
+- **Decided 2026-11-01 (@greluc), each as recommended:** O-141: `upgrade_required` pauses the whole queue with "update the app", `missing_client_version` is permanent, `invalid_screenshot` is report-fixable (R-SUB-11, 02 §6, 06). O-142: the `data_info` check is dropped for the codes UEX listed as before any row and kept for every other code without a row; the default for the two codes without a row index stands (R-SUB-9, A25, 02 §6, 06). O-143: `data_info` is polled every 5 minutes in the first hour, then every 30 minutes (R-SUB-4, 02 §6, 06). O-144: `date_added` is moved back to the server-time estimate from the latest `Date` header when `observedAt` is later, with `invalid_date` as the fallback (R-VAL-6, R-SUB-11, 02 §6, 06). O-145: a read SCU of 0 is sent without `scu_*` (R-SUB-1, 02 §6, 06). O-139 stays open.
