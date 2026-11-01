@@ -7,6 +7,7 @@ license.workspace = true
 publish.workspace = true
 
 [dependencies]
+tallyline-submission.workspace = true
 tallyline-workflows = { path = "../workflows" }
 reqwest.workspace = true
 rustls.workspace = true
@@ -56,5 +57,6 @@ missing_panics_doc = "deny"
 missing_safety_doc = "deny"
 
 [dev-dependencies]
+tempfile = { version = "=3.27.0", default-features = false }
 wiremock.workspace = true
 tokio = { workspace = true, features = ["macros", "rt-multi-thread"] }

@@ -7,4 +7,5 @@ pub use crate::instance::{
     elect,
 };
 
+pub use crate::release_token::ReleaseTokenFile;
 pub use crate::releases::ReleaseClient;

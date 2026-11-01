@@ -6,6 +6,21 @@
 use crate::native::violations;
 use serde_json::{Value, json};
 
+#[test]
+fn secret_service_other_target_dependencies_cannot_be_activated_even_when_renamed() {
+    for (name, version) in [("memoffset", "0.9.1"), ("uds_windows", "1.2.1")] {
+        let input = metadata(name, version, &[], true);
+        assert!(
+            violations(&input.to_string())
+                .unwrap()
+                .iter()
+                .any(|finding| finding.contains(name))
+        );
+        let excluded = metadata(name, version, &[], false);
+        assert!(violations(&excluded.to_string()).unwrap().is_empty());
+    }
+}
+
 fn metadata(name: &str, version: &str, features: &[&str], reachable: bool) -> Value {
     json!({
         "packages": [

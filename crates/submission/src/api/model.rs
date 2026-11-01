@@ -7,6 +7,37 @@ use tallyline_shared_kernel::api::model::Timestamp;
 
 const MAX_CREDENTIAL_BYTES: usize = 1024;
 
+/// The installation token, borrowed only for authenticated validation requests.
+pub struct ReleaseToken(String);
+
+impl ReleaseToken {
+    /// Accepts a bounded non-empty printable ASCII installation token.
+    ///
+    /// # Errors
+    /// Returns an input failure for malformed token data.
+    pub fn new(value: String) -> Result<Self, CredentialFailure> {
+        if !valid_secret(&value) {
+            return Err(CredentialFailure::InvalidInput);
+        }
+        Ok(Self(value))
+    }
+
+    /// Borrows installation data for a credential validation boundary.
+    #[must_use]
+    pub fn for_validation(&self) -> &str {
+        &self.0
+    }
+}
+
+/// A safe failure to read installation token data.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum ReleaseTokenFailure {
+    /// Installation data could not be read.
+    Unreadable,
+    /// The installation data is not a bounded token.
+    Malformed,
+}
+
 /// Credentials retained only at the secure storage and validation boundaries.
 #[derive(Clone, PartialEq, Eq)]
 pub struct CredentialValues {
