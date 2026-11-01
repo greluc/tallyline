@@ -116,7 +116,7 @@ impl ReferenceSnapshot {
                         &text.location,
                     ]
                     .iter()
-                    .any(|field| field.to_lowercase().contains(&query))
+                    .any(|field| fuzzy_match(field, &query))
             })
             .collect()
     }
@@ -190,4 +190,13 @@ impl ReferenceSnapshot {
     pub const fn state(&self) -> ReferenceState {
         self.state
     }
+}
+
+fn fuzzy_match(field: &str, query: &str) -> bool {
+    let lowered = field.to_lowercase();
+    let mut characters = lowered.chars();
+    query
+        .chars()
+        .filter(|character| !character.is_whitespace())
+        .all(|expected| characters.any(|actual| actual == expected))
 }

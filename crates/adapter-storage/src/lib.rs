@@ -11,4 +11,5 @@ mod migration;
 mod parameter_document;
 mod prior_document;
 mod reference_cache;
+mod reports;
 mod status_document;

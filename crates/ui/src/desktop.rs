@@ -16,6 +16,7 @@ pub struct DesktopShell {
     dark_unit: FanKitUnit,
     commands: Option<SyncSender<SettingsCommand>>,
     reference_commands: Option<SyncSender<crate::api::model::ReferenceCommand>>,
+    manual_commands: Option<SyncSender<crate::api::model::ManualCommand>>,
     events: Receiver<BackgroundEvent>,
     theme: Option<UiTheme>,
     window_commands: Option<Receiver<crate::api::model::WindowCommand>>,
@@ -39,6 +40,7 @@ impl DesktopShell {
             catalogue,
             commands: Some(commands),
             reference_commands: None,
+            manual_commands: None,
             events,
             theme: None,
             window_commands: None,
@@ -118,6 +120,17 @@ impl eframe::App for DesktopShell {
                 );
             }
         }
+        if let Some(command) = self.state.manual_mut().take_command() {
+            let sent = self
+                .manual_commands
+                .as_ref()
+                .is_some_and(|sender| sender.try_send(command).is_ok());
+            if !sent {
+                self.state
+                    .manual_mut()
+                    .failed(tallyline_reporting::api::RepositoryError::Unavailable);
+            }
+        }
         for command in commands {
             if let Some(sender) = &self.commands
                 && sender.try_send(command).is_err()
@@ -136,5 +149,18 @@ impl Drop for DesktopShell {
     fn drop(&mut self) {
         drop(self.commands.take());
         drop(self.reference_commands.take());
+        drop(self.manual_commands.take());
+    }
+}
+
+impl DesktopShell {
+    /// Attaches the bounded app-owned manual Report storage channel.
+    #[must_use]
+    pub fn with_manual_commands(
+        mut self,
+        commands: SyncSender<crate::api::model::ManualCommand>,
+    ) -> Self {
+        self.manual_commands = Some(commands);
+        self
     }
 }

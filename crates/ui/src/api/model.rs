@@ -15,4 +15,5 @@ pub use crate::licences::{
     LicenceCatalogue, LicenceCatalogueError, LicenceComponent, LicenceNotice,
 };
 
+pub use crate::manual_editor::{ManualCommand, ManualEditor};
 pub use crate::reference_browser::{ReferenceBrowser, ReferenceCommand};

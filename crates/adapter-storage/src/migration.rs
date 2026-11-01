@@ -45,3 +45,8 @@ pub(crate) fn index_terminals(
     }
     Ok(())
 }
+
+pub(crate) fn schema_three(connection: &Connection) -> Result<(), StorageError> {
+    connection.execute_batch("CREATE TABLE reports(id INTEGER PRIMARY KEY AUTOINCREMENT,version INTEGER NOT NULL CHECK(version>=0),payload TEXT NOT NULL); CREATE TABLE report_recents(report_id INTEGER PRIMARY KEY REFERENCES reports(id),changed_order INTEGER NOT NULL); PRAGMA user_version=3;")?;
+    Ok(())
+}

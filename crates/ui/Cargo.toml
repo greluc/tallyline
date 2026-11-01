@@ -32,3 +32,6 @@ path = "../game"
 [[test]]
 name = "native_activation"
 harness = false
+
+[dependencies.tallyline-reporting]
+workspace = true
