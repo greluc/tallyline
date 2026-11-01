@@ -16,7 +16,7 @@ concurrency:
 env:
   CARGO_TERM_COLOR: always
   DENY_VERSION: 0.20.2
-  VET_VERSION: 0.10.2
+  VET_VERSION: 0.10.3
   LLVM_COV_VERSION: 0.9.1
 
 jobs:

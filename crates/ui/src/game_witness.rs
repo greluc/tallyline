@@ -44,12 +44,13 @@ pub(crate) fn show(
     ui.separator();
     ui.heading(catalogue.text("witness.title"));
     ui.label(catalogue.text("witness.explanation"));
-    ui.label(catalogue.text("witness.channel"));
+    let channel_label = ui.label(catalogue.text("witness.channel"));
     let enabled = state.ready() && !state.busy();
     ui.add_enabled(
         enabled,
         egui::TextEdit::singleline(state.game_channel_draft()).char_limit(4096),
-    );
+    )
+    .labelled_by(channel_label.id);
     if ui
         .add_enabled(
             enabled,

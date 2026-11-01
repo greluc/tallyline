@@ -22,6 +22,8 @@ All notable changes are recorded here.
 
 ### Fixed
 
+- Give the Game channel directory input the same accessible name as its visible label (R-UI-17a, R-OCR-20).
+
 - Backup retention preserves the newly created snapshot when the clock moves backwards and retains the newest three completed creations across restarts. Failed backups and timestamp collisions leave existing snapshots untouched (R-NF-11).
 
 - Update-check timestamps outside the settings format are refused without panicking or replacing saved preferences (R-NF-7, R-NF-5).
@@ -43,5 +45,7 @@ All notable changes are recorded here.
 - Theme changes now repaint the native root surface and text together, including dark/light/dark transitions. The offline licence catalogue excludes Apache boilerplate from copyright-holder metadata and preserves the actual AccessKit source attribution.
 
 ### Changed
+
+- Refresh the desktop UI, TLS and async dependencies to eligible stable releases while preserving the approved native boundaries and complete legal notices (R-SEC-1, R-SEC-10).
 
 - Migrated the Pyro Gateway transcription to schema version two with unknown conditions left null; human verification is still required (R-QA-1).

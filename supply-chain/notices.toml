@@ -21,9 +21,9 @@ name = "The jitterentropy library inside aws-lc-sys"
 shipped = { with-crate = "aws-lc-sys" }
 files = [{ repository = "supply-chain/notices/jitterentropy/LICENSE" }]
 [component.catalogue]
-version = "AWS-LC 5.11.0 snapshot"
+version = "AWS-LC 5.12.0 snapshot"
 licence = "BSD-3-Clause"
-source = "https://github.com/aws/aws-lc/tree/fa9bc8d6f7cfb2cf849b247fb06bbbfc41ecc9d6"
+source = "https://github.com/aws/aws-lc/tree/cd481c207e38f06aeb5766f4a1cdfce10a4c0af8"
 copyright = ["Copyright (C) 2017 - 2025, Stephan Mueller <smueller@chronox.de>"]
 
 [[component]]
@@ -32,9 +32,9 @@ name = "The s2n-bignum library inside aws-lc-sys"
 shipped = { with-crate = "aws-lc-sys" }
 files = [{ repository = "supply-chain/notices/s2n-bignum/LICENSE" }]
 [component.catalogue]
-version = "AWS-LC 5.11.0 snapshot"
+version = "AWS-LC 5.12.0 snapshot"
 licence = "Apache-2.0"
-source = "https://github.com/aws/aws-lc/tree/fa9bc8d6f7cfb2cf849b247fb06bbbfc41ecc9d6"
+source = "https://github.com/aws/aws-lc/tree/cd481c207e38f06aeb5766f4a1cdfce10a4c0af8"
 copyright = ["Copyright Amazon.com, Inc. or its affiliates.", "Copyright (c) 2015 Andrew Gallant", "Copyright 2021-2024 Amazon.com, Inc. or its affiliates."]
 
 [[component]]
@@ -103,7 +103,7 @@ files = [{ repository = "crates/ui/assets/fonts/ibm-plex/OFL.txt" }]
 version = "3.005"
 licence = "OFL-1.1"
 source = "https://github.com/IBM/plex/tree/71f558992315a12ca1f06a2215d57962a1992162/packages/plex-sans"
-copyright = ['Copyright © 2017 IBM Corp. with Reserved Font Name "Plex"']
+copyright = ['Copyright Â© 2017 IBM Corp. with Reserved Font Name "Plex"']
 
 [[component]]
 directory = "jetbrains-mono"
@@ -161,7 +161,7 @@ files = [{ repository = "supply-chain/notices/spirv/LICENSE" }]
 directory = "sqlite"
 name = "SQLite"
 shipped = { with-crate = "libsqlite3-sys" }
-files = [{ repository = "LICENSES/blessing.txt" }]
+files = [{ repository = "LICENSES/blessing.txt" }, { repository = "supply-chain/notices/sqlite/NOTICE" }]
 [component.catalogue]
 version = "3.54.1"
 licence = "blessing"

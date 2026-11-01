@@ -56,6 +56,9 @@ pub fn violations(metadata: &str) -> Result<Vec<String>, String> {
         if name == "rust_decimal" && !features.is_empty() {
             findings.push(format!("{name} {version} must keep all default and optional features disabled; source/purity review is required"));
         }
+        if name == "send_wrapper" {
+            findings.push(format!("{name} {version} must be absent from the supported target graph; its unresolved Pin/drop contract requires a new source review and owner approval"));
+        }
         if name == "wayland-backend" && features.contains(&"log") {
             findings.push(format!("{name} {version} feature log enables native C shims; new owner approval is required"));
         }

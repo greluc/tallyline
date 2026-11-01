@@ -114,3 +114,7 @@ Found when version `1791537441-68f0` was checked against its brief and the plan 
 ## Release update states (2026-11-01)
 
 The desktop shell draws release status with normal token-backed text and controls. A newer standard release has a persistent bordered notice with a version label, **Open release notes** and **Dismiss update notice**. Settings shows a distinct text status for not checked, no newer release and unavailable; none relies on colour alone. The setting is a labelled checkbox, off by default, and changes only after a successful save. Results never select another view, open a modal, request focus or change window state (R-UI-16). Dismissal waits for successful persistence and survives restarts; the same release stays hidden, while a different newer release can appear. A known available release survives unavailable checks and restarts without another request.
+
+## Settings control names (2026-11-01)
+
+The Game channel directory text input is associated with its visible catalogue label for accessibility metadata. The critical drawn Settings flow checks the input role and that exact name; upgrading the harness keeps its accessible-name validation enabled (R-OCR-20, R-UI-17a).

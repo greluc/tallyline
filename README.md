@@ -18,7 +18,7 @@ Settings also offers optional **daily release updates**, off by default. A newer
 
 Starting Tallyline again activates the existing installed or portable instance. If activation fails, an already-running notice appears and no second writer starts (R-NF-10).
 
-Open-source licence rows show documented licence choices; their upstream declarations and complete legal texts remain in the offline catalogue.
+Open-source licence rows show documented licence choices; their upstream declarations and complete legal texts remain in the offline catalogue. The current source graph uses egui/eframe 0.37.0; [the adoption record](supply-chain/latest-stable-adoption.json) lists eligible releases, upstream constraints and the approved native limits.
 
 ## Plan
 

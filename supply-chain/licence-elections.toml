@@ -64,7 +64,7 @@ reason = "The documented native review elects the MIT option. Exact source ident
 
 [[election]]
 crate = "rustix"
-version = "1.1.5"
+version = "1.1.6"
 declared = "Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT"
 elected = "MIT"
 source = "NOTICE section 11; docs/plan/09-engineering-principles.md section 3b; owner approval 2026-11-01"

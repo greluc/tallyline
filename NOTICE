@@ -400,26 +400,26 @@ Source code
                 own.
 
 2.17 egui and eframe
-  Version       egui and eframe 0.36.2 with the wgpu backend (ADR-0005 D3)
+  Version       egui and eframe 0.37.0 with the wgpu backend (ADR-0005 D3)
                 [crate licences and notices are collected from their
                 manifests and vendored sources]
   Text          legal/crates/, with the other crates
   Added texts   the published sources omit the licence files for accesskit,
                 ecolor, egui, emath, epaint and profiling. Added 2026-11-01:
-                eframe, egui-wgpu and egui-winit 0.36.2 omit the same files
-                and use the existing emilk/egui texts below, from the same
-                published VCS commit. Their MIT and
+                eframe, egui-wgpu and egui-winit 0.37.0 omit the same files
+                and use the existing emilk/egui texts below, reverified at the
+                official release tag. Their MIT and
                 Apache-2.0 texts are copied unmodified from upstream:
-    legal/accesskit/ (with accesskit 0.24.1)
-      AccessKit/accesskit main at f3026222559c7f5f46d8f25cb7404de68eb149f0
+    legal/accesskit/ (with accesskit 0.25.1)
+      AccessKit/accesskit main at ce8164ba92995cfa86005b6259115e08c8244253
       LICENSE-APACHE SHA-256
       62c7a1e35f56406896d7aa7ca52d0cc0d272ac022b5d2796e7d6905db8a3636a
       LICENSE-MIT SHA-256
       23f18e03dc49df91622fe2a76176497404e46ced8a715d9d2b67a7446571cca3
     legal/ecolor/, legal/egui/, legal/emath/, legal/epaint/,
     legal/eframe/, legal/egui-wgpu/ and legal/egui-winit/
-      emilk/egui tag 0.36.2, commit
-      49682f8baa058bf49e011035cfbd6e825f88a5ef
+      emilk/egui tag 0.37.0, commit
+      841a328ba2dd8f6996beb7189ebb7fc00e668a2a
       LICENSE-APACHE SHA-256
       8173d5c29b4f956d532781d2b86e4e30f83e6b7878dce18c919451d6ba707c90
       LICENSE-MIT SHA-256
@@ -431,6 +431,14 @@ Source code
       LICENSE-MIT SHA-256
       e64891b51361725890d69bafa508ad013bc92aeef99054caecb6f5ce5f7dfd51
 
+  Corrected 2026-11-01: egui 0.37.0 licence texts were retrieved at the
+  separately verified official release tag above and are byte-identical to
+  the retained texts. The published VCS pointer
+  7c0b40402271e8d40cda69f87cf3c2617c2e4382 is distinct and the official
+  commit API returns no such commit. All 279 packaged Rust files across
+  the nine 0.37.0 crates match the release tag. This comparison does not
+  assert that the published VCS pointer and tag are the same commit.
+
 2.18 keyring
   Version       keyring 4.2.0, the OS credential store access for the UEX
                 secret key and app token [licence and the platform crates it
@@ -438,15 +446,15 @@ Source code
   Text          legal/crates/, with the other crates
 
 2.19 TLS provider of rustls
-  Crates        aws-lc-rs 1.18.2 with aws-lc-sys 0.46.0 (AWS-LC, C, C++ and
+  Crates        aws-lc-rs 1.19.0 with aws-lc-sys 0.47.0 (AWS-LC, C, C++ and
                 assembler, compiled by the build script of aws-lc-sys); a
                 registered exception to the pure-Rust rule (09 section 3b,
                 ADR-0006, O-110). Pulled in by rustls 0.23.46 with its
                 aws-lc-rs feature, through the crate tallyline-adapter-uex
   Licence       aws-lc-rs: ISC AND (Apache-2.0 OR ISC); aws-lc-sys: ISC,
                 Apache-2.0, MIT, BSD-3-Clause and MIT-0 as an alternative of a
-                dual licence, per-file as read in the published 0.46.0 on
-                2026-10-14 (ADR-0006). The jitterentropy library is offered
+                dual licence, per-file as read in the published 0.47.0 on
+                2026-11-01 (ADR-0006). The jitterentropy library is offered
                 under a BSD-style licence or GPL-2.0; the BSD-3-Clause option
                 is the one elected. The Keccak and AES reference code is
                 CC0-1.0.
@@ -454,14 +462,14 @@ Source code
                 BSD-3-Clause and MIT-0 texts, and the notices of
                 jitterentropy, s2n-bignum, mlkem-native, mldsa-native, fiat
                 and the CC0 reference code, copied unmodified from the
-                vendored aws-lc-sys 0.46.0 into
-                legal/crates/aws-lc-sys-0.46.0/ (LICENSE, aws-lc/LICENSE,
+                vendored aws-lc-sys 0.47.0 into
+                legal/crates/aws-lc-sys-0.47.0/ (LICENSE, aws-lc/LICENSE,
                 aws-lc/third_party/fiat/LICENSE)
-  Upstream      aws/aws-lc at tag v5.11.0, commit
-                fa9bc8d6f7cfb2cf849b247fb06bbbfc41ecc9d6: the aws-lc
+  Upstream      aws/aws-lc at tag v5.12.0, commit
+                cd481c207e38f06aeb5766f4a1cdfce10a4c0af8: the aws-lc
                 submodule of aws/aws-lc-rs at commit
-                9df497501436596d4da77109217806b3af7f56cb, which the published
-                aws-lc-sys 0.46.0 names in its .cargo_vcs_info.json
+                5d496f88b40f327e28315deecc1a5a1fd1e81e95, which the published
+                aws-lc-sys 0.47.0 names in its .cargo_vcs_info.json
   Added texts   aws-lc/LICENSE refers to two LICENSE files that the published
                 crate does not contain. They are taken unmodified from the
                 upstream commit above, committed under supply-chain/notices/
@@ -473,6 +481,11 @@ Source code
     legal/s2n-bignum/LICENSE
       third_party/s2n-bignum/s2n-bignum-imported/LICENSE, SHA-256
       41c6380384dc6065456d01405ef0b43e5fe39ba1bccc4ec67801cc66142728e5
+  Corrected 2026-11-01: the approved native update retains the same
+  licence options. Both separately supplied native licence texts above
+  were retrieved at the new exact AWS-LC commit and are byte-identical.
+  BSD-3-Clause remains the jitterentropy election, and s2n-bignum retains
+  Apache-2.0; complete original texts and alternatives are preserved.
   Corrected 2026-10-15: the published aws-lc-sys 0.46.0 carries the notices
   of jitterentropy and s2n-bignum only as the summaries in aws-lc/LICENSE,
   not as files of their own.
@@ -706,16 +719,16 @@ not presented as copyright holders without a statement from upstream.
 10. AccessKit source copyright and Chromium notice
 -------------------------------------------------
 
-The AccessKit 0.24.1 licence files do not name holders. Its published
-common/src/lib.rs header does: Copyright 2021 The AccessKit Authors and
+The AccessKit 0.25.1 licence files do not name holders. Its published
+src/lib.rs header does: Copyright 2021 The AccessKit Authors and
 Copyright 2018 The Chromium Authors. The exact initial comment block is
 preserved as legal/accesskit/NOTICE (SHA-256
 468e37a93c8dd8e5458b325dcc7ccf348bfd176dcc07e79cdcc023e53041c456).
 The header references LICENSE.chromium, omitted from the published archive;
 the unmodified file from AccessKit/accesskit commit
-a55d3e1a18bb9ef0e4bccc9083fb13c3e0ad8969 is included alongside it
+ce8164ba92995cfa86005b6259115e08c8244253 is included alongside it
 (SHA-256 845022e0c1db1abb41a6ba4cd3c4b674ec290f3359d9d3c78ae558d4c0ed9308).
-Source: https://github.com/AccessKit/accesskit/tree/a55d3e1a18bb9ef0e4bccc9083fb13c3e0ad8969
+Source: https://github.com/AccessKit/accesskit/tree/ce8164ba92995cfa86005b6259115e08c8244253
 Reviewed 2026-11-01. These notices preserve upstream attribution; generic
 Apache grant/template prose is not treated as a copyright-holder statement.
 
@@ -732,7 +745,7 @@ docs/plan/09-engineering-principles.md section 3b. This does not approve any
 additional target, optional native activation or custom selector override.
 
 Active literal assembly is limited to libm 0.2.16 x86 maths, Linux raw syscall
-and vDSO paths in rustix 0.38.44/1.1.5, and instruction-free compiler/register
+and vDSO paths in rustix 0.38.44/1.1.6, and instruction-free compiler/register
 barriers in zeroize 1.9.1 and zmij 1.0.23. cpufeatures 0.3.1, getrandom
 0.3.4/0.4.3, half 2.7.1, parking_lot 0.12.5, sha2 0.11.1 and zlib-rs 0.6.8
 retain their recorded inactive architecture/feature/backend assembly branches.
@@ -767,3 +780,27 @@ Apache-2.0 resource entry. No new exclusive ISC/Apache choice is invented for
 the compound aws-lc-rs/aws-lc-sys declarations. The planned ort/ort-sys MIT
 election of section 2.3 remains documented for their future adoption; these
 crates and ONNX Runtime are not in this current shipped graph.
+
+Corrected 2026-11-01: LICENSES/Apache-2.0.txt, LICENSES/BSD-3-Clause.txt
+and LICENSES/MIT.txt contain the unmodified standard SPDX licence texts
+downloaded by REUSE for the existing AccessKit notice declarations. Their
+SHA-256 values are respectively
+074e6e32c86a4c0ef8b3ed25b721ca23aca83df277cd88106ef7177c354615ff,
+5a93d5831e1297ab10fe643e1a631e83be392896da14ee2951285a79012df69d,
+and b05785f9f18e6716bab63424b11454513b9943a222595b70411009202fc592b5.
+The complete original AccessKit and Chromium notices remain unchanged.
+
+Native update verification 2026-11-01: the exact approved rustix 1.1.6
+archive preserves all 15 previously reviewed assembly-indicator hashes.
+The 26 AWS-LC Windows NASM objects were compared over every raw byte;
+after masking only COFF TimeDateStamp bytes 4 to 7 and replacing the exact
+ASCII namespace aws_lc_0_46_0_ with aws_lc_0_47_0_, all remaining bytes match.
+This includes their sections, relocations and symbol data; it is not a
+complete audit of the bundled native cryptography.
+
+Corrected 2026-11-01: legal/sqlite/NOTICE preserves the unmodified
+2001 September 15 public-domain dedication block from the exact approved
+SQLite 3.54.1 amalgamation, alongside the existing blessing.txt text.
+The NOTICE SHA-256 is 49cf7bcb103eb3244150a23bb23d840370a4762914faf1b450072a4b03c14670.
+The authors disclaim copyright; the source notice is annotated NONE/blessing
+for REUSE, without assigning that licence to unrelated project code.
