@@ -20,6 +20,8 @@ const RETAINED_SETS: usize = 3;
 #[serde(deny_unknown_fields)]
 struct Manifest {
     schema_version: u32,
+    #[serde(default)]
+    sequence: Option<u64>,
     taken_at_ms: u64,
     config_schema: Option<u32>,
     database_schema: Option<u32>,
@@ -27,7 +29,14 @@ struct Manifest {
     database_file: Option<String>,
 }
 
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+struct BackupOrder {
+    sequence: Option<u64>,
+    taken_at_ms: u64,
+}
+
 /// Commits exact config bytes and an optional coordinated database backup as one set.
+/// Callers must serialise writes under the application single-writer lease.
 pub struct BackupSetStore {
     directory: PathBuf,
 }
@@ -62,11 +71,13 @@ impl BackupSetStore {
         self.write(Some((schema, bytes)), clock, |_, _| Ok(None))
     }
 
-    /// Writes a complete set before pruning only recognised completed sets to the last three.
+    /// Writes a complete set before retaining the three latest completed creations.
+    /// A persisted sequence preserves creation order across clock rollback and restart.
     /// The callback must create the supplied database file through SQLite and return its schema.
     ///
     /// # Errors
-    /// Returns clock, filesystem, callback or manifest errors; an incomplete set never replaces config.
+    /// Returns clock, sequence-exhaustion, collision, filesystem, callback or manifest errors.
+    /// No prior set is pruned before the new set is complete and validated.
     pub fn write(
         &self,
         config: Option<(u32, &[u8])>,
@@ -88,6 +99,19 @@ impl BackupSetStore {
                 "backup timestamp already exists",
             ));
         }
+        let sequence = self
+            .completed_sets()?
+            .into_iter()
+            .filter_map(|(order, _)| order.sequence)
+            .max()
+            .unwrap_or(0)
+            .checked_add(1)
+            .ok_or_else(|| {
+                io::Error::new(
+                    io::ErrorKind::InvalidData,
+                    "backup creation sequence is exhausted",
+                )
+            })?;
         fs::create_dir(&pending)?;
         let result = (|| {
             let database_schema = database(&pending.join(DATABASE), taken_at)?;
@@ -101,6 +125,7 @@ impl BackupSetStore {
             }
             let manifest = Manifest {
                 schema_version: 1,
+                sequence: Some(sequence),
                 taken_at_ms,
                 config_schema: config.map(|(schema, _)| schema),
                 database_schema,
@@ -117,23 +142,34 @@ impl BackupSetStore {
             fs::remove_dir_all(&pending)?;
             return Err(error);
         }
-        self.prune()?;
+        self.prune(&complete)?;
         Ok(complete)
     }
 
-    fn prune(&self) -> io::Result<()> {
+    fn completed_sets(&self) -> io::Result<Vec<(BackupOrder, PathBuf)>> {
         let mut sets = Vec::new();
         for entry in fs::read_dir(&self.directory)? {
             let entry = entry?;
             if !entry.file_type()?.is_dir() {
                 continue;
             }
-            if let Some(time) = recognised_set(&entry.path())? {
-                sets.push((time, entry.path()));
+            if let Some(order) = recognised_set(&entry.path())? {
+                sets.push((order, entry.path()));
             }
         }
-        sets.sort();
+        Ok(sets)
+    }
+
+    fn prune(&self, current: &Path) -> io::Result<()> {
+        let mut sets = self.completed_sets()?;
+        if !sets.iter().any(|(_, path)| path == current) {
+            return Err(io::Error::other(
+                "completed backup set could not be validated",
+            ));
+        }
         let excess = sets.len().saturating_sub(RETAINED_SETS);
+        sets.retain(|(_, path)| path != current);
+        sets.sort();
         for (_, directory) in sets.into_iter().take(excess) {
             fs::remove_dir_all(directory)?;
         }
@@ -147,7 +183,7 @@ fn write_synced(path: &Path, bytes: &[u8]) -> io::Result<()> {
     file.sync_all()
 }
 
-fn recognised_set(path: &Path) -> io::Result<Option<u64>> {
+fn recognised_set(path: &Path) -> io::Result<Option<BackupOrder>> {
     let bytes = match fs::read(path.join(MANIFEST)) {
         Ok(bytes) => bytes,
         Err(error) if error.kind() == io::ErrorKind::NotFound => return Ok(None),
@@ -157,6 +193,7 @@ fn recognised_set(path: &Path) -> io::Result<Option<u64>> {
         return Ok(None);
     };
     if manifest.schema_version != 1
+        || manifest.sequence == Some(0)
         || manifest.config_file.as_deref() != manifest.config_schema.map(|_| CONFIG)
         || manifest.database_file.as_deref() != manifest.database_schema.map(|_| DATABASE)
     {
@@ -191,5 +228,8 @@ fn recognised_set(path: &Path) -> io::Result<Option<u64>> {
             return Ok(None);
         }
     }
-    Ok(Some(manifest.taken_at_ms))
+    Ok(Some(BackupOrder {
+        sequence: manifest.sequence,
+        taken_at_ms: manifest.taken_at_ms,
+    }))
 }

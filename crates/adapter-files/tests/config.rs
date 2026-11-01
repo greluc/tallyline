@@ -550,3 +550,135 @@ fn r_nf_7__unrepresentable_attempt_time_refuses_save_without_panicking_or_replac
     assert!(store.save(&settings).is_err());
     assert_eq!(std::fs::read(path).unwrap(), previous);
 }
+
+#[test]
+#[expect(
+    non_snake_case,
+    reason = "Requirement tags use a double underscore separator."
+)]
+fn r_nf_11__retention_keeps_latest_completed_creations_after_clock_rollback_and_restart() {
+    use tallyline_adapter_files::api::BackupSetStore;
+    let directory = TestDirectory::new().unwrap();
+    let root = directory.0.join("backup");
+    let store = BackupSetStore::new(root.clone());
+    let first = store
+        .write(Some((2, b"first")), &BackupClock(1000), |_, _| Ok(None))
+        .unwrap();
+    let second = store
+        .write(Some((2, b"second")), &BackupClock(2000), |_, _| Ok(None))
+        .unwrap();
+    let third = store
+        .write(Some((2, b"third")), &BackupClock(3000), |_, _| Ok(None))
+        .unwrap();
+    let rollback = store
+        .write(
+            Some((2, b"rollback snapshot")),
+            &BackupClock(500),
+            |path, _| {
+                std::fs::write(path, b"coupled database snapshot")?;
+                Ok(Some(1))
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        std::fs::read(rollback.join("settings.json")).unwrap(),
+        b"rollback snapshot"
+    );
+    assert_eq!(
+        std::fs::read(rollback.join("tallyline.db")).unwrap(),
+        b"coupled database snapshot"
+    );
+    assert!(!first.exists());
+    assert!(second.exists());
+    assert!(third.exists());
+    assert_eq!(std::fs::read_dir(&root).unwrap().count(), 3);
+    let reopened = BackupSetStore::new(root.clone());
+    let latest = reopened
+        .write(Some((2, b"after restart")), &BackupClock(100), |_, _| {
+            Ok(None)
+        })
+        .unwrap();
+    assert_eq!(
+        std::fs::read(latest.join("settings.json")).unwrap(),
+        b"after restart"
+    );
+    assert!(rollback.exists());
+    assert!(third.exists());
+    assert!(!second.exists());
+    assert_eq!(std::fs::read_dir(&root).unwrap().count(), 3);
+    assert!(
+        reopened
+            .write(Some((2, b"collision")), &BackupClock(100), |_, _| Ok(None))
+            .is_err()
+    );
+    assert!(
+        reopened
+            .write(Some((2, b"failed")), &BackupClock(50), |_, _| Err(
+                std::io::Error::other("backup failed")
+            ))
+            .is_err()
+    );
+    assert_eq!(
+        std::fs::read(latest.join("settings.json")).unwrap(),
+        b"after restart"
+    );
+    assert_eq!(
+        std::fs::read(rollback.join("settings.json")).unwrap(),
+        b"rollback snapshot"
+    );
+    assert_eq!(
+        std::fs::read(third.join("settings.json")).unwrap(),
+        b"third"
+    );
+    assert_eq!(std::fs::read_dir(root).unwrap().count(), 3);
+}
+
+#[test]
+#[expect(
+    non_snake_case,
+    reason = "Requirement tags use a double underscore separator."
+)]
+fn r_nf_11__retention_reads_unsequenced_manifests_and_refuses_exhausted_creation_order() {
+    use tallyline_adapter_files::api::BackupSetStore;
+    let directory = TestDirectory::new().unwrap();
+    let root = directory.0.join("backup");
+    std::fs::create_dir(&root).unwrap();
+    for (time, bytes) in [
+        (1000, b"first".as_slice()),
+        (2000, b"second".as_slice()),
+        (3000, b"third".as_slice()),
+    ] {
+        let folder = root.join(format!("{time}-v2"));
+        std::fs::create_dir(&folder).unwrap();
+        std::fs::write(folder.join("settings.json"), bytes).unwrap();
+        std::fs::write(folder.join("manifest.json"), format!(r#"{{"schema_version":1,"taken_at_ms":{time},"config_schema":2,"database_schema":null,"config_file":"settings.json","database_file":null}}"#)).unwrap();
+    }
+    let saved = BackupSetStore::new(root.clone())
+        .write(Some((2, b"new creation")), &BackupClock(500), |_, _| {
+            Ok(None)
+        })
+        .unwrap();
+    assert_eq!(
+        std::fs::read(saved.join("settings.json")).unwrap(),
+        b"new creation"
+    );
+    assert!(!root.join("1000-v2").exists());
+    assert!(root.join("2000-v2").exists());
+    assert!(root.join("3000-v2").exists());
+    assert_eq!(std::fs::read_dir(&root).unwrap().count(), 3);
+    let exhausted = directory.0.join("exhausted");
+    let previous = exhausted.join("1000-v2");
+    std::fs::create_dir_all(&previous).unwrap();
+    std::fs::write(previous.join("settings.json"), b"unchanged previous config").unwrap();
+    std::fs::write(previous.join("manifest.json"), br#"{"schema_version":1,"sequence":18446744073709551615,"taken_at_ms":1000,"config_schema":2,"database_schema":null,"config_file":"settings.json","database_file":null}"#).unwrap();
+    assert!(
+        BackupSetStore::new(exhausted.clone())
+            .write(Some((2, b"new")), &BackupClock(500), |_, _| Ok(None))
+            .is_err()
+    );
+    assert_eq!(
+        std::fs::read(previous.join("settings.json")).unwrap(),
+        b"unchanged previous config"
+    );
+    assert_eq!(std::fs::read_dir(exhausted).unwrap().count(), 1);
+}
