@@ -3,6 +3,9 @@
 
 //! Validates the reviewed build-time code inventory.
 
+mod source;
+mod workspace;
+
 use std::collections::{BTreeMap, BTreeSet};
 
 use serde_json::Value;
@@ -60,7 +63,11 @@ pub fn violations(
                     ));
                     continue;
                 };
-                check_identity(package, review, &locked, &mut findings)?;
+                if review.get("workspace").is_some() {
+                    workspace::check(&document, package, target, review, &locked, &mut findings)?;
+                } else {
+                    check_identity(package, review, &locked, &mut findings)?;
+                }
                 let source = field(target, "src_path")?;
                 let expected = hash(review, "source_sha256")?;
                 if source_hashes.get(source).map(String::as_str) != Some(expected) {
@@ -109,25 +116,8 @@ pub fn source_hashes(metadata: &str) -> Result<BTreeMap<String, String>, String>
             {
                 continue;
             }
-            let path = field(target, "src_path")?;
-            let manifest = std::path::Path::new(field(package, "manifest_path")?);
-            let root = manifest.parent().ok_or("manifest has no parent")?;
-            let relative = std::path::Path::new(path)
-                .strip_prefix(root)
-                .map_err(|error| error.to_string())?;
-            if relative
-                .components()
-                .any(|component| !matches!(component, std::path::Component::Normal(_)))
-            {
-                return Err(format!("build-time source escapes package: {path}"));
-            }
-            let metadata =
-                std::fs::symlink_metadata(path).map_err(|error| format!("{path}: {error}"))?;
-            if !metadata.file_type().is_file() {
-                return Err(format!("build-time source is not a regular file: {path}"));
-            }
-            let contents = std::fs::read(path).map_err(|error| format!("{path}: {error}"))?;
-            hashes.insert(path.to_owned(), crate::hashlist::sha256_hex(&contents));
+            let (path, digest) = source::hash(&document, package, target)?;
+            hashes.insert(path, digest);
         }
     }
     Ok(hashes)
@@ -147,8 +137,8 @@ fn check_contexts(
     if packages.keys().ne(nodes.keys()) {
         return Err("full metadata package and resolve IDs differ".to_owned());
     }
-    let roots = strings(array(document, "workspace_members")?)?;
-    if roots.is_empty() || roots.iter().any(|id| !packages.contains_key(id)) {
+    let roots = workspace_members(document)?;
+    if roots.iter().any(|id| !packages.contains_key(id)) {
         return Err("missing or unknown workspace members".to_owned());
     }
     for node in nodes.values() {
@@ -264,7 +254,11 @@ fn reviews_by_target(values: &[Value]) -> Result<BTreeMap<(&str, &str, &str), &V
         }
         field(review, "behaviour")?;
         field(review, "review_scope")?;
-        hash(review, "archive_sha256")?;
+        if review.get("workspace").is_some() {
+            workspace::validate_review(review)?;
+        } else {
+            hash(review, "archive_sha256")?;
+        }
         hash(review, "source_sha256")?;
         if reviews.insert(key, review).is_some() {
             return Err(format!(
@@ -345,4 +339,13 @@ fn hash<'a>(value: &'a Value, key: &str) -> Result<&'a str, String> {
         return Err(format!("invalid SHA-256 field {key}"));
     }
     Ok(text)
+}
+
+fn workspace_members(document: &Value) -> Result<BTreeSet<&str>, String> {
+    let members = strings(array(document, "workspace_members")?)?;
+    let unique: BTreeSet<_> = members.iter().copied().collect();
+    if unique.is_empty() || unique.len() != members.len() {
+        return Err("workspace members are missing or duplicated".to_owned());
+    }
+    Ok(unique)
 }
