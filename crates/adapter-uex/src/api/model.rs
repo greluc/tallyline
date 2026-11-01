@@ -4,6 +4,7 @@
 //! The values the UEX client returns and submits, translated from the UEX wire format.
 
 use serde::{Deserialize, Serialize};
+use tallyline_shared_kernel::api::model::PricePerScu;
 
 /// The current game versions of `GET /game_versions`.
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -107,7 +108,7 @@ impl ContainerSize {
     }
 }
 
-/// The side, status and container sizes of one row of `GET /commodities_prices`.
+/// The exact price, side, status and container sizes of a commodity-price row.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct PriceRow {
     /// The terminal of the row.
@@ -116,6 +117,8 @@ pub struct PriceRow {
     pub commodity: CommodityId,
     /// The traded side.
     pub side: TradedSide,
+    /// The positive exact price, absent unless precisely one traded side exists.
+    pub price: Option<PricePerScu>,
     /// The status level of the traded side, `None` when it is 0 or the side is not single.
     pub status: Option<u8>,
     /// The container sizes of this row, in the order UEX sends them; empty when none are known.

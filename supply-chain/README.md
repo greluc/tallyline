@@ -173,3 +173,24 @@ The three other new identities are fallible-iterator 0.3.0 (Mozilla full
 No new trust/audit/exemption was needed for them. The resulting check reports
 411 fully vetted packages and the same 28 exemptions; no bootstrap entry was
 added. The new crates carry MIT or MIT/Apache-2.0 licence choices.
+
+## Decimal and system-proxy selection — 2026-11-01
+
+Local AI-reviewed S-5/S-6 records remain subject to CODEOWNERS and PR review; this adoption does not claim new explicit owner approval or a human security audit. Four new exact registry identities are added:
+
+| Package | Version | Published UTC | SPDX licence | Selected scope |
+| --- | --- | --- | --- | --- |
+| rust_decimal | 1.43.0 | 2026-09-02 | MIT | Defaults and every optional feature disabled; only existing arrayvec and num-traits runtime dependencies. Pure decimal arithmetic/string runtime, crate-level unsafe prohibition; build.rs only transforms packaged README into OUT_DIR documentation. |
+| windows-registry | 0.6.1 | 2025-10-06 19:17:38 | MIT OR Apache-2.0, MIT elected | Windows read-only hyper-util proxy consumer; exact AI source audit, no future publisher trust. |
+| system-configuration | 0.7.0 | 2025-12-02 16:19:39 | MIT OR Apache-2.0 | Off-target exemption with known callback-context lifetime gap; no activation on either supported target. |
+| system-configuration-sys | 0.6.0 | 2024-01-31 13:42:46 | MIT OR Apache-2.0 | Off-target exemption; complete build.rs emits only an Apple framework link directive. |
+
+The restored seven-day cooldown is satisfied by all four. Hyper-util 0.1.21 constrains windows-registry to ^0.6 and system-configuration to ^0.7; their newer upstream 0.100.0 and 0.8.0 releases cannot satisfy those ranges. These are documented parent constraints, not claims that the selected transitives are latest. No other package identity or version is intentionally changed.
+
+Exact publisher authority for rust_decimal is paupino/5326, both the selected publisher and sole current owner. Packaged VCS `8592462ca2d928ea46e6358e530a5c7d4b38f7d6` matches the release commit authored and committed by paupino. The one same-crate trust row ends 2027-11-01 and includes that account's future publications within its stated window; changed features/build sources still need S-5/S-12 review. This is not a full arithmetic audit. [Registry release](https://crates.io/api/v1/crates/rust_decimal/1.43.0), [release source](https://github.com/paupino/rust-decimal/commit/8592462ca2d928ea46e6358e530a5c7d4b38f7d6).
+
+The qualified windows-registry audit records complete reading of eleven runtime files, manifests, VCS and elected MIT text, plus the relevant HSTRING storage/empty-buffer contracts. It records races in registry size/type reads, possible allocation/iteration panics and trust in OS ABI/raw-caller contracts; it grants no unrestricted future trust. Hyper-util reads only CURRENT_USER Internet Settings, with environment overrides preferred. System proxy support covers environment/static registry values; PAC, autodiscovery and protocol-specific ProxyServer syntax are not implemented by that upstream path. Full R-API-3 acceptance remains pending. No OS settings are changed. [Exact consumer](https://github.com/hyperium/hyper-util/tree/v0.1.21/src/client/proxy), [registry source](https://github.com/microsoft/windows-rs/tree/32c3144490c016fe496a0aed769bce60987a2e9d/crates/libs/registry).
+
+The two Apple exemptions are outside the bootstrap set. Their concrete lifetime/FFI limitations remain recorded, both names are banned through rooted package-ID traversal on both supported targets, and the aggregate native-scope check stops before workspace build/test work. No new native C/assembler or own unsafe code is introduced. Exact custom-build source/archive hashes are in build-code.json. serde_json's existing arbitrary_precision feature preserves decimal number spelling before any money conversion; f64 is not an intermediate price representation.
+
+Verification: the real check CLI with an injected renamed Apple dependency stopped at native-scope before later Cargo work. The isolated child-process HTTPS_PROXY contract reached a local CONNECT fixture without changing the parent environment or OS registry; its ignored child helper is invoked by that normal Cargo-run test. This covers environment routing, not PAC, registry mutation or every system trust-store scenario. Vet reports 413 fully audited and 30 exempted after adoption (28 existing plus the two qualified Apple exemptions); the bootstrap set is unchanged. The exact rust_decimal publisher metadata row in imports.lock comes from the verified registry publication record; no imported audit source was added or refreshed broadly.

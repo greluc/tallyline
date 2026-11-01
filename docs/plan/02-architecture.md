@@ -169,6 +169,7 @@ Safety thresholds can only be made stricter (R-NF-5): the send threshold, the di
 Crate names (O-122, decided 2026-10-13): every workspace member's package name is the directory name above with the prefix `tallyline-` (`tallyline-game`, `tallyline-adapter-uex`, …), so that no workspace crate can be mistaken for a registry crate of the same name; the directories under `crates/` carry no prefix. The binary is `tallyline`. `xtask` and `tools/ocr-eval` keep their names.
 
 ## 3. Domain model (excerpt, context crates)
+Selected 2026-11-01: `rust_decimal` 1.43.0 with defaults and every optional feature disabled implements the private storage of `shared-kernel::api::model::{PricePerScu, ScuQuantity}`. Both published value types accept non-negative exact decimal/scientific text, preserve 96-bit coefficient and up to 28-place precision, and reject non-finite, negative, overflowing or rounding-dependent input. They expose no third-party type or binary-float conversion. Scientific mantissas are validated exactly and normalised before shifting, so `1.0e-28` retains its exact value. `serde_json/arbitrary_precision` preserves JSON number spelling before adapter conversion. The architecture allowlist admits only this reviewed pure runtime configuration; native-scope rejects any enabled decimal feature, and cargo-deny permits only the shared-kernel direct dependency. Its documentation-generating build script is reviewed separately under S-12, not treated as runtime I/O.
 
 `game`, `reference-data` and `shared-kernel` identifiers (excerpt):
 

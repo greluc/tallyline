@@ -43,9 +43,18 @@ pub fn violations(metadata: &str) -> Result<Vec<String>, String> {
             .collect::<Result<Vec<_>, _>>()?;
         if matches!(
             name,
-            "android-activity" | "objc-sys" | "android-properties" | "core-graphics" | "dispatch"
+            "android-activity"
+                | "objc-sys"
+                | "android-properties"
+                | "core-graphics"
+                | "dispatch"
+                | "system-configuration"
+                | "system-configuration-sys"
         ) {
             findings.push(format!("{name} {version} must be absent from the supported target graph; new owner approval is required"));
+        }
+        if name == "rust_decimal" && !features.is_empty() {
+            findings.push(format!("{name} {version} must keep all default and optional features disabled; source/purity review is required"));
         }
         if name == "wayland-backend" && features.contains(&"log") {
             findings.push(format!("{name} {version} feature log enables native C shims; new owner approval is required"));

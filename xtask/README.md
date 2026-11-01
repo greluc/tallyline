@@ -106,3 +106,15 @@ second in the aggregate plan, after the supply-chain guard, and stops the
 plan before workspace build/test work on failure. Its pure metadata/configuration
 and real-file fixtures do not compile native code. The independent existing
 Rust literal assembly inventory retains its exact approved set.
+
+The 2026-11-01 reference-data extension also rejects every reachable version
+of system-configuration and system-configuration-sys on either supported
+target, including renamed dependency edges. Both retain justified off-target
+S-6 exemptions with their concrete review limitations. Native-scope and
+build-code failures stop the aggregate check before workspace build/test work;
+no feature or package is removed from audit input to obtain a pass.
+
+Decimal runtime scope is exact: rust_decimal defaults and every optional
+feature remain disabled. The same rooted metadata guard rejects any enabled
+feature before workspace build/test work; the pure-runtime architecture
+allowlist does not grant its optional database, JSON or other capabilities.

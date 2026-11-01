@@ -174,3 +174,78 @@ async fn r_api_1_r_api_6_r_cap_3b__fetcher_port_returns_typed_public_vocabulary_
                 && !request.headers.contains_key("secret-key"))
     );
 }
+
+#[tokio::test]
+async fn r_api_5__invalid_price_numbers_cannot_become_a_traded_side() {
+    use crate::api::ReadError;
+    use crate::api::model::TerminalId;
+    for price in [
+        "NaN",
+        "inf",
+        "-1",
+        "1e309",
+        "1.00000000000000000000000000001e0",
+    ] {
+        let server = MockServer::start().await;
+        Mock::given(method("GET"))
+            .and(path("/2.0/commodities_prices/"))
+            .respond_with(
+                ResponseTemplate::new(200).set_body_json(json!({"status":"ok","data":[{
+                    "id_terminal":17,"id_commodity":7,"price_buy":price,"price_sell":0,
+                    "status_buy":1,"status_sell":0,"container_sizes":null
+                }]})),
+            )
+            .expect(1)
+            .mount(&server)
+            .await;
+        let settings = ReaderSettings::new(
+            &format!("{}/2.0/", server.uri()),
+            ClientIdentity::new("tallyline-test", "1.2.3"),
+        )
+        .unwrap();
+        assert!(
+            matches!(
+                UexReader::new(&settings)
+                    .unwrap()
+                    .price_rows(TerminalId(17))
+                    .await,
+                Err(ReadError::Malformed { .. })
+            ),
+            "{price}"
+        );
+    }
+}
+
+#[tokio::test]
+async fn r_api_5__json_price_numbers_reach_typed_values_without_binary_float_rounding() {
+    use crate::api::model::{TerminalId, TradedSide};
+    let server = MockServer::start().await;
+    let body = r#"{"status":"ok","data":[
+        {"id_terminal":17,"id_commodity":1,"price_buy":9007199254740993.125,"price_sell":0,"status_buy":1,"status_sell":0},
+        {"id_terminal":17,"id_commodity":2,"price_buy":0,"price_sell":9.7e-7,"status_buy":0,"status_sell":1},
+        {"id_terminal":17,"id_commodity":3,"price_buy":0,"price_sell":0,"status_buy":0,"status_sell":0},
+        {"id_terminal":17,"id_commodity":4,"price_buy":2,"price_sell":3,"status_buy":1,"status_sell":1}
+    ]}"#;
+    Mock::given(method("GET"))
+        .and(path("/2.0/commodities_prices/"))
+        .respond_with(ResponseTemplate::new(200).set_body_raw(body, "application/json"))
+        .expect(1)
+        .mount(&server)
+        .await;
+    let settings = ReaderSettings::new(
+        &format!("{}/2.0/", server.uri()),
+        ClientIdentity::new("tallyline-test", "1.2.3"),
+    )
+    .unwrap();
+    let rows = UexReader::new(&settings)
+        .unwrap()
+        .price_rows(TerminalId(17))
+        .await
+        .unwrap();
+    assert_eq!(rows[0].price.unwrap().to_string(), "9007199254740993.125");
+    assert_eq!(rows[1].price.unwrap().to_string(), "0.00000097");
+    assert_eq!(rows[0].side, TradedSide::Buy);
+    assert_eq!(rows[1].side, TradedSide::Sell);
+    assert_eq!(rows[2].price, None);
+    assert_eq!(rows[3].price, None);
+}

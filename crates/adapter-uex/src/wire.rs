@@ -40,14 +40,19 @@ impl Numeric {
         parsed.ok_or_else(|| malformed(&format!("{field} is not a whole number")))
     }
 
-    fn is_positive(&self, field: &str) -> Result<bool, ReadError> {
+    pub(crate) fn price(
+        &self,
+        field: &str,
+    ) -> Result<tallyline_shared_kernel::api::model::PricePerScu, ReadError> {
         let parsed = match self {
-            Self::Number(number) => number.as_f64(),
-            Self::Text(text) => text.trim().parse().ok(),
+            Self::Number(number) => number.to_string().parse(),
+            Self::Text(text) => text.trim().parse(),
         };
-        parsed
-            .map(|value: f64| value > 0.0)
-            .ok_or_else(|| malformed(&format!("{field} is not a number")))
+        parsed.map_err(|_| {
+            malformed(&format!(
+                "{field} is not a supported non-negative exact price"
+            ))
+        })
     }
 
     pub(crate) fn flag(&self, field: &str) -> Result<bool, ReadError> {
@@ -152,8 +157,10 @@ fn status_level(wire: StatusLevelWire) -> Result<StatusLevel, ReadError> {
 }
 
 fn price_row(wire: PriceRowWire) -> Result<PriceRow, ReadError> {
-    let buys = wire.price_buy.is_positive("price_buy")?;
-    let sells = wire.price_sell.is_positive("price_sell")?;
+    let buy_price = wire.price_buy.price("price_buy")?;
+    let sell_price = wire.price_sell.price("price_sell")?;
+    let buys = !buy_price.is_zero();
+    let sells = !sell_price.is_zero();
     let side = match (buys, sells) {
         (true, false) => TradedSide::Buy,
         (false, true) => TradedSide::Sell,
@@ -169,6 +176,11 @@ fn price_row(wire: PriceRowWire) -> Result<PriceRow, ReadError> {
         terminal: TerminalId(wire.id_terminal.whole("id_terminal")?),
         commodity: CommodityId(wire.id_commodity.whole("id_commodity")?),
         side,
+        price: match side {
+            TradedSide::Buy => Some(buy_price),
+            TradedSide::Sell => Some(sell_price),
+            TradedSide::Both | TradedSide::Neither => None,
+        },
         status,
         container_sizes: container_sizes(wire.container_sizes.as_deref().unwrap_or_default())?,
     })

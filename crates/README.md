@@ -11,7 +11,7 @@ The workspace crates of Tallyline: the core (`shared-kernel`, the context crates
 | `ui/` | `tallyline-ui` | owned shell state, message catalogue, legal unit and user-driven dialogs |
 | `app/` | `tallyline-app` | native `tallyline` composition root and bounded settings worker |
 | `adapter-platform/` | `tallyline-adapter-platform` | two-lock writer election and bounded local activation; the three approved Windows FFI sites |
-| `shared-kernel/` | `tallyline-shared-kernel` | published IDs, precise timestamps and the injected clock port |
+| `shared-kernel/` | `tallyline-shared-kernel` | published IDs, exact price/SCU values, precise timestamps and the injected clock port |
 | `reference-data/` | `tallyline-reference-data` | cached commodity vocabulary, per-endpoint freshness and persist-before-publish refreshes |
 | `adapter-storage/` | `tallyline-adapter-storage` | schema-versioned SQLite reference cache and atomic indexed replacements |
 | `game/` | `tallyline-game` | read-only witness port, typed facts and durable opt-in workflow |

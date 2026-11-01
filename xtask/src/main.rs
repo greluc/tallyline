@@ -102,10 +102,13 @@ fn run_check(root: &Path) -> io::Result<ExitCode> {
         writeln!(io::stderr(), "==> {}", step.name())?;
         if !run_step(&step, root)? {
             failed.push(step.name());
-            if matches!(step, Step::NativeAssembly | Step::SqliteNative) {
+            if matches!(
+                step,
+                Step::NativeAssembly | Step::SqliteNative | Step::NativeScope | Step::BuildCode
+            ) {
                 writeln!(
                     io::stderr(),
-                    "native source/assembly gate failed before test/build work"
+                    "native source/scope/assembly or build-code gate failed before test/build work"
                 )?;
                 return Ok(ExitCode::FAILURE);
             }

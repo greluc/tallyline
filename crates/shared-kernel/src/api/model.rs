@@ -1,7 +1,9 @@
 // SPDX-FileCopyrightText: 2026 Lucas Greuloch
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Shared numeric identities and precise Unix timestamps.
+//! Shared identities, exact decimal values and precise Unix timestamps.
+
+pub use crate::decimal::{InvalidDecimal, PricePerScu, ScuQuantity};
 
 use std::time::Duration;
 
