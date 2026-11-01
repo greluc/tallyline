@@ -6,6 +6,8 @@ All notable changes are recorded here.
 
 ### Added
 
+- Reference failures now show the last non-JSON HTTP status, validated Cloudflare Ray and UTC observation time without retaining HTML or changing cached data. HTTPS and same-origin checks precede every request; credentialled technical host overrides require explicit confirmation and disclosure (R-API-3, R-NF-4).
+
 - The desktop reference worker now loads SQLite data before network responses, rechecks versions at startup and fetches terminal priors on opening. Failed saves retain old visible records; closing cancels pending GETs and joins the cache owner before releasing the writer lease (R-API-1, R-API-2, R-UI-13, R-NF-10).
 
 - Per-terminal LIVE priors retain exact prices and SCU, container sizes, status and source age across restarts, with independent 30-minute freshness and bounded ten-terminal requests. PTU contains no borrowed LIVE priors (R-API-1, R-API-5, R-API-6).

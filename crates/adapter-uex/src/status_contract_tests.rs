@@ -18,7 +18,7 @@ async fn r_api_1_r_api_5__status_fetcher_preserves_independent_decoded_side_labe
             "buy":[{"code":"7","name":"Maximum &amp; Full","name_short":"Maximum","name_abbr":"MA"}],
             "sell":[{"code":7,"name":"Maximum &amp; No Demand","name_short":"Maximum","name_abbr":"ND"}]
         }}))).expect(1).mount(&server).await;
-    let settings = ReaderSettings::new(
+    let settings = ReaderSettings::for_test_server(
         &format!("{}/2.0/", server.uri()),
         ClientIdentity::new("tallyline-test", "1.2.3"),
     )
@@ -65,7 +65,7 @@ async fn r_api_5__status_fetcher_rejects_zero_or_repeated_codes_within_one_side(
             .expect(1)
             .mount(&server)
             .await;
-        let settings = ReaderSettings::new(
+        let settings = ReaderSettings::for_test_server(
             &format!("{}/2.0/", server.uri()),
             ClientIdentity::new("tallyline-test", "1.2.3"),
         )

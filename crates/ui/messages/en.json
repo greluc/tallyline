@@ -108,5 +108,9 @@
   "reference.mapping": "UEX environment mapping",
   "reference.mapping_explanation": "Choose the UEX environment for each game channel. This does not enable access to game files.",
   "reference.parameters": "Parameters",
-  "reference.staff_notification": "UEX staff notice:"
+  "reference.staff_notification": "UEX staff notice:",
+  "reference.non_json": "Last non-JSON reference response:",
+  "reference.ray": "cf-ray:",
+  "reference.ray_unavailable": "unavailable",
+  "reference.observed_ms": "UTC Unix ms:"
 }

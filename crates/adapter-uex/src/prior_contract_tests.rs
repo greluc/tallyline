@@ -16,7 +16,7 @@ async fn r_api_5_r_api_6__prior_batches_preserve_exact_stock_side_time_version_a
     Mock::given(method("GET")).and(path("/2.0/commodities_prices/")).and(query_param("id_terminal","17,18"))
         .respond_with(ResponseTemplate::new(200).set_body_raw(r#"{"status":"ok","data":[{"id_terminal":"17","id_commodity":7,"price_buy":0,"price_sell":"97.125","scu_buy":0,"scu_sell_stock":"0.0625","scu_sell":99999,"status_buy":0,"status_sell":0,"container_sizes":"1,16","game_version":"4.10.2","date_modified":"12345"},{"id_terminal":18,"id_commodity":"8","price_buy":9007199254740993.125,"price_sell":0,"scu_buy":1.5,"scu_sell_stock":0,"status_buy":2,"status_sell":0,"container_sizes":null,"game_version":"4.9","date_modified":12900}]}"#,"application/json"))
         .expect(1).mount(&server).await;
-    let settings = ReaderSettings::new(
+    let settings = ReaderSettings::for_test_server(
         &format!("{}/2.0/", server.uri()),
         ClientIdentity::new("test", "1.0.0"),
     )
@@ -67,7 +67,7 @@ async fn r_api_5__prior_batches_accept_ten_distinct_terminals_and_refuse_invalid
         )
         .mount(&server)
         .await;
-    let settings = ReaderSettings::new(
+    let settings = ReaderSettings::for_test_server(
         &format!("{}/2.0/", server.uri()),
         ClientIdentity::new("test", "1.0.0"),
     )
@@ -95,7 +95,7 @@ async fn r_api_5__prior_batches_accept_ten_distinct_terminals_and_refuse_invalid
 async fn r_api_5__malformed_or_unrequested_prior_rows_reject_the_whole_batch() {
     use serde_json::json;
     let server = MockServer::start().await;
-    let settings = ReaderSettings::new(
+    let settings = ReaderSettings::for_test_server(
         &format!("{}/2.0/", server.uri()),
         ClientIdentity::new("test", "1.0.0"),
     )
@@ -148,7 +148,7 @@ async fn r_api_1__single_terminal_endpoint_retains_successful_empty_assortments(
         .expect(1)
         .mount(&server)
         .await;
-    let settings = ReaderSettings::new(
+    let settings = ReaderSettings::for_test_server(
         &format!("{}/2.0/", server.uri()),
         ClientIdentity::new("test", "1.0.0"),
     )

@@ -107,6 +107,20 @@ pub(crate) fn show_reference_status(ui: &mut egui::Ui, state: &ShellState, catal
             }
         });
     }
+    if let Some(diagnostic) = state.references().diagnostic() {
+        ui.label(format!(
+            "{} HTTP {}; {} {}; {} {}",
+            catalogue.text("reference.non_json"),
+            diagnostic.http_status,
+            catalogue.text("reference.ray"),
+            diagnostic
+                .cf_ray
+                .as_deref()
+                .unwrap_or(catalogue.text("reference.ray_unavailable")),
+            catalogue.text("reference.observed_ms"),
+            diagnostic.observed_at.millis()
+        ));
+    }
     if let Some(notification) = state
         .reference_snapshot()
         .and_then(|snapshot| snapshot.parameters())
