@@ -3,8 +3,11 @@
 
 //! Immutable cached reference records and application state.
 
-use tallyline_shared_kernel::api::model::{CommodityId, TerminalId, Timestamp};
+use tallyline_shared_kernel::api::model::{
+    CommodityId, PricePerScu, TerminalId, Timestamp, TradeSide,
+};
 
+pub use crate::averages::CommodityAverages;
 pub use crate::snapshot::ReferenceSnapshot;
 pub use tallyline_shared_kernel::api::model::UexEnvironment;
 /// A reference endpoint with an independent freshness window.
@@ -39,7 +42,7 @@ pub struct Commodity {
     name: String,
     code: String,
     available_live: bool,
-    average_price: Option<u64>,
+    averages: CommodityAverages,
 }
 
 impl Commodity {
@@ -50,14 +53,14 @@ impl Commodity {
         name: &str,
         code: &str,
         available_live: bool,
-        average_price: Option<u64>,
+        averages: CommodityAverages,
     ) -> Self {
         Self {
             id,
             name: name.to_owned(),
             code: code.to_owned(),
             available_live,
-            average_price,
+            averages,
         }
     }
 
@@ -90,9 +93,13 @@ impl Commodity {
 
     /// Returns the LIVE average, with no substitute in PTU.
     #[must_use]
-    pub const fn average_price(&self, environment: UexEnvironment) -> Option<u64> {
+    pub const fn average_price(
+        &self,
+        environment: UexEnvironment,
+        side: TradeSide,
+    ) -> Option<PricePerScu> {
         match environment {
-            UexEnvironment::Live => self.average_price,
+            UexEnvironment::Live => self.averages.price(side),
             UexEnvironment::Ptu => None,
         }
     }
@@ -179,6 +186,7 @@ pub struct Terminal {
     id: TerminalId,
     text: TerminalText,
     available_live: bool,
+    max_container_size: Option<std::num::NonZeroU32>,
 }
 
 impl Terminal {
@@ -189,7 +197,21 @@ impl Terminal {
             id,
             text,
             available_live,
+            max_container_size: None,
         }
+    }
+
+    /// Returns a changed terminal with its known maximum container size.
+    #[must_use]
+    pub const fn with_max_container_size(mut self, maximum: Option<std::num::NonZeroU32>) -> Self {
+        self.max_container_size = maximum;
+        self
+    }
+
+    /// Returns the maximum container size, absent when the API has no known limit.
+    #[must_use]
+    pub const fn max_container_size(&self) -> Option<std::num::NonZeroU32> {
+        self.max_container_size
     }
 
     /// Returns the numeric UEX identity.

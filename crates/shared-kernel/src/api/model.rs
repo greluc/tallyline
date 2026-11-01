@@ -53,3 +53,12 @@ pub enum UexEnvironment {
     /// Public test universe.
     Ptu,
 }
+
+/// The terminal's buy tab or local market value sell tab.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum TradeSide {
+    /// Buy inventory from the terminal.
+    Buy,
+    /// Sell inventory to the terminal.
+    Sell,
+}

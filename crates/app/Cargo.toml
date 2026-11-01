@@ -30,4 +30,5 @@ workspace = true
 path = "../game"
 
 [dev-dependencies]
+rusqlite.workspace = true
 serde_json.workspace = true

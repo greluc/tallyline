@@ -67,7 +67,7 @@ fn r_nf_11__existing_database_and_exact_config_are_backed_up_together_before_mig
     assert_eq!(marker.configuration_schema, Some(3));
     let manifest: serde_json::Value =
         serde_json::from_slice(&std::fs::read(backup.join("manifest.json")).unwrap()).unwrap();
-    assert_eq!(manifest["database_schema"], 1);
+    assert_eq!(manifest["database_schema"], 2);
     assert_eq!(manifest["config_schema"], 3);
     assert_eq!(manifest["database_file"], "tallyline.db");
 }
@@ -135,4 +135,53 @@ fn r_nf_11__invalid_config_refuses_database_creation_and_current_bootstrap_does_
     drop(tallyline_app::api::initialise_storage(&layout, &FixedClock).unwrap());
     drop(tallyline_app::api::initialise_storage(&layout, &FixedClock).unwrap());
     assert!(!layout.data().join("backup").exists());
+}
+
+#[test]
+#[expect(
+    non_snake_case,
+    reason = "Requirement tags use a double underscore separator."
+)]
+fn r_nf_11__joint_schema_upgrades_reuse_only_the_exact_original_config_backup() {
+    let directory = TestDirectory::new().unwrap();
+    let layout = StorageLayout::portable(&directory.0);
+    assert!(layout.self_test().is_empty());
+    let database = layout.data().join("tallyline.db");
+    {
+        let database = rusqlite::Connection::open(&database).unwrap();
+        database.execute_batch("CREATE TABLE ref_cache(endpoint TEXT PRIMARY KEY,fetched_at TEXT NOT NULL,payload TEXT NOT NULL); CREATE TABLE ref_commodities(id INTEGER PRIMARY KEY,name TEXT NOT NULL,code TEXT NOT NULL,available_live INTEGER NOT NULL); PRAGMA user_version=1;").unwrap();
+    }
+    let previous=br#"{ "schema_version":3,"app":{"theme":"light","onboarding_complete":true,"update_checks":true}}"#;
+    std::fs::write(layout.config().join("settings.json"), previous).unwrap();
+    let mut prepared = tallyline_app::api::initialise_storage(&layout, &FixedClock).unwrap();
+    let backup = layout.data().join("backup/1234-v3");
+    assert_eq!(
+        std::fs::read(backup.join("settings.json")).unwrap(),
+        previous
+    );
+    let manifest: serde_json::Value =
+        serde_json::from_slice(&std::fs::read(backup.join("manifest.json")).unwrap()).unwrap();
+    assert_eq!(manifest["database_schema"], 1);
+    assert_eq!(manifest["config_schema"], 3);
+    assert_eq!(
+        std::fs::read_dir(layout.data().join("backup"))
+            .unwrap()
+            .count(),
+        1
+    );
+    assert_eq!(
+        prepared.settings.backup_source().unwrap().unwrap().schema,
+        4
+    );
+    assert_eq!(
+        prepared
+            .cache
+            .backup_into(
+                &directory.0.join("after.db"),
+                Timestamp::from_millis(2000),
+                Some(4)
+            )
+            .unwrap(),
+        2
+    );
 }

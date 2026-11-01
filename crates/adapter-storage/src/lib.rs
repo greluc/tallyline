@@ -7,5 +7,6 @@
 
 pub mod api;
 mod backup;
+mod migration;
 mod reference_cache;
 mod status_document;

@@ -3307,6 +3307,7 @@ version = "0.1.0"
 dependencies = [
  "eframe",
  "egui",
+ "rusqlite",
  "serde_json",
  "tallyline-adapter-files",
  "tallyline-adapter-platform",

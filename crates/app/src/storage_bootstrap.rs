@@ -6,7 +6,7 @@
 use crate::api::model::PreparedStorage;
 use std::io;
 use tallyline_adapter_files::api::{BackupSetStore, ConfigFile, StorageLayout};
-use tallyline_adapter_storage::api::SqliteReferenceCache;
+use tallyline_adapter_storage::api::{SqliteReferenceCache, StorageError};
 use tallyline_shared_kernel::api::Clock;
 use tallyline_shared_kernel::api::model::Timestamp;
 
@@ -29,18 +29,49 @@ pub fn initialise_storage(
     clock: &impl Clock,
 ) -> io::Result<PreparedStorage> {
     let path = layout.config().join("settings.json");
-    ConfigFile::new(path.clone()).backup_source()?;
+    let source = ConfigFile::new(path.clone()).backup_source()?;
+    let mut backed_up = None;
     let database = layout.data().join("tallyline.db");
     let backup_layout = layout.clone();
     let backup_clock = BackupClock(clock.now());
     let cache = if database.try_exists()? {
-        Some(SqliteReferenceCache::open(&database).map_err(io::Error::other)?)
+        Some(
+            SqliteReferenceCache::open_with_migration_backup(&database, |cache, _| {
+                let config = source
+                    .as_ref()
+                    .map(|source| (source.schema, source.bytes.as_slice()));
+                BackupSetStore::new(layout.data().join("backup"))
+                    .write(config, &backup_clock, |destination, taken_at| {
+                        cache
+                            .backup_into(
+                                destination,
+                                taken_at,
+                                source.as_ref().map(|source| source.schema),
+                            )
+                            .map(Some)
+                            .map_err(io::Error::other)
+                    })
+                    .map_err(StorageError::Filesystem)?;
+                backed_up = source.clone();
+                Ok(())
+            })
+            .map_err(io::Error::other)?,
+        )
     } else {
         None
     };
     let cache = std::sync::Arc::new(std::sync::Mutex::new(cache));
     let backup_cache = std::sync::Arc::clone(&cache);
     let mut settings = ConfigFile::new(path.clone()).with_migration_backup(move |schema, bytes| {
+        if let Some(source) = &backed_up {
+            return if source.schema == schema && source.bytes == bytes {
+                Ok(())
+            } else {
+                Err(io::Error::other(
+                    "configuration changed after coordinated backup",
+                ))
+            };
+        }
         let mut cache = backup_cache
             .lock()
             .map_err(|_| io::Error::other("storage coordinator lock failed"))?;

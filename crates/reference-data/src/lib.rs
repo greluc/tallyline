@@ -6,4 +6,5 @@
 #![forbid(unsafe_code)]
 
 pub mod api;
+mod averages;
 mod snapshot;

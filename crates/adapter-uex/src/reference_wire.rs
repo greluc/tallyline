@@ -18,6 +18,8 @@ struct TerminalWire {
     displayname: String,
     #[serde(rename = "type")]
     kind: String,
+    #[serde(default)]
+    max_container_size: Option<Numeric>,
     is_player_owned: Numeric,
     is_available_live: Numeric,
     #[serde(default)]
@@ -69,16 +71,28 @@ pub(crate) fn terminals(data: Value) -> Result<Vec<Terminal>, ReadError> {
                 locations.push(decoded);
             }
         }
-        terminals.push(Terminal::new(
-            TerminalId(id),
-            TerminalText {
-                name: unescaped(&row.name),
-                nickname: unescaped(&row.nickname),
-                display_name: unescaped(&row.displayname),
-                location: locations.join(" / "),
-            },
-            row.is_available_live.flag("is_available_live")?,
-        ));
+        let maximum = row
+            .max_container_size
+            .map(|value| {
+                let maximum = u32::try_from(value.whole("max_container_size")?)
+                    .map_err(|_| malformed("max_container_size exceeds the supported range"))?;
+                Ok(std::num::NonZeroU32::new(maximum))
+            })
+            .transpose()?
+            .flatten();
+        terminals.push(
+            Terminal::new(
+                TerminalId(id),
+                TerminalText {
+                    name: unescaped(&row.name),
+                    nickname: unescaped(&row.nickname),
+                    display_name: unescaped(&row.displayname),
+                    location: locations.join(" / "),
+                },
+                row.is_available_live.flag("is_available_live")?,
+            )
+            .with_max_container_size(maximum),
+        );
     }
     Ok(terminals)
 }
@@ -89,12 +103,14 @@ struct CommodityWire {
     name: String,
     code: Option<String>,
     is_available_live: Numeric,
+    price_buy: Numeric,
+    price_sell: Numeric,
 }
 
 pub(crate) fn commodities(
     data: Value,
 ) -> Result<Vec<tallyline_reference_data::api::model::Commodity>, ReadError> {
-    use tallyline_reference_data::api::model::Commodity;
+    use tallyline_reference_data::api::model::{Commodity, CommodityAverages};
     use tallyline_shared_kernel::api::model::CommodityId;
     let rows: Vec<CommodityWire> = parse(data, "commodities")?;
     let mut commodities = Vec::new();
@@ -112,7 +128,10 @@ pub(crate) fn commodities(
             &unescaped(&row.name),
             &unescaped(row.code.as_deref().unwrap_or_default()),
             row.is_available_live.flag("is_available_live")?,
-            None,
+            CommodityAverages::new(
+                Some(row.price_buy.price("price_buy")?),
+                Some(row.price_sell.price("price_sell")?),
+            ),
         ));
     }
     Ok(commodities)

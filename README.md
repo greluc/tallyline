@@ -101,3 +101,5 @@ Use the offline [corpus capture and annotation guide](docs/user/corpus-capture.m
 Game preferences now persist independent channel-to-UEX mappings in settings schema 4, preserving witness and release-check choices across migration; the browsing controls remain in progress.
 
 Startup config migration coordinates existing SQLite and exact settings bytes in one verified backup set, and refuses processing if the backup fails.
+
+The schema-two reference cache preserves exact buy/sell averages and known terminal container limits; PTU snapshots contain no LIVE averages.

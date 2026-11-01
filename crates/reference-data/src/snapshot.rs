@@ -4,10 +4,10 @@
 //! Owned environment-specific read state independent of cache workers.
 
 use crate::api::model::{
-    CachedReference, Commodity, Endpoint, EndpointData, GameVersions, ReferenceState, StatusLevels,
-    Terminal, UexEnvironment,
+    CachedReference, Commodity, CommodityAverages, Endpoint, EndpointData, GameVersions,
+    ReferenceState, StatusLevels, Terminal, UexEnvironment,
 };
-use tallyline_shared_kernel::api::model::Timestamp;
+use tallyline_shared_kernel::api::model::{Timestamp, TradeSide};
 
 /// Immutable reference data for one mapped UEX environment and one decision.
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -38,7 +38,10 @@ impl ReferenceSnapshot {
                                     item.name(),
                                     item.code(),
                                     item.available(UexEnvironment::Live),
-                                    item.average_price(environment),
+                                    CommodityAverages::new(
+                                        item.average_price(environment, TradeSide::Buy),
+                                        item.average_price(environment, TradeSide::Sell),
+                                    ),
                                 )
                             })
                             .collect(),
