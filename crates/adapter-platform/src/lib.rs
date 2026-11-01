@@ -14,4 +14,5 @@ mod socket;
 #[cfg(windows)]
 mod windows_socket;
 
+mod ocr_startup;
 mod releases;

@@ -14,7 +14,21 @@ mod update_wiring;
 
 use tallyline_ui::api::{Catalogue, DesktopShell, configure_fonts};
 
-fn main() -> Result<(), Box<dyn std::error::Error>> {
+fn main() -> Result<std::process::ExitCode, Box<dyn std::error::Error>> {
+    use tallyline_adapter_platform::api::model::{OcrChildExit, OcrProcessStartup};
+    match tallyline_adapter_platform::api::prepare_ocr_process()? {
+        OcrProcessStartup::Prepared => {
+            run()?;
+            Ok(std::process::ExitCode::SUCCESS)
+        }
+        OcrProcessStartup::Relaunched(status) => Ok(match OcrChildExit::from_status(&status) {
+            OcrChildExit::Code(code) => std::process::ExitCode::from(code),
+            OcrChildExit::Abnormal => std::process::ExitCode::FAILURE,
+        }),
+    }
+}
+
+fn run() -> Result<(), Box<dyn std::error::Error>> {
     let layout = settings_wiring::storage_layout()?;
     let primary = match tallyline_adapter_platform::api::elect(instance_wiring::paths(&layout)?)? {
         tallyline_adapter_platform::api::Election::Primary(primary) => primary,
