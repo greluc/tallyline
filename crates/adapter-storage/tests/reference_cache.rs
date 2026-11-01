@@ -172,3 +172,29 @@ fn r_api_1_r_ui_8__terminals_and_commodities_reopen_with_independent_fetch_times
     let mut cache = SqliteReferenceCache::open(&path).unwrap();
     assert_eq!(cache.load().unwrap(), vec![commodity, terminals]);
 }
+
+#[test]
+#[expect(
+    non_snake_case,
+    reason = "Requirement tags use a double underscore separator."
+)]
+fn r_cap_3b__version_cache_roundtrip_preserves_non_semver_live_and_absent_ptu() {
+    use tallyline_reference_data::api::model::GameVersions;
+    let directory = TestDirectory::new().unwrap();
+    let path = directory.0.join("tallyline.db");
+    for ptu in [Some("3.24.2a".to_owned()), None] {
+        let entry = CachedReference::new(
+            Timestamp::from_millis(90_999),
+            EndpointData::GameVersions(GameVersions {
+                live: "4.9".to_owned(),
+                ptu,
+            }),
+        );
+        {
+            let mut cache = SqliteReferenceCache::open(&path).unwrap();
+            cache.replace(&entry).unwrap();
+        }
+        let mut reopened = SqliteReferenceCache::open(&path).unwrap();
+        assert_eq!(reopened.load().unwrap(), vec![entry]);
+    }
+}

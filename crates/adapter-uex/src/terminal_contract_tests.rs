@@ -113,3 +113,64 @@ async fn r_api_5__malformed_or_duplicate_terminal_identity_rejects_the_whole_res
         ));
     }
 }
+
+#[tokio::test]
+async fn r_api_1_r_api_6_r_cap_3b__fetcher_port_returns_typed_public_vocabulary_and_versions() {
+    use tallyline_reference_data::api::ReferenceDataFetcher;
+    use tallyline_reference_data::api::model::{Endpoint, EndpointData};
+    let server = MockServer::start().await;
+    for (endpoint, data) in [
+        (
+            "commodities",
+            json!([{"id":"7","name":"Ore &amp; Metal","code":"SAME","is_available_live":"0","price_buy":"9007199254740993.125"},{"id":8,"name":"Refined Metal","code":"SAME","is_available_live":1}]),
+        ),
+        ("game_versions", json!({"live":"4.9","ptu":null})),
+        ("terminals", json!([])),
+    ] {
+        Mock::given(method("GET"))
+            .and(path(format!("/2.0/{endpoint}/")))
+            .respond_with(
+                ResponseTemplate::new(200).set_body_json(json!({"status":"ok","data":data})),
+            )
+            .expect(1)
+            .mount(&server)
+            .await;
+    }
+    let settings = ReaderSettings::new(
+        &format!("{}/2.0/", server.uri()),
+        ClientIdentity::new("tallyline-test", "1.2.3"),
+    )
+    .unwrap();
+    let reader = UexReader::new(&settings).unwrap();
+    let EndpointData::Commodities(commodities) = reader.fetch(Endpoint::Commodities).await.unwrap()
+    else {
+        panic!("wrong endpoint data")
+    };
+    assert_eq!(commodities.len(), 2);
+    assert_eq!(commodities.first().unwrap().name(), "Ore & Metal");
+    assert!(!commodities.first().unwrap().available(UexEnvironment::Live));
+    assert!(commodities.first().unwrap().available(UexEnvironment::Ptu));
+    assert_eq!(
+        commodities.first().unwrap().code(),
+        commodities.last().unwrap().code()
+    );
+    let EndpointData::GameVersions(versions) = reader.fetch(Endpoint::GameVersions).await.unwrap()
+    else {
+        panic!("wrong endpoint data")
+    };
+    assert_eq!(versions.live, "4.9");
+    assert_eq!(versions.ptu, None);
+    assert_eq!(
+        reader.fetch(Endpoint::Terminals).await.unwrap(),
+        EndpointData::Terminals(vec![])
+    );
+    assert!(
+        server
+            .received_requests()
+            .await
+            .unwrap()
+            .iter()
+            .all(|request| !request.headers.contains_key("authorization")
+                && !request.headers.contains_key("secret-key"))
+    );
+}

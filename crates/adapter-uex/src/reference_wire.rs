@@ -82,3 +82,38 @@ pub(crate) fn terminals(data: Value) -> Result<Vec<Terminal>, ReadError> {
     }
     Ok(terminals)
 }
+
+#[derive(Deserialize)]
+struct CommodityWire {
+    id: Numeric,
+    name: String,
+    code: Option<String>,
+    is_available_live: Numeric,
+}
+
+pub(crate) fn commodities(
+    data: Value,
+) -> Result<Vec<tallyline_reference_data::api::model::Commodity>, ReadError> {
+    use tallyline_reference_data::api::model::Commodity;
+    use tallyline_shared_kernel::api::model::CommodityId;
+    let rows: Vec<CommodityWire> = parse(data, "commodities")?;
+    let mut commodities = Vec::new();
+    let mut identities = std::collections::BTreeSet::new();
+    for row in rows {
+        let id = u32::try_from(row.id.whole("id")?)
+            .ok()
+            .filter(|id| *id > 0)
+            .ok_or_else(|| malformed("commodity id is outside the supported range"))?;
+        if !identities.insert(id) {
+            return Err(malformed("commodity response repeats an identity"));
+        }
+        commodities.push(Commodity::new(
+            CommodityId(id),
+            &unescaped(&row.name),
+            &unescaped(row.code.as_deref().unwrap_or_default()),
+            row.is_available_live.flag("is_available_live")?,
+            None,
+        ));
+    }
+    Ok(commodities)
+}

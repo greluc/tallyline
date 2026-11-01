@@ -403,3 +403,82 @@ fn r_api_1__terminal_refresh_expires_at_twelve_hours_independently_of_commoditie
         assert!(application.due().contains(&Endpoint::Commodities));
     }
 }
+
+#[test]
+#[expect(
+    non_snake_case,
+    reason = "Requirement tags use a double underscore separator."
+)]
+fn r_cap_3b__cached_versions_remain_read_data_and_successful_fetches_return_fresh_observations() {
+    use tallyline_reference_data::api::model::GameVersions;
+    let cached = CachedReference::new(
+        Timestamp::from_seconds(100),
+        EndpointData::GameVersions(GameVersions {
+            live: "4.9".to_owned(),
+            ptu: Some("3.24.2a".to_owned()),
+        }),
+    );
+    let mut application =
+        ReferenceApplication::load(MemoryCache(vec![cached]), FixedClock).unwrap();
+    assert_eq!(application.game_versions().unwrap().live, "4.9");
+    assert_eq!(
+        application.fetched_at(Endpoint::GameVersions),
+        Some(Timestamp::from_seconds(100))
+    );
+    let fetched = GameVersions {
+        live: "4.10.2".to_owned(),
+        ptu: None,
+    };
+    let observation = application
+        .refreshed(EndpointData::GameVersions(fetched.clone()))
+        .unwrap();
+    assert_eq!(observation.endpoint, Endpoint::GameVersions);
+    assert_eq!(observation.fetched_at, Timestamp::from_seconds(7_200));
+    assert_eq!(observation.game_versions, Some(fetched.clone()));
+    assert_eq!(application.game_versions(), Some(&fetched));
+    let next = application
+        .refreshed(EndpointData::GameVersions(fetched.clone()))
+        .unwrap();
+    assert_eq!(next.game_versions, Some(fetched));
+    let vocabulary = application
+        .refreshed(EndpointData::Commodities(vec![]))
+        .unwrap();
+    assert_eq!(vocabulary.game_versions, None);
+}
+
+#[test]
+#[expect(
+    non_snake_case,
+    reason = "Requirement tags use a double underscore separator."
+)]
+fn r_api_1_r_sub_5__version_send_freshness_is_fifteen_minutes_and_normal_ttl_is_one_day() {
+    use tallyline_reference_data::api::model::GameVersions;
+    for (now, send_due, normal_due) in [
+        (999, false, false),
+        (1_000, true, false),
+        (86_499, true, false),
+        (86_500, true, true),
+    ] {
+        let cached = CachedReference::new(
+            Timestamp::from_seconds(100),
+            EndpointData::GameVersions(GameVersions {
+                live: "4.10.2".to_owned(),
+                ptu: None,
+            }),
+        );
+        let application = ReferenceApplication::load(MemoryCache(vec![cached]), At(now)).unwrap();
+        assert_eq!(
+            application
+                .due_before_send()
+                .contains(&Endpoint::GameVersions),
+            send_due
+        );
+        assert_eq!(
+            application.due().contains(&Endpoint::GameVersions),
+            normal_due
+        );
+    }
+    let empty = ReferenceApplication::load(MemoryCache(vec![]), At(0)).unwrap();
+    assert_eq!(empty.game_versions(), None);
+    assert!(empty.due_before_send().contains(&Endpoint::GameVersions));
+}

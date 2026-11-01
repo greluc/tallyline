@@ -227,7 +227,7 @@ pub enum RejectedData {
 /// The UEX API 2.0 reader: GET requests only, no redirects, a capped body size.
 #[derive(Debug)]
 pub struct UexReader {
-    transport: Transport,
+    pub(crate) transport: Transport,
 }
 
 /// The UEX submission client. Its only write operation is a `data_submit` dry run.

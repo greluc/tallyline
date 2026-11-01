@@ -13,6 +13,7 @@ pub mod api;
 )]
 mod contract_tests;
 mod envelope;
+mod reference_fetcher;
 mod reference_wire;
 mod transport;
 mod wire;

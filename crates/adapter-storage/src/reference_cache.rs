@@ -9,7 +9,7 @@ use serde::{Deserialize, Serialize};
 use std::path::Path;
 use tallyline_reference_data::api::ReferenceDataCache;
 use tallyline_reference_data::api::model::{
-    CachedReference, Commodity, EndpointData, Terminal, TerminalText, UexEnvironment,
+    CachedReference, Commodity, EndpointData, GameVersions, Terminal, TerminalText, UexEnvironment,
 };
 use tallyline_shared_kernel::api::model::{CommodityId, TerminalId, Timestamp};
 
@@ -93,6 +93,11 @@ struct TerminalDocument {
     available_live: bool,
 }
 
+#[derive(Serialize, Deserialize)]
+struct GameVersionsDocument {
+    live: String,
+    ptu: Option<String>,
+}
 fn timestamp(fetched_at: &str) -> Result<Timestamp, StorageError> {
     let millis = fetched_at
         .parse::<u128>()
@@ -149,6 +154,14 @@ fn decode(endpoint: &str, payload: &str) -> Result<EndpointData, StorageError> {
                     .collect(),
             ))
         }
+        "game_versions" => {
+            let document: GameVersionsDocument =
+                serde_json::from_str(payload).map_err(|_| StorageError::InvalidCache)?;
+            Ok(EndpointData::GameVersions(GameVersions {
+                live: document.live,
+                ptu: document.ptu,
+            }))
+        }
         _ => Err(StorageError::InvalidCache),
     }
 }
@@ -182,6 +195,13 @@ fn encode(data: &EndpointData) -> Result<(&'static str, String), StorageError> {
                 .collect::<Vec<_>>();
             ("terminals", serde_json::to_string(&documents))
         }
+        EndpointData::GameVersions(versions) => (
+            "game_versions",
+            serde_json::to_string(&GameVersionsDocument {
+                live: versions.live.clone(),
+                ptu: versions.ptu.clone(),
+            }),
+        ),
     };
     Ok((endpoint, payload.map_err(|_| StorageError::InvalidCache)?))
 }
@@ -191,7 +211,7 @@ impl ReferenceDataCache for SqliteReferenceCache {
 
     fn load(&mut self) -> Result<Vec<CachedReference>, Self::Error> {
         let mut entries = Vec::new();
-        for endpoint in ["commodities", "terminals"] {
+        for endpoint in ["commodities", "game_versions", "terminals"] {
             let cached = self
                 .connection
                 .query_row(
@@ -222,7 +242,7 @@ impl ReferenceDataCache for SqliteReferenceCache {
                         (commodity.id().0,commodity.name(),commodity.code(),commodity.available(UexEnvironment::Live)))?;
                 }
             }
-            EndpointData::Terminals(_) => {}
+            EndpointData::Terminals(_) | EndpointData::GameVersions(_) => {}
         }
         transaction.commit()?;
         Ok(())

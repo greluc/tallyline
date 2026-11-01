@@ -13,6 +13,8 @@ pub enum Endpoint {
     Commodities,
     /// Selectable commodity terminal vocabulary.
     Terminals,
+    /// Current LIVE and optional PTU versions.
+    GameVersions,
 }
 
 impl Endpoint {
@@ -22,6 +24,7 @@ impl Endpoint {
         match self {
             Self::Commodities => 3_600,
             Self::Terminals => 43_200,
+            Self::GameVersions => 86_400,
         }
     }
 }
@@ -99,6 +102,8 @@ pub enum EndpointData {
     Commodities(Vec<Commodity>),
     /// Selectable commodity terminals.
     Terminals(Vec<Terminal>),
+    /// Current versions returned by a successful public request.
+    GameVersions(GameVersions),
 }
 
 /// One atomically persisted successful endpoint response.
@@ -121,6 +126,7 @@ impl CachedReference {
         match self.data {
             EndpointData::Commodities(_) => Endpoint::Commodities,
             EndpointData::Terminals(_) => Endpoint::Terminals,
+            EndpointData::GameVersions(_) => Endpoint::GameVersions,
         }
     }
 
@@ -200,4 +206,24 @@ impl Terminal {
             UexEnvironment::Ptu => true,
         }
     }
+}
+
+/// Current UEX version strings, preserved without imposing semantic versioning.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct GameVersions {
+    /// The current LIVE version.
+    pub live: String,
+    /// The current PTU version, absent while none is published.
+    pub ptu: Option<String>,
+}
+
+/// A persisted successful network response, never produced by cache loading.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct ReferenceDataRefreshed {
+    /// The endpoint actually fetched.
+    pub endpoint: Endpoint,
+    /// The successful network observation time.
+    pub fetched_at: Timestamp,
+    /// A new version-history observation only for a game-versions fetch.
+    pub game_versions: Option<GameVersions>,
 }
