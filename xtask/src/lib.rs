@@ -6,6 +6,7 @@
 #![forbid(unsafe_code)]
 
 pub mod check;
+pub mod corpus;
 pub mod dco;
 pub mod deny;
 pub mod dependabot;
