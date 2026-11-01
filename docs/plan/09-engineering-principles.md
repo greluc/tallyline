@@ -61,6 +61,7 @@ The `unsafe` code of the platform adapter is registered here too. Corrected 2026
 
 | Location | Rule | Reason | Date | Revisit when |
 |---|---|---|---|---|
+| `xtask::build_code_workspace_tests`, requirement-tagged public guard contracts | `non_snake_case` | The required traceability grammar contains a double underscore | 2026-11-01 | the tag grammar changes or rustc accepts consecutive underscores |
 | `crates/adapter-platform/tests/ocr_startup.rs`, requirement-tagged tests | `non_snake_case` | The required traceability grammar contains a double underscore | 2026-11-01 | the tag grammar changes or rustc accepts consecutive underscores |
 | `crates/adapter-ocr/tests/{ctc,preprocessing}.rs`, requirement-tagged tests | `non_snake_case` | The required traceability grammar contains a double underscore | 2026-11-01 | the tag grammar changes or rustc accepts consecutive underscores |
 | `crates/adapter-files/tests/image_intake.rs`, requirement-tagged tests | `non_snake_case` | The required traceability grammar contains a double underscore | 2026-11-01 | the tag grammar changes or rustc accepts consecutive underscores |
