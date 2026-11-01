@@ -109,8 +109,10 @@ fn validate_entry(value: &Value) -> Result<(), String> {
     }
     if version == 2 {
         object(required(value, "measured", "entry")?, "entry.measured")?;
+        schema_v2::validate(value)?;
         if let Some(id) = root.get("expectedTerminalId")
-            && !id.is_number()
+            && !id.is_null()
+            && id.as_u64().is_none()
         {
             return Err("entry.expectedTerminalId must be a number".to_owned());
         }
@@ -131,7 +133,7 @@ pub fn validate_json(text: &str) -> Result<(), String> {
 
 #[cfg(test)]
 fn public_entries(root: &Path) -> Result<(), String> {
-    let public = root.join("corpus/public");
+    let public = root.join("../../corpus/public");
     for entry in fs::read_dir(&public).map_err(|error| error.to_string())? {
         let entry = entry.map_err(|error| error.to_string())?;
         if !entry
@@ -161,7 +163,7 @@ mod tests {
 
     #[test]
     fn r_qa_1__every_public_corpus_entry_matches_its_schema() {
-        let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("..");
+        let root = Path::new(env!("CARGO_MANIFEST_DIR")).to_path_buf();
         let result = public_entries(&root);
         assert!(result.is_ok(), "{result:?}");
     }
@@ -172,3 +174,29 @@ mod tests {
         assert!(validate_json(fixture).is_err());
     }
 }
+
+#[cfg(test)]
+#[expect(
+    non_snake_case,
+    reason = "tagged test names use a double underscore (11 B4)"
+)]
+#[path = "corpus/tests.rs"]
+mod inspection_tests;
+
+mod inspect;
+pub use inspect::inspect;
+
+mod classes;
+
+mod annotate;
+pub use annotate::annotate;
+
+mod pinned;
+
+mod reference;
+
+pub(super) fn field<'a>(value: &'a Value, key: &str) -> &'a Value {
+    value.get(key).unwrap_or(&Value::Null)
+}
+
+mod schema_v2;
