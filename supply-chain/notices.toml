@@ -167,3 +167,14 @@ version = "3.54.1"
 licence = "blessing"
 source = "https://www.sqlite.org/2026/sqlite-amalgamation-3540100.zip"
 copyright = ["The author disclaims copyright to this source code."]
+
+[[component]]
+directory = "opencv-linear"
+name = "OpenCV generic eight-bit linear interpolation arithmetic (safe Rust adaptation)"
+shipped = { with-crate = "tallyline-adapter-ocr" }
+files = [{ repository = "supply-chain/notices/opencv-linear/LICENSE" }]
+[component.catalogue]
+version = "5.0.0 source; portable Rust profile ppocr-bgr48-linear8u-v1"
+licence = "BSD-3-Clause"
+source = "https://github.com/opencv/opencv/blob/40738fb16ceddb5fb3fea747585f7ce6abb0605b/modules/imgproc/src/resize.cpp"
+copyright = ["2000-2008, 2017 Intel Corporation", "2009 Willow Garage Inc.", "2014-2015 Itseez Inc."]

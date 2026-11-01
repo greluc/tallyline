@@ -47,3 +47,36 @@ fn r_ocr_1__recognition_resize_uses_pixel_centres_and_reuse_clears_padding() {
     assert!(buffer.recognition(&image, 3).is_err());
     assert!(buffer.recognition(&image, 3201).is_err());
 }
+
+#[test]
+fn r_ocr_1__asymmetric_resize_matches_the_generic_eight_bit_linear_reference() {
+    let levels: [u32; 15] = [
+        0, 17, 89, 193, 255, 3, 41, 7, 198, 11, 101, 53, 249, 23, 154,
+    ];
+    let pixels = levels
+        .into_iter()
+        .map(|code| 0xff00_0000 | code | code << 8 | code << 16)
+        .collect();
+    let image = ImageRaster::new(3, 5, pixels).unwrap();
+    let mut buffer = OcrTensorBuffer::default();
+    let tensor = buffer.recognition(&image, 29).unwrap();
+    for (x, y, code) in [
+        (6, 5, 17),
+        (8, 7, 65),
+        (9, 7, 68),
+        (11, 0, 11),
+        (20, 1, 61),
+        (22, 2, 76),
+    ] {
+        let expected = (code as f32 / 255.0 - 0.5) / 0.5;
+        assert_eq!(tensor.values[y * 29 + x], expected, "pixel {x},{y}");
+    }
+}
+
+#[test]
+fn r_ocr_1__recognition_tensors_identify_the_frozen_preprocessing_profile() {
+    let image = ImageRaster::new(1, 1, vec![0xff00_0000]).unwrap();
+    let mut buffer = OcrTensorBuffer::default();
+    let tensor = buffer.recognition(&image, 48).unwrap();
+    assert_eq!(tensor.preprocessing.identifier(), "ppocr-bgr48-linear8u-v1");
+}

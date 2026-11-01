@@ -822,3 +822,30 @@ and fdeflate0.3.7 (MIT OR Apache-2.0). Complete upstream texts and notices
 are copied from the checksum-verified packages into the offline legal catalogue.
 The std-only jpeg-encoder0.7.1 test fixture writer is never shipped; its
 (MIT OR Apache-2.0) AND IJG licence is the existing O-130 test-only exception.
+
+14. Portable eight-bit linear interpolation source
+------------------------------------------------
+
+crates/adapter-ocr/src/preprocessing/linear.rs adapts the generic eight-bit
+INTER_LINEAR coefficient and vertical rounding arithmetic from OpenCV5.0.0,
+modules/imgproc/src/resize.cpp, immutable commit
+40738fb16ceddb5fb3fea747585f7ce6abb0605b. Modified2026-11-01: translated the
+bounded pixel-centre sampling and fixed-point arithmetic into safe Rust,
+without OpenCV, Python, native bindings or optional accelerated backends.
+Upstream source SHA-256:
+e4610736015ab8e7395bde854a60337d1281b972566bb4806db04f1868f6e36c.
+
+Source:
+https://github.com/opencv/opencv/blob/40738fb16ceddb5fb3fea747585f7ce6abb0605b/modules/imgproc/src/resize.cpp
+
+Copyright (C) 2000-2008, 2017, Intel Corporation, all rights reserved.
+Copyright (C) 2009, Willow Garage Inc., all rights reserved.
+Copyright (C) 2014-2015, Itseez Inc., all rights reserved.
+Third party copyrights are property of their respective owners.
+
+The unmodified file-specific BSD-3-Clause licence header is preserved in
+supply-chain/notices/opencv-linear/LICENSE and is included in the offline
+catalogue whenever the OCR adapter ships. The Rust adaptation is under
+GPL-3.0-or-later with those retained BSD-3-Clause obligations. This source
+attribution does not select or bundle an OpenCV native library.
+Licence-header SHA-256: 3540f4621f2ea804dbc271ee623b324fde7fcb79eb2edff14c15a8c84d183499.

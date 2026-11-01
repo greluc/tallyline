@@ -5,6 +5,8 @@
 
 use tallyline_shared_kernel::api::model::ImageRaster;
 
+mod linear;
+
 const HEIGHT: usize = 48;
 const MAX_WIDTH: usize = 3200;
 const CHANNEL_SHIFTS: [u32; 3] = [0, 8, 16];
@@ -17,6 +19,8 @@ pub struct OcrTensorBuffer {
 
 /// A borrowed batch-one tensor in BGR channel-first order.
 pub struct OcrInputTensor<'a> {
+    /// The exact portable preprocessing algorithm used for these values.
+    pub preprocessing: RecognitionPreprocessing,
     /// Batch, channel, height and padded width dimensions.
     pub shape: [usize; 4],
     /// Resized image width, excluding normalised-space padding.
@@ -46,32 +50,19 @@ impl OcrTensorBuffer {
         }
         self.values.resize(3 * HEIGHT * padded_width, 0.0);
         self.values.fill(0.0);
-        let source_width = usize::try_from(image.width()).map_err(|_| TensorInputError)?;
-        let source_height = usize::try_from(image.height()).map_err(|_| TensorInputError)?;
         for (channel, shift) in CHANNEL_SHIFTS.into_iter().enumerate() {
             for y in 0..HEIGHT {
-                let (top, bottom, vertical) = sampling(y, source_height, HEIGHT);
                 for x in 0..resized_width {
-                    let (left, right, horizontal) = sampling(x, source_width, resized_width);
-                    let pixel = |row: usize, column: usize| -> Result<f64, TensorInputError> {
-                        let argb = image
-                            .argb()
-                            .get(row * source_width + column)
-                            .ok_or(TensorInputError)?;
-                        Ok(f64::from((argb >> shift) & 255))
-                    };
-                    let upper =
-                        pixel(top, left)? * (1.0 - horizontal) + pixel(top, right)? * horizontal;
-                    let lower = pixel(bottom, left)? * (1.0 - horizontal)
-                        + pixel(bottom, right)? * horizontal;
-                    let code = (upper * (1.0 - vertical) + lower * vertical).round() as f32;
+                    let code = linear::pixel(image, x, y, resized_width, HEIGHT, shift)
+                        .ok_or(TensorInputError)?;
                     let index = channel * HEIGHT * padded_width + y * padded_width + x;
                     *self.values.get_mut(index).ok_or(TensorInputError)? =
-                        (code / 255.0 - 0.5) / 0.5;
+                        (f32::from(code) / 255.0 - 0.5) / 0.5;
                 }
             }
         }
         Ok(OcrInputTensor {
+            preprocessing: RecognitionPreprocessing::Linear8uV1,
             shape: [1, 3, HEIGHT, padded_width],
             resized_width,
             values: &self.values,
@@ -79,13 +70,19 @@ impl OcrTensorBuffer {
     }
 }
 
-fn sampling(destination: usize, source_size: usize, target_size: usize) -> (usize, usize, f64) {
-    let position = ((destination as f64 + 0.5) * source_size as f64 / target_size as f64 - 0.5)
-        .clamp(0.0, (source_size - 1) as f64);
-    let first = position.floor() as usize;
-    (
-        first,
-        (first + 1).min(source_size - 1),
-        position - first as f64,
-    )
+/// A frozen recognition input algorithm for reproducible reader evaluation.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum RecognitionPreprocessing {
+    /// BGR, height 48, generic eight-bit fixed-point linear resize and normalised-zero padding.
+    Linear8uV1,
+}
+
+impl RecognitionPreprocessing {
+    /// Returns the stable profile identifier recorded with raw reader results.
+    #[must_use]
+    pub const fn identifier(self) -> &'static str {
+        match self {
+            Self::Linear8uV1 => "ppocr-bgr48-linear8u-v1",
+        }
+    }
 }

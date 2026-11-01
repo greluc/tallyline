@@ -4,4 +4,6 @@
 //! Public OCR values.
 
 pub use crate::ctc::{CtcCharacter, CtcDecoder, CtcError, CtcReading};
-pub use crate::preprocessing::{OcrInputTensor, OcrTensorBuffer, TensorInputError};
+pub use crate::preprocessing::{
+    OcrInputTensor, OcrTensorBuffer, RecognitionPreprocessing, TensorInputError,
+};
