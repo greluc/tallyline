@@ -13,7 +13,7 @@ fn every_state_icon_paints_vector_shapes_without_font_fallback() {
     let context = egui::Context::default();
     for scale in SCALES {
         context.set_pixels_per_point(scale);
-        let output = context.run_ui(
+        let mut output = context.run_ui(
             RawInput {
                 screen_rect: Some(Rect::from_min_size(Pos2::ZERO, vec2(240.0, 80.0))),
                 ..Default::default()
@@ -29,6 +29,8 @@ fn every_state_icon_paints_vector_shapes_without_font_fallback() {
                 }
             },
         );
+        // This test inspects vector shapes only; no renderer consumes the font texture updates.
+        output.textures_delta.clear();
         assert!(output.shapes.len() > Icon::STATE_ICONS.len());
         assert!(
             output

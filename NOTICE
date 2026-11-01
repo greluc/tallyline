@@ -383,10 +383,31 @@ Source code
 
 2.17 egui and eframe
   Version       egui and eframe 0.36.2 with the wgpu backend (ADR-0005 D3)
-                [licences and the wgpu, winit and font crates they pull in
-                are read from the crates' manifests and listed in 2.16 when
-                pinned in M0]
+                [crate licences and notices are collected from their
+                manifests and vendored sources]
   Text          legal/crates/, with the other crates
+  Added texts   the published sources omit the licence files for accesskit,
+                ecolor, egui, emath, epaint and profiling. Their MIT and
+                Apache-2.0 texts are copied unmodified from upstream:
+    legal/accesskit/ (with accesskit 0.24.1)
+      AccessKit/accesskit main at f3026222559c7f5f46d8f25cb7404de68eb149f0
+      LICENSE-APACHE SHA-256
+      62c7a1e35f56406896d7aa7ca52d0cc0d272ac022b5d2796e7d6905db8a3636a
+      LICENSE-MIT SHA-256
+      23f18e03dc49df91622fe2a76176497404e46ced8a715d9d2b67a7446571cca3
+    legal/ecolor/, legal/egui/, legal/emath/ and legal/epaint/
+      emilk/egui tag 0.36.2, commit
+      49682f8baa058bf49e011035cfbd6e825f88a5ef
+      LICENSE-APACHE SHA-256
+      8173d5c29b4f956d532781d2b86e4e30f83e6b7878dce18c919451d6ba707c90
+      LICENSE-MIT SHA-256
+      95ca92f5f8ea5231f1580b3a2a799e8260af3114b900e1def5355a7f44bcf60c
+    legal/profiling/ (with profiling 1.0.18)
+      aclysma/profiling master at da44bd1c5497c665c0f00e5d70594fc14d390b4b
+      LICENSE-APACHE SHA-256
+      6ee32466aaa724095c99d108c8e549fb9e2bd2c5d81708afb1cd373b3177f7d2
+      LICENSE-MIT SHA-256
+      e64891b51361725890d69bafa508ad013bc92aeef99054caecb6f5ce5f7dfd51
 
 2.18 keyring
   Version       keyring 4.2.0, the OS credential store access for the UEX

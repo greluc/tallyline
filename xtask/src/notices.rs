@@ -419,9 +419,9 @@ pub struct Inputs<'a> {
 /// Every shipped crate contributes its vendored licence and notice files under
 /// `crates/<name>-<version>/` and a line of the index with its declared SPDX expression and the
 /// licences of the report; every shipped component of the reviewed list contributes its files
-/// under its directory. A shipped crate that is not vendored, has no such file or no licence in
-/// the report, a component that names a crate `Cargo.lock` does not hold, and a missing component
-/// file, are findings.
+/// under its directory. A shipped crate that is not vendored, has no such file in either its
+/// vendor tree or reviewed-list entry, has no licence in the report, a component that names a
+/// crate `Cargo.lock` does not hold, and a missing component file, are findings.
 #[must_use]
 pub fn assemble(inputs: Inputs<'_>, exists: impl Fn(&ComponentFile) -> bool) -> Assembly {
     let mut assembly = Assembly {
@@ -435,9 +435,19 @@ pub fn assemble(inputs: Inputs<'_>, exists: impl Fn(&ComponentFile) -> bool) -> 
             None => assembly
                 .findings
                 .push(Finding::NotVendored(package.clone())),
-            Some(vendored) if vendored.files.is_empty() => assembly
-                .findings
-                .push(Finding::NoNoticeFiles(package.clone())),
+            Some(vendored)
+                if vendored.files.is_empty()
+                    && !inputs.components.iter().any(|component| {
+                        matches!(
+                            &component.shipped,
+                            Shipped::WithCrate(name) if name == &package.name
+                        ) && component.files.iter().all(&exists)
+                    }) =>
+            {
+                assembly
+                    .findings
+                    .push(Finding::NoNoticeFiles(package.clone()));
+            }
             Some(vendored) => {
                 assembly
                     .copies
@@ -893,6 +903,48 @@ files = [{ repository = "supply-chain/notices/onnxruntime/ThirdPartyNotices.txt"
                     .to_owned(),
                 findings: Vec::new(),
             }
+        );
+    }
+
+    #[test]
+    fn r_doc_3__reviewed_component_supplies_a_crates_missing_vendored_licence_text() {
+        let shipped = BTreeSet::from([package("egui", "0.36.2")]);
+        let locked = names(&["egui"]);
+        let vendored = BTreeMap::from([(
+            package("egui", "0.36.2"),
+            vendored("MIT OR Apache-2.0", &[]),
+        )]);
+        let licences = BTreeMap::from([(
+            package("egui", "0.36.2"),
+            vec!["MIT".to_owned(), "Apache-2.0".to_owned()],
+        )]);
+        let components = vec![Component {
+            directory: "egui".to_owned(),
+            name: "egui".to_owned(),
+            shipped: Shipped::WithCrate("egui".to_owned()),
+            files: vec![
+                ComponentFile::Repository("supply-chain/notices/egui/LICENSE-MIT".to_owned()),
+                ComponentFile::Repository("supply-chain/notices/egui/LICENSE-APACHE".to_owned()),
+            ],
+        }];
+        let assembly = assemble(
+            Inputs {
+                shipped: &shipped,
+                locked: &locked,
+                vendored: &vendored,
+                licences: &licences,
+                components: &components,
+            },
+            |_| true,
+        );
+
+        assert!(assembly.findings.is_empty());
+        assert_eq!(assembly.copies.len(), 2);
+        assert!(
+            assembly
+                .copies
+                .iter()
+                .all(|file| file.target.starts_with("egui/"))
         );
     }
 

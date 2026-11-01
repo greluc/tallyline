@@ -1,3 +1,7 @@
 [[exception]]
 path = "xtask/src/english.rs"
 reason = "The task's own source: the German word list and the German samples of its tests."
+
+[[exception]]
+path = "supply-chain/imports.lock"
+reason = "Generated cargo-vet audit records preserve upstream publisher names verbatim."

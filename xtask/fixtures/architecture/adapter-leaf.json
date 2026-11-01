@@ -1,0 +1,23 @@
+{
+  "workspace_members": [
+    "path+tallyline-adapter-uex",
+    "path+tallyline-adapter-files"
+  ],
+  "packages": [
+    {
+      "dependencies": [
+        {
+          "name": "tallyline-adapter-files",
+          "kind": null
+        }
+      ],
+      "id": "path+tallyline-adapter-uex",
+      "name": "tallyline-adapter-uex"
+    },
+    {
+      "dependencies": [],
+      "id": "path+tallyline-adapter-files",
+      "name": "tallyline-adapter-files"
+    }
+  ]
+}

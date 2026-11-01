@@ -5,6 +5,7 @@
 
 #![forbid(unsafe_code)]
 
+pub mod architecture;
 pub mod check;
 pub mod corpus;
 pub mod dco;
