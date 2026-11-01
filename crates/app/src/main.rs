@@ -8,6 +8,7 @@
 mod executor;
 mod game_wiring;
 mod instance_wiring;
+mod reference_wiring;
 mod settings_wiring;
 mod update_wiring;
 
@@ -55,11 +56,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             configure_fonts(&creation.egui_ctx, files);
             let catalogue = Catalogue::english()?;
 
-            let (commands, events, worker) =
-                settings_wiring::start(creation.egui_ctx.clone(), layout)?;
             let (activation_commands, activation_events) = std::sync::mpsc::sync_channel(1);
             let activation_worker =
                 instance_wiring::start(listener, activation_commands, creation.egui_ctx.clone())?;
+            let (commands, reference_commands, events, worker) =
+                settings_wiring::start(creation.egui_ctx.clone(), layout)?;
             lifecycle_sender.send((worker, activation_worker))?;
             Ok(Box::new(
                 DesktopShell::new(
@@ -70,7 +71,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     commands,
                     events,
                 )
-                .with_window_commands(activation_events),
+                .with_window_commands(activation_events)
+                .with_reference_commands(reference_commands),
             ))
         }),
     );

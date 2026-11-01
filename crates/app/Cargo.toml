@@ -11,6 +11,8 @@ name = "tallyline"
 path = "src/main.rs"
 
 [dependencies]
+tallyline-reference-data.workspace = true
+tallyline-adapter-uex = { path = "../adapter-uex" }
 tallyline-adapter-storage.workspace = true
 tokio = { workspace = true, features = ["rt"] }
 tallyline-shared-kernel.workspace = true

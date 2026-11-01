@@ -88,7 +88,7 @@
   "reference.no_data": "No reference data yet",
   "reference.cached": "Cached reference data available",
   "reference.offline": "Offline - cached reference data remains available",
-  "reference.refreshing": "Refreshing reference data in the background",
+  "reference.refreshing": "Refreshing reference data (1 request)",
   "reference.version": "Cached game version:",
   "reference.no_version": "No version published for this environment",
   "reference.terminals": "Terminals",

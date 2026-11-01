@@ -109,3 +109,5 @@ The schema-two reference cache preserves exact buy/sell averages and known termi
 Reference snapshots now retain UEX acceptance switches, commodity tolerances and capped literal staff information independently of browsing availability.
 
 Terminal priors now cache exact price/stock values and source provenance independently for 30 minutes; the typed reader accepts at most ten distinct terminal IDs and PTU snapshots omit LIVE priors.
+
+The native reference browser now receives SQLite snapshots before its first network response and refreshes through the primary UEX host on an app-owned worker. Closing cancels pending GETs and joins the cache owner before releasing writer locks.
