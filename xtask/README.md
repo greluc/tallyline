@@ -92,3 +92,17 @@ line makes the exception stale. The two generated cargo-vet publisher-name
 comments use this boundary; audit/trust notes retain the English rule. Unicode
 escapes in the TOML configuration encode the original names without adding a
 self-exemption for the allowlist file.
+
+## Approved SQLite source scope
+
+`cargo xtask sqlite-native` checks `supply-chain/sqlite-native.json`: exact
+locked wrapper/sys identities, complete bundled source and build-script
+hashes, full plus both supported target feature/reachability graphs, expiry
+and rejected compiler/native overrides. Explicit Cargo env/target Rust flags
+are checked as well as ambient inputs; MSVC CL/_CL_, CFLAGS and forged Rust
+feature cfgs cannot silently activate the C timer selectors. Real source
+collection rejects missing files, symlinks and escaping paths. The check is
+second in the aggregate plan, after the supply-chain guard, and stops the
+plan before workspace build/test work on failure. Its pure metadata/configuration
+and real-file fixtures do not compile native code. The independent existing
+Rust literal assembly inventory retains its exact approved set.

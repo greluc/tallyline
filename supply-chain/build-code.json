@@ -554,6 +554,18 @@
       ]
     },
     {
+      "name": "libsqlite3-sys",
+      "version": "0.39.1",
+      "kind": "custom-build",
+      "archive_sha256": "14a5f01b87b92705d07b433c06f96cbc764637d81a0bffb5734ce17cf0f9a2b3",
+      "source_sha256": "769b31370a41aa722e1d5a530012432c985bb142eab34d095481ffd1a3436e1b",
+      "behaviour": "Default bundled branch copies packaged bindings to OUT_DIR and compiles packaged SQLite3.54.1 C through cc. No download. System-link/SQLCipher/bindgen/extension and environment override branches are outside the separately approved native scope.",
+      "review_scope": "Complete exact build.rs read including inactive branches; no external helper module. S-12 behaviour review, not a full SQLite C/Rust source audit. Exact native source/features and compiler overrides are enforced separately.",
+      "sources_read_or_inspected": [
+        { "path": "build.rs", "sha256": "769b31370a41aa722e1d5a530012432c985bb142eab34d095481ffd1a3436e1b" }
+      ]
+    },
+    {
       "name": "naga",
       "version": "30.0.1",
       "kind": "custom-build",

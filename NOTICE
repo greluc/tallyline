@@ -243,21 +243,29 @@ Source code
   history of this file.
 
 2.7 SQLite (rusqlite with bundled SQLite)
-  Crates        rusqlite with the SQLite amalgamation bundled through
-                libsqlite3-sys [versions pinned in M0]; a registered
-                exception to the pure-Rust rule (09 section 3b, O-109)
-  Licence       SQLite: public-domain dedication (SPDX blessing) [unverified
-                at sqlite.org; O-82]; rusqlite and libsqlite3-sys [licences
-                read from the crates' Cargo.toml and licence files when
-                pinned in M0]
-  Text          legal/sqlite/: the licence files of the crates and the
-                SQLite dedication notice
-  Source        linked: the SQLite amalgamation inside the vendored
-                libsqlite3-sys sources of the tagged source
+  Crates        rusqlite 0.41.1 and libsqlite3-sys 0.39.1, both MIT;
+                bundled SQLite 3.54.1, registered native exception O-109
+  Licence       SQLite: public-domain dedication (SPDX blessing);
+                exact crate MIT texts and sqlite.org dedication read
+  Attribution   Copyright (c) 2014 The rusqlite developers (both crates).
+                SQLite's authors disclaim copyright; see its blessing.
+  Text          legal/crates/rusqlite-0.41.1/LICENSE,
+                legal/crates/libsqlite3-sys-0.39.1/LICENSE and
+                legal/sqlite/blessing.txt
+  Source        https://crates.io/crates/rusqlite/0.41.1
+                https://crates.io/crates/libsqlite3-sys/0.39.1
+                https://www.sqlite.org/2026/sqlite-amalgamation-3540100.zip
+  Integrity     sqlite3.c SHA-256
+                0c657666d819f261cc4007526ad57e1669de9949df7a8ea847aa284a2bf0ee52
+                blessing.txt SHA-256
+                592db1199aab67aafe4515db9808b420db122083807c5329b2f061951e79acbe
+  Verified 2026-11-01: the packaged C/header/extension header match the
+  official SQLite amalgamation byte for byte. SPDX's blessing text matches
+  the source dedication; sqlite.org confirms the public-domain statement.
+  This completes only the SQLite dedication reading within O-82.
   Amended 2026-10-12 (ADR-0005): replaces org.xerial:sqlite-jdbc 3.53.4.0
   with SQLite 3.53.4 inside its natives, its zentus portions and the mingw-w64
   start-up code note, none of which is shipped any more.
-
 2.8 SLF4J API
   Superseded 2026-10-12 (ADR-0005): logging uses the tracing crates, listed in
   the generated list (2.16). The detailed entry is in the history of this

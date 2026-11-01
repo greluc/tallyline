@@ -156,3 +156,14 @@ directory = "spirv"
 name = "The spirv crate"
 shipped = { with-crate = "spirv" }
 files = [{ repository = "supply-chain/notices/spirv/LICENSE" }]
+
+[[component]]
+directory = "sqlite"
+name = "SQLite"
+shipped = { with-crate = "libsqlite3-sys" }
+files = [{ repository = "LICENSES/blessing.txt" }]
+[component.catalogue]
+version = "3.54.1"
+licence = "blessing"
+source = "https://www.sqlite.org/2026/sqlite-amalgamation-3540100.zip"
+copyright = ["The author disclaims copyright to this source code."]

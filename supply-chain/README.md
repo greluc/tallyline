@@ -146,3 +146,30 @@ claim to implement the SPDX licence catalogue or exception equivalence rules.
 The current eleven MIT elections come only from explicit 09/NOTICE choices;
 other compound AWS-LC alternatives are not silently resolved. Native approval
 scope and the registry graph are unchanged.
+
+## SQLite adoption (issue #81)
+
+The owner approved exact rusqlite 0.41.1 (defaults off, bundled),
+libsqlite3-sys 0.39.1 and SQLite 3.54.1 on 2026-11-01. The complete sys
+build script was read; its exact S-12 entry does not claim a full C audit.
+Packaged sqlite3.c/sqlite3.h/sqlite3ext.h match SQLite's official amalgamation.
+The official SPDX `blessing` text and SQLite public-domain statement were
+read; NOTICE and the separate native component preserve them.
+
+The two approved cargo-vet trust rows cover publisher gwenn/5062 for these
+two same-crate projects until 2027-11-01, including future publications in
+their stated windows. Exact release/merge authority was verified in the
+packaged VCS revisions and upstream release commit/PR 1920. Publisher trust
+is separate from native approval: `sqlite-native.json` pins exact source
+hashes, complete full/target features and both supported targets, with the
+hardware-timer C assembly inactive. Compiler/native overrides are rejected;
+`cargo xtask check` fails before workspace build/test work when this guard fails.
+The existing Rust literal assembly register is unchanged. No optional C
+omission flags, SQLCipher, bindgen or extension features are enabled.
+
+The three other new identities are fallible-iterator 0.3.0 (Mozilla full
+0.2.0 plus Bytecode Alliance deploy delta), fallible-streaming-iterator 0.1.9
+(Mozilla deploy audit) and vcpkg 0.2.15 (Bytecode Alliance deploy audit).
+No new trust/audit/exemption was needed for them. The resulting check reports
+411 fully vetted packages and the same 28 exemptions; no bootstrap entry was
+added. The new crates carry MIT or MIT/Apache-2.0 licence choices.

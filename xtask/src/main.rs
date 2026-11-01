@@ -62,6 +62,7 @@ fn main() -> ExitCode {
         ["guard"] => run_guard(&root),
         ["build-code"] => run_build_code(&root),
         ["native-scope"] => run_native_scope(&root),
+        ["sqlite-native"] => run_sqlite_native(&root),
         ["native-assembly"] => {
             run_native_assembly(&root, Path::new(xtask::native_assembly::REVIEWED_PATH))
         }
@@ -81,7 +82,7 @@ fn main() -> ExitCode {
 fn usage() -> io::Result<ExitCode> {
     writeln!(
         io::stderr(),
-        "usage: cargo xtask check | guard | build-code | native-scope | native-assembly [<approved.json>] | mutation [--in-diff <diff>] | dco <base> <head> | osv-gate <report.json> | vendor-hashes write | vendor-hashes verify | notices"
+        "usage: cargo xtask check | guard | build-code | native-scope | sqlite-native | native-assembly [<approved.json>] | mutation [--in-diff <diff>] | dco <base> <head> | osv-gate <report.json> | vendor-hashes write | vendor-hashes verify | notices"
     )?;
     Ok(ExitCode::FAILURE)
 }
@@ -101,10 +102,10 @@ fn run_check(root: &Path) -> io::Result<ExitCode> {
         writeln!(io::stderr(), "==> {}", step.name())?;
         if !run_step(&step, root)? {
             failed.push(step.name());
-            if matches!(step, Step::NativeAssembly) {
+            if matches!(step, Step::NativeAssembly | Step::SqliteNative) {
                 writeln!(
                     io::stderr(),
-                    "native assembly gate failed before test/build work"
+                    "native source/assembly gate failed before test/build work"
                 )?;
                 return Ok(ExitCode::FAILURE);
             }
@@ -122,6 +123,7 @@ fn run_check(root: &Path) -> io::Result<ExitCode> {
 fn run_step(step: &Step, root: &Path) -> io::Result<bool> {
     match step {
         Step::SupplyChainGuard => guard_passes(root),
+        Step::SqliteNative => sqlite_native_passes(root),
         Step::NativeScope => native_scope_passes(root),
         Step::NativeAssembly => {
             native_assembly_passes(root, Path::new(xtask::native_assembly::REVIEWED_PATH))
@@ -714,6 +716,86 @@ fn native_assembly_passes(root: &Path, review: &Path) -> io::Result<bool> {
         &fs::read_to_string(root.join(review))?,
         &files,
         &targets,
+    )
+    .map_err(io::Error::other)?;
+    for finding in &findings {
+        writeln!(io::stderr(), "{finding}")?;
+    }
+    Ok(findings.is_empty())
+}
+
+fn run_sqlite_native(root: &Path) -> io::Result<ExitCode> {
+    if !guard_passes(root)? {
+        return Ok(ExitCode::FAILURE);
+    }
+    Ok(exit_status(sqlite_native_passes(root)?))
+}
+
+fn sqlite_native_passes(root: &Path) -> io::Result<bool> {
+    let locked = xtask::lockfile::parse(&fs::read_to_string(root.join(LOCKFILE))?)
+        .map_err(|error| io::Error::other(error.to_string()))?;
+    if !locked
+        .iter()
+        .any(|package| package.name == "libsqlite3-sys")
+    {
+        return Ok(true);
+    }
+    let mut environment = std::env::vars_os()
+        .map(|(key, value)| {
+            (
+                key.to_string_lossy().into_owned(),
+                value.to_string_lossy().into_owned(),
+            )
+        })
+        .collect::<Vec<_>>();
+    environment.extend(
+        xtask::sqlite_native::configuration_environment(&fs::read_to_string(
+            root.join(".cargo/config.toml"),
+        )?)
+        .map_err(io::Error::other)?,
+    );
+    let overrides = xtask::sqlite_native::environment_violations(&environment);
+    if !overrides.is_empty() {
+        for finding in overrides {
+            writeln!(io::stderr(), "{finding}")?;
+        }
+        return Ok(false);
+    }
+    let metadata = cargo_stdout(
+        root,
+        &["metadata", "--locked", "--offline", "--format-version", "1"],
+    )?;
+    let hashes = xtask::sqlite_native::source_hashes(&metadata).map_err(io::Error::other)?;
+    let mut graphs = std::collections::BTreeMap::from([("full".to_owned(), metadata)]);
+    for target in SHIPPED_TARGETS {
+        graphs.insert(
+            target.to_owned(),
+            cargo_stdout(
+                root,
+                &[
+                    "metadata",
+                    "--locked",
+                    "--offline",
+                    "--format-version",
+                    "1",
+                    "--filter-platform",
+                    target,
+                ],
+            )?,
+        );
+    }
+    let now_days = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map_err(io::Error::other)?
+        .as_secs()
+        / 86_400;
+    let findings = xtask::sqlite_native::violations(
+        &fs::read_to_string(root.join("supply-chain/sqlite-native.json"))?,
+        &locked,
+        &graphs,
+        &hashes,
+        &environment,
+        now_days,
     )
     .map_err(io::Error::other)?;
     for finding in &findings {

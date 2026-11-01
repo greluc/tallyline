@@ -13,3 +13,4 @@ The workspace crates of Tallyline: the core (`shared-kernel`, the context crates
 | `adapter-platform/` | `tallyline-adapter-platform` | two-lock writer election and bounded local activation; the three approved Windows FFI sites |
 | `shared-kernel/` | `tallyline-shared-kernel` | published IDs, precise timestamps and the injected clock port |
 | `reference-data/` | `tallyline-reference-data` | cached commodity vocabulary, per-endpoint freshness and persist-before-publish refreshes |
+| `adapter-storage/` | `tallyline-adapter-storage` | schema-versioned SQLite reference cache and atomic indexed replacements |

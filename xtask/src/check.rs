@@ -8,6 +8,8 @@
 pub enum Step {
     /// The supply-chain guard of 10 S-4 over the repository files; it runs before any Cargo call.
     SupplyChainGuard,
+    /// The exact approved bundled SQLite source, features and build-input boundary.
+    SqliteNative,
     /// The approved disabled-feature and off-target native package restrictions.
     NativeScope,
     /// The exact owner-approved literal assembly inventory and activation scope.
@@ -52,6 +54,7 @@ impl Step {
     pub fn name(&self) -> &'static str {
         match self {
             Self::SupplyChainGuard => "supply-chain guard",
+            Self::SqliteNative => "sqlite native scope",
             Self::NativeScope => "native scope",
             Self::NativeAssembly => "native assembly",
             Self::BuildCode => "build-time code",
@@ -82,6 +85,7 @@ fn cargo(name: &'static str, args: &[&str]) -> Step {
 pub fn plan() -> Vec<Step> {
     vec![
         Step::SupplyChainGuard,
+        Step::SqliteNative,
         Step::BuildCode,
         Step::NativeScope,
         Step::NativeAssembly,
@@ -142,6 +146,7 @@ mod tests {
             Step::Cargo { args, .. } => args.iter().map(String::as_str).collect(),
             Step::RequirementTags { list } => list.iter().map(String::as_str).collect(),
             Step::SupplyChainGuard
+            | Step::SqliteNative
             | Step::BuildCode
             | Step::NativeScope
             | Step::NativeAssembly
@@ -183,6 +188,7 @@ mod tests {
             names,
             [
                 "supply-chain guard",
+                "sqlite native scope",
                 "build-time code",
                 "native scope",
                 "native assembly",

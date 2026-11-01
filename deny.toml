@@ -33,7 +33,7 @@ wildcards = "deny"
 allow-wildcard-paths = true
 highlight = "all"
 allow = []
-deny = []
+deny = [{ crate = "rusqlite", wrappers = ["tallyline-adapter-storage"], reason = "SQLite connections and SQL belong only to adapter-storage." }, { crate = "libsqlite3-sys", wrappers = ["rusqlite"], reason = "The reviewed SQLite wrapper is the only direct FFI consumer." }]
 skip = [
   { crate = "calloop@=0.13.0", reason = "winit/SCTK0.19 require ^0.13 while SCTK0.20 requires ^0.14; ranges do not intersect. Exact reviewed desktop graph only; revisit 2027-04-13 or before parent updates." },
   { crate = "calloop-wayland-source@=0.3.0", reason = "SCTK0.19 requires ^0.3 and SCTK0.20 requires ^0.4; ranges do not intersect. Exact reviewed desktop graph only; revisit 2027-04-13 or before parent updates." },

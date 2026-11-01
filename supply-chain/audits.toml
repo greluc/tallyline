@@ -876,6 +876,13 @@ start = "2026-09-21"
 end = "2027-11-01"
 notes = "S-6 direct own-project role: exact 0.1.25 publisher 4lDO2/42742, published 2026-09-21, remains live own-crate owner alongside jackpot51. Packaged upstream is canonical gitlab.redox-os.org/redox-os/libredox.git, VCS 9a9fc664b027a93a2fa5b27167858956c7566d2d. Canonical Git fetch verifies this actual master merge of another contributor's get-set-rlimit MR35 on 2026-09-16, authored/committed by Jacob Lorentzon with the same 4lDO2 identity named as sole Cargo author. Current upstream HEAD 1ec76f79ba8587ea8af7bed68a83eb1b41eaa817 retains that explicit author. This is direct project author/current owner/merge authority, not generic Redox membership. GitLab HTTP API was unavailable; canonical Git objects were inspected."
 
+[[trusted.libsqlite3-sys]]
+criteria = "safe-to-deploy"
+user-id = 5062 # gwenn (gwenn)
+start = "2026-10-25"
+end = "2027-11-01"
+notes = "S-6 same-crate maintainer authority verified 2026-11-01: exact libsqlite3-sys0.39.1 publisher gwenn/5062, archive14a5f01b87b92705d07b433c06f96cbc764637d81a0bffb5734ce17cf0f9a2b3; packaged VCSfb7c711f4e988db149f43cac68f7865b25d0b10e matches upstream PR1920 Bump bundled SQLite version to3.54.1, authored and merged by gwenn2026-10-25, with primary pull API merged_by evidence. Current crates.io owner gwenn, alongside thomcc. This trusts this account's publications of this crate from2026-10-25 until2027-11-01, including future versions in that window; it is not a full bundled SQLite C/Rust audit. Separate exact native source/build/feature guard and registered exception O109 remain required; publisher trust alone grants no changed source version, assembler selector, SQLCipher, bindgen, extension or target activation. Exact packaged C/header/ext bytes match official SQLite3.54.1 amalgamation; complete build.rs read separately under S12."
+
 [[trusted.linebender_resource_handle]]
 criteria = "safe-to-deploy"
 user-id = 109051 # Daniel McNab (DJMcNab)
@@ -1330,6 +1337,13 @@ criteria = "safe-to-deploy"
 user-id = 2342 # Brian Smith (briansmith)
 start = "2019-07-03"
 end = "2027-10-14"
+
+[[trusted.rusqlite]]
+criteria = "safe-to-deploy"
+user-id = 5062 # gwenn (gwenn)
+start = "2026-10-28"
+end = "2027-11-01"
+notes = "S-6 same-crate maintainer authority verified 2026-11-01: exact rusqlite0.41.1 publisher gwenn/5062, archive da9bba6f3506135e120a6586df05be18b48d18896600646a4bec8f993d91a594; packaged VCS18ee76dbb976d5ef7e37ad5a8fffae678ca21a78 is the project's Prepare next release commit authored and committed by gwenn2026-10-28. Current crates.io owner gwenn, alongside thomcc. This trusts this account's publications of this crate from2026-10-28 until2027-11-01, including future versions in that window; it is not an exact-version source audit. Native approval and the separate source/feature/hash guard remain exact to reviewed sys0.39.1/SQLite3.54.1 and wrapper0.41.1; new source versions/features cannot inherit native approval. No claim of a full wrapper or bundled C line audit."
 
 [[trusted.rustc-hash]]
 criteria = "safe-to-deploy"
