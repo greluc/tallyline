@@ -17,6 +17,7 @@ pub struct DesktopShell {
     commands: Option<SyncSender<SettingsCommand>>,
     events: Receiver<BackgroundEvent>,
     theme: Option<UiTheme>,
+    window_commands: Option<Receiver<crate::api::model::WindowCommand>>,
 }
 
 impl DesktopShell {
@@ -38,14 +39,32 @@ impl DesktopShell {
             commands: Some(commands),
             events,
             theme: None,
+            window_commands: None,
         }
     }
 }
+impl DesktopShell {
+    /// Attaches a bounded channel for explicit second-launch window commands.
+    #[must_use]
+    pub fn with_window_commands(
+        mut self,
+        commands: Receiver<crate::api::model::WindowCommand>,
+    ) -> Self {
+        self.window_commands = Some(commands);
+        self
+    }
+}
+
 impl eframe::App for DesktopShell {
     fn clear_color(&self, visuals: &egui::Visuals) -> [f32; 4] {
         visuals.panel_fill.to_normalized_gamma_f32()
     }
     fn ui(&mut self, ui: &mut egui::Ui, _: &mut eframe::Frame) {
+        if let Some(commands) = &self.window_commands {
+            for command in commands.try_iter() {
+                crate::api::apply_window_command(ui.ctx(), command);
+            }
+        }
         for event in self.events.try_iter() {
             self.state.receive(event);
         }

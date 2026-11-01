@@ -16,6 +16,7 @@ egui.workspace = true
 tracing.workspace = true
 tallyline-workflows = { path = "../workflows" }
 tallyline-adapter-files = { path = "../adapter-files" }
+tallyline-adapter-platform = { path = "../adapter-platform" }
 tallyline-ui = { path = "../ui" }
 
 

@@ -17,11 +17,11 @@ type WorkerChannels = (
     std::thread::JoinHandle<()>,
 );
 
-pub(crate) fn start(context: egui::Context) -> io::Result<WorkerChannels> {
+pub(crate) fn start(context: egui::Context, layout: StorageLayout) -> io::Result<WorkerChannels> {
     let (commands, incoming) = mpsc::sync_channel(1);
     let (outgoing, events) = mpsc::sync_channel(16);
     let worker = crate::executor::spawn("tallyline-settings", move || {
-        let result = run(&incoming, &outgoing, &context);
+        let result = run(&incoming, &outgoing, &context, layout);
         if let Err(error) = result {
             let _sent = outgoing.try_send(BackgroundEvent::Failure(error.to_string()));
             wake_up(&context);
@@ -44,6 +44,7 @@ fn run(
     incoming: &Receiver<SettingsCommand>,
     outgoing: &SyncSender<BackgroundEvent>,
     context: &egui::Context,
+    layout: StorageLayout,
 ) -> io::Result<()> {
     let executable = std::env::current_exe()?;
     let directory = executable
@@ -57,7 +58,6 @@ fn run(
         Err(_) => BackgroundEvent::LicencesUnavailable,
     };
     deliver(outgoing, context, legal_event)?;
-    let layout = storage_layout()?;
     let issues = layout.self_test();
     if !issues.is_empty() {
         return Err(io::Error::new(
@@ -112,7 +112,7 @@ fn run(
     Ok(())
 }
 
-fn profile_path(key: &str) -> io::Result<PathBuf> {
+pub(crate) fn profile_path(key: &str) -> io::Result<PathBuf> {
     std::env::var_os(key)
         .filter(|value| !value.is_empty())
         .map(PathBuf::from)
@@ -124,7 +124,7 @@ fn profile_path(key: &str) -> io::Result<PathBuf> {
         })
 }
 
-fn storage_layout() -> io::Result<StorageLayout> {
+pub(crate) fn storage_layout() -> io::Result<StorageLayout> {
     let executable = std::env::current_exe()?;
     let directory = executable
         .parent()

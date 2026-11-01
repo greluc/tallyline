@@ -14,6 +14,7 @@ mod fonts;
 
 mod shell;
 
+mod activation;
 pub mod api;
 mod desktop;
 mod legal_views;

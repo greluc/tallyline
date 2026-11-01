@@ -42,5 +42,6 @@
   "menu.home": "Home",
   "home.title": "Workspace",
   "home.empty": "No captures.",
-  "action.done": "Done"
+  "action.done": "Done",
+  "instance.already_running": "Tallyline is already running. Its window could not be activated. Close this notice and switch to the existing window."
 }
