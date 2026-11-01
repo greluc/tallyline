@@ -7,4 +7,5 @@
 
 pub mod api;
 mod application;
+mod assessment;
 mod report;

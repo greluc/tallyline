@@ -103,3 +103,44 @@ impl ReferenceParameters {
         self.notification.as_deref()
     }
 }
+
+/// Origin of the baseline reference staleness limit.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum StalenessSource {
+    /// Validated cached UEX commodity parameters.
+    Uex,
+    /// The documented fifteen-day settings fallback.
+    SettingsFallback,
+}
+
+/// A baseline staleness limit raised only by a stricter user setting.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct EffectiveStaleness {
+    days: u32,
+    source: StalenessSource,
+}
+impl EffectiveStaleness {
+    pub(crate) fn from_constraints(
+        constraints: Option<CommodityConstraints>,
+        override_days: Option<NonZeroU32>,
+    ) -> Self {
+        let (baseline, source) = constraints
+            .map_or((15, StalenessSource::SettingsFallback), |constraints| {
+                (constraints.prior_ttl_days.get(), StalenessSource::Uex)
+            });
+        Self {
+            days: override_days.map_or(baseline, |days| baseline.max(days.get())),
+            source,
+        }
+    }
+    /// Returns the effective limit in whole days.
+    #[must_use]
+    pub const fn days(self) -> u32 {
+        self.days
+    }
+    /// Returns the origin of the baseline before a raise-only override.
+    #[must_use]
+    pub const fn source(self) -> StalenessSource {
+        self.source
+    }
+}
