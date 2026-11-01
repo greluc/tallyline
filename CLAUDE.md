@@ -59,6 +59,7 @@ This file is the shared source of truth for Claude Code and Codex. Codex also re
 ## Working rules
 
 - **Do not guess.** Verify versions, API fields and library APIs at the source before use (crates.io and the crate's repository, official docs, source code). If uncertain: mark it as an assumption and ask.
+- **Before selecting or changing a dependency, library, action or build tool, follow the latest-stable policy in [10 §2.2](docs/plan/10-supply-chain-security.md#22-updates-t2) (S-7).**
 - **UEX API:** New or changed fields and error codes are first verified against the live API, then `docs/plan/06-uex-api.md` is updated. Reads (GET) need no approval; every write call needs @greluc's approval per call (see "External writes") and uses `is_production=0`. **Never** call the API with `is_production=1`.
 - **Porting code from basetool-sc-extractor (GPL-3.0-or-later) and basetool (GPL-3.0-only) is allowed** (ADR-0003):
   1. Preserve the upstream notices: the new file's header and `NOTICE` carry the upstream copyright holder (extractor: the holder its README names, `Basetool`, 2026, as its files have no header; basetool: Lucas Greuloch, or the file's own third-party header).
