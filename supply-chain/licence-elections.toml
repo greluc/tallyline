@@ -1,0 +1,87 @@
+[[election]]
+crate = "concurrent-queue"
+version = "2.5.0"
+declared = "Apache-2.0 OR MIT"
+elected = "MIT"
+source = "NOTICE section 11; docs/plan/09-engineering-principles.md section 3b; owner approval 2026-11-01"
+reason = "The documented native review elects the MIT option. Exact source identity and native activation limits remain separately enforced; every original text is preserved."
+
+[[election]]
+crate = "cpufeatures"
+version = "0.3.1"
+declared = "MIT OR Apache-2.0"
+elected = "MIT"
+source = "NOTICE section 11; docs/plan/09-engineering-principles.md section 3b; owner approval 2026-11-01"
+reason = "The documented native review elects the MIT option. Exact source identity and native activation limits remain separately enforced; every original text is preserved."
+
+[[election]]
+crate = "getrandom"
+version = "0.3.4"
+declared = "MIT OR Apache-2.0"
+elected = "MIT"
+source = "NOTICE section 11; docs/plan/09-engineering-principles.md section 3b; owner approval 2026-11-01"
+reason = "The documented native review elects the MIT option. Exact source identity and native activation limits remain separately enforced; every original text is preserved."
+
+[[election]]
+crate = "getrandom"
+version = "0.4.3"
+declared = "MIT OR Apache-2.0"
+elected = "MIT"
+source = "NOTICE section 11; docs/plan/09-engineering-principles.md section 3b; owner approval 2026-11-01"
+reason = "The documented native review elects the MIT option. Exact source identity and native activation limits remain separately enforced; every original text is preserved."
+
+[[election]]
+crate = "half"
+version = "2.7.1"
+declared = "MIT OR Apache-2.0"
+elected = "MIT"
+source = "NOTICE section 11; docs/plan/09-engineering-principles.md section 3b; owner approval 2026-11-01"
+reason = "The documented native review elects the MIT option. Exact source identity and native activation limits remain separately enforced; every original text is preserved."
+
+[[election]]
+crate = "parking_lot"
+version = "0.12.5"
+declared = "MIT OR Apache-2.0"
+elected = "MIT"
+source = "NOTICE section 11; docs/plan/09-engineering-principles.md section 3b; owner approval 2026-11-01"
+reason = "The documented native review elects the MIT option. Exact source identity and native activation limits remain separately enforced; every original text is preserved."
+
+[[election]]
+crate = "portable-atomic"
+version = "1.15.0"
+declared = "Apache-2.0 OR MIT"
+elected = "MIT"
+source = "NOTICE section 11; docs/plan/09-engineering-principles.md section 3b; owner approval 2026-11-01"
+reason = "The documented native review elects the MIT option. Exact source identity and native activation limits remain separately enforced; every original text is preserved."
+
+[[election]]
+crate = "rustix"
+version = "0.38.44"
+declared = "Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT"
+elected = "MIT"
+source = "NOTICE section 11; docs/plan/09-engineering-principles.md section 3b; owner approval 2026-11-01"
+reason = "The documented native review elects the MIT option. Exact source identity and native activation limits remain separately enforced; every original text is preserved."
+
+[[election]]
+crate = "rustix"
+version = "1.1.5"
+declared = "Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT"
+elected = "MIT"
+source = "NOTICE section 11; docs/plan/09-engineering-principles.md section 3b; owner approval 2026-11-01"
+reason = "The documented native review elects the MIT option. Exact source identity and native activation limits remain separately enforced; every original text is preserved."
+
+[[election]]
+crate = "sha2"
+version = "0.11.1"
+declared = "MIT OR Apache-2.0"
+elected = "MIT"
+source = "NOTICE section 11; docs/plan/09-engineering-principles.md section 3b; owner approval 2026-11-01"
+reason = "The documented native review elects the MIT option. Exact source identity and native activation limits remain separately enforced; every original text is preserved."
+
+[[election]]
+crate = "zeroize"
+version = "1.9.1"
+declared = "Apache-2.0 OR MIT"
+elected = "MIT"
+source = "NOTICE section 11; docs/plan/09-engineering-principles.md section 3b; owner approval 2026-11-01"
+reason = "The documented native review elects the MIT option. Exact source identity and native activation limits remain separately enforced; every original text is preserved."

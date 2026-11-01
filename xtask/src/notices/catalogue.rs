@@ -11,6 +11,9 @@ use std::path::Path;
 use super::{Assembly, Origin, Roots};
 use serde_json::{Value, json};
 
+#[path = "elections.rs"]
+mod elections;
+
 /// Generates the offline legal catalogue from the reviewed shipped graph and vendored files.
 ///
 /// # Errors
@@ -26,6 +29,7 @@ pub fn write_catalogue(target: &Path, assembly: &Assembly, roots: Roots<'_>) -> 
             "cannot catalogue an incomplete notices directory",
         ));
     }
+    let elections = elections::Elections::read(roots.repository)?;
     let mut components = Vec::new();
     for row in assembly.index.lines().skip(1) {
         let columns: Vec<_> = row.split('\t').collect();
@@ -83,7 +87,8 @@ pub fn write_catalogue(target: &Path, assembly: &Assembly, roots: Roots<'_>) -> 
             }
         }
         let copyright = copyright_metadata(copyright, name, version, roots)?;
-        components.push(json!({ "name": name, "version": version, "licence": if *declared == "-" { *detected } else { *declared }, "source": source, "copyright": copyright, "notices": notices }));
+        let elected = elections.select(name, version, declared)?;
+        components.push(json!({ "name": name, "version": version, "declared_licence": (*declared != "-").then_some(*declared), "licence": elected.unwrap_or(if *declared == "-" { *detected } else { *declared }), "source": source, "copyright": copyright, "notices": notices }));
     }
     components.extend(resource_components(assembly, roots)?);
     let catalogue: Value = json!({ "schema_version": 1, "components": components });
@@ -335,6 +340,7 @@ mod tests {
     #[test]
     fn r_ui_18__offline_catalogue_uses_shipped_vendor_metadata_and_exact_licence_text() {
         let workspace = Scratch::new();
+        workspace.write("supply-chain/licence-elections.toml", "");
         workspace.write("vendor/example-1.2.3/Cargo.toml", "[package]\nname = \"example\"\nversion = \"1.2.3\"\nlicense = \"MIT\"\nrepository = \"https://example.invalid/source\"\n");
         workspace.write(
             "vendor/example-1.2.3/LICENSE",
@@ -410,6 +416,7 @@ mod tests {
     #[test]
     fn r_ui_18__reviewed_resources_need_real_metadata_and_keep_exact_notices() {
         let workspace = Scratch::new();
+        workspace.write("supply-chain/licence-elections.toml", "");
         workspace.write(
             "fonts/OFL.txt",
             "Copyright 2020 The Font Authors\nUnmodified font licence\n",
@@ -472,6 +479,7 @@ mod tests {
     #[test]
     fn r_ui_18__verified_upstream_absence_is_explicit_and_is_not_invented_attribution() {
         let workspace = Scratch::new();
+        workspace.write("supply-chain/licence-elections.toml", "");
         workspace.write("vendor/example-1.2.3/Cargo.toml", "[package]\nname = \"example\"\nversion = \"1.2.3\"\nlicense = \"MIT\"\nrepository = \"https://example.invalid/source\"\nauthors = [\"An author is not proven ownership\"]\n");
         workspace.write(
             "vendor/example-1.2.3/LICENSE",
@@ -549,5 +557,114 @@ mod tests {
             !target.join("catalogue.json").exists(),
             "a failed catalogue must not leave stale success output"
         );
+    }
+    #[test]
+    fn r_ui_18__a_reviewed_dual_licence_election_keeps_the_original_declaration_and_text() {
+        let workspace = Scratch::new();
+        workspace.write("supply-chain/licence-elections.toml", "");
+        let original = "Copyright (c) 2025 Example Authors\nFull original MIT and Apache terms remain here.\r\n";
+        workspace.write("vendor/example-1.2.3/Cargo.toml", "[package]\nname='example'\nversion='1.2.3'\nlicense='MIT OR Apache-2.0'\nrepository='https://example.invalid/source'\n");
+        workspace.write("vendor/example-1.2.3/LICENSE", original);
+        let metadata = "[[election]]\ncrate='example'\nversion='1.2.3'\ndeclared='MIT OR Apache-2.0'\nelected='MIT'\nsource='https://example.invalid/review'\nreason='The reviewed compatible option is MIT.'\n";
+        workspace.write("supply-chain/licence-elections.toml", metadata);
+        let assembly = Assembly {
+            copies: vec![PlannedFile {
+                origin: Origin::Vendor("example-1.2.3/LICENSE".to_owned()),
+                target: "crates/example-1.2.3/LICENSE".to_owned(),
+            }],
+            index: "crate\tversion\tdeclared\tdetected\nexample\t1.2.3\tMIT OR Apache-2.0\tMIT\n"
+                .to_owned(),
+            findings: Vec::new(),
+        };
+        let roots = Roots {
+            vendor: &workspace.path().join("vendor"),
+            toolchain: &workspace.path().join("sysroot"),
+            repository: workspace.path(),
+        };
+        let target = workspace.path().join("legal");
+        super::write_catalogue(&target, &assembly, roots).unwrap();
+        let catalogue: serde_json::Value =
+            serde_json::from_slice(&std::fs::read(target.join("catalogue.json")).unwrap()).unwrap();
+        let entry = catalogue
+            .get("components")
+            .and_then(serde_json::Value::as_array)
+            .and_then(|entries| entries.first())
+            .unwrap();
+        assert_eq!(
+            entry.get("licence").and_then(serde_json::Value::as_str),
+            Some("MIT")
+        );
+        assert_eq!(
+            entry
+                .get("declared_licence")
+                .and_then(serde_json::Value::as_str),
+            Some("MIT OR Apache-2.0")
+        );
+        assert_eq!(
+            entry
+                .get("notices")
+                .and_then(serde_json::Value::as_array)
+                .and_then(|notices| notices.first())
+                .and_then(|notice| notice.get("text"))
+                .and_then(serde_json::Value::as_str),
+            Some(original)
+        );
+        for invalid in [
+            metadata.replace("version='1.2.3'", "version='1.2.4'"),
+            metadata.replace("elected='MIT'", "elected='BSD-3-Clause'"),
+            metadata.replace("declared='MIT OR Apache-2.0'", "declared='MIT'"),
+        ] {
+            workspace.write("supply-chain/licence-elections.toml", &invalid);
+            assert!(
+                super::write_catalogue(&target, &assembly, roots).is_err(),
+                "{invalid}"
+            );
+            assert!(!target.join("catalogue.json").exists());
+        }
+    }
+    #[test]
+    fn r_ui_18__elections_preserve_mandatory_licences_and_exception_terms() {
+        let workspace = Scratch::new();
+        workspace.write(
+            "vendor/example-1.2.3/LICENSE",
+            "Copyright (c) Example Authors\nOriginal terms\n",
+        );
+        for (declared, elected, valid) in [
+            ("(MIT OR Apache-2.0) AND BSD-3-Clause", "MIT", false),
+            (
+                "(MIT OR Apache-2.0) AND BSD-3-Clause",
+                "MIT AND BSD-3-Clause",
+                true,
+            ),
+            ("ISC AND (Apache-2.0 OR ISC)", "ISC", true),
+            ("Apache-2.0 WITH LLVM-exception OR MIT", "MIT", true),
+            ("Apache-2.0 WITH LLVM-exception OR MIT", "Apache-2.0", false),
+            ("MIT OR Apache-2.0", "MIT OR BSD-3-Clause", false),
+            ("MIT OR", "MIT", false),
+            ("(MIT OR Apache-2.0", "MIT", false),
+        ] {
+            workspace.write("vendor/example-1.2.3/Cargo.toml", &format!("[package]\nname='example'\nversion='1.2.3'\nlicense='{declared}'\nrepository='https://example.invalid/source'\n"));
+            workspace.write("supply-chain/licence-elections.toml", &format!("[[election]]\ncrate='example'\nversion='1.2.3'\ndeclared='{declared}'\nelected='{elected}'\nsource='https://example.invalid/review'\nreason='Reviewed fixture choice.'\n"));
+            let assembly = Assembly {
+                copies: vec![PlannedFile {
+                    origin: Origin::Vendor("example-1.2.3/LICENSE".to_owned()),
+                    target: "crates/example-1.2.3/LICENSE".to_owned(),
+                }],
+                index: format!(
+                    "crate\tversion\tdeclared\tdetected\nexample\t1.2.3\t{declared}\tMIT\n"
+                ),
+                findings: Vec::new(),
+            };
+            let result = super::write_catalogue(
+                &workspace.path().join("legal"),
+                &assembly,
+                Roots {
+                    vendor: &workspace.path().join("vendor"),
+                    toolchain: &workspace.path().join("sysroot"),
+                    repository: workspace.path(),
+                },
+            );
+            assert_eq!(result.is_ok(), valid, "{declared} -> {elected}: {result:?}");
+        }
     }
 }

@@ -36,3 +36,7 @@ Background results update the status area and persistent notices. They open no d
 For example, a persisted onboarding value `"true"` is a string, not a Boolean.
 The visible issue identifies `settings.onboarding_complete`, the rejected
 `"true"`, and default `false`; unrelated account fields are not included.
+
+Where the project has explicitly elected one dual-licence option, its licence
+row shows that selected SPDX expression. The bundled catalogue separately
+retains the upstream declaration and every complete original legal text.

@@ -12,6 +12,10 @@ All notable changes are recorded here.
 
 ### Fixed
 
+- OCR test fixtures retry transient Windows directory-allocation denial within their existing limit, without skipping assertions or changing product storage behaviour.
+
+- Open-source licence rows show the documented elected option while retaining the upstream declaration and every original legal text; stale or incompatible elections fail generation (R-UI-18).
+
 - Invalid onboarding values now report the actual rejected JSON value and default without exposing unrelated account settings (R-NF-5).
 
 - Installed Windows data and Linux logs now use the dedicated directories required by the storage specification; portable paths retain their separate layout (R-NF-5).

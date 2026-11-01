@@ -122,3 +122,25 @@ and no partial coverage. There are 294 trusted rows and 32 audit rows, including
 shrinking bootstrap entries, the existing AWS-LC native-source limitation, and
 twenty off-target entries, including the three separately registered exact-version
 exclusions.
+
+
+## Exact licence elections
+
+`licence-elections.toml` binds each documented choice to an exact crate,
+version and unmodified upstream SPDX declaration, with its source and reason.
+The generated catalogue retains `declared_licence` separately from the
+`licence` used by its component row. Undecided components retain their original
+declaration; every original legal text is kept in either case. Non-Cargo
+resources have no manifest declaration and retain their reviewed resource
+expression (including jitterentropy BSD-3-Clause and s2n-bignum Apache-2.0).
+
+The bounded parser handles AND, OR, parentheses and WITH as a qualified atomic
+term. Every permitted elected alternative must contain all terms required by
+at least one offered alternative, and cannot introduce unavailable terms.
+Missing metadata, stale versions/declarations, duplicate records, malformed
+expressions or incompatible elections fail generation. SPDX identifier/policy
+validation remains the separate cargo-deny gate; this Boolean checker does not
+claim to implement the SPDX licence catalogue or exception equivalence rules.
+The current eleven MIT elections come only from explicit 09/NOTICE choices;
+other compound AWS-LC alternatives are not silently resolved. Native approval
+scope and the registry graph are unchanged.
