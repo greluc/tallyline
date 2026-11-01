@@ -16,6 +16,17 @@ pub enum ReferenceCommand {
     OpenTerminal(TerminalId),
 }
 
+/// Last non-JSON reference response retained as passive, memory-only diagnostic metadata.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct ReferenceDiagnostic {
+    /// The response's HTTP status.
+    pub http_status: u16,
+    /// Validated bounded Cloudflare Ray metadata, if available.
+    pub cf_ray: Option<String>,
+    /// Injected worker observation time, distinct from successful cache freshness.
+    pub observed_at: Timestamp,
+}
+
 /// Browsing choices retained independently of reference refreshes.
 pub struct ReferenceBrowser {
     channel: GameEnvironment,
@@ -27,6 +38,7 @@ pub struct ReferenceBrowser {
     ptu: Option<ReferenceSnapshot>,
     observed_at: Option<Timestamp>,
     refreshing: bool,
+    diagnostic: Option<ReferenceDiagnostic>,
     command: Option<ReferenceCommand>,
 }
 
@@ -42,6 +54,7 @@ impl Default for ReferenceBrowser {
             ptu: None,
             observed_at: None,
             refreshing: false,
+            diagnostic: None,
             command: None,
         }
     }
@@ -95,6 +108,16 @@ impl ReferenceBrowser {
     #[must_use]
     pub const fn selected_commodity(&self) -> Option<CommodityId> {
         self.selected_commodity
+    }
+
+    /// Returns the last non-JSON response, including after a later successful refresh.
+    #[must_use]
+    pub const fn diagnostic(&self) -> Option<&ReferenceDiagnostic> {
+        self.diagnostic.as_ref()
+    }
+
+    pub(crate) fn report_diagnostic(&mut self, diagnostic: ReferenceDiagnostic) {
+        self.diagnostic = Some(diagnostic);
     }
 
     /// Returns whether a refresh is waiting for its result.

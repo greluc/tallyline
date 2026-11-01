@@ -103,6 +103,8 @@ UEX staff notices appear in the global status area in every view, limited to 280
 
 A successful reference update clears a resolved reference-refresh delivery notice. It preserves an unrelated settings error until that settings operation succeeds. The reference page uses the same global status area without displaying a second copy.
 
+A non-JSON reference response adds a **Last non-JSON reference response** line with its HTTP status, validated `cf-ray` if available, and observation time as UTC Unix milliseconds. This is the last incident, so it remains visible after a successful refresh; the separate cache status and endpoint ages describe the current reference data. It contains no HTML response, other response headers or credentials, and it does not change the selected page or browsing choices.
+
 ## Screenshot formats
 
 The shared decoder accepts SDR PNG, JPEG and BMP by their contents, even when a file extension is wrong. Sixteen-bit PNG samples retain their full precision through conversion to eight-bit sRGB. ICC colour profiles and supported PNG colour metadata are applied explicitly.

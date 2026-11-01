@@ -25,6 +25,8 @@ pub enum View {
 /// A worker result that never requests a dialog or window command.
 #[derive(Debug)]
 pub enum BackgroundEvent {
+    /// Historical non-JSON metadata, without changing current cache or window state.
+    ReferenceDiagnostic(crate::api::model::ReferenceDiagnostic),
     /// A passive refresh starts without replacing cached records.
     ReferenceRefreshStarted,
     /// Environment-specific cache state and its injected clock observation.
@@ -131,6 +133,9 @@ impl ShellState {
     /// Applies a worker result without changing the view or window state.
     pub fn receive(&mut self, event: BackgroundEvent) {
         match event {
+            BackgroundEvent::ReferenceDiagnostic(diagnostic) => {
+                self.references.report_diagnostic(diagnostic)
+            }
             BackgroundEvent::ReferenceRefreshStarted => self.references.started(),
             BackgroundEvent::ReferenceUpdated {
                 live,

@@ -31,11 +31,12 @@ async fn r_api_4_r_api_7__valid_account_and_empty_filtered_reports_establish_the
         .expect(1)
         .mount(&server)
         .await;
-    let settings = ReaderSettings::new(
+    let settings = ReaderSettings::for_test_server(
         &format!("{}/2.0/", server.uri()),
         ClientIdentity::new("tallyline-test", "0.0.0"),
     )
-    .unwrap();
+    .unwrap()
+    .with_expert_host_confirmation();
     let reader = UexReader::new(&settings).unwrap();
     let values =
         CredentialValues::new("dummy-key".to_owned(), Some("dummy-token".to_owned())).unwrap();
@@ -64,11 +65,12 @@ async fn r_api_4_r_nf_4__remote_error_text_never_crosses_the_credential_boundary
         })))
         .mount(&server)
         .await;
-    let settings = ReaderSettings::new(
+    let settings = ReaderSettings::for_test_server(
         &format!("{}/2.0/", server.uri()),
         ClientIdentity::new("tallyline-test", "0.0.0"),
     )
-    .unwrap();
+    .unwrap()
+    .with_expert_host_confirmation();
     let reader = UexReader::new(&settings).unwrap();
     let values =
         CredentialValues::new("dummy-key".to_owned(), Some("dummy-token".to_owned())).unwrap();
@@ -87,11 +89,12 @@ async fn r_api_7__missing_client_version_is_a_client_failure_and_never_a_bad_key
         })))
         .mount(&server)
         .await;
-    let settings = ReaderSettings::new(
+    let settings = ReaderSettings::for_test_server(
         &format!("{}/2.0/", server.uri()),
         ClientIdentity::new("tallyline-test", "0.0.0"),
     )
-    .unwrap();
+    .unwrap()
+    .with_expert_host_confirmation();
     let reader = UexReader::new(&settings).unwrap();
     let values =
         CredentialValues::new("dummy-key".to_owned(), Some("dummy-token".to_owned())).unwrap();

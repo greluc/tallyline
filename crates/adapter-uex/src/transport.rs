@@ -23,8 +23,7 @@ const REQUEST_TIMEOUT: Duration = Duration::from_secs(30);
 #[derive(Debug)]
 pub(crate) struct Transport {
     client: reqwest::Client,
-    base_url: reqwest::Url,
-    max_body_bytes: usize,
+    settings: ReaderSettings,
 }
 
 impl Transport {
@@ -45,8 +44,7 @@ impl Transport {
             .map_err(client_error)?;
         Ok(Self {
             client,
-            base_url: settings.base_url.clone(),
-            max_body_bytes: settings.max_body_bytes,
+            settings: settings.clone(),
         })
     }
 
@@ -59,13 +57,11 @@ impl Transport {
         query: &[(&str, &str)],
         headers: &[(&str, &str)],
     ) -> Result<Value, ReadError> {
-        let mut url = self
-            .base_url
-            .join(resource)
-            .map_err(|error| ReadError::Transport(format!("resource path: {error}")))?;
+        let mut url = self.request_url(resource)?;
         if !query.is_empty() {
             url.query_pairs_mut().extend_pairs(query);
         }
+        self.check_credentials(headers)?;
         let mut request = self.client.get(url);
         for (name, value) in headers {
             let name = HeaderName::from_bytes(name.as_bytes())
@@ -76,7 +72,7 @@ impl Transport {
             request = request.header(name, value);
         }
         let response = request.send().await.map_err(transport_error)?;
-        self.read_response(response).await
+        self.read_response(response, headers).await
     }
 
     /// Sends a JSON `POST` and returns the `data` of its response envelope.
@@ -86,10 +82,8 @@ impl Transport {
         payload: &T,
         headers: &[(&str, &str)],
     ) -> Result<Value, ReadError> {
-        let url = self
-            .base_url
-            .join(resource)
-            .map_err(|error| ReadError::Transport(format!("resource path: {error}")))?;
+        let url = self.request_url(resource)?;
+        self.check_credentials(headers)?;
         let body = serde_json::to_vec(payload).map_err(|error| ReadError::Malformed {
             detail: format!("could not serialise data_submit payload: {error}"),
         })?;
@@ -107,15 +101,52 @@ impl Transport {
             request = request.header(name, value);
         }
         let response = request.send().await.map_err(transport_error)?;
-        self.read_response(response).await
+        self.read_response(response, headers).await
     }
 
-    async fn read_response(&self, mut response: reqwest::Response) -> Result<Value, ReadError> {
+    fn check_credentials(&self, headers: &[(&str, &str)]) -> Result<(), ReadError> {
+        let sensitive = headers.iter().any(|(name, _)| {
+            name.eq_ignore_ascii_case("authorization") || name.eq_ignore_ascii_case("secret-key")
+        });
+        if sensitive && !self.settings.credentials_allowed() {
+            return Err(ReadError::Transport(
+                "credentialled expert host requires explicit secret-key disclosure confirmation"
+                    .to_owned(),
+            ));
+        }
+        Ok(())
+    }
+
+    fn request_url(&self, resource: &str) -> Result<reqwest::Url, ReadError> {
+        let url = self
+            .settings
+            .base_url
+            .join(resource)
+            .map_err(|_| ReadError::Transport("invalid resource path".to_owned()))?;
+        if !self.settings.permits_url(&url) {
+            return Err(ReadError::Transport(
+                "request URL violates the configured HTTPS origin".to_owned(),
+            ));
+        }
+        Ok(url)
+    }
+
+    async fn read_response(
+        &self,
+        mut response: reqwest::Response,
+        credentials: &[(&str, &str)],
+    ) -> Result<Value, ReadError> {
         let http_status = response.status().as_u16();
         if response.status().is_redirection() {
             return Err(ReadError::Redirect { http_status });
         }
-        let limit = self.max_body_bytes;
+        let cf_ray = response
+            .headers()
+            .get("cf-ray")
+            .and_then(|value| value.to_str().ok())
+            .filter(|value| valid_ray(value, credentials))
+            .map(str::to_owned);
+        let limit = self.settings.max_body_bytes;
         if response
             .content_length()
             .is_some_and(|length| usize::try_from(length).map_or(true, |length| length > limit))
@@ -129,7 +160,17 @@ impl Transport {
             }
             body.extend_from_slice(&chunk);
         }
-        envelope::data(http_status, &body)
+        envelope::data(http_status, &body).map_err(|error| match error {
+            ReadError::NotJson { http_status, .. } => ReadError::NotJson {
+                http_status,
+                cf_ray,
+            },
+            other @ (ReadError::Rejected { .. }
+            | ReadError::Redirect { .. }
+            | ReadError::Malformed { .. }
+            | ReadError::BodyTooLarge { .. }
+            | ReadError::Transport(_)) => other,
+        })
     }
 }
 
@@ -153,4 +194,29 @@ fn tls_config() -> Result<ClientConfig, BuildError> {
         .map_err(|error| BuildError::Tls(error.to_string()))?
         .with_no_client_auth();
     Ok(config)
+}
+
+fn valid_ray(value: &str, credentials: &[(&str, &str)]) -> bool {
+    if value.is_empty() || value.len() > 64 {
+        return false;
+    }
+    let identifier = match value.split_once('-') {
+        Some((identifier, location))
+            if location.len() == 3 && location.bytes().all(|byte| byte.is_ascii_alphabetic()) =>
+        {
+            identifier
+        }
+        Some(_) => return false,
+        None => value,
+    };
+    !identifier.is_empty()
+        && identifier.bytes().all(|byte| byte.is_ascii_hexdigit())
+        && !credentials.iter().any(|(_, secret)| {
+            let secret = secret.strip_prefix("Bearer ").unwrap_or(secret);
+            !secret.is_empty()
+                && value
+                    .as_bytes()
+                    .windows(secret.len())
+                    .any(|fragment| fragment.eq_ignore_ascii_case(secret.as_bytes()))
+        })
 }

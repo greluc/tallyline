@@ -17,7 +17,7 @@ async fn r_api_5_r_ui_8__parameters_map_strict_flags_tolerances_and_one_literal_
     Mock::given(method("GET")).and(path("/2.0/data_parameters/"))
         .respond_with(ResponseTemplate::new(200).set_body_json(json!({"status":"ok","data":{"global":{"is_datacenter_enabled":"1","is_accepting_reports":1,"is_accepting_ptu_reports":"0"},"commodity":{"is_accepted":"1","price_variation":"25","ttl":15,"scu_variation":"5000","notification":"<b>&amp;amp;</b>"}}})))
         .mount(&server).await;
-    let settings = ReaderSettings::new(
+    let settings = ReaderSettings::for_test_server(
         &format!("{}/2.0/", server.uri()),
         ClientIdentity::new("test", "1.0.0"),
     )
@@ -41,7 +41,7 @@ async fn r_api_5_r_ui_8__parameters_map_strict_flags_tolerances_and_one_literal_
 #[tokio::test]
 async fn r_api_5__malformed_parameter_flags_tolerances_and_notification_reject_the_response() {
     let server = MockServer::start().await;
-    let settings = ReaderSettings::new(
+    let settings = ReaderSettings::for_test_server(
         &format!("{}/2.0/", server.uri()),
         ClientIdentity::new("test", "1.0.0"),
     )

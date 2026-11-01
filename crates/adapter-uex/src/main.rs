@@ -3,7 +3,7 @@
 
 //! The UEX API spike: read-only GET calls and explicitly invoked `data_submit` dry runs.
 //!
-//! Usage: `tallyline-uex-spike [--host uk|space] <command>` with the commands `game-versions`,
+//! Usage: `tallyline-uex-spike [--confirm-expert-host] [--host uk|space] <command>` with the commands `game-versions`,
 //! `status-levels`, `prices <id_terminal>`, `account`, `report-access` and
 //! `dry-run <id_terminal> <id_commodity> <price_buy> <status_buy> <scu_buy> \
 //! <game_version> <date_added> \
@@ -21,7 +21,7 @@ use std::process::ExitCode;
 
 use tallyline_adapter_uex::api::model::{PriceRow, StatusLevel, TerminalId};
 use tallyline_adapter_uex::api::{
-    AppToken, ClientIdentity, ReadError, ReaderSettings, SecretKey, UexReader,
+    AppToken, ClientIdentity, EXPERT_HOST_WARNING, ReadError, ReaderSettings, SecretKey, UexReader,
 };
 
 const UK_HOST: &str = "https://api.uexcorp.uk/2.0/";
@@ -29,7 +29,7 @@ const SPACE_HOST: &str = "https://api.uexcorp.space/2.0/";
 const SECRET_KEY_VARIABLE: &str = "TALLYLINE_UEX_SECRET_KEY";
 const APP_TOKEN_VARIABLE: &str = "TALLYLINE_UEX_APP_TOKEN";
 const SCREENSHOT_PATH_VARIABLE: &str = "TALLYLINE_UEX_SCREENSHOT_PATH";
-const USAGE: &str = "usage: tallyline-uex-spike [--host uk|space] \
+const USAGE: &str = "usage: tallyline-uex-spike [--confirm-expert-host] [--host uk|space] \
                      game-versions | status-levels | prices <id_terminal> | account | report-access | \
                      dry-run <id_terminal> <id_commodity> <price_buy> <status_buy> <scu_buy> \
                      <game_version> <date_added> \
@@ -55,10 +55,16 @@ enum Command {
 }
 
 fn main() -> ExitCode {
-    let arguments: Vec<String> = env::args().skip(1).collect();
+    let mut arguments: Vec<String> = env::args().skip(1).collect();
+    let expert_confirmed = arguments
+        .first()
+        .is_some_and(|argument| argument == "--confirm-expert-host");
+    if expert_confirmed {
+        arguments.remove(0);
+    }
     let mut stdout = io::stdout().lock();
     let outcome = match parse(&arguments) {
-        Ok((host, command)) => run(host, &command, &mut stdout),
+        Ok((host, command)) => run(host, &command, expert_confirmed, &mut stdout),
         Err(message) => Err(message),
     };
     match outcome {
@@ -178,12 +184,33 @@ fn parse_u64(value: &str) -> Result<u64, String> {
     value.parse::<u64>().map_err(|_| USAGE.to_owned())
 }
 
-fn run(host: &str, command: &Command, out: &mut impl Write) -> Result<(), String> {
+fn run(
+    host: &str,
+    command: &Command,
+    expert_confirmed: bool,
+    out: &mut impl Write,
+) -> Result<(), String> {
     if matches!(command, Command::DryRun { .. }) && host != UK_HOST {
         return Err("data_submit dry runs require the primary .uk host".to_owned());
     }
+    let credentialled = matches!(
+        command,
+        Command::Account | Command::ReportAccess | Command::DryRun { .. }
+    );
+    if host != UK_HOST && credentialled {
+        if !expert_confirmed {
+            return Err("credentialled expert host requires --confirm-expert-host; the selected host receives your secret key and app token".to_owned());
+        }
+        writeln!(out, "{EXPERT_HOST_WARNING}").map_err(|error| error.to_string())?;
+        out.flush().map_err(|error| error.to_string())?;
+    }
     let identity = ClientIdentity::new("tallyline-uex-spike", env!("CARGO_PKG_VERSION"));
     let settings = ReaderSettings::new(host, identity).map_err(|error| format!("{error:?}"))?;
+    let settings = if expert_confirmed {
+        settings.with_expert_host_confirmation()
+    } else {
+        settings
+    };
     let reader = UexReader::new(&settings).map_err(|error| format!("{error:?}"))?;
     let runtime = tokio::runtime::Builder::new_current_thread()
         .enable_all()
