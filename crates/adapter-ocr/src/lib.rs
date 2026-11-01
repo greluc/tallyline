@@ -5,5 +5,6 @@
 
 pub mod api;
 
+mod assets;
 mod ctc;
 mod preprocessing;

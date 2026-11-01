@@ -3,6 +3,7 @@
 
 //! Public OCR values.
 
+pub use crate::assets::{AssetError, AssetFingerprint, OcrArtifact, SmallOcrAssets};
 pub use crate::ctc::{CtcCharacter, CtcDecoder, CtcError, CtcReading};
 pub use crate::preprocessing::{
     OcrInputTensor, OcrTensorBuffer, RecognitionPreprocessing, TensorInputError,

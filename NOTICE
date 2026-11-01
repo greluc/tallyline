@@ -203,39 +203,50 @@ Source code
   com.microsoft.onnxruntime:onnxruntime 1.30.0 and its sources jar are
   replaced by the ort crate and a separately pinned library.
 
-2.4 PaddleOCR PP-OCRv6 small models
-  Files         the text-detection and the text-recognition model (ONNX)
-                <file names, decided at integration>
-  Source        Hugging Face PaddlePaddle/PP-OCRv6_small_det_onnx and
-                PaddlePaddle/PP-OCRv6_small_rec_onnx at revision <commit>;
-                PaddlePaddle/PaddleOCR at <release tag or commit> for
-                provenance
-  SHA-256       <per file at the pinned revision, also in the checksum file
-                of S-22>
-                [for reference, the copies in basetool-sc-extractor have
-                det d73e0058b7a8086bbd57f3d10b8bcd4ff95363f67e06e2762b5e814fe9c9410e
-                rec 5435fd747c9e0efe15a96d0b378d5bd157e9492ed8fd80edf08f30d02fa24634]
-  Licence       Apache-2.0 [per the PaddleOCR repository; the licence on the
-                Hugging Face model cards is unverified; O-20]
-  Copyright     Copyright (c) 2016 PaddlePaddle Authors. All Rights Reserved.
-  Text          legal/paddleocr/LICENSE (Apache-2.0); in the repository
-                LICENSES/Apache-2.0.txt, added together with the models
-  Modified      no [if converted, quantised or fine-tuned: "modified <date>:
-                <how>" (Apache-2.0 section 4(b))]
+2.4 PaddleOCR PP-OCRv6 Small models
+  Files         crates/adapter-ocr/assets/small/PP-OCRv6_small_det.onnx
+                crates/adapter-ocr/assets/small/PP-OCRv6_small_rec.onnx
+  Source        Official PaddlePaddle Hugging Face ONNX data files:
+                det revision 28fe5895c24fd108c19eb3e8479f4ab385fbfc62,
+                rec revision b8f84f0b80c529de40b4fbb3544b84fa7233a513.
+                The original upstream file name is inference.onnx in each
+                repository; only the local file names differ.
+  SHA-256       det d73e0058b7a8086bbd57f3d10b8bcd4ff95363f67e06e2762b5e814fe9c9410e
+                rec 5435fd747c9e0efe15a96d0b378d5bd157e9492ed8fd80edf08f30d02fa24634
+  Bytes         det 9,880,512; rec 21,159,378.
+  Licence       Apache-2.0, declared in both pinned official model cards;
+                verified 2026-11-02. O-20 remains open for other weights.
+  Attribution   The upstream PaddleOCR project licence states:
+                Copyright (c) 2016 PaddlePaddle Authors. All Rights Reserved.
+                This preserves that project notice; it does not assert
+                a model-specific creation date absent from the cards.
+  Text          legal/paddleocr/LICENSE, copied unmodified from PaddleOCR
+                commit dab3fe35379033fdcb2d0e9572fac0b36c9a9ebf/LICENSE;
+                repository path supply-chain/notices/paddleocr/LICENSE,
+                SHA-256 3840c5c0c61c294264d2dd77b8777be6ddd90121ef4e0e64abcd22edea581d6e.
+  Modified      no model conversion, quantisation or fine-tuning by Tallyline.
+                The bytes match the official fixed LFS identities. A
+                reproducible upstream conversion recipe is not verified.
+  Evidence      crates/adapter-ocr/assets/small/provenance.json records exact
+                source/card/config identities. Native execution, output
+                shape, accuracy and packaging acceptance remain separate.
 
-2.5 PP-OCRv6 recognition dictionary
-  File          <file name>, 18,708 entries
-  Source        either PaddleOCR ppocr/utils/dict/ppocrv6_dict.txt at <tag or
-                commit> (at commit dab3fe35379033fdcb2d0e9572fac0b36c9a9ebf
-                its SHA-256 is
-                b5f2bfe2bdd9448429e3e82b51c789775d9b42f2403d082b00662eb77e401c5d),
-                or the character list in the inference.yml of the
-                recognition model at the revision of 2.4 [decided at
-                integration]
-  Licence       Apache-2.0
-  Modified      if taken from inference.yml: "extracted, one entry per line,
-                <date>" (Apache-2.0 section 4(b))
-
+2.5 PP-OCRv6 Small recognition dictionary
+  File          crates/adapter-ocr/assets/small/ppocrv6_dict.txt;
+                18,708 ordered entries, 74,947 bytes, unchanged.
+  Source        PaddlePaddle/PaddleOCR,
+                ppocr/utils/dict/ppocrv6_dict.txt at
+                dab3fe35379033fdcb2d0e9572fac0b36c9a9ebf.
+  SHA-256       b5f2bfe2bdd9448429e3e82b51c789775d9b42f2403d082b00662eb77e401c5d.
+  Binding       Every entry matches the character list of the Small rec
+                inference.yml at b8f84f0b80c529de40b4fbb3544b84fa7233a513,
+                config SHA-256 ab078671bb49f06228eadccd34f1bb501e157f7a047095ffb943ba81512c77d1.
+                Blank zero and the model's appended space imply 18,710
+                expected classes; native output-shape verification is pending.
+  Licence       Apache-2.0; upstream project copyright and unmodified
+                licence text are preserved in 2.4 and legal/paddleocr/LICENSE.
+  Modified      no; the canonical dictionary is not regenerated from YAML,
+                reordered, translated or deduplicated.
 2.6 Jackson
   Superseded 2026-10-12 (ADR-0005): JSON is handled by Rust crates listed in
   the generated list (2.16); no Jackson jar is shipped any more. The
