@@ -29,16 +29,66 @@ pub struct SettingsIssue {
     pub default: &'static str,
 }
 
+type MigrationBackup = Box<dyn FnMut(u32, &[u8]) -> io::Result<()> + Send>;
+
 /// The single writer of a versioned settings file.
 pub struct ConfigFile {
     path: PathBuf,
+    migration_backup: Option<MigrationBackup>,
 }
 
 impl ConfigFile {
     /// Creates a store at its resolved configuration path.
     #[must_use]
     pub const fn new(path: PathBuf) -> Self {
-        Self { path }
+        Self {
+            path,
+            migration_backup: None,
+        }
+    }
+
+    /// Installs the coordinator that backs up exact previous config bytes before migration.
+    #[must_use]
+    pub fn with_migration_backup(
+        mut self,
+        backup: impl FnMut(u32, &[u8]) -> io::Result<()> + Send + 'static,
+    ) -> Self {
+        self.migration_backup = Some(Box::new(backup));
+        self
+    }
+
+    /// Migrates an existing supported config before normal worker operations.
+    ///
+    /// # Errors
+    /// Returns malformed/future-schema, filesystem or backup errors without replacing old bytes.
+    pub fn migrate(&mut self) -> io::Result<()> {
+        match fs::metadata(&self.path) {
+            Err(error) if error.kind() == io::ErrorKind::NotFound => return Ok(()),
+            Err(error) => return Err(error),
+            Ok(_) => (),
+        }
+        let mut document = self.read_document()?;
+        if document
+            .get("schema_version")
+            .and_then(serde_json::Value::as_u64)
+            != Some(3)
+        {
+            if let Some(app) = document
+                .get_mut("app")
+                .and_then(serde_json::Value::as_object_mut)
+            {
+                app.insert("update_checks".to_owned(), serde_json::json!(false));
+                for key in [
+                    "last_update_attempt_ms",
+                    "available_release",
+                    "dismissed_release",
+                ] {
+                    app.insert(key.to_owned(), serde_json::Value::Null);
+                }
+            }
+            self.write_document(document)?;
+        }
+        Ok(())
     }
 
     /// Reads versioned preferences and reports rejected values.
@@ -73,7 +123,7 @@ impl ConfigFile {
             document
                 .get("schema_version")
                 .and_then(serde_json::Value::as_u64),
-            Some(1 | 2)
+            Some(1..=3)
         ) {
             return Err(io::Error::new(
                 io::ErrorKind::InvalidData,
@@ -120,8 +170,12 @@ impl ConfigFile {
                 false
             }
         };
+        let (checks, attempt) = crate::update_config::load(&document, &mut errors);
+        let (available, dismissed) = crate::update_config::notice(&document, &mut errors);
         Ok(LoadedSettings {
-            settings: AppSettings::from_persisted(theme, onboarding),
+            settings: AppSettings::from_persisted(theme, onboarding)
+                .with_update_state(checks, attempt)
+                .with_release_notice(available, dismissed),
             errors,
         })
     }
@@ -139,7 +193,7 @@ impl AppSettingsStore for ConfigFile {
         let mut document = self.read_document()?;
         Self::object(&mut document)?.insert(
             "app".to_owned(),
-            serde_json::json!({"theme":theme,"onboarding_complete":settings.onboarding_complete()}),
+            serde_json::json!({"theme":theme,"onboarding_complete":settings.onboarding_complete(), "update_checks": settings.update_checks() == tallyline_workflows::api::model::UpdateChecks::Enabled, "last_update_attempt_ms": settings.last_update_attempt().map(|time| time.millis()), "available_release": settings.available_release().map(|version| version.to_string()), "dismissed_release": settings.dismissed_release().map(|version| version.to_string())}),
         );
         self.write_document(document)
     }
@@ -161,7 +215,7 @@ impl ConfigFile {
             Ok(content) => serde_json::from_slice(&content)
                 .map_err(|_| io::Error::new(io::ErrorKind::InvalidData, "invalid settings JSON"))?,
             Err(error) if error.kind() == io::ErrorKind::NotFound => {
-                serde_json::json!({"schema_version":2})
+                serde_json::json!({"schema_version":3})
             }
             Err(error) => return Err(error),
         };
@@ -169,7 +223,7 @@ impl ConfigFile {
             document
                 .get("schema_version")
                 .and_then(serde_json::Value::as_u64),
-            Some(1 | 2)
+            Some(1..=3)
         ) {
             return Err(io::Error::new(
                 io::ErrorKind::InvalidData,
@@ -180,7 +234,19 @@ impl ConfigFile {
     }
 
     pub(crate) fn write_document(&mut self, mut document: serde_json::Value) -> io::Result<()> {
-        Self::object(&mut document)?.insert("schema_version".to_owned(), serde_json::json!(2));
+        if let Some(previous @ 1..=2) = document
+            .get("schema_version")
+            .and_then(serde_json::Value::as_u64)
+        {
+            let backup = self.migration_backup.as_mut().ok_or_else(|| {
+                io::Error::other("configuration migration requires a coordinated backup")
+            })?;
+            backup(
+                u32::try_from(previous).map_err(io::Error::other)?,
+                &fs::read(&self.path)?,
+            )?;
+        }
+        Self::object(&mut document)?.insert("schema_version".to_owned(), serde_json::json!(3));
         let content = serde_json::to_vec_pretty(&document)?;
         let temporary = self.path.with_extension("json.pending");
         let mut file = OpenOptions::new()

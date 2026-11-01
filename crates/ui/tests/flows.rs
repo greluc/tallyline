@@ -257,3 +257,145 @@ fn r_ocr_20__settings_shows_default_off_and_emits_only_explicit_witness_commands
     assert!(!harness.state().shell.dialogs().about_open());
     Ok(())
 }
+
+#[test]
+#[expect(
+    non_snake_case,
+    reason = "Requirement tags use a double underscore separator."
+)]
+fn r_nf_7_r_ui_16__release_notice_is_passive_actionable_and_dismissible() -> Outcome {
+    use tallyline_workflows::api::model::{ReleaseVersion, UpdateStatus};
+    let mut harness = harness()?;
+    harness.run();
+    harness
+        .state_mut()
+        .shell
+        .receive(BackgroundEvent::SettingsLoaded(
+            AppSettings::default()
+                .with_update_state(tallyline_workflows::api::model::UpdateChecks::Enabled, None),
+        ));
+    harness.input_mut().focused = false;
+    harness
+        .state_mut()
+        .shell
+        .receive(BackgroundEvent::UpdateChecked(UpdateStatus::Available(
+            ReleaseVersion::parse("v2.0.1").unwrap(),
+        )));
+    harness.step();
+    assert!(
+        harness
+            .query_by_label("A new Tallyline release is available:")
+            .is_some()
+    );
+    assert!(!harness.state().shell.dialogs().about_open());
+    assert!(!harness.input().focused);
+    assert!(
+        harness
+            .output()
+            .viewport_output
+            .values()
+            .all(|output| output.commands.is_empty())
+    );
+    assert_eq!(
+        harness.state().shell.view(),
+        tallyline_ui::api::model::View::Onboarding
+    );
+    harness.get_by_label("Open release notes").click();
+    harness.step();
+    assert_eq!(
+        harness
+            .output()
+            .platform_output
+            .commands
+            .iter()
+            .find_map(|command| match command {
+                egui::OutputCommand::OpenUrl(url) => Some(url.url.as_str()),
+                egui::OutputCommand::CopyText(_) | egui::OutputCommand::CopyImage(_) => None,
+            }),
+        Some("https://github.com/greluc/tallyline/releases/tag/v2.0.1")
+    );
+    harness.get_by_label("Dismiss update notice").click();
+    harness.run();
+    assert!(
+        harness
+            .state()
+            .commands
+            .contains(&SettingsCommand::DismissUpdate)
+    );
+    harness
+        .state_mut()
+        .shell
+        .receive(BackgroundEvent::UpdateChecked(UpdateStatus::Dismissed));
+    harness.run();
+    assert!(
+        harness
+            .query_by_label("A new Tallyline release is available:")
+            .is_none()
+    );
+    Ok(())
+}
+
+#[test]
+#[expect(
+    non_snake_case,
+    reason = "Requirement tags use a double underscore separator."
+)]
+fn r_nf_7_r_ui_16__daily_setting_waits_for_save_and_disabled_results_remain_hidden() -> Outcome {
+    use tallyline_workflows::api::model::{ReleaseVersion, UpdateChecks, UpdateStatus};
+    let mut harness = harness()?;
+    harness.state_mut().shell.show_settings();
+    harness.run();
+    harness
+        .get_by_label("Check for release updates daily")
+        .click();
+    harness.run();
+    assert_eq!(
+        harness.state().commands,
+        vec![SettingsCommand::ChangeUpdateChecks(UpdateChecks::Enabled)]
+    );
+    assert_eq!(
+        harness.state().shell.settings().update_checks(),
+        UpdateChecks::Disabled
+    );
+    harness
+        .state_mut()
+        .shell
+        .receive(BackgroundEvent::SettingsLoaded(
+            AppSettings::default().with_update_state(UpdateChecks::Enabled, None),
+        ));
+    harness
+        .state_mut()
+        .shell
+        .receive(BackgroundEvent::UpdateChecked(UpdateStatus::Unavailable));
+    harness.run();
+    assert!(harness.query_by_label("Release updates are unavailable. Work can continue. Checks will resume after the daily interval; Settings can turn them off.").is_some());
+    assert_eq!(
+        harness.state().shell.view(),
+        tallyline_ui::api::model::View::Settings
+    );
+    assert!(!harness.state().shell.dialogs().about_open());
+    assert!(
+        harness
+            .output()
+            .viewport_output
+            .values()
+            .all(|output| output.commands.is_empty())
+    );
+    harness
+        .state_mut()
+        .shell
+        .receive(BackgroundEvent::SettingsLoaded(AppSettings::default()));
+    harness
+        .state_mut()
+        .shell
+        .receive(BackgroundEvent::UpdateChecked(UpdateStatus::Available(
+            ReleaseVersion::parse("v2.0.1").unwrap(),
+        )));
+    harness.run();
+    assert!(
+        harness
+            .query_by_label("A new Tallyline release is available:")
+            .is_none()
+    );
+    Ok(())
+}

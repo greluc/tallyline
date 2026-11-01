@@ -70,8 +70,20 @@ fn run(
         ));
     }
     let settings_path = layout.config().join("settings.json");
-    let store = ConfigFile::new(settings_path.clone());
+    let backup_layout = layout.clone();
+    let mut store =
+        ConfigFile::new(settings_path.clone()).with_migration_backup(move |schema, bytes| {
+            tallyline_adapter_files::api::BackupSetStore::new(backup_layout.data().join("backup"))
+                .backup_without_database(
+                    &backup_layout,
+                    schema,
+                    bytes,
+                    &crate::update_wiring::SystemClock,
+                )
+                .map(|_| ())
+        });
     let loaded = store.load()?;
+    store.migrate()?;
     deliver(
         outgoing,
         context,
@@ -93,44 +105,139 @@ fn run(
     }
     deliver_game(outgoing, context, &settings_path)?;
     let mut settings = SettingsApplication::new(loaded.settings, store);
-    while let Ok(command) = incoming.recv() {
-        let app_command = match &command {
-            SettingsCommand::ChangeTheme(_) | SettingsCommand::CompleteOnboarding => true,
-            SettingsCommand::ChangeWitnessMode(_)
-            | SettingsCommand::ChangeGameChannel(_)
-            | SettingsCommand::RefreshWitness => false,
-        };
-        let result = match command {
-            SettingsCommand::ChangeTheme(theme) => settings.change_theme(theme),
-            SettingsCommand::CompleteOnboarding => settings.complete_onboarding(),
-            SettingsCommand::ChangeWitnessMode(mode) => {
-                crate::game_wiring::change_mode(settings_path.clone(), mode)
-            }
-            SettingsCommand::ChangeGameChannel(channel) => {
-                ConfigFile::new(settings_path.clone()).change_game_channel(&channel)
-            }
-            SettingsCommand::RefreshWitness => Ok(()),
-        };
-        match result {
-            Ok(()) => {
-                if app_command {
-                    deliver(
-                        outgoing,
-                        context,
-                        BackgroundEvent::SettingsLoaded(settings.settings().clone()),
-                    )?;
-                } else {
-                    deliver_game(outgoing, context, &settings_path)?;
+    let installed = tallyline_workflows::api::model::ReleaseVersion::parse(concat!(
+        "v",
+        env!("CARGO_PKG_VERSION")
+    ))
+    .ok_or_else(|| io::Error::other("invalid development build identity"))?;
+    deliver(
+        outgoing,
+        context,
+        BackgroundEvent::UpdateChecked(settings.settings().cached_update(installed)),
+    )?;
+    let (update_requests, update_results, update_worker) = crate::update_wiring::start(installed)?;
+    let mut checking = false;
+    let result = (|| {
+        loop {
+            match update_results.try_recv() {
+                Ok(status) => {
+                    checking = false;
+                    let status = match settings.record_update(status, installed) {
+                        Ok(status) => status,
+                        Err(_) => settings.settings().resolve_update(
+                            installed,
+                            tallyline_workflows::api::model::UpdateStatus::Unavailable,
+                        ),
+                    };
+                    deliver(outgoing, context, BackgroundEvent::UpdateChecked(status))?;
+                }
+                Err(mpsc::TryRecvError::Empty) => (),
+                Err(mpsc::TryRecvError::Disconnected) => {
+                    if checking {
+                        checking = false;
+                        deliver(
+                            outgoing,
+                            context,
+                            BackgroundEvent::UpdateChecked(settings.settings().resolve_update(
+                                installed,
+                                tallyline_workflows::api::model::UpdateStatus::Unavailable,
+                            )),
+                        )?;
+                    }
                 }
             }
-            Err(error) => deliver(
-                outgoing,
-                context,
-                BackgroundEvent::Failure(error.to_string()),
-            )?,
+            let update_unavailable =
+                match settings.begin_update_check(&crate::update_wiring::SystemClock) {
+                    Ok(true) => {
+                        checking = true;
+                        update_requests.try_send(()).is_err()
+                    }
+                    Ok(false) => false,
+                    Err(_) => true,
+                };
+            if update_unavailable {
+                deliver(
+                    outgoing,
+                    context,
+                    BackgroundEvent::UpdateChecked(settings.settings().resolve_update(
+                        installed,
+                        tallyline_workflows::api::model::UpdateStatus::Unavailable,
+                    )),
+                )?;
+            }
+            let wait = if checking {
+                std::time::Duration::from_millis(500)
+            } else {
+                std::time::Duration::from_secs(60)
+            };
+            let command = match incoming.recv_timeout(wait) {
+                Ok(command) => command,
+                Err(mpsc::RecvTimeoutError::Timeout) => continue,
+                Err(mpsc::RecvTimeoutError::Disconnected) => break,
+            };
+            let app_command = match &command {
+                SettingsCommand::ChangeTheme(_)
+                | SettingsCommand::CompleteOnboarding
+                | SettingsCommand::ChangeUpdateChecks(_)
+                | SettingsCommand::DismissUpdate => true,
+                SettingsCommand::ChangeWitnessMode(_)
+                | SettingsCommand::ChangeGameChannel(_)
+                | SettingsCommand::RefreshWitness => false,
+            };
+            let update_command = matches!(
+                command,
+                SettingsCommand::DismissUpdate | SettingsCommand::ChangeUpdateChecks(_)
+            );
+            let result = match command {
+                SettingsCommand::DismissUpdate => settings.dismiss_update(),
+                SettingsCommand::ChangeUpdateChecks(checks) => {
+                    settings.change_update_checks(checks)
+                }
+                SettingsCommand::ChangeTheme(theme) => settings.change_theme(theme),
+                SettingsCommand::CompleteOnboarding => settings.complete_onboarding(),
+                SettingsCommand::ChangeWitnessMode(mode) => {
+                    crate::game_wiring::change_mode(settings_path.clone(), mode)
+                }
+                SettingsCommand::ChangeGameChannel(channel) => {
+                    ConfigFile::new(settings_path.clone()).change_game_channel(&channel)
+                }
+                SettingsCommand::RefreshWitness => Ok(()),
+            };
+            match result {
+                Ok(()) => {
+                    if app_command {
+                        deliver(
+                            outgoing,
+                            context,
+                            BackgroundEvent::SettingsLoaded(settings.settings().clone()),
+                        )?;
+                        if update_command {
+                            deliver(
+                                outgoing,
+                                context,
+                                BackgroundEvent::UpdateChecked(
+                                    settings.settings().cached_update(installed),
+                                ),
+                            )?;
+                        }
+                    } else {
+                        deliver_game(outgoing, context, &settings_path)?;
+                    }
+                }
+                Err(error) => deliver(
+                    outgoing,
+                    context,
+                    BackgroundEvent::Failure(error.to_string()),
+                )?,
+            }
         }
-    }
-    Ok(())
+        Ok(())
+    })();
+    drop(update_requests);
+    update_worker
+        .join()
+        .map_err(|_| io::Error::other("update worker terminated unexpectedly"))?;
+    result
 }
 
 pub(crate) fn profile_path(key: &str) -> io::Result<PathBuf> {
