@@ -520,3 +520,76 @@ fn r_api_1_r_ui_8__parameter_cache_preserves_all_acceptance_switches_constraints
         );
     }
 }
+
+#[test]
+#[expect(
+    non_snake_case,
+    reason = "Requirement tags use a double underscore separator."
+)]
+fn r_api_1_r_api_6__terminal_prior_cache_preserves_exact_values_wide_times_and_successful_empty_assortments()
+ {
+    use tallyline_reference_data::api::model::{
+        PricePrior, PriorProvenance, PriorValues, TerminalPriors,
+    };
+    use tallyline_shared_kernel::api::model::{ContainerSize, TerminalId, TradeSide};
+    let directory = TestDirectory::new().unwrap();
+    let path = directory.0.join("tallyline.db");
+    let row = PricePrior::new(
+        CommodityId(7),
+        TradeSide::Sell,
+        PriorValues {
+            price: "9007199254740993.125".parse().unwrap(),
+            stock: "0.0625".parse().unwrap(),
+            status: None,
+            container_sizes: vec![ContainerSize::Scu1, ContainerSize::Scu32],
+        },
+        PriorProvenance {
+            game_version: "4.9".to_owned(),
+            modified_at: Timestamp::from_seconds(u64::MAX),
+        },
+    )
+    .unwrap();
+    let first = CachedReference::new(
+        Timestamp::from_millis(1234),
+        EndpointData::TerminalPriors(TerminalPriors::new(TerminalId(17), vec![row]).unwrap()),
+    );
+    let empty = CachedReference::new(
+        Timestamp::from_millis(5678),
+        EndpointData::TerminalPriors(TerminalPriors::new(TerminalId(18), vec![]).unwrap()),
+    );
+    {
+        let mut cache = SqliteReferenceCache::open(&path).unwrap();
+        cache.replace(&first).unwrap();
+        cache.replace(&empty).unwrap();
+    }
+    assert_eq!(
+        SqliteReferenceCache::open(&path).unwrap().load().unwrap(),
+        vec![first, empty]
+    );
+}
+
+#[test]
+#[expect(
+    non_snake_case,
+    reason = "Requirement tags use a double underscore separator."
+)]
+fn r_api_5__prior_cache_refuses_a_terminal_key_that_disagrees_with_its_record() {
+    use tallyline_reference_data::api::model::TerminalPriors;
+    use tallyline_shared_kernel::api::model::TerminalId;
+    let directory = TestDirectory::new().unwrap();
+    let path = directory.0.join("tallyline.db");
+    {
+        let mut cache = SqliteReferenceCache::open(&path).unwrap();
+        cache
+            .replace(&CachedReference::new(
+                Timestamp::from_seconds(1),
+                EndpointData::TerminalPriors(TerminalPriors::new(TerminalId(17), vec![]).unwrap()),
+            ))
+            .unwrap();
+    }
+    {
+        let database = rusqlite::Connection::open(&path).unwrap();
+        database.execute("UPDATE ref_cache SET endpoint='terminal_priors:18' WHERE endpoint='terminal_priors:17'",[]).unwrap();
+    }
+    assert!(SqliteReferenceCache::open(&path).unwrap().load().is_err());
+}

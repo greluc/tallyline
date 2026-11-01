@@ -143,6 +143,13 @@ pub(crate) fn timestamp(fetched_at: &str) -> Result<Timestamp, StorageError> {
 }
 
 pub(crate) fn decode(endpoint: &str, payload: &str) -> Result<EndpointData, StorageError> {
+    if endpoint.starts_with("terminal_priors:") {
+        let priors = crate::prior_document::decode(payload)?;
+        if endpoint != format!("terminal_priors:{}", priors.terminal().0) {
+            return Err(StorageError::InvalidCache);
+        }
+        return Ok(EndpointData::TerminalPriors(priors));
+    }
     match endpoint {
         "commodities" => {
             let documents: Vec<CommodityDocument> =
@@ -201,11 +208,16 @@ pub(crate) fn decode(endpoint: &str, payload: &str) -> Result<EndpointData, Stor
     }
 }
 
-pub(crate) fn encode(data: &EndpointData) -> Result<(&'static str, String), StorageError> {
+pub(crate) fn encode(data: &EndpointData) -> Result<(String, String), StorageError> {
     let (endpoint, payload) = match data {
-        EndpointData::Parameters(parameters) => {
-            ("parameters", crate::parameter_document::encode(parameters))
-        }
+        EndpointData::TerminalPriors(priors) => (
+            format!("terminal_priors:{}", priors.terminal().0),
+            crate::prior_document::encode(priors),
+        ),
+        EndpointData::Parameters(parameters) => (
+            "parameters".to_owned(),
+            crate::parameter_document::encode(parameters),
+        ),
         EndpointData::Commodities(commodities) => {
             let documents = commodities
                 .iter()
@@ -222,7 +234,7 @@ pub(crate) fn encode(data: &EndpointData) -> Result<(&'static str, String), Stor
                         .map(|price| price.to_string()),
                 })
                 .collect::<Vec<_>>();
-            ("commodities", serde_json::to_string(&documents))
+            ("commodities".to_owned(), serde_json::to_string(&documents))
         }
         EndpointData::Terminals(terminals) => {
             let documents = terminals
@@ -237,10 +249,10 @@ pub(crate) fn encode(data: &EndpointData) -> Result<(&'static str, String), Stor
                     max_container_size: terminal.max_container_size(),
                 })
                 .collect::<Vec<_>>();
-            ("terminals", serde_json::to_string(&documents))
+            ("terminals".to_owned(), serde_json::to_string(&documents))
         }
         EndpointData::GameVersions(versions) => (
-            "game_versions",
+            "game_versions".to_owned(),
             serde_json::to_string(&GameVersionsDocument {
                 live: versions.live.clone(),
                 ptu: versions.ptu.clone(),
@@ -250,7 +262,10 @@ pub(crate) fn encode(data: &EndpointData) -> Result<(&'static str, String), Stor
             if !crate::status_document::valid(levels) {
                 return Err(StorageError::InvalidCache);
             }
-            ("status_levels", crate::status_document::encode(levels))
+            (
+                "status_levels".to_owned(),
+                crate::status_document::encode(levels),
+            )
         }
     };
     Ok((endpoint, payload.map_err(|_| StorageError::InvalidCache)?))
@@ -283,6 +298,21 @@ impl ReferenceDataCache for SqliteReferenceCache {
                 ));
             }
         }
+        let mut statement=self.connection.prepare("SELECT endpoint,fetched_at,payload FROM ref_cache WHERE endpoint GLOB 'terminal_priors:*' ORDER BY endpoint")?;
+        let rows = statement.query_map([], |row| {
+            Ok((
+                row.get::<_, String>(0)?,
+                row.get::<_, String>(1)?,
+                row.get::<_, String>(2)?,
+            ))
+        })?;
+        for record in rows {
+            let (endpoint, fetched_at, payload) = record?;
+            entries.push(CachedReference::new(
+                timestamp(&fetched_at)?,
+                decode(&endpoint, &payload)?,
+            ));
+        }
         Ok(entries)
     }
 
@@ -303,7 +333,8 @@ impl ReferenceDataCache for SqliteReferenceCache {
             }
             EndpointData::GameVersions(_)
             | EndpointData::StatusLevels(_)
-            | EndpointData::Parameters(_) => {}
+            | EndpointData::Parameters(_)
+            | EndpointData::TerminalPriors(_) => {}
         }
         transaction.commit()?;
         Ok(())

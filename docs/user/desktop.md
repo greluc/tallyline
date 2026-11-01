@@ -80,3 +80,5 @@ If a local database already exists, settings migration backs it up consistently 
 Database schema 2 retains separate exact buy/sell commodity averages and known terminal container limits. Before an older database migrates, startup saves it together with the original settings. Old side-ambiguous averages are discarded; cached names and fetch times remain available. PTU never borrows LIVE averages.
 
 UEX staff notices are limited to 280 characters and displayed as plain text. Paused submissions or Datacenter maintenance leave cached reference browsing available; the last successful parameters remain available offline.
+
+Reference priors distinguish reported sell inventory from forecast demand and retain their source version and modification time. Each terminal has a separate 30-minute fetch lifetime; a failed refresh keeps its prior data. PTU has no LIVE prior defaults.

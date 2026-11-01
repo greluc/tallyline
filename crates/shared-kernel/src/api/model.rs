@@ -3,6 +3,7 @@
 
 //! Shared identities, exact decimal values and precise Unix timestamps.
 
+pub use crate::container_sizes::ContainerSize;
 pub use crate::decimal::{InvalidDecimal, PricePerScu, ScuQuantity};
 
 use std::time::Duration;

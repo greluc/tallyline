@@ -6,6 +6,8 @@ All notable changes are recorded here.
 
 ### Added
 
+- Per-terminal LIVE priors retain exact prices and SCU, container sizes, status and source age across restarts, with independent 30-minute freshness and bounded ten-terminal requests. PTU contains no borrowed LIVE priors (R-API-1, R-API-5, R-API-6).
+
 - Cached UEX submission switches, commodity tolerances and bounded staff messages remain available offline. Submission closure leaves browsing usable; parameters refresh daily and require a fresh observation before sending (R-API-1, R-UI-8, R-SUB-5).
 
 - Cached commodity averages retain exact buy/sell values and terminal container limits. SQLite schema 2 backs up old data before migration, preserves vocabulary and fetch times, and removes the ambiguous legacy average without introducing LIVE values into PTU (R-API-1, R-API-6, R-VAL-2a, R-NF-11).

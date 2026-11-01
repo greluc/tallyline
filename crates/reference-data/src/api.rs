@@ -22,6 +22,11 @@ pub trait ReferenceDataFetcher {
         &self,
         endpoint: Endpoint,
     ) -> impl std::future::Future<Output = Result<EndpointData, Self::Error>>;
+    /// Fetches one to ten distinct positive terminal identities as LIVE assortments.
+    fn fetch_terminal_priors(
+        &self,
+        terminals: &[tallyline_shared_kernel::api::model::TerminalId],
+    ) -> impl std::future::Future<Output = Result<Vec<model::TerminalPriors>, Self::Error>>;
 }
 /// Loads and atomically replaces successful reference responses.
 pub trait ReferenceDataCache {
@@ -82,7 +87,8 @@ impl<S: ReferenceDataCache, C: Clock> ReferenceApplication<S, C> {
                 EndpointData::Terminals(_)
                 | EndpointData::GameVersions(_)
                 | EndpointData::StatusLevels(_)
-                | EndpointData::Parameters(_) => &[],
+                | EndpointData::Parameters(_)
+                | EndpointData::TerminalPriors(_) => &[],
             })
             .filter(|item| {
                 item.available(environment)
@@ -103,7 +109,8 @@ impl<S: ReferenceDataCache, C: Clock> ReferenceApplication<S, C> {
                 EndpointData::Commodities(_)
                 | EndpointData::GameVersions(_)
                 | EndpointData::StatusLevels(_)
-                | EndpointData::Parameters(_) => &[],
+                | EndpointData::Parameters(_)
+                | EndpointData::TerminalPriors(_) => &[],
             })
             .filter(|terminal| {
                 let text = terminal.text();
@@ -127,7 +134,8 @@ impl<S: ReferenceDataCache, C: Clock> ReferenceApplication<S, C> {
             EndpointData::Commodities(_)
             | EndpointData::Terminals(_)
             | EndpointData::StatusLevels(_)
-            | EndpointData::Parameters(_) => None,
+            | EndpointData::Parameters(_)
+            | EndpointData::TerminalPriors(_) => None,
         })
     }
     /// Returns the cached status vocabulary with distinct buy and sell labels.
@@ -138,7 +146,8 @@ impl<S: ReferenceDataCache, C: Clock> ReferenceApplication<S, C> {
             EndpointData::Commodities(_)
             | EndpointData::Terminals(_)
             | EndpointData::GameVersions(_)
-            | EndpointData::Parameters(_) => None,
+            | EndpointData::Parameters(_)
+            | EndpointData::TerminalPriors(_) => None,
         })
     }
     /// Returns endpoints whose successful fetch has expired.
@@ -154,6 +163,16 @@ impl<S: ReferenceDataCache, C: Clock> ReferenceApplication<S, C> {
         .into_iter()
         .filter(|endpoint| self.expired(*endpoint, endpoint.ttl_seconds()))
         .collect()
+    }
+
+    /// Reports whether a requested terminal needs its own fresh LIVE assortment.
+    #[must_use]
+    pub fn terminal_priors_due(
+        &self,
+        terminal: tallyline_shared_kernel::api::model::TerminalId,
+    ) -> bool {
+        let endpoint = Endpoint::TerminalPriors(terminal);
+        self.expired(endpoint, endpoint.ttl_seconds())
     }
 
     /// Returns send-gate endpoints that need a new successful observation.
@@ -189,7 +208,8 @@ impl<S: ReferenceDataCache, C: Clock> ReferenceApplication<S, C> {
                 EndpointData::Commodities(_)
                 | EndpointData::Terminals(_)
                 | EndpointData::StatusLevels(_)
-                | EndpointData::Parameters(_) => None,
+                | EndpointData::Parameters(_)
+                | EndpointData::TerminalPriors(_) => None,
             },
         };
         self.entries

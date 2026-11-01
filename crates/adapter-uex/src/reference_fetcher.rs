@@ -9,11 +9,22 @@ use tallyline_reference_data::api::model::{
     Endpoint, EndpointData, GameVersions, StatusLevel, StatusLevels,
 };
 
+const MAX_TERMINAL_BATCH: usize = 10;
+
 impl ReferenceDataFetcher for UexReader {
     type Error = ReadError;
 
     async fn fetch(&self, endpoint: Endpoint) -> Result<EndpointData, ReadError> {
         match endpoint {
+            Endpoint::TerminalPriors(terminal) => {
+                let mut priors = self.fetch_terminal_priors(&[terminal]).await?;
+                priors
+                    .pop()
+                    .map(EndpointData::TerminalPriors)
+                    .ok_or_else(|| {
+                        crate::wire::malformed("prior batch omitted the requested terminal")
+                    })
+            }
             Endpoint::Parameters => {
                 let data = self.transport.get("data_parameters/", &[], &[]).await?;
                 crate::parameter_wire::parameters(data).map(EndpointData::Parameters)
@@ -38,6 +49,33 @@ impl ReferenceDataFetcher for UexReader {
                 }))
             }
         }
+    }
+    async fn fetch_terminal_priors(
+        &self,
+        terminals: &[tallyline_shared_kernel::api::model::TerminalId],
+    ) -> Result<Vec<tallyline_reference_data::api::model::TerminalPriors>, ReadError> {
+        let distinct = terminals
+            .iter()
+            .copied()
+            .collect::<std::collections::BTreeSet<_>>();
+        if !(1..=MAX_TERMINAL_BATCH).contains(&terminals.len())
+            || terminals.iter().any(|id| id.0 == 0)
+            || distinct.len() != terminals.len()
+        {
+            return Err(crate::wire::malformed(
+                "prior batch must contain one to ten distinct positive terminal identities",
+            ));
+        }
+        let ids = terminals
+            .iter()
+            .map(|id| id.0.to_string())
+            .collect::<Vec<_>>()
+            .join(",");
+        let data = self
+            .transport
+            .get("commodities_prices/", &[("id_terminal", &ids)], &[])
+            .await?;
+        crate::prior_wire::priors(data, terminals)
     }
 }
 

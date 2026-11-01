@@ -8,4 +8,5 @@
 pub mod api;
 mod averages;
 mod parameters;
+mod priors;
 mod snapshot;

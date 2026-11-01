@@ -105,3 +105,5 @@ Startup config migration coordinates existing SQLite and exact settings bytes in
 The schema-two reference cache preserves exact buy/sell averages and known terminal container limits; PTU snapshots contain no LIVE averages.
 
 Reference snapshots now retain UEX acceptance switches, commodity tolerances and capped literal staff information independently of browsing availability.
+
+Terminal priors now cache exact price/stock values and source provenance independently for 30 minutes; the typed reader accepts at most ten distinct terminal IDs and PTU snapshots omit LIVE priors.

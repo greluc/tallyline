@@ -926,3 +926,156 @@ fn r_api_1_r_sub_5__parameter_cache_has_daily_ttl_and_fifteen_minute_send_freshn
     let empty = ReferenceApplication::load(MemoryCache(vec![]), At(0)).unwrap();
     assert!(empty.due_before_send().contains(&Endpoint::Parameters));
 }
+
+#[test]
+#[expect(
+    non_snake_case,
+    reason = "Requirement tags use a double underscore separator."
+)]
+fn r_api_1_r_api_6__terminal_priors_expire_after_thirty_minutes_and_are_physically_absent_from_ptu()
+{
+    use tallyline_reference_data::api::model::{
+        PricePrior, PriorProvenance, PriorValues, TerminalPriors,
+    };
+    use tallyline_shared_kernel::api::model::{ContainerSize, TerminalId};
+    let stock = "0.0625".parse().unwrap();
+    let values = PriorValues {
+        price: "97.125".parse().unwrap(),
+        stock,
+        status: std::num::NonZeroU8::new(2),
+        container_sizes: vec![ContainerSize::Scu1, ContainerSize::Scu16],
+    };
+    let provenance = PriorProvenance {
+        game_version: "4.10.2".to_owned(),
+        modified_at: Timestamp::from_seconds(12345),
+    };
+    let row = PricePrior::new(
+        CommodityId(7),
+        TradeSide::Sell,
+        values.clone(),
+        provenance.clone(),
+    )
+    .unwrap();
+    let priors = TerminalPriors::new(TerminalId(17), vec![row.clone()]).unwrap();
+    for (now, due) in [(1800999, false), (1801000, true), (999, true)] {
+        let mut application = ReferenceApplication::load(
+            MemoryCache(vec![CachedReference::new(
+                Timestamp::from_millis(1000),
+                EndpointData::TerminalPriors(priors.clone()),
+            )]),
+            MillisecondClock(now),
+        )
+        .unwrap();
+        assert_eq!(application.terminal_priors_due(TerminalId(17)), due);
+        assert!(application.terminal_priors_due(TerminalId(18)));
+        let live = application.snapshot(UexEnvironment::Live);
+        let cached = live.terminal_priors(TerminalId(17)).unwrap();
+        assert_eq!(cached.terminal(), TerminalId(17));
+        assert_eq!(cached.rows(), std::slice::from_ref(&row));
+        assert_eq!(cached.rows()[0].commodity(), CommodityId(7));
+        assert_eq!(cached.rows()[0].side(), TradeSide::Sell);
+        assert_eq!(cached.rows()[0].values(), &values);
+        assert_eq!(cached.rows()[0].provenance(), &provenance);
+        assert!(live.terminal_priors(TerminalId(18)).is_none());
+        let ptu = application.snapshot(UexEnvironment::Ptu);
+        assert!(ptu.terminal_priors(TerminalId(17)).is_none());
+        assert_eq!(
+            ptu.fetched_at(Endpoint::TerminalPriors(TerminalId(17))),
+            None
+        );
+        application.refresh_failed(Endpoint::TerminalPriors(TerminalId(17)));
+        assert_eq!(
+            application
+                .snapshot(UexEnvironment::Live)
+                .terminal_priors(TerminalId(17)),
+            Some(&priors)
+        );
+        assert_eq!(
+            application.fetched_at(Endpoint::TerminalPriors(TerminalId(17))),
+            Some(Timestamp::from_millis(1000))
+        );
+        let previous = application.snapshot(UexEnvironment::Live);
+        let event = application
+            .refreshed(EndpointData::TerminalPriors(
+                TerminalPriors::new(TerminalId(17), vec![]).unwrap(),
+            ))
+            .unwrap();
+        assert_eq!(event.endpoint, Endpoint::TerminalPriors(TerminalId(17)));
+        assert_eq!(event.game_versions, None);
+        assert_eq!(previous.terminal_priors(TerminalId(17)), Some(&priors));
+        assert!(
+            application
+                .snapshot(UexEnvironment::Live)
+                .terminal_priors(TerminalId(17))
+                .unwrap()
+                .rows()
+                .is_empty()
+        );
+    }
+}
+
+#[test]
+#[expect(
+    non_snake_case,
+    reason = "Requirement tags use a double underscore separator."
+)]
+fn r_api_5__invalid_prior_identity_price_version_and_duplicate_assortments_are_refused() {
+    use tallyline_reference_data::api::model::{
+        InvalidPrior, PricePrior, PriorProvenance, PriorValues, TerminalPriors,
+    };
+    use tallyline_shared_kernel::api::model::TerminalId;
+    for (id, price, version) in [
+        (0, "1", "4.10.2"),
+        (1, "0", "4.10.2"),
+        (1, "1", ""),
+        (1, "1", "  "),
+    ] {
+        assert_eq!(
+            PricePrior::new(
+                CommodityId(id),
+                TradeSide::Buy,
+                PriorValues {
+                    price: price.parse().unwrap(),
+                    stock: "0".parse().unwrap(),
+                    status: None,
+                    container_sizes: vec![]
+                },
+                PriorProvenance {
+                    game_version: version.to_owned(),
+                    modified_at: Timestamp::from_seconds(1)
+                }
+            ),
+            Err(InvalidPrior)
+        );
+    }
+    let row = PricePrior::new(
+        CommodityId(1),
+        TradeSide::Buy,
+        PriorValues {
+            price: "1".parse().unwrap(),
+            stock: "0".parse().unwrap(),
+            status: None,
+            container_sizes: vec![],
+        },
+        PriorProvenance {
+            game_version: "4.9".to_owned(),
+            modified_at: Timestamp::from_seconds(1),
+        },
+    )
+    .unwrap();
+    assert_eq!(
+        TerminalPriors::new(TerminalId(0), vec![row.clone()]),
+        Err(InvalidPrior)
+    );
+    assert_eq!(
+        TerminalPriors::new(TerminalId(1), vec![row.clone(), row]),
+        Err(InvalidPrior)
+    );
+    assert!(
+        TerminalPriors::new(TerminalId(1), vec![])
+            .unwrap()
+            .rows()
+            .is_empty()
+    );
+    assert!(InvalidPrior.to_string().contains("prior"));
+}

@@ -11,6 +11,7 @@ pub use crate::averages::CommodityAverages;
 pub use crate::parameters::{
     AcceptanceSwitch, CommodityConstraints, ReferenceParameters, SubmissionAcceptance,
 };
+pub use crate::priors::{InvalidPrior, PricePrior, PriorProvenance, PriorValues, TerminalPriors};
 pub use crate::snapshot::ReferenceSnapshot;
 pub use tallyline_shared_kernel::api::model::UexEnvironment;
 /// A reference endpoint with an independent freshness window.
@@ -26,6 +27,8 @@ pub enum Endpoint {
     StatusLevels,
     /// Submission acceptance, tolerances and bounded staff text.
     Parameters,
+    /// Per-terminal LIVE price assortment and provenance.
+    TerminalPriors(TerminalId),
 }
 
 impl Endpoint {
@@ -33,6 +36,7 @@ impl Endpoint {
     #[must_use]
     pub const fn ttl_seconds(self) -> u64 {
         match self {
+            Self::TerminalPriors(_) => 1800,
             Self::Commodities => 3_600,
             Self::Terminals => 43_200,
             Self::GameVersions | Self::StatusLevels | Self::Parameters => 86_400,
@@ -123,6 +127,8 @@ pub enum EndpointData {
     StatusLevels(StatusLevels),
     /// Current submission policy and commodity constraints.
     Parameters(ReferenceParameters),
+    /// LIVE assortment fetched for one terminal.
+    TerminalPriors(TerminalPriors),
 }
 
 /// One atomically persisted successful endpoint response.
@@ -142,12 +148,13 @@ impl CachedReference {
     /// Returns the response endpoint.
     #[must_use]
     pub const fn endpoint(&self) -> Endpoint {
-        match self.data {
+        match &self.data {
             EndpointData::Commodities(_) => Endpoint::Commodities,
             EndpointData::Terminals(_) => Endpoint::Terminals,
             EndpointData::GameVersions(_) => Endpoint::GameVersions,
             EndpointData::StatusLevels(_) => Endpoint::StatusLevels,
             EndpointData::Parameters(_) => Endpoint::Parameters,
+            EndpointData::TerminalPriors(priors) => Endpoint::TerminalPriors(priors.terminal()),
         }
     }
 
