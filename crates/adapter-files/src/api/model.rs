@@ -15,3 +15,4 @@ pub struct LogoRaster {
     /// Unpremultiplied red, green, blue and alpha bytes in row order.
     pub rgba: Vec<u8>,
 }
+pub use crate::game_config::LoadedGamePreferences;

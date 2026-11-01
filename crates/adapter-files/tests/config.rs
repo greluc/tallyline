@@ -217,3 +217,71 @@ fn r_nf_5__invalid_onboarding_reports_only_the_rejected_setting_and_default() {
         assert!(!issue.rejected.contains("private-marker"));
     }
 }
+
+#[test]
+#[expect(
+    non_snake_case,
+    reason = "Requirement tags use a double underscore separator."
+)]
+fn r_ocr_20_r_nf_5__version_one_preferences_migrate_with_explicit_opt_in_and_preserve_app_settings()
+{
+    use tallyline_game::api::GameSettingsStore;
+    use tallyline_game::api::model::{GameSettings, WitnessMode};
+    let directory = TestDirectory::new().unwrap();
+    let path = directory.0.join("settings.json");
+    std::fs::write(
+        &path,
+        br#"{"schema_version":1,"app":{"theme":"light","onboarding_complete":true}}"#,
+    )
+    .unwrap();
+    let mut store = ConfigFile::new(path.clone());
+    assert_eq!(
+        store.load_game_preferences().unwrap().settings,
+        GameSettings::default()
+    );
+    store.change_game_channel("synthetic-channel").unwrap();
+    store
+        .save_game_settings(&GameSettings {
+            witness: WitnessMode::On,
+        })
+        .unwrap();
+    let loaded = ConfigFile::new(path.clone())
+        .load_game_preferences()
+        .unwrap();
+    assert_eq!(loaded.settings.witness, WitnessMode::On);
+    assert_eq!(
+        loaded.channel_directory.as_deref(),
+        Some("synthetic-channel")
+    );
+    assert_eq!(
+        store.load().unwrap().settings,
+        AppSettings::from_persisted(Theme::Light, true)
+    );
+    let document: serde_json::Value =
+        serde_json::from_slice(&std::fs::read(&path).unwrap()).unwrap();
+    assert_eq!(document.get("schema_version"), Some(&serde_json::json!(2)));
+    store.change_game_channel("another-channel").unwrap();
+    assert_eq!(
+        store.load_game_preferences().unwrap().settings.witness,
+        WitnessMode::Off
+    );
+}
+
+#[test]
+#[expect(
+    non_snake_case,
+    reason = "Requirement tags use a double underscore separator."
+)]
+fn r_ocr_20_r_nf_5__invalid_game_settings_default_off_without_echoing_private_rejected_values() {
+    let directory = TestDirectory::new().unwrap();
+    let path = directory.0.join("settings.json");
+    std::fs::write(&path,br#"{"schema_version":2,"app":{"theme":"dark","onboarding_complete":false},"game":{"log_witness":"SYNTHETIC_PRIVATE_REJECTED","channel_directory":42}}"#).unwrap();
+    let loaded = ConfigFile::new(path).load_game_preferences().unwrap();
+    assert_eq!(
+        loaded.settings.witness,
+        tallyline_game::api::model::WitnessMode::Off
+    );
+    assert_eq!(loaded.channel_directory, None);
+    assert_eq!(loaded.errors.len(), 2);
+    assert!(!format!("{:?}", loaded.errors).contains("SYNTHETIC_"));
+}

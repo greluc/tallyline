@@ -6,6 +6,8 @@ All notable changes are recorded here.
 
 ### Added
 
+- Added an optional, default-off Game.log witness with channel selection, safe unavailability reasons and sanitised facts in Settings and the offline eval tool. Only the documented build and finite mapping allowlist are accepted; logs never supply reported prices, quantities or status values, and settings migrate forwards to schema 2 (R-OCR-20, R-NF-5).
+
 - A second installed or portable launch activates the existing window through local IPC. Both writer locks remain held for the application lifetime; failed activation shows an already-running notice and never starts another writer (R-NF-10).
 
 - Added the native desktop shell with first-launch onboarding, dark, light and high-contrast themes, offline legal notices and persistent application settings. The workspace and Settings have clear Home/Done navigation, and Settings failures remain visible without taking focus; installed and portable builds keep state in their documented directories (R-UI-7:theme, R-UI-8, R-UI-16, R-UI-18, R-UI-19:app, R-L10N-1, R-NF-2:portable, R-NF-5, R-NF-8).

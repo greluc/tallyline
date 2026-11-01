@@ -32,13 +32,14 @@ fn run(arguments: &[String]) -> Result<String, String> {
     let private = std::env::var_os("TALLYLINE_CORPUS_DIR").map(PathBuf::from);
     let default_public = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../corpus/public");
     match arguments.iter().map(String::as_str).collect::<Vec<_>>().as_slice() {
+        ["witness", "--channel", channel] => serde_json::to_string_pretty(&tallyline_adapter_files::api::GameLogFiles::new(PathBuf::from(channel)).evaluate()).map_err(|_| "witness output could not be encoded".to_owned()),
         ["inspect"] => inspect(&default_public, private.as_deref()),
         ["inspect", "--public", public] => inspect(Path::new(public), private.as_deref()),
         ["annotate", expected, anchors, proposal] => {
             ocr_eval::corpus::annotate(Path::new(expected), Path::new(anchors), Path::new(proposal))?;
             Ok("Unverified proposal written; expected.json is unchanged.".to_owned())
         }
-        _ => Err("usage: ocr-eval inspect [--public <directory>] | annotate <expected.json> <anchors.json> <proposal.json>".to_owned()),
+        _ => Err("usage: ocr-eval witness --channel <directory> | inspect [--public <directory>] | annotate <expected.json> <anchors.json> <proposal.json>".to_owned()),
     }
 }
 

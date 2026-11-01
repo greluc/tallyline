@@ -209,3 +209,51 @@ fn r_ui_18__about_identifies_the_fixed_development_version_and_platform() -> Out
     );
     Ok(())
 }
+
+#[test]
+#[expect(
+    non_snake_case,
+    reason = "Requirement tags use a double underscore separator."
+)]
+fn r_ocr_20__settings_shows_default_off_and_emits_only_explicit_witness_commands() -> Outcome {
+    use tallyline_game::api::model::{
+        GameSettings, WitnessMode, WitnessSnapshot, WitnessUnavailable,
+    };
+    use tallyline_ui::api::model::GameWitnessView;
+    let mut harness = harness()?;
+    harness.state_mut().shell.show_settings();
+    harness.run();
+    assert!(harness.query_by_label("Game log witness off").is_some());
+    harness
+        .get_by_label("Enable read-only Game.log witness")
+        .click();
+    harness.run();
+    assert_eq!(
+        harness.state().commands,
+        vec![SettingsCommand::ChangeWitnessMode(WitnessMode::On)]
+    );
+    assert_eq!(
+        harness.state().shell.game_witness().settings.witness,
+        WitnessMode::Off
+    );
+    harness
+        .state_mut()
+        .shell
+        .receive(BackgroundEvent::GameWitnessLoaded(GameWitnessView {
+            settings: GameSettings {
+                witness: WitnessMode::On,
+            },
+            channel_directory: None,
+            snapshot: WitnessSnapshot::Unavailable(WitnessUnavailable::UnvalidatedBuild),
+        }));
+    harness.run();
+    assert!(
+        harness
+            .query_by_label(
+                "Game log witness unavailable: this exact build and branch have not been validated."
+            )
+            .is_some()
+    );
+    assert!(!harness.state().shell.dialogs().about_open());
+    Ok(())
+}

@@ -1,0 +1,44 @@
+// SPDX-FileCopyrightText: 2026 Lucas Greuloch
+// SPDX-License-Identifier: GPL-3.0-or-later
+
+//! Shared numeric identities and precise Unix timestamps.
+
+use std::time::Duration;
+
+/// Unix time with millisecond precision and the full unsigned-second range.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
+pub struct Timestamp(Duration);
+
+impl Timestamp {
+    /// Creates a timestamp from Unix seconds.
+    #[must_use]
+    pub const fn from_seconds(seconds: u64) -> Self {
+        Self(Duration::from_secs(seconds))
+    }
+
+    /// Creates a timestamp from Unix milliseconds.
+    #[must_use]
+    pub const fn from_millis(millis: u64) -> Self {
+        Self(Duration::from_millis(millis))
+    }
+
+    /// Returns whole Unix seconds.
+    #[must_use]
+    pub const fn seconds(self) -> u64 {
+        self.0.as_secs()
+    }
+
+    /// Returns exact Unix milliseconds without overflowing the second range.
+    #[must_use]
+    pub const fn millis(self) -> u128 {
+        self.0.as_millis()
+    }
+}
+
+/// The numeric UEX commodity identity.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct CommodityId(pub u32);
+
+/// The numeric UEX terminal identity.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct TerminalId(pub u32);

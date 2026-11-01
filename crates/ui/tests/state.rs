@@ -219,3 +219,78 @@ fn r_ui_18__the_elected_licence_keeps_its_separate_upstream_declaration() {
         Some("MIT OR Apache-2.0")
     );
 }
+
+#[test]
+#[expect(
+    non_snake_case,
+    reason = "Requirement tags use a double underscore separator."
+)]
+fn r_ocr_20_r_ui_16__witness_opt_in_waits_for_worker_confirmation_and_never_opens_a_dialog() {
+    use tallyline_game::api::model::{
+        GameSettings, WitnessMode, WitnessSnapshot, WitnessUnavailable,
+    };
+    use tallyline_ui::api::model::{GameWitnessView, SettingsCommand, UserAction};
+    let mut shell = ShellState::default();
+    shell.receive(BackgroundEvent::SettingsLoaded(
+        tallyline_workflows::api::model::AppSettings::default(),
+    ));
+    shell.show_settings();
+    assert_eq!(
+        shell.act(UserAction::ChangeWitnessMode(WitnessMode::On)),
+        Some(SettingsCommand::ChangeWitnessMode(WitnessMode::On))
+    );
+    assert_eq!(shell.game_witness().settings.witness, WitnessMode::Off);
+    let view = GameWitnessView {
+        settings: GameSettings {
+            witness: WitnessMode::On,
+        },
+        channel_directory: Some("SYNTHETIC_PRIVATE_PATH".to_owned()),
+        snapshot: WitnessSnapshot::Unavailable(WitnessUnavailable::UnvalidatedBuild),
+    };
+    assert!(!format!("{view:?}").contains("SYNTHETIC_"));
+    shell.receive(BackgroundEvent::GameWitnessLoaded(view));
+    assert_eq!(shell.game_witness().settings.witness, WitnessMode::On);
+    assert_eq!(shell.view(), View::Settings);
+    assert!(!shell.dialogs().about_open());
+    assert!(!shell.busy());
+}
+
+#[test]
+#[expect(
+    non_snake_case,
+    reason = "Requirement tags use a double underscore separator."
+)]
+fn r_ocr_20__channel_selection_and_refresh_are_explicit_worker_commands() {
+    use tallyline_ui::api::model::{GameWitnessView, SettingsCommand, UserAction};
+    let mut shell = ShellState::default();
+    shell.receive(BackgroundEvent::SettingsLoaded(
+        tallyline_workflows::api::model::AppSettings::default(),
+    ));
+    assert_eq!(
+        shell.act(UserAction::ChooseGameChannel(
+            "synthetic-channel".to_owned()
+        )),
+        Some(SettingsCommand::ChangeGameChannel(
+            "synthetic-channel".to_owned()
+        ))
+    );
+    shell.receive(BackgroundEvent::GameWitnessLoaded(
+        GameWitnessView::default(),
+    ));
+    assert_eq!(
+        shell.act(UserAction::RefreshWitness),
+        Some(SettingsCommand::RefreshWitness)
+    );
+}
+
+#[test]
+#[expect(
+    non_snake_case,
+    reason = "Requirement tags use a double underscore separator."
+)]
+fn r_ocr_20__channel_selection_commands_do_not_disclose_the_local_path_in_debug_output() {
+    let command = tallyline_ui::api::model::SettingsCommand::ChangeGameChannel(
+        "SYNTHETIC_PRIVATE_PATH".to_owned(),
+    );
+    assert!(!format!("{command:?}").contains("SYNTHETIC_"));
+}

@@ -14,7 +14,7 @@
 | [`images/fankit/`](images/fankit/) | The Star Citizen Fan Kit logo files only; they are not under the project licence (`NOTICE` §4, `REUSE.toml`) |
 | [`user/`](user/) | The user guide (R-DOC-1) and contributor corpus capture protocol; its images are redacted screenshots only |
 | [`release-process.md`](release-process.md) | Versioning, release checklist, upgrade and downgrade, Star Citizen patch-day and UEX API-change procedures |
-| [`game-log-validation.md`](game-log-validation.md) | Completed initial R-OCR-20 Game.log spike (issue #107): validated build/format and finite mapping allowlist, measured capture offsets, synthetic specimens and explicit unsupported scope; parser/privacy implementation remains #108 |
+| [`game-log-validation.md`](game-log-validation.md) | Completed initial R-OCR-20 Game.log spike (issue #107): validated build/format and finite mapping allowlist, measured capture offsets, synthetic specimens and explicit unsupported scope; initial #108 parser/privacy scope, local header check and later integration obligations |
 | [`dependency-pins.md`](dependency-pins.md) | The tags of SHA-pinned GitHub Actions and the versions and checksums of CI tools (including the pinned WiX and `cargo-packager`) |
 | [`cla-signatures.md`](cla-signatures.md) | The public roster of CLA signatures |
 

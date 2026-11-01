@@ -617,6 +617,8 @@ pub enum ImportMode { Manual, Automatic }
 
 ## 5. Reference data (`reference-data`, fetching in `adapter-uex`, cache in `adapter-storage`)
 
+Implementation status 2026-11-01: the initial `reference-data` application loads typed cached commodity records before network work, preserves successful fetch times after failures and publishes refreshed records only after atomic persistence succeeds. Corrected 2026-11-01: `shared-kernel` supplies `Clock`, Unix timestamps with millisecond precision (`Timestamp`) and `CommodityId`. Its public acceptance seam covers expired-cache search, explicit empty-cache state and failed persistence. SQLite, the remaining endpoint models and desktop wiring are still being implemented; this initial core slice does not complete issue #81.
+
 - The endpoints and TTLs are in [06-uex-api.md](06-uex-api.md). At startup, data is loaded from the cache (immediately usable), then refreshed in the background.
 - **In-memory indexes:**
   - Commodity names (EN, localised, code)
@@ -801,6 +803,8 @@ The privacy gate ([CLAUDE.md](../../CLAUDE.md), R-NF-12) allows user data to lea
 |---|---|---|---|---|---|
 | G2 | token data file next to the executable | built-in Tallyline app token; read through `SecretStore`, never logged or shown | when needed for authenticated UEX requests | release installation; user-token override | R-NF-4, O-139 |
 | G1 | the game's `Game.log` of the capture's channel, and its `build_manifest.id` | witness facts only: kiosk location, buy-side assortment, container sizes per commodity, branch and build version, each with its log time; kept with the scan in L3. The player's handle and player ID, network endpoints, addresses, session IDs and user paths are dropped while parsing and never stored, logged or exported; stock quantities and prices are never used. Never part of the diagnostics export | while the witness is on, for captures of a game version whose line format is validated | opt-in, default off (`GameSettingsStore`) | R-OCR-20, A24 |
+
+**Initial witness implementation, 2026-11-01:** `game::api` owns `GameLogSource`, `GameSettingsStore`, save-before-apply opt-in and typed `WitnessSnapshot`/`ShopInventoryFact` read models. `adapter-files` streams the selected manifest/log under bounded reads, immediately maps only the validated finite names, and exposes closed unavailability reasons without OS errors or raw source text. The current composition roots retain facts in memory and show them in Settings or explicit eval output; the channel path and opt-in alone persist in config schema 2. Scan-linked L3 persistence and the L7 exporter remain their future workflows' obligations: neither may introduce raw game data or export witness observations. The parser has no price, quantity, status, Reader or submission API. Resolution will apply the matching and side rules of 07 §2.5 item 6; these initial source facts do not resolve reports themselves.
 
 ## 10. Build and CI
 

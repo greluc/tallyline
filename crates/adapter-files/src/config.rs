@@ -69,11 +69,12 @@ impl ConfigFile {
                 });
             }
         };
-        if document
-            .get("schema_version")
-            .and_then(serde_json::Value::as_u64)
-            != Some(1)
-        {
+        if !matches!(
+            document
+                .get("schema_version")
+                .and_then(serde_json::Value::as_u64),
+            Some(1 | 2)
+        ) {
             return Err(io::Error::new(
                 io::ErrorKind::InvalidData,
                 "unsupported settings schema version",
@@ -128,7 +129,6 @@ impl ConfigFile {
 
 impl AppSettingsStore for ConfigFile {
     type Error = io::Error;
-
     fn save(&mut self, settings: &AppSettings) -> io::Result<()> {
         let theme = match settings.theme() {
             Theme::System => "system",
@@ -136,31 +136,51 @@ impl AppSettingsStore for ConfigFile {
             Theme::Light => "light",
             Theme::HighContrast => "high_contrast",
         };
-        let mut document: serde_json::Value = match fs::read(&self.path) {
+        let mut document = self.read_document()?;
+        Self::object(&mut document)?.insert(
+            "app".to_owned(),
+            serde_json::json!({"theme":theme,"onboarding_complete":settings.onboarding_complete()}),
+        );
+        self.write_document(document)
+    }
+}
+
+impl ConfigFile {
+    pub(crate) fn object(
+        document: &mut serde_json::Value,
+    ) -> io::Result<&mut serde_json::Map<String, serde_json::Value>> {
+        document.as_object_mut().ok_or_else(|| {
+            io::Error::new(
+                io::ErrorKind::InvalidData,
+                "settings document is not an object",
+            )
+        })
+    }
+    pub(crate) fn read_document(&self) -> io::Result<serde_json::Value> {
+        let document: serde_json::Value = match fs::read(&self.path) {
             Ok(content) => serde_json::from_slice(&content)
-                .map_err(|error| io::Error::new(io::ErrorKind::InvalidData, error))?,
+                .map_err(|_| io::Error::new(io::ErrorKind::InvalidData, "invalid settings JSON"))?,
             Err(error) if error.kind() == io::ErrorKind::NotFound => {
-                serde_json::json!({ "schema_version": 1 })
+                serde_json::json!({"schema_version":2})
             }
             Err(error) => return Err(error),
         };
-        if document
-            .get("schema_version")
-            .and_then(serde_json::Value::as_u64)
-            != Some(1)
-        {
+        if !matches!(
+            document
+                .get("schema_version")
+                .and_then(serde_json::Value::as_u64),
+            Some(1 | 2)
+        ) {
             return Err(io::Error::new(
                 io::ErrorKind::InvalidData,
                 "unsupported settings schema version",
             ));
         }
-        let sections = document.as_object_mut().ok_or_else(|| {
-            io::Error::new(
-                io::ErrorKind::InvalidData,
-                "settings document is not an object",
-            )
-        })?;
-        sections.insert("app".to_owned(), serde_json::json!({ "theme": theme, "onboarding_complete": settings.onboarding_complete() }));
+        Ok(document)
+    }
+
+    pub(crate) fn write_document(&mut self, mut document: serde_json::Value) -> io::Result<()> {
+        Self::object(&mut document)?.insert("schema_version".to_owned(), serde_json::json!(2));
         let content = serde_json::to_vec_pretty(&document)?;
         let temporary = self.path.with_extension("json.pending");
         let mut file = OpenOptions::new()
