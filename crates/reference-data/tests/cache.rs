@@ -4,11 +4,12 @@
 //! Reference application acceptance tests.
 
 use tallyline_reference_data::api::model::{
-    CachedReference, Commodity, Endpoint, EndpointData, ReferenceState, UexEnvironment,
+    CachedReference, Commodity, CommodityAverages, Endpoint, EndpointData, ReferenceState,
+    UexEnvironment,
 };
 use tallyline_reference_data::api::{ReferenceApplication, ReferenceDataCache};
 use tallyline_shared_kernel::api::Clock;
-use tallyline_shared_kernel::api::model::{CommodityId, Timestamp};
+use tallyline_shared_kernel::api::model::{CommodityId, Timestamp, TradeSide};
 
 struct FixedClock;
 impl Clock for FixedClock {
@@ -43,7 +44,7 @@ fn r_api_1_r_ui_13__expired_cached_vocabulary_is_searchable_before_refresh_and_s
             "Agricium",
             "AGRI",
             true,
-            Some(120),
+            CommodityAverages::new(Some("120".parse().unwrap()), None),
         )]),
     );
     let mut application =
@@ -105,7 +106,7 @@ fn r_api_1__successful_refresh_becomes_visible_only_after_atomic_persistence() {
         "Agricium",
         "AGRI",
         true,
-        Some(120),
+        CommodityAverages::new(Some("120".parse().unwrap()), None),
     )]);
     assert_eq!(application.refreshed(data), Err("read-only"));
     assert!(application.commodities(UexEnvironment::Live, "").is_empty());
@@ -118,7 +119,7 @@ fn r_api_1__successful_refresh_becomes_visible_only_after_atomic_persistence() {
             "Agricium",
             "AGRI",
             true,
-            Some(120),
+            CommodityAverages::new(Some("120".parse().unwrap()), None),
         )]))
         .unwrap();
     assert_eq!(
@@ -138,8 +139,20 @@ fn r_api_6__ptu_includes_unavailable_live_vocabulary_without_live_average_substi
     let cached = CachedReference::new(
         Timestamp::from_seconds(100),
         EndpointData::Commodities(vec![
-            Commodity::new(CommodityId(7), "Test Ore", "SHARED", false, Some(82)),
-            Commodity::new(CommodityId(8), "Live Ore", "SHARED", true, Some(120)),
+            Commodity::new(
+                CommodityId(7),
+                "Test Ore",
+                "SHARED",
+                false,
+                CommodityAverages::new(Some("82".parse().unwrap()), None),
+            ),
+            Commodity::new(
+                CommodityId(8),
+                "Live Ore",
+                "SHARED",
+                true,
+                CommodityAverages::new(Some("120".parse().unwrap()), None),
+            ),
         ]),
     );
     let application = ReferenceApplication::load(MemoryCache(vec![cached]), FixedClock).unwrap();
@@ -156,14 +169,16 @@ fn r_api_6__ptu_includes_unavailable_live_vocabulary_without_live_average_substi
         items.iter().map(|item| item.id()).collect::<Vec<_>>(),
         vec![CommodityId(7), CommodityId(8)]
     );
-    assert!(
-        items
-            .iter()
-            .all(|item| item.average_price(UexEnvironment::Ptu).is_none())
-    );
+    assert!(items.iter().all(|item| {
+        item.average_price(UexEnvironment::Ptu, TradeSide::Buy)
+            .is_none()
+    }));
     assert_eq!(
-        items.first().unwrap().average_price(UexEnvironment::Live),
-        Some(82)
+        items
+            .first()
+            .unwrap()
+            .average_price(UexEnvironment::Live, TradeSide::Buy),
+        Some("82".parse().unwrap())
     );
     assert_eq!(
         application.commodities(UexEnvironment::Ptu, "TEST").len(),
@@ -207,7 +222,13 @@ fn r_api_1__commodity_refresh_is_due_at_the_one_hour_boundary() {
 fn r_api_1__later_success_replaces_old_records_and_clears_offline_state() {
     let old = CachedReference::new(
         Timestamp::from_seconds(100),
-        EndpointData::Commodities(vec![Commodity::new(CommodityId(1), "Old", "A", true, None)]),
+        EndpointData::Commodities(vec![Commodity::new(
+            CommodityId(1),
+            "Old",
+            "A",
+            true,
+            CommodityAverages::default(),
+        )]),
     );
     let mut application = ReferenceApplication::load(MemoryCache(vec![old]), FixedClock).unwrap();
     application.refresh_failed(Endpoint::Commodities);
@@ -217,7 +238,7 @@ fn r_api_1__later_success_replaces_old_records_and_clears_offline_state() {
             "New",
             "B",
             true,
-            None,
+            CommodityAverages::default(),
         )]))
         .unwrap();
     assert_eq!(application.state(), ReferenceState::Cached);
@@ -534,8 +555,20 @@ fn r_api_6__environment_snapshots_physically_remove_live_averages_and_remain_imm
         MemoryCache(vec![CachedReference::new(
             Timestamp::from_seconds(100),
             EndpointData::Commodities(vec![
-                Commodity::new(CommodityId(7), "Test Ore", "SAME", false, Some(82)),
-                Commodity::new(CommodityId(8), "Live Ore", "SAME", true, Some(120)),
+                Commodity::new(
+                    CommodityId(7),
+                    "Test Ore",
+                    "SAME",
+                    false,
+                    CommodityAverages::new(Some("82".parse().unwrap()), None),
+                ),
+                Commodity::new(
+                    CommodityId(8),
+                    "Live Ore",
+                    "SAME",
+                    true,
+                    CommodityAverages::new(Some("120".parse().unwrap()), None),
+                ),
             ]),
         )]),
         FixedClock,
@@ -544,19 +577,19 @@ fn r_api_6__environment_snapshots_physically_remove_live_averages_and_remain_imm
     let ptu = application.snapshot(UexEnvironment::Ptu);
     assert_eq!(ptu.environment(), UexEnvironment::Ptu);
     assert_eq!(ptu.commodities("same").len(), 2);
-    assert!(
-        ptu.commodities("")
-            .iter()
-            .all(|commodity| commodity.average_price(UexEnvironment::Live).is_none())
-    );
+    assert!(ptu.commodities("").iter().all(|commodity| {
+        commodity
+            .average_price(UexEnvironment::Live, TradeSide::Buy)
+            .is_none()
+    }));
     assert_eq!(ptu.commodities("TEST")[0].id(), CommodityId(7));
     assert!(!ptu.commodities("TEST")[0].available(UexEnvironment::Live));
     assert!(ptu.commodities("unmatched").is_empty());
     let live = application.snapshot(UexEnvironment::Live);
     assert_eq!(live.commodities("").len(), 1);
     assert_eq!(
-        live.commodities("")[0].average_price(UexEnvironment::Live),
-        Some(120)
+        live.commodities("")[0].average_price(UexEnvironment::Live, TradeSide::Buy),
+        Some("120".parse().unwrap())
     );
     application
         .refreshed(EndpointData::Commodities(vec![Commodity::new(
@@ -564,7 +597,7 @@ fn r_api_6__environment_snapshots_physically_remove_live_averages_and_remain_imm
             "Later Ore",
             "LATER",
             true,
-            None,
+            CommodityAverages::default(),
         )]))
         .unwrap();
     application.refresh_failed(Endpoint::Commodities);
@@ -669,4 +702,380 @@ fn r_api_1_r_api_6__snapshots_search_terminal_context_and_retain_typed_metadata(
     assert_eq!(empty.status_levels(), None);
     assert_eq!(empty.fetched_at(Endpoint::Commodities), None);
     assert_eq!(empty.state(), ReferenceState::NoReferenceData);
+}
+
+#[test]
+#[expect(
+    non_snake_case,
+    reason = "Requirement tags use a double underscore separator."
+)]
+fn r_api_6_r_val_2a__side_specific_exact_averages_are_never_retained_in_ptu_snapshots() {
+    use tallyline_reference_data::api::model::CommodityAverages;
+    use tallyline_shared_kernel::api::model::TradeSide;
+    let buy = "9007199254740993.125".parse().unwrap();
+    let sell = "97.25".parse().unwrap();
+    let commodity = Commodity::new(
+        CommodityId(1),
+        "Exact Ore",
+        "EX",
+        true,
+        CommodityAverages::new(Some(buy), Some(sell)),
+    );
+    let application = ReferenceApplication::load(
+        MemoryCache(vec![CachedReference::new(
+            Timestamp::from_seconds(1),
+            EndpointData::Commodities(vec![commodity]),
+        )]),
+        FixedClock,
+    )
+    .unwrap();
+    let live = application.snapshot(UexEnvironment::Live);
+    let live = live.commodities("");
+    assert_eq!(
+        live[0].average_price(UexEnvironment::Live, TradeSide::Buy),
+        Some(buy)
+    );
+    assert_eq!(
+        live[0].average_price(UexEnvironment::Live, TradeSide::Sell),
+        Some(sell)
+    );
+    let ptu = application.snapshot(UexEnvironment::Ptu);
+    for side in [TradeSide::Buy, TradeSide::Sell] {
+        assert_eq!(
+            ptu.commodities("")[0].average_price(UexEnvironment::Live, side),
+            None
+        );
+        assert_eq!(live[0].average_price(UexEnvironment::Ptu, side), None);
+    }
+    let zero = "0".parse().unwrap();
+    let zero = Commodity::new(
+        CommodityId(2),
+        "Missing",
+        "ZERO",
+        true,
+        CommodityAverages::new(Some(zero), Some(zero)),
+    );
+    assert_eq!(
+        zero.average_price(UexEnvironment::Live, TradeSide::Buy),
+        None
+    );
+    assert_eq!(
+        zero.average_price(UexEnvironment::Live, TradeSide::Sell),
+        None
+    );
+}
+
+#[test]
+#[expect(
+    non_snake_case,
+    reason = "Requirement tags use a double underscore separator."
+)]
+fn r_api_6__terminal_container_limit_is_optional_immutable_and_retained_in_snapshots() {
+    use tallyline_reference_data::api::model::{Terminal, TerminalText};
+    use tallyline_shared_kernel::api::model::TerminalId;
+    let original = Terminal::new(
+        TerminalId(1),
+        TerminalText {
+            name: "Trade".to_owned(),
+            nickname: String::new(),
+            display_name: String::new(),
+            location: String::new(),
+        },
+        true,
+    );
+    let changed = original
+        .clone()
+        .with_max_container_size(std::num::NonZeroU32::new(24));
+    assert_eq!(original.max_container_size(), None);
+    assert_eq!(changed.max_container_size().unwrap().get(), 24);
+    let application = ReferenceApplication::load(
+        MemoryCache(vec![CachedReference::new(
+            Timestamp::from_seconds(1),
+            EndpointData::Terminals(vec![changed]),
+        )]),
+        FixedClock,
+    )
+    .unwrap();
+    for environment in [UexEnvironment::Live, UexEnvironment::Ptu] {
+        assert_eq!(
+            application.snapshot(environment).terminals("")[0]
+                .max_container_size()
+                .unwrap()
+                .get(),
+            24
+        );
+    }
+}
+
+#[test]
+#[expect(
+    non_snake_case,
+    reason = "Requirement tags use a double underscore separator."
+)]
+fn r_api_1_r_sub_5_r_ui_8__closed_submission_parameters_do_not_remove_cached_browsing_or_interpret_staff_text()
+ {
+    use tallyline_reference_data::api::model::{
+        CommodityConstraints, ReferenceParameters, SubmissionAcceptance,
+    };
+    let constraints = CommodityConstraints {
+        price_variation_percent: 25,
+        prior_ttl_days: std::num::NonZeroU32::new(15).unwrap(),
+        scu_variation_percent: 5000,
+    };
+    for bits in 0..16 {
+        let acceptance = SubmissionAcceptance {
+            datacenter: (bits & 1 != 0).into(),
+            reports: (bits & 2 != 0).into(),
+            commodity: (bits & 4 != 0).into(),
+            ptu: (bits & 8 != 0).into(),
+        };
+        assert_eq!(acceptance.allows(UexEnvironment::Live), bits & 7 == 7);
+        assert_eq!(acceptance.allows(UexEnvironment::Ptu), bits & 13 == 13);
+    }
+    let notification = format!("<b>&amp;</b>{}", "🛰".repeat(300));
+    let parameters = ReferenceParameters::new(
+        SubmissionAcceptance {
+            datacenter: (false).into(),
+            reports: (true).into(),
+            commodity: (true).into(),
+            ptu: (true).into(),
+        },
+        constraints,
+        Some(&notification),
+    );
+    let application = ReferenceApplication::load(
+        MemoryCache(vec![
+            CachedReference::new(
+                Timestamp::from_seconds(1),
+                EndpointData::Commodities(vec![Commodity::new(
+                    CommodityId(1),
+                    "Ore",
+                    "ORE",
+                    true,
+                    CommodityAverages::default(),
+                )]),
+            ),
+            CachedReference::new(
+                Timestamp::from_seconds(1),
+                EndpointData::Parameters(parameters),
+            ),
+        ]),
+        FixedClock,
+    )
+    .unwrap();
+    let snapshot = application.snapshot(UexEnvironment::Live);
+    assert_eq!(snapshot.commodities("ore").len(), 1);
+    let parameters = snapshot.parameters().unwrap();
+    assert!(!parameters.acceptance().allows(UexEnvironment::Live));
+    assert_eq!(parameters.constraints(), constraints);
+    let text = parameters.staff_notification().unwrap();
+    assert!(text.starts_with("<b>&amp;</b>"));
+    assert_eq!(text.chars().count(), 280);
+}
+
+#[test]
+#[expect(
+    non_snake_case,
+    reason = "Requirement tags use a double underscore separator."
+)]
+fn r_api_1_r_sub_5__parameter_cache_has_daily_ttl_and_fifteen_minute_send_freshness() {
+    use tallyline_reference_data::api::model::{
+        CommodityConstraints, ReferenceParameters, SubmissionAcceptance,
+    };
+    let parameters = ReferenceParameters::new(
+        SubmissionAcceptance {
+            datacenter: (true).into(),
+            reports: (true).into(),
+            commodity: (true).into(),
+            ptu: (false).into(),
+        },
+        CommodityConstraints {
+            price_variation_percent: 25,
+            prior_ttl_days: std::num::NonZeroU32::new(15).unwrap(),
+            scu_variation_percent: 5000,
+        },
+        None,
+    );
+    for (now, send_due, daily_due) in [
+        (1000, false, false),
+        (900999, false, false),
+        (901000, true, false),
+        (86400999, true, false),
+        (86401000, true, true),
+        (999, true, true),
+    ] {
+        let cached = CachedReference::new(
+            Timestamp::from_millis(1000),
+            EndpointData::Parameters(parameters.clone()),
+        );
+        let mut application =
+            ReferenceApplication::load(MemoryCache(vec![cached]), MillisecondClock(now)).unwrap();
+        assert_eq!(application.due().contains(&Endpoint::Parameters), daily_due);
+        assert_eq!(
+            application
+                .due_before_send()
+                .contains(&Endpoint::Parameters),
+            send_due
+        );
+        application.refresh_failed(Endpoint::Parameters);
+        assert_eq!(
+            application.snapshot(UexEnvironment::Live).parameters(),
+            Some(&parameters)
+        );
+    }
+    let empty = ReferenceApplication::load(MemoryCache(vec![]), At(0)).unwrap();
+    assert!(empty.due_before_send().contains(&Endpoint::Parameters));
+}
+
+#[test]
+#[expect(
+    non_snake_case,
+    reason = "Requirement tags use a double underscore separator."
+)]
+fn r_api_1_r_api_6__terminal_priors_expire_after_thirty_minutes_and_are_physically_absent_from_ptu()
+{
+    use tallyline_reference_data::api::model::{
+        PricePrior, PriorProvenance, PriorValues, TerminalPriors,
+    };
+    use tallyline_shared_kernel::api::model::{ContainerSize, TerminalId};
+    let stock = "0.0625".parse().unwrap();
+    let values = PriorValues {
+        price: "97.125".parse().unwrap(),
+        stock,
+        status: std::num::NonZeroU8::new(2),
+        container_sizes: vec![ContainerSize::Scu1, ContainerSize::Scu16],
+    };
+    let provenance = PriorProvenance {
+        game_version: "4.10.2".to_owned(),
+        modified_at: Timestamp::from_seconds(12345),
+    };
+    let row = PricePrior::new(
+        CommodityId(7),
+        TradeSide::Sell,
+        values.clone(),
+        provenance.clone(),
+    )
+    .unwrap();
+    let priors = TerminalPriors::new(TerminalId(17), vec![row.clone()]).unwrap();
+    for (now, due) in [(1800999, false), (1801000, true), (999, true)] {
+        let mut application = ReferenceApplication::load(
+            MemoryCache(vec![CachedReference::new(
+                Timestamp::from_millis(1000),
+                EndpointData::TerminalPriors(priors.clone()),
+            )]),
+            MillisecondClock(now),
+        )
+        .unwrap();
+        assert_eq!(application.terminal_priors_due(TerminalId(17)), due);
+        assert!(application.terminal_priors_due(TerminalId(18)));
+        let live = application.snapshot(UexEnvironment::Live);
+        let cached = live.terminal_priors(TerminalId(17)).unwrap();
+        assert_eq!(cached.terminal(), TerminalId(17));
+        assert_eq!(cached.rows(), std::slice::from_ref(&row));
+        assert_eq!(cached.rows()[0].commodity(), CommodityId(7));
+        assert_eq!(cached.rows()[0].side(), TradeSide::Sell);
+        assert_eq!(cached.rows()[0].values(), &values);
+        assert_eq!(cached.rows()[0].provenance(), &provenance);
+        assert!(live.terminal_priors(TerminalId(18)).is_none());
+        let ptu = application.snapshot(UexEnvironment::Ptu);
+        assert!(ptu.terminal_priors(TerminalId(17)).is_none());
+        assert_eq!(
+            ptu.fetched_at(Endpoint::TerminalPriors(TerminalId(17))),
+            None
+        );
+        application.refresh_failed(Endpoint::TerminalPriors(TerminalId(17)));
+        assert_eq!(
+            application
+                .snapshot(UexEnvironment::Live)
+                .terminal_priors(TerminalId(17)),
+            Some(&priors)
+        );
+        assert_eq!(
+            application.fetched_at(Endpoint::TerminalPriors(TerminalId(17))),
+            Some(Timestamp::from_millis(1000))
+        );
+        let previous = application.snapshot(UexEnvironment::Live);
+        let event = application
+            .refreshed(EndpointData::TerminalPriors(
+                TerminalPriors::new(TerminalId(17), vec![]).unwrap(),
+            ))
+            .unwrap();
+        assert_eq!(event.endpoint, Endpoint::TerminalPriors(TerminalId(17)));
+        assert_eq!(event.game_versions, None);
+        assert_eq!(previous.terminal_priors(TerminalId(17)), Some(&priors));
+        assert!(
+            application
+                .snapshot(UexEnvironment::Live)
+                .terminal_priors(TerminalId(17))
+                .unwrap()
+                .rows()
+                .is_empty()
+        );
+    }
+}
+
+#[test]
+#[expect(
+    non_snake_case,
+    reason = "Requirement tags use a double underscore separator."
+)]
+fn r_api_5__invalid_prior_identity_price_version_and_duplicate_assortments_are_refused() {
+    use tallyline_reference_data::api::model::{
+        InvalidPrior, PricePrior, PriorProvenance, PriorValues, TerminalPriors,
+    };
+    use tallyline_shared_kernel::api::model::TerminalId;
+    for (id, price, version) in [
+        (0, "1", "4.10.2"),
+        (1, "0", "4.10.2"),
+        (1, "1", ""),
+        (1, "1", "  "),
+    ] {
+        assert_eq!(
+            PricePrior::new(
+                CommodityId(id),
+                TradeSide::Buy,
+                PriorValues {
+                    price: price.parse().unwrap(),
+                    stock: "0".parse().unwrap(),
+                    status: None,
+                    container_sizes: vec![]
+                },
+                PriorProvenance {
+                    game_version: version.to_owned(),
+                    modified_at: Timestamp::from_seconds(1)
+                }
+            ),
+            Err(InvalidPrior)
+        );
+    }
+    let row = PricePrior::new(
+        CommodityId(1),
+        TradeSide::Buy,
+        PriorValues {
+            price: "1".parse().unwrap(),
+            stock: "0".parse().unwrap(),
+            status: None,
+            container_sizes: vec![],
+        },
+        PriorProvenance {
+            game_version: "4.9".to_owned(),
+            modified_at: Timestamp::from_seconds(1),
+        },
+    )
+    .unwrap();
+    assert_eq!(
+        TerminalPriors::new(TerminalId(0), vec![row.clone()]),
+        Err(InvalidPrior)
+    );
+    assert_eq!(
+        TerminalPriors::new(TerminalId(1), vec![row.clone(), row]),
+        Err(InvalidPrior)
+    );
+    assert!(
+        TerminalPriors::new(TerminalId(1), vec![])
+            .unwrap()
+            .rows()
+            .is_empty()
+    );
+    assert!(InvalidPrior.to_string().contains("prior"));
 }

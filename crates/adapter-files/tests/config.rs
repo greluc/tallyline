@@ -792,3 +792,25 @@ fn r_cap_3a__invalid_mapping_reports_safe_defaults_without_disclosing_raw_values
         assert!(!format!("{:?}", loaded.errors).contains("private-marker"));
     }
 }
+
+#[test]
+#[expect(
+    non_snake_case,
+    reason = "Requirement tags use a double underscore separator."
+)]
+fn r_nf_11__backup_source_preserves_exact_known_bytes_and_refuses_unknown_schemas() {
+    let directory = TestDirectory::new().unwrap();
+    let path = directory.0.join("settings.json");
+    let store = ConfigFile::new(path.clone());
+    assert!(store.backup_source().unwrap().is_none());
+    let previous = br#"{ "schema_version":3,"app":{"theme":"light"}}"#;
+    std::fs::write(&path, previous).unwrap();
+    let source = store.backup_source().unwrap().unwrap();
+    assert_eq!(source.schema, 3);
+    assert_eq!(source.bytes, previous);
+    for invalid in [br#"{"schema_version":5}"#.as_slice(), br#"not JSON"#] {
+        std::fs::write(&path, invalid).unwrap();
+        assert!(store.backup_source().is_err());
+        assert_eq!(std::fs::read(&path).unwrap(), invalid);
+    }
+}

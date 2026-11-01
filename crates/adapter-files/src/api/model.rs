@@ -16,3 +16,12 @@ pub struct LogoRaster {
     pub rgba: Vec<u8>,
 }
 pub use crate::game_config::LoadedGamePreferences;
+
+/// Exact configuration input for a coordinated migration backup.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct ConfigBackupSource {
+    /// Validated supported schema of these bytes.
+    pub schema: u32,
+    /// Original bytes, retained without reserialisation.
+    pub bytes: Vec<u8>,
+}

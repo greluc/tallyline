@@ -3,8 +3,15 @@
 
 //! Immutable cached reference records and application state.
 
-use tallyline_shared_kernel::api::model::{CommodityId, TerminalId, Timestamp};
+use tallyline_shared_kernel::api::model::{
+    CommodityId, PricePerScu, TerminalId, Timestamp, TradeSide,
+};
 
+pub use crate::averages::CommodityAverages;
+pub use crate::parameters::{
+    AcceptanceSwitch, CommodityConstraints, ReferenceParameters, SubmissionAcceptance,
+};
+pub use crate::priors::{InvalidPrior, PricePrior, PriorProvenance, PriorValues, TerminalPriors};
 pub use crate::snapshot::ReferenceSnapshot;
 pub use tallyline_shared_kernel::api::model::UexEnvironment;
 /// A reference endpoint with an independent freshness window.
@@ -18,6 +25,10 @@ pub enum Endpoint {
     GameVersions,
     /// Per-side inventory status labels.
     StatusLevels,
+    /// Submission acceptance, tolerances and bounded staff text.
+    Parameters,
+    /// Per-terminal LIVE price assortment and provenance.
+    TerminalPriors(TerminalId),
 }
 
 impl Endpoint {
@@ -25,9 +36,10 @@ impl Endpoint {
     #[must_use]
     pub const fn ttl_seconds(self) -> u64 {
         match self {
+            Self::TerminalPriors(_) => 1800,
             Self::Commodities => 3_600,
             Self::Terminals => 43_200,
-            Self::GameVersions | Self::StatusLevels => 86_400,
+            Self::GameVersions | Self::StatusLevels | Self::Parameters => 86_400,
         }
     }
 }
@@ -39,7 +51,7 @@ pub struct Commodity {
     name: String,
     code: String,
     available_live: bool,
-    average_price: Option<u64>,
+    averages: CommodityAverages,
 }
 
 impl Commodity {
@@ -50,14 +62,14 @@ impl Commodity {
         name: &str,
         code: &str,
         available_live: bool,
-        average_price: Option<u64>,
+        averages: CommodityAverages,
     ) -> Self {
         Self {
             id,
             name: name.to_owned(),
             code: code.to_owned(),
             available_live,
-            average_price,
+            averages,
         }
     }
 
@@ -90,9 +102,13 @@ impl Commodity {
 
     /// Returns the LIVE average, with no substitute in PTU.
     #[must_use]
-    pub const fn average_price(&self, environment: UexEnvironment) -> Option<u64> {
+    pub const fn average_price(
+        &self,
+        environment: UexEnvironment,
+        side: TradeSide,
+    ) -> Option<PricePerScu> {
         match environment {
-            UexEnvironment::Live => self.average_price,
+            UexEnvironment::Live => self.averages.price(side),
             UexEnvironment::Ptu => None,
         }
     }
@@ -109,6 +125,10 @@ pub enum EndpointData {
     GameVersions(GameVersions),
     /// Current per-side inventory status vocabulary.
     StatusLevels(StatusLevels),
+    /// Current submission policy and commodity constraints.
+    Parameters(ReferenceParameters),
+    /// LIVE assortment fetched for one terminal.
+    TerminalPriors(TerminalPriors),
 }
 
 /// One atomically persisted successful endpoint response.
@@ -128,11 +148,13 @@ impl CachedReference {
     /// Returns the response endpoint.
     #[must_use]
     pub const fn endpoint(&self) -> Endpoint {
-        match self.data {
+        match &self.data {
             EndpointData::Commodities(_) => Endpoint::Commodities,
             EndpointData::Terminals(_) => Endpoint::Terminals,
             EndpointData::GameVersions(_) => Endpoint::GameVersions,
             EndpointData::StatusLevels(_) => Endpoint::StatusLevels,
+            EndpointData::Parameters(_) => Endpoint::Parameters,
+            EndpointData::TerminalPriors(priors) => Endpoint::TerminalPriors(priors.terminal()),
         }
     }
 
@@ -179,6 +201,7 @@ pub struct Terminal {
     id: TerminalId,
     text: TerminalText,
     available_live: bool,
+    max_container_size: Option<std::num::NonZeroU32>,
 }
 
 impl Terminal {
@@ -189,7 +212,21 @@ impl Terminal {
             id,
             text,
             available_live,
+            max_container_size: None,
         }
+    }
+
+    /// Returns a changed terminal with its known maximum container size.
+    #[must_use]
+    pub const fn with_max_container_size(mut self, maximum: Option<std::num::NonZeroU32>) -> Self {
+        self.max_container_size = maximum;
+        self
+    }
+
+    /// Returns the maximum container size, absent when the API has no known limit.
+    #[must_use]
+    pub const fn max_container_size(&self) -> Option<std::num::NonZeroU32> {
+        self.max_container_size
     }
 
     /// Returns the numeric UEX identity.

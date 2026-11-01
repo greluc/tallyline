@@ -13,6 +13,8 @@ pub mod api;
 )]
 mod contract_tests;
 mod envelope;
+mod parameter_wire;
+mod prior_wire;
 mod reference_fetcher;
 mod reference_wire;
 mod transport;
@@ -37,3 +39,17 @@ mod proxy_contract_tests;
     reason = "Requirement tags use a double underscore separator."
 )]
 mod status_contract_tests;
+
+#[cfg(test)]
+#[expect(
+    non_snake_case,
+    reason = "Requirement tags use a double underscore separator."
+)]
+mod parameter_contract_tests;
+
+#[cfg(test)]
+#[expect(
+    non_snake_case,
+    reason = "Requirement tags use a double underscore separator."
+)]
+mod prior_contract_tests;

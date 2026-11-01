@@ -11,6 +11,7 @@ name = "tallyline"
 path = "src/main.rs"
 
 [dependencies]
+tallyline-adapter-storage.workspace = true
 tokio = { workspace = true, features = ["rt"] }
 tallyline-shared-kernel.workspace = true
 eframe.workspace = true
@@ -27,3 +28,7 @@ workspace = true
 
 [dependencies.tallyline-game]
 path = "../game"
+
+[dev-dependencies]
+rusqlite.workspace = true
+serde_json.workspace = true

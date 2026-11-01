@@ -177,7 +177,7 @@ added. The new crates carry MIT or MIT/Apache-2.0 licence choices.
 
 ## Decimal and system-proxy selection — 2026-11-01
 
-Local AI-reviewed S-5/S-6 records remain subject to CODEOWNERS and PR review; this adoption does not claim new explicit owner approval or a human security audit. Four new exact registry identities are added:
+Corrected 2026-11-01: the owner explicitly approved the exact four persistent S-5/S-6 records. The local AI review remains subject to CODEOWNERS and PR review and is not a human security audit. Four new exact registry identities are added:
 
 | Package | Version | Published UTC | SPDX licence | Selected scope |
 | --- | --- | --- | --- | --- |

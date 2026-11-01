@@ -6,6 +6,8 @@
 use serde::{Deserialize, Serialize};
 use tallyline_shared_kernel::api::model::PricePerScu;
 
+pub use tallyline_shared_kernel::api::model::ContainerSize;
+
 /// The current game versions of `GET /game_versions`.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct GameVersions {
@@ -56,56 +58,6 @@ pub enum TradedSide {
     Both,
     /// Neither price is above zero.
     Neither,
-}
-
-/// A container size of the documented set {1, 2, 4, 8, 16, 24, 32} SCU.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
-pub enum ContainerSize {
-    /// 1 SCU.
-    Scu1,
-    /// 2 SCU.
-    Scu2,
-    /// 4 SCU.
-    Scu4,
-    /// 8 SCU.
-    Scu8,
-    /// 16 SCU.
-    Scu16,
-    /// 24 SCU.
-    Scu24,
-    /// 32 SCU.
-    Scu32,
-}
-
-impl ContainerSize {
-    /// Returns the size for `scu`, `None` outside the documented set.
-    #[must_use]
-    pub fn from_scu(scu: u32) -> Option<Self> {
-        match scu {
-            1 => Some(Self::Scu1),
-            2 => Some(Self::Scu2),
-            4 => Some(Self::Scu4),
-            8 => Some(Self::Scu8),
-            16 => Some(Self::Scu16),
-            24 => Some(Self::Scu24),
-            32 => Some(Self::Scu32),
-            _ => None,
-        }
-    }
-
-    /// Returns the size in SCU.
-    #[must_use]
-    pub fn scu(self) -> u32 {
-        match self {
-            Self::Scu1 => 1,
-            Self::Scu2 => 2,
-            Self::Scu4 => 4,
-            Self::Scu8 => 8,
-            Self::Scu16 => 16,
-            Self::Scu24 => 24,
-            Self::Scu32 => 32,
-        }
-    }
 }
 
 /// The exact price, side, status and container sizes of a commodity-price row.

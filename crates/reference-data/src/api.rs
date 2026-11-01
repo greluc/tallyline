@@ -22,6 +22,11 @@ pub trait ReferenceDataFetcher {
         &self,
         endpoint: Endpoint,
     ) -> impl std::future::Future<Output = Result<EndpointData, Self::Error>>;
+    /// Fetches one to ten distinct positive terminal identities as LIVE assortments.
+    fn fetch_terminal_priors(
+        &self,
+        terminals: &[tallyline_shared_kernel::api::model::TerminalId],
+    ) -> impl std::future::Future<Output = Result<Vec<model::TerminalPriors>, Self::Error>>;
 }
 /// Loads and atomically replaces successful reference responses.
 pub trait ReferenceDataCache {
@@ -81,7 +86,9 @@ impl<S: ReferenceDataCache, C: Clock> ReferenceApplication<S, C> {
                 EndpointData::Commodities(items) => items.as_slice(),
                 EndpointData::Terminals(_)
                 | EndpointData::GameVersions(_)
-                | EndpointData::StatusLevels(_) => &[],
+                | EndpointData::StatusLevels(_)
+                | EndpointData::Parameters(_)
+                | EndpointData::TerminalPriors(_) => &[],
             })
             .filter(|item| {
                 item.available(environment)
@@ -101,7 +108,9 @@ impl<S: ReferenceDataCache, C: Clock> ReferenceApplication<S, C> {
                 EndpointData::Terminals(items) => items.as_slice(),
                 EndpointData::Commodities(_)
                 | EndpointData::GameVersions(_)
-                | EndpointData::StatusLevels(_) => &[],
+                | EndpointData::StatusLevels(_)
+                | EndpointData::Parameters(_)
+                | EndpointData::TerminalPriors(_) => &[],
             })
             .filter(|terminal| {
                 let text = terminal.text();
@@ -124,7 +133,9 @@ impl<S: ReferenceDataCache, C: Clock> ReferenceApplication<S, C> {
             EndpointData::GameVersions(versions) => Some(versions),
             EndpointData::Commodities(_)
             | EndpointData::Terminals(_)
-            | EndpointData::StatusLevels(_) => None,
+            | EndpointData::StatusLevels(_)
+            | EndpointData::Parameters(_)
+            | EndpointData::TerminalPriors(_) => None,
         })
     }
     /// Returns the cached status vocabulary with distinct buy and sell labels.
@@ -134,7 +145,9 @@ impl<S: ReferenceDataCache, C: Clock> ReferenceApplication<S, C> {
             EndpointData::StatusLevels(levels) => Some(levels),
             EndpointData::Commodities(_)
             | EndpointData::Terminals(_)
-            | EndpointData::GameVersions(_) => None,
+            | EndpointData::GameVersions(_)
+            | EndpointData::Parameters(_)
+            | EndpointData::TerminalPriors(_) => None,
         })
     }
     /// Returns endpoints whose successful fetch has expired.
@@ -145,16 +158,27 @@ impl<S: ReferenceDataCache, C: Clock> ReferenceApplication<S, C> {
             Endpoint::Terminals,
             Endpoint::GameVersions,
             Endpoint::StatusLevels,
+            Endpoint::Parameters,
         ]
         .into_iter()
         .filter(|endpoint| self.expired(*endpoint, endpoint.ttl_seconds()))
         .collect()
     }
 
-    /// Returns loaded send-gate endpoints that need a new successful observation.
+    /// Reports whether a requested terminal needs its own fresh LIVE assortment.
+    #[must_use]
+    pub fn terminal_priors_due(
+        &self,
+        terminal: tallyline_shared_kernel::api::model::TerminalId,
+    ) -> bool {
+        let endpoint = Endpoint::TerminalPriors(terminal);
+        self.expired(endpoint, endpoint.ttl_seconds())
+    }
+
+    /// Returns send-gate endpoints that need a new successful observation.
     #[must_use]
     pub fn due_before_send(&self) -> Vec<Endpoint> {
-        [Endpoint::GameVersions]
+        [Endpoint::GameVersions, Endpoint::Parameters]
             .into_iter()
             .filter(|endpoint| self.expired(*endpoint, 900))
             .collect()
@@ -183,7 +207,9 @@ impl<S: ReferenceDataCache, C: Clock> ReferenceApplication<S, C> {
                 EndpointData::GameVersions(versions) => Some(versions.clone()),
                 EndpointData::Commodities(_)
                 | EndpointData::Terminals(_)
-                | EndpointData::StatusLevels(_) => None,
+                | EndpointData::StatusLevels(_)
+                | EndpointData::Parameters(_)
+                | EndpointData::TerminalPriors(_) => None,
             },
         };
         self.entries

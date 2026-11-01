@@ -76,3 +76,11 @@ A newer standard release appears as a persistent notice with **Open release note
 Source builds compare against the fixed development package version. The signed-release build identity is supplied separately by the release workflow; development builds make no claim to be signed releases.
 
 Settings schema 4 retains the independent UEX environment choice for each game channel. Migration backs up the exact old settings before replacement and preserves release checks, saved notices and the optional Game.log witness. The mapping controls are still being implemented; changing the witness directory preserves these mappings.
+
+If a local database already exists, settings migration backs it up consistently alongside the old settings in `data/backup`. A failed backup stops startup processing; it never falls back to a settings-only copy of an existing database.
+
+Database schema 2 retains separate exact buy/sell commodity averages and known terminal container limits. Before an older database migrates, startup saves it together with the original settings. Old side-ambiguous averages are discarded; cached names and fetch times remain available. PTU never borrows LIVE averages.
+
+UEX staff notices are limited to 280 characters and displayed as plain text. Paused submissions or Datacenter maintenance leave cached reference browsing available; the last successful parameters remain available offline.
+
+Reference priors distinguish reported sell inventory from forecast demand and retain their source version and modification time. Each terminal has a separate 30-minute fetch lifetime; a failed refresh keeps its prior data. PTU has no LIVE prior defaults.

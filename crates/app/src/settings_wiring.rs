@@ -70,20 +70,11 @@ fn run(
         ));
     }
     let settings_path = layout.config().join("settings.json");
-    let backup_layout = layout.clone();
-    let mut store =
-        ConfigFile::new(settings_path.clone()).with_migration_backup(move |schema, bytes| {
-            tallyline_adapter_files::api::BackupSetStore::new(backup_layout.data().join("backup"))
-                .backup_without_database(
-                    &backup_layout,
-                    schema,
-                    bytes,
-                    &crate::update_wiring::SystemClock,
-                )
-                .map(|_| ())
-        });
+    let tallyline_app::api::model::PreparedStorage {
+        settings: store,
+        cache: _reference_cache,
+    } = tallyline_app::api::initialise_storage(&layout, &crate::update_wiring::SystemClock)?;
     let loaded = store.load()?;
-    store.migrate()?;
     deliver(
         outgoing,
         context,

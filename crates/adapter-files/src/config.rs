@@ -47,6 +47,36 @@ impl ConfigFile {
         }
     }
 
+    /// Reads exact supported configuration bytes, distinguishing absence from read failure.
+    ///
+    /// # Errors
+    /// Returns malformed JSON, an unsupported schema or a filesystem read failure.
+    pub fn backup_source(&self) -> io::Result<Option<crate::api::model::ConfigBackupSource>> {
+        let bytes = match fs::read(&self.path) {
+            Ok(bytes) => bytes,
+            Err(error) if error.kind() == io::ErrorKind::NotFound => return Ok(None),
+            Err(error) => return Err(error),
+        };
+        let document: serde_json::Value = serde_json::from_slice(&bytes)
+            .map_err(|_| io::Error::new(io::ErrorKind::InvalidData, "invalid settings JSON"))?;
+        let schema = match document
+            .get("schema_version")
+            .and_then(serde_json::Value::as_u64)
+        {
+            Some(schema @ 1..=4) => u32::try_from(schema).map_err(io::Error::other)?,
+            _ => {
+                return Err(io::Error::new(
+                    io::ErrorKind::InvalidData,
+                    "unsupported settings schema version",
+                ));
+            }
+        };
+        Ok(Some(crate::api::model::ConfigBackupSource {
+            schema,
+            bytes,
+        }))
+    }
+
     /// Installs the coordinator that backs up exact previous config bytes before migration.
     #[must_use]
     pub fn with_migration_backup(

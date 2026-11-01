@@ -4,10 +4,10 @@
 //! Owned environment-specific read state independent of cache workers.
 
 use crate::api::model::{
-    CachedReference, Commodity, Endpoint, EndpointData, GameVersions, ReferenceState, StatusLevels,
-    Terminal, UexEnvironment,
+    CachedReference, Commodity, CommodityAverages, Endpoint, EndpointData, GameVersions,
+    ReferenceState, StatusLevels, Terminal, UexEnvironment,
 };
-use tallyline_shared_kernel::api::model::Timestamp;
+use tallyline_shared_kernel::api::model::{Timestamp, TradeSide};
 
 /// Immutable reference data for one mapped UEX environment and one decision.
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -25,6 +25,10 @@ impl ReferenceSnapshot {
     ) -> Self {
         let entries = entries
             .iter()
+            .filter(|entry| {
+                environment != UexEnvironment::Ptu
+                    || !matches!(entry.data(), EndpointData::TerminalPriors(_))
+            })
             .map(|entry| match entry.data() {
                 EndpointData::Commodities(items) => CachedReference::new(
                     entry.fetched_at(),
@@ -38,7 +42,10 @@ impl ReferenceSnapshot {
                                     item.name(),
                                     item.code(),
                                     item.available(UexEnvironment::Live),
-                                    item.average_price(environment),
+                                    CommodityAverages::new(
+                                        item.average_price(environment, TradeSide::Buy),
+                                        item.average_price(environment, TradeSide::Sell),
+                                    ),
                                 )
                             })
                             .collect(),
@@ -46,7 +53,9 @@ impl ReferenceSnapshot {
                 ),
                 EndpointData::Terminals(_)
                 | EndpointData::GameVersions(_)
-                | EndpointData::StatusLevels(_) => entry.clone(),
+                | EndpointData::StatusLevels(_)
+                | EndpointData::Parameters(_)
+                | EndpointData::TerminalPriors(_) => entry.clone(),
             })
             .collect();
         Self {
@@ -72,7 +81,9 @@ impl ReferenceSnapshot {
                 EndpointData::Commodities(items) => items.as_slice(),
                 EndpointData::Terminals(_)
                 | EndpointData::GameVersions(_)
-                | EndpointData::StatusLevels(_) => &[],
+                | EndpointData::StatusLevels(_)
+                | EndpointData::Parameters(_)
+                | EndpointData::TerminalPriors(_) => &[],
             })
             .filter(|item| {
                 item.name().to_lowercase().contains(&query)
@@ -91,7 +102,9 @@ impl ReferenceSnapshot {
                 EndpointData::Terminals(items) => items.as_slice(),
                 EndpointData::Commodities(_)
                 | EndpointData::GameVersions(_)
-                | EndpointData::StatusLevels(_) => &[],
+                | EndpointData::StatusLevels(_)
+                | EndpointData::Parameters(_)
+                | EndpointData::TerminalPriors(_) => &[],
             })
             .filter(|terminal| {
                 let text = terminal.text();
@@ -115,7 +128,9 @@ impl ReferenceSnapshot {
             EndpointData::GameVersions(versions) => Some(versions),
             EndpointData::Commodities(_)
             | EndpointData::Terminals(_)
-            | EndpointData::StatusLevels(_) => None,
+            | EndpointData::StatusLevels(_)
+            | EndpointData::Parameters(_)
+            | EndpointData::TerminalPriors(_) => None,
         })
     }
 
@@ -126,9 +141,41 @@ impl ReferenceSnapshot {
             EndpointData::StatusLevels(levels) => Some(levels),
             EndpointData::Commodities(_)
             | EndpointData::Terminals(_)
-            | EndpointData::GameVersions(_) => None,
+            | EndpointData::GameVersions(_)
+            | EndpointData::Parameters(_)
+            | EndpointData::TerminalPriors(_) => None,
         })
     }
+    /// Returns cached submission policy, tolerances and capped literal staff text.
+    #[must_use]
+    pub fn parameters(&self) -> Option<&crate::api::model::ReferenceParameters> {
+        self.entries.iter().find_map(|entry| match entry.data() {
+            EndpointData::Parameters(parameters) => Some(parameters),
+            EndpointData::Commodities(_)
+            | EndpointData::Terminals(_)
+            | EndpointData::GameVersions(_)
+            | EndpointData::StatusLevels(_)
+            | EndpointData::TerminalPriors(_) => None,
+        })
+    }
+
+    /// Returns the LIVE assortment for one terminal, with no LIVE prior retained in PTU.
+    #[must_use]
+    pub fn terminal_priors(
+        &self,
+        terminal: tallyline_shared_kernel::api::model::TerminalId,
+    ) -> Option<&crate::api::model::TerminalPriors> {
+        self.entries.iter().find_map(|entry| match entry.data() {
+            EndpointData::TerminalPriors(priors) if priors.terminal() == terminal => Some(priors),
+            EndpointData::Commodities(_)
+            | EndpointData::Terminals(_)
+            | EndpointData::GameVersions(_)
+            | EndpointData::StatusLevels(_)
+            | EndpointData::Parameters(_)
+            | EndpointData::TerminalPriors(_) => None,
+        })
+    }
+
     /// Returns one endpoint's successful fetch time without creating an observation.
     #[must_use]
     pub fn fetched_at(&self, endpoint: Endpoint) -> Option<Timestamp> {

@@ -3,6 +3,7 @@
 
 //! Shared identities, exact decimal values and precise Unix timestamps.
 
+pub use crate::container_sizes::ContainerSize;
 pub use crate::decimal::{InvalidDecimal, PricePerScu, ScuQuantity};
 
 use std::time::Duration;
@@ -52,4 +53,13 @@ pub enum UexEnvironment {
     Live,
     /// Public test universe.
     Ptu,
+}
+
+/// The terminal's buy tab or local market value sell tab.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum TradeSide {
+    /// Buy inventory from the terminal.
+    Buy,
+    /// Sell inventory to the terminal.
+    Sell,
 }

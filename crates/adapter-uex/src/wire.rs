@@ -55,6 +55,21 @@ impl Numeric {
         })
     }
 
+    pub(crate) fn quantity(
+        &self,
+        field: &str,
+    ) -> Result<tallyline_shared_kernel::api::model::ScuQuantity, ReadError> {
+        let parsed = match self {
+            Self::Number(number) => number.to_string().parse(),
+            Self::Text(text) => text.trim().parse(),
+        };
+        parsed.map_err(|_| {
+            malformed(&format!(
+                "{field} is not a supported non-negative exact SCU quantity"
+            ))
+        })
+    }
+
     pub(crate) fn flag(&self, field: &str) -> Result<bool, ReadError> {
         match self.whole(field)? {
             0 => Ok(false),
@@ -200,7 +215,7 @@ fn optional_level(value: &Numeric, field: &str) -> Result<Option<u8>, ReadError>
     level(value, field).map(Some)
 }
 
-fn container_sizes(csv: &str) -> Result<Vec<ContainerSize>, ReadError> {
+pub(crate) fn container_sizes(csv: &str) -> Result<Vec<ContainerSize>, ReadError> {
     if csv.trim().is_empty() {
         return Ok(Vec::new());
     }
