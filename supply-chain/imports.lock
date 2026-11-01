@@ -759,6 +759,13 @@ user-id = 726
 user-login = "nagisa"
 user-name = "Simonas Kazlauskas"
 
+[[publisher.libloading]]
+version = "0.9.0"
+when = "2025-11-05"
+user-id = 726
+user-login = "nagisa"
+user-name = "Simonas Kazlauskas"
+
 [[publisher.libm]]
 version = "0.2.16"
 when = "2026-01-24"
@@ -828,6 +835,13 @@ user-id = 3204
 user-login = "KodrAus"
 user-name = "Ashley Mannix"
 
+[[publisher.matrixmultiply]]
+version = "0.3.11"
+when = "2026-07-14"
+user-id = 356
+user-login = "bluss"
+user-name = "bluss"
+
 [[publisher.memchr]]
 version = "2.8.3"
 when = "2026-07-08"
@@ -889,6 +903,13 @@ user-id = 53780
 user-login = "cwfitzgerald"
 user-name = "Connor Fitzgerald"
 
+[[publisher.ndarray]]
+version = "0.17.2"
+when = "2026-01-10"
+user-id = 303992
+user-login = "akern40"
+user-name = ""
+
 [[publisher.ndk]]
 version = "0.9.0"
 when = "2024-04-26"
@@ -909,6 +930,20 @@ when = "2025-01-26"
 user-id = 959
 user-login = "Geal"
 user-name = "Geoffroy Couprie"
+
+[[publisher.num-complex]]
+version = "0.4.6"
+when = "2024-05-07"
+user-id = 539
+user-login = "cuviper"
+user-name = "Josh Stone"
+
+[[publisher.num-integer]]
+version = "0.1.47"
+when = "2026-08-12"
+user-id = 539
+user-login = "cuviper"
+user-name = "Josh Stone"
 
 [[publisher.num_cpus]]
 version = "1.17.0"
@@ -1092,6 +1127,20 @@ user-id = 2017
 user-login = "mbrubeck"
 user-name = "Matt Brubeck"
 
+[[publisher.ort]]
+version = "2.0.0-rc.14"
+when = "2026-10-12"
+user-id = 152041
+user-login = "decahedron1"
+user-name = "Carson M."
+
+[[publisher.ort-sys]]
+version = "2.0.0-rc.14"
+when = "2026-10-12"
+user-id = 152041
+user-login = "decahedron1"
+user-name = "Carson M."
+
 [[publisher.os_pipe]]
 version = "1.2.3"
 when = "2025-10-11"
@@ -1246,6 +1295,13 @@ when = "2026-02-27"
 user-id = 53780
 user-login = "cwfitzgerald"
 user-name = "Connor Fitzgerald"
+
+[[publisher.rawpointer]]
+version = "0.2.1"
+when = "2019-09-12"
+user-id = 356
+user-login = "bluss"
+user-name = "bluss"
 
 [[publisher.rayon]]
 version = "1.12.0"
