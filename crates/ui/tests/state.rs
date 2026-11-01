@@ -243,6 +243,7 @@ fn r_ocr_20_r_ui_16__witness_opt_in_waits_for_worker_confirmation_and_never_open
     let view = GameWitnessView {
         settings: GameSettings {
             witness: WitnessMode::On,
+            ..GameSettings::default()
         },
         channel_directory: Some("SYNTHETIC_PRIVATE_PATH".to_owned()),
         snapshot: WitnessSnapshot::Unavailable(WitnessUnavailable::UnvalidatedBuild),

@@ -242,6 +242,7 @@ fn r_ocr_20__settings_shows_default_off_and_emits_only_explicit_witness_commands
         .receive(BackgroundEvent::GameWitnessLoaded(GameWitnessView {
             settings: GameSettings {
                 witness: WitnessMode::On,
+                ..GameSettings::default()
             },
             channel_directory: None,
             snapshot: WitnessSnapshot::Unavailable(WitnessUnavailable::UnvalidatedBuild),

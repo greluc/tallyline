@@ -11,11 +11,12 @@ pub(crate) fn load(
     document: &serde_json::Value,
     errors: &mut Vec<SettingsIssue>,
 ) -> (UpdateChecks, Option<Timestamp>) {
-    if document
-        .get("schema_version")
-        .and_then(serde_json::Value::as_u64)
-        != Some(3)
-    {
+    if !matches!(
+        document
+            .get("schema_version")
+            .and_then(serde_json::Value::as_u64),
+        Some(3 | 4)
+    ) {
         return (UpdateChecks::Disabled, None);
     }
     let app = document.get("app");
@@ -55,11 +56,12 @@ pub(crate) fn notice(
     Option<tallyline_workflows::api::model::ReleaseVersion>,
     Option<tallyline_workflows::api::model::ReleaseVersion>,
 ) {
-    if document
-        .get("schema_version")
-        .and_then(serde_json::Value::as_u64)
-        != Some(3)
-    {
+    if !matches!(
+        document
+            .get("schema_version")
+            .and_then(serde_json::Value::as_u64),
+        Some(3 | 4)
+    ) {
         return (None, None);
     }
     let mut read = |key| match document.get("app").and_then(|app| app.get(key)) {

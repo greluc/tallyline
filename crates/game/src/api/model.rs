@@ -18,11 +18,13 @@ pub enum WitnessMode {
     On,
 }
 
-/// Preferences for the local read-only witness.
+/// Game-channel mapping and local read-only witness preferences.
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct GameSettings {
     /// Explicit opt-in, disabled by default.
     pub witness: WitnessMode,
+    /// Independent UEX target for each launcher channel.
+    pub environment_mapping: EnvironmentMapping,
 }
 
 /// A read-only witness observation.

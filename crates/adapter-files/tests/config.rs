@@ -248,6 +248,7 @@ fn r_ocr_20_r_nf_5__version_one_preferences_migrate_with_explicit_opt_in_and_pre
     store
         .save_game_settings(&GameSettings {
             witness: WitnessMode::On,
+            ..GameSettings::default()
         })
         .unwrap();
     let loaded = ConfigFile::new(path.clone())
@@ -264,7 +265,7 @@ fn r_ocr_20_r_nf_5__version_one_preferences_migrate_with_explicit_opt_in_and_pre
     );
     let document: serde_json::Value =
         serde_json::from_slice(&std::fs::read(&path).unwrap()).unwrap();
-    assert_eq!(document.get("schema_version"), Some(&serde_json::json!(3)));
+    assert_eq!(document.get("schema_version"), Some(&serde_json::json!(4)));
     store.change_game_channel("another-channel").unwrap();
     assert_eq!(
         store.load_game_preferences().unwrap().settings.witness,
@@ -360,7 +361,7 @@ fn r_nf_11_r_nf_7__migration_requires_backup_and_preserves_exact_old_bytes_on_fa
     assert_eq!(std::fs::read(backup).unwrap(), old);
     let current: serde_json::Value =
         serde_json::from_slice(&std::fs::read(&path).unwrap()).unwrap();
-    assert_eq!(current.get("schema_version"), Some(&serde_json::json!(3)));
+    assert_eq!(current.get("schema_version"), Some(&serde_json::json!(4)));
     assert_eq!(current.get("other"), Some(&serde_json::json!({"value":42})));
 }
 
@@ -681,4 +682,113 @@ fn r_nf_11__retention_reads_unsequenced_manifests_and_refuses_exhausted_creation
         b"unchanged previous config"
     );
     assert_eq!(std::fs::read_dir(exhausted).unwrap().count(), 1);
+}
+
+#[test]
+#[expect(
+    non_snake_case,
+    reason = "Requirement tags use a double underscore separator."
+)]
+fn r_cap_3a__schema_four_game_mapping_persists_independently_of_witness_preferences() {
+    use tallyline_game::api::GameSettingsStore;
+    use tallyline_game::api::model::{GameEnvironment, GameSettings, WitnessMode};
+    use tallyline_shared_kernel::api::model::UexEnvironment;
+    let directory = TestDirectory::new().unwrap();
+    let path = directory.0.join("settings.json");
+    let initial = GameSettings::default();
+    let changed = GameSettings {
+        witness: WitnessMode::On,
+        environment_mapping: initial
+            .environment_mapping
+            .with_environment(GameEnvironment::Hotfix, UexEnvironment::Ptu),
+    };
+    let mut store = ConfigFile::new(path.clone());
+    store.save_game_settings(&changed).unwrap();
+    let reopened = ConfigFile::new(path.clone());
+    assert_eq!(reopened.load_game_preferences().unwrap().settings, changed);
+    let document: serde_json::Value =
+        serde_json::from_slice(&std::fs::read(path).unwrap()).unwrap();
+    assert_eq!(document["schema_version"], 4);
+    store.change_game_channel("another-channel").unwrap();
+    let loaded = store.load_game_preferences().unwrap();
+    assert_eq!(loaded.settings.witness, WitnessMode::Off);
+    assert_eq!(
+        loaded.settings.environment_mapping,
+        changed.environment_mapping
+    );
+}
+
+#[test]
+#[expect(
+    non_snake_case,
+    reason = "Requirement tags use a double underscore separator."
+)]
+fn r_nf_11_r_cap_3a__schema_three_migration_backs_up_and_preserves_release_and_witness_preferences()
+{
+    use tallyline_game::api::model::WitnessMode;
+    use tallyline_workflows::api::model::UpdateChecks;
+    let directory = TestDirectory::new().unwrap();
+    let path = directory.0.join("settings.json");
+    let old = br#"{ "schema_version":3,"app":{"theme":"dark","onboarding_complete":true,"update_checks":true,"last_update_attempt_ms":1234,"available_release":"v2.0.0","dismissed_release":"v1.0.0"},"game":{"log_witness":true,"channel_directory":"synthetic-channel"}}"#;
+    std::fs::write(&path, old).unwrap();
+    assert!(ConfigFile::new(path.clone()).migrate().is_err());
+    assert_eq!(std::fs::read(&path).unwrap(), old);
+    let mut store = backed_store(path.clone());
+    store.migrate().unwrap();
+    assert_eq!(
+        std::fs::read(path.with_extension("backup.json")).unwrap(),
+        old
+    );
+    let loaded = store.load().unwrap();
+    assert_eq!(loaded.settings.update_checks(), UpdateChecks::Enabled);
+    assert_eq!(
+        loaded.settings.last_update_attempt().unwrap().millis(),
+        1234
+    );
+    assert_eq!(
+        loaded.settings.available_release().unwrap().to_string(),
+        "v2.0.0"
+    );
+    assert_eq!(
+        loaded.settings.dismissed_release().unwrap().to_string(),
+        "v1.0.0"
+    );
+    let game = store.load_game_preferences().unwrap();
+    assert_eq!(game.settings.witness, WitnessMode::On);
+    assert_eq!(game.channel_directory.as_deref(), Some("synthetic-channel"));
+    store.migrate().unwrap();
+}
+
+#[test]
+#[expect(
+    non_snake_case,
+    reason = "Requirement tags use a double underscore separator."
+)]
+fn r_cap_3a__invalid_mapping_reports_safe_defaults_without_disclosing_raw_values() {
+    use tallyline_game::api::model::EnvironmentMapping;
+    let directory = TestDirectory::new().unwrap();
+    let path = directory.0.join("settings.json");
+    for value in [
+        serde_json::json!("private-marker"),
+        serde_json::json!({"hotfix":"private-marker"}),
+    ] {
+        std::fs::write(
+            &path,
+            serde_json::to_vec(
+                &serde_json::json!({"schema_version":4,"game":{"environment_mapping":value}}),
+            )
+            .unwrap(),
+        )
+        .unwrap();
+        let loaded = ConfigFile::new(path.clone())
+            .load_game_preferences()
+            .unwrap();
+        assert_eq!(
+            loaded.settings.environment_mapping,
+            EnvironmentMapping::default()
+        );
+        assert_eq!(loaded.errors.len(), 1);
+        assert_eq!(loaded.errors[0].key, "settings.environment_mapping");
+        assert!(!format!("{:?}", loaded.errors).contains("private-marker"));
+    }
 }

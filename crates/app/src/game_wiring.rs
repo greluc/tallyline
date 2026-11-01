@@ -7,7 +7,7 @@ use std::io;
 use std::path::PathBuf;
 use tallyline_adapter_files::api::{ConfigFile, GameLogFiles};
 use tallyline_game::api::GameSettingsApplication;
-use tallyline_game::api::model::{GameSettings, WitnessMode};
+use tallyline_game::api::model::WitnessMode;
 use tallyline_ui::api::model::GameWitnessView;
 
 pub(crate) fn view(store: &ConfigFile) -> io::Result<(GameWitnessView, Vec<String>)> {
@@ -37,6 +37,7 @@ pub(crate) fn view(store: &ConfigFile) -> io::Result<(GameWitnessView, Vec<Strin
 pub(crate) fn change_mode(path: PathBuf, mode: WitnessMode) -> io::Result<()> {
     let store = ConfigFile::new(path);
     let loaded = store.load_game_preferences()?;
-    GameSettingsApplication::new(loaded.settings, store)
-        .change_settings(GameSettings { witness: mode })
+    let mut next = loaded.settings.clone();
+    next.witness = mode;
+    GameSettingsApplication::new(loaded.settings, store).change_settings(next)
 }

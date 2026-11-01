@@ -45,6 +45,7 @@ fn r_ocr_20__enabled_witness_preserves_the_sources_closed_unavailability_reason(
     }
     let settings = GameSettings {
         witness: tallyline_game::api::model::WitnessMode::On,
+        ..GameSettings::default()
     };
     assert_eq!(
         inspect_witness(&settings, &Unsupported),
@@ -72,6 +73,7 @@ fn r_ocr_20_r_nf_5__witness_preferences_are_applied_only_after_durable_opt_in() 
     let mut application = GameSettingsApplication::new(GameSettings::default(), Store);
     let next = GameSettings {
         witness: WitnessMode::On,
+        ..GameSettings::default()
     };
     assert_eq!(application.change_settings(next), Err("not writable"));
     assert_eq!(application.settings(), &GameSettings::default());
@@ -100,6 +102,7 @@ fn r_ocr_20__enabled_application_exposes_only_typed_buy_side_facts_and_major_min
     let snapshot = inspect_witness(
         &GameSettings {
             witness: WitnessMode::On,
+            ..GameSettings::default()
         },
         &ValidatedSource,
     );
@@ -134,6 +137,7 @@ fn r_ocr_20__successful_persistence_applies_both_opt_in_and_opt_out() {
     application
         .change_settings(GameSettings {
             witness: WitnessMode::On,
+            ..GameSettings::default()
         })
         .unwrap();
     assert_eq!(application.settings().witness, WitnessMode::On);

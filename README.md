@@ -97,3 +97,5 @@ Independent community project, not made or endorsed by UEX Corp and not affiliat
 ## Corpus contributors
 
 Use the offline [corpus capture and annotation guide](docs/user/corpus-capture.md) and `cargo run -p ocr-eval --locked -- inspect` to inspect conditions, expected values and sample readiness. Recognition metrics are not implemented yet.
+
+Game preferences now persist independent channel-to-UEX mappings in settings schema 4, preserving witness and release-check choices across migration; the browsing controls remain in progress.

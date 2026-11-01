@@ -6,7 +6,8 @@
 use crate::config::{ConfigFile, SettingsIssue};
 use std::io;
 use tallyline_game::api::GameSettingsStore;
-use tallyline_game::api::model::{GameSettings, WitnessMode};
+use tallyline_game::api::model::{EnvironmentMapping, GameEnvironment, GameSettings, WitnessMode};
+use tallyline_shared_kernel::api::model::UexEnvironment;
 
 /// Loaded witness preferences with a local-only channel selection.
 pub struct LoadedGamePreferences {
@@ -58,7 +59,13 @@ impl ConfigFile {
             }
         };
         Ok(LoadedGamePreferences {
-            settings: GameSettings { witness },
+            settings: GameSettings {
+                witness,
+                environment_mapping: load_mapping(
+                    game.and_then(|game| game.get("environment_mapping")),
+                    &mut errors,
+                ),
+            },
             channel_directory,
             errors,
         })
@@ -70,10 +77,12 @@ impl ConfigFile {
     /// Returns a configuration or persistence failure without replacing preferences.
     pub fn change_game_channel(&mut self, channel: &str) -> io::Result<()> {
         let mut document = self.read_document()?;
-        Self::object(&mut document)?.insert(
-            "game".to_owned(),
-            serde_json::json!({"channel_directory":channel,"log_witness":false}),
-        );
+        let game = Self::object(&mut document)?
+            .entry("game")
+            .or_insert_with(|| serde_json::json!({}));
+        let game = Self::object(game)?;
+        game.insert("channel_directory".to_owned(), serde_json::json!(channel));
+        game.insert("log_witness".to_owned(), serde_json::json!(false));
         self.write_document(document)
     }
 }
@@ -94,6 +103,59 @@ impl GameSettingsStore for ConfigFile {
             "log_witness".to_owned(),
             serde_json::json!(settings.witness == WitnessMode::On),
         );
+        let mapping: serde_json::Map<String, serde_json::Value> = CHANNELS
+            .into_iter()
+            .map(|(key, channel)| {
+                let value = match settings.environment_mapping.environment(channel) {
+                    UexEnvironment::Live => "live",
+                    UexEnvironment::Ptu => "ptu",
+                };
+                (key.to_owned(), serde_json::json!(value))
+            })
+            .collect();
+        Self::object(game)?.insert("environment_mapping".to_owned(), mapping.into());
         self.write_document(document)
     }
+}
+
+const CHANNELS: [(&str, GameEnvironment); 5] = [
+    ("live", GameEnvironment::Live),
+    ("hotfix", GameEnvironment::Hotfix),
+    ("ptu", GameEnvironment::Ptu),
+    ("eptu", GameEnvironment::Eptu),
+    ("tech_preview", GameEnvironment::TechPreview),
+];
+
+fn load_mapping(
+    value: Option<&serde_json::Value>,
+    errors: &mut Vec<SettingsIssue>,
+) -> EnvironmentMapping {
+    let mut mapping = EnvironmentMapping::default();
+    if value.is_some_and(|value| !value.is_object()) {
+        errors.push(SettingsIssue {
+            key: "settings.environment_mapping",
+            rejected: "invalid mapping object".to_owned(),
+            default: "channel defaults",
+        });
+        return mapping;
+    }
+    for (key, channel) in CHANNELS {
+        let Some(value) = value.and_then(|value| value.get(key)) else {
+            continue;
+        };
+        let environment = match value.as_str() {
+            Some("live") => UexEnvironment::Live,
+            Some("ptu") => UexEnvironment::Ptu,
+            _ => {
+                errors.push(SettingsIssue {
+                    key: "settings.environment_mapping",
+                    rejected: "invalid environment".to_owned(),
+                    default: "channel default",
+                });
+                continue;
+            }
+        };
+        mapping = mapping.with_environment(channel, environment);
+    }
+    mapping
 }
