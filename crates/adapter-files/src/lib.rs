@@ -19,3 +19,4 @@ mod witness_output;
 mod update_config;
 
 mod backup;
+mod image_intake;

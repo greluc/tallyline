@@ -35,6 +35,7 @@ highlight = "all"
 allow = []
 deny = [{ crate = "rust_decimal", wrappers = ["tallyline-shared-kernel"], reason = "Decimal arithmetic stays behind shared-kernel money and quantity value types." }, { crate = "rusqlite", wrappers = ["tallyline-adapter-storage"], reason = "SQLite connections and SQL belong only to adapter-storage." }, { crate = "libsqlite3-sys", wrappers = ["rusqlite"], reason = "The reviewed SQLite wrapper is the only direct FFI consumer." }]
 skip = [
+  { crate = "moxcms@=0.8.1", reason = "image0.25.10 requires ^0.8 while the direct ICC adapter uses latest eligible0.9.1; ranges do not intersect. Exact reviewed graph only; revisit2027-04-13 or before parent updates." },
   { crate = "getrandom@=0.3.4", reason = "ahash requires ^0.3.1 while jobserver requires ^0.4; ranges do not intersect. Exact reviewed desktop graph only; revisit 2027-04-13 or before parent updates." },
   { crate = "hashbrown@=0.16.1", reason = "AccessKit consumer/gpu-allocator require ^0.16 while wgpu/naga/indexmap require ^0.17; ranges do not intersect. Exact reviewed desktop graph only; revisit 2027-04-13 or before parent updates." },
   { crate = "linux-raw-sys@=0.4.15", reason = "rustix0.38 requires ^0.4.14 while rustix1 requires ^0.12; ranges do not intersect. Exact reviewed desktop graph only; revisit 2027-04-13 or before parent updates." },

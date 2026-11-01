@@ -25,3 +25,7 @@ pub struct ConfigBackupSource {
     /// Original bytes, retained without reserialisation.
     pub bytes: Vec<u8>,
 }
+pub use crate::image_intake::model::{
+    DecodedImage, Downscaled, Encoding, HdrContainer, ImageFormat, ImageIntake,
+    ImageIntakeSettings, InvalidImageIntakeSettings, SetAsideReason,
+};

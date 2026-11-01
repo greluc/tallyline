@@ -8,3 +8,4 @@
 pub mod api;
 mod container_sizes;
 mod decimal;
+mod image_raster;

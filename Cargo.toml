@@ -22,6 +22,10 @@ wiremock = { version = "0.6.5", default-features = false }
 
 image = { version = "=0.25.10", default-features = false }
 png = { version = "=0.18.1", default-features = false }
+fdeflate = { version = "=0.3.7", default-features = false }
+moxcms = { version = "=0.9.1", default-features = false, features = ["lut"] }
+zune-jpeg = { version = "=0.5.15", default-features = false, features = ["std"] }
+zune-core = { version = "=0.5.3", default-features = false, features = ["std"] }
 egui_kittest = { version = "=0.37.0", default-features = false, features = ["wgpu", "snapshot"] }
 
 eframe = { version = "=0.37.0", default-features = false, features = ["wgpu", "wayland", "x11", "links"] }

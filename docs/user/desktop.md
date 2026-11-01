@@ -14,7 +14,7 @@ Corrected 2026-11-01: the owner requires image recognition to stay entirely on t
 
 ## Running a source build
 
-Keep the committed lockfile when building. The [dependency adoption record](../../supply-chain/latest-stable-adoption.json) records the current eligible stable versions, retained upstream constraints and native boundaries; complete third-party legal texts remain available offline.
+Keep the committed lockfile when building. The [dependency adoption record](../../supply-chain/latest-stable-adoption.json) and [image intake record](../../supply-chain/image-intake-adoption.json) document the reviewed stable selections, retained upstream constraints and native boundaries; complete third-party legal texts remain available offline.
 
 Run `cargo build --locked -p tallyline-app`, followed by `target/debug/tallyline --assets crates/ui/assets` (Windows: `target/debug/tallyline.exe --assets crates/ui/assets`). The `--assets` argument selects the asset directory for a source build. Packaged images keep the same `fonts/` subtree under `assets/` next to the executable; font files and their OFL texts stay separate and unmodified.
 
@@ -102,3 +102,11 @@ The browser loads the local SQLite cache before the first network response, then
 UEX staff notices appear in the global status area in every view, limited to 280 Unicode characters and displayed literally without interpreting markup or links. Paused submissions or Datacenter maintenance leave cached reference browsing available; the last successful parameters remain available offline.
 
 A successful reference update clears a resolved reference-refresh delivery notice. It preserves an unrelated settings error until that settings operation succeeds. The reference page uses the same global status area without displaying a second copy.
+
+## Screenshot formats
+
+The shared decoder accepts SDR PNG, JPEG and BMP by their contents, even when a file extension is wrong. Sixteen-bit PNG samples retain their full precision through conversion to eight-bit sRGB. ICC colour profiles and supported PNG colour metadata are applied explicitly.
+
+HDR PNG encoding and unsupported colour profiles receive **HDR or unsupported colour encoding – use an SDR copy**. JPEG XR, AVIF, HEIF and EXR originals are recognised but are not decoded or repeatedly retried. For a Game Bar JPEG XR original, use its SDR PNG copy when one is available; this does not claim that every capture tool creates such a copy. Other tools need an SDR PNG or JPEG capture. Capture-method recommendations still await the paired-capture checks in M2.
+
+Files exceeding a hard size, metadata, pixel, profile or decoder-memory limit are set aside with a reason. Supported inputs above the 20 MP working budget are reduced with integer boxes, including edge pixels; the result records the original dimensions. Import controls and recognition are still being connected to this shared intake.

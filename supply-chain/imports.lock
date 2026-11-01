@@ -720,6 +720,13 @@ when = "2026-07-06"
 user-id = 55123
 user-login = "rust-lang-owner"
 
+[[publisher.jpeg-encoder]]
+version = "0.7.1"
+when = "2026-07-27"
+user-id = 82913
+user-login = "vstroebel"
+user-name = "Volker Ströbel"
+
 [[publisher.khronos-egl]]
 version = "6.0.0"
 when = "2023-10-05"
@@ -857,6 +864,13 @@ user-name = "Thomas de Zeeuw"
 [[publisher.moxcms]]
 version = "0.8.1"
 when = "2026-03-07"
+user-id = 266802
+user-login = "awxkee"
+user-name = "Radzivon Bartoshyk"
+
+[[publisher.moxcms]]
+version = "0.9.1"
+when = "2026-09-15"
 user-id = 266802
 user-login = "awxkee"
 user-name = "Radzivon Bartoshyk"
