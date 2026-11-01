@@ -1,12 +1,12 @@
 # Contributing to Tallyline
 
-Thank you for helping. The project is in its **planning phase**: there is no runnable code yet, and the documents under [`docs/`](docs/) are the product. The first code arrives with milestone M0 ([`docs/plan/04-roadmap.md`](docs/plan/04-roadmap.md)).
+Thank you for helping. The project is in its **planning phase**; [README.md](README.md) records the current implementation status and milestone, and the documents under [`docs/`](docs/) remain the specification.
 
 ## The short version
 
-1. **Security problems never go into a public issue.** Report them privately through [GitHub private vulnerability reporting](https://github.com/greluc/uex-datarunner-client/security/advisories/new); [`.github/SECURITY.md`](.github/SECURITY.md) explains the process.
+1. **Security problems never go into a public issue.** Report them privately through [GitHub private vulnerability reporting](https://github.com/greluc/tallyline/security/advisories/new); [`.github/SECURITY.md`](.github/SECURITY.md) explains the process.
 2. **Never post a UEX secret key, an app token or an unredacted screenshot** (CURRENT BALANCE, player names, chat). Issues, pull requests, comments and their attachments in this public repository can be opened by anyone, without logging in.
-3. Bugs, misreads and feature requests go through the [issue forms](https://github.com/greluc/uex-datarunner-client/issues/new/choose).
+3. Bugs, misreads and feature requests go through the [issue forms](https://github.com/greluc/tallyline/issues/new/choose).
 4. Changes are pull requests against `main`. Commit messages follow [Conventional Commits](#commit-messages), and every commit carries a [DCO sign-off](#dco-sign-off) (`git commit -s`).
 5. **Sign the [Contributor Licence Agreement](CLA.md) once** before your first contribution is merged ([how](#contributor-licence-agreement)).
 6. Every change updates the documents it affects, in the same commit.
@@ -65,13 +65,13 @@ Open owner decisions and open verifications are kept in one register only: [`doc
 
 ## Asking questions
 
-GitHub Discussions stays off until milestone M1. Until then, ask with the [feature form](https://github.com/greluc/uex-datarunner-client/issues/new?template=3-feature-request.yml) and replace the title prefix with `[Question]`.
+GitHub Discussions stays off until milestone M1. Until then, ask with the [feature form](https://github.com/greluc/tallyline/issues/new?template=3-feature-request.yml) and replace the title prefix with `[Question]`.
 
 ## Reporting bugs, misreads and ideas
 
-- **Bug:** use the [bug form](https://github.com/greluc/uex-datarunner-client/issues/new?template=1-bug-report.yml) and attach the app's diagnostics export (R-NF-6). The export removes secrets, your UEX user name and your operating-system user name, and it contains no screenshots unless you add them. Before it saves the export, the app lists every file it includes: review that preview, because attachments are public.
-- **Misread:** a value that the recognition (classic OCR or the AI recognition) read wrongly or missed, or a terminal it did not recognise. Use the [misread form](https://github.com/greluc/uex-datarunner-client/issues/new?template=2-misread-report.yml) and attach the redacted panel crops and corrected values from the "Report a misread" export (R-QA-5), or a redacted crop of the shop panel. **Do not attach the export's separate reference-snapshot file:** it holds recorded UEX data, which is not published until UEX allows it ([`06-uex-api.md`](docs/plan/06-uex-api.md) open point 7). Say whether the wrong value was offered as sendable without a confirmation: such *silently wrong* values are the most important defects of this project.
-- **Feature or plan change:** use the [feature form](https://github.com/greluc/uex-datarunner-client/issues/new?template=3-feature-request.yml) and name the requirement IDs it touches.
+- **Bug:** use the [bug form](https://github.com/greluc/tallyline/issues/new?template=1-bug-report.yml) and attach the app's diagnostics export (R-NF-6). The export removes secrets, your UEX user name and your operating-system user name, and it contains no screenshots unless you add them. Before it saves the export, the app lists every file it includes: review that preview, because attachments are public.
+- **Misread:** a value that the recognition (classic OCR or the AI recognition) read wrongly or missed, or a terminal it did not recognise. Use the [misread form](https://github.com/greluc/tallyline/issues/new?template=2-misread-report.yml) and attach the redacted panel crops and corrected values from the "Report a misread" export (R-QA-5), or a redacted crop of the shop panel. **Do not attach the export's separate reference-snapshot file:** it holds recorded UEX data, which is not published until UEX allows it ([`06-uex-api.md`](docs/plan/06-uex-api.md) open point 7). Say whether the wrong value was offered as sendable without a confirmation: such *silently wrong* values are the most important defects of this project.
+- **Feature or plan change:** use the [feature form](https://github.com/greluc/tallyline/issues/new?template=3-feature-request.yml) and name the requirement IDs it touches.
 - **Wrong data on UEX itself** (prices, terminals, your UEX account, DataRunner status) belongs to [UEX Corp](https://uexcorp.space), not to this repository.
 - If a closed issue looks like your problem, open a new one and link the old one.
 

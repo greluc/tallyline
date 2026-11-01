@@ -1,10 +1,12 @@
 # Task: Turn the Claude Design system into the JavaFX 27 theme of UEX Datarunner Client
 
-> **Doc type:** Prompt — Historical: stage 1 run 2026-10-09 (checkpoint A passed), stage 2 in progress when the JavaFX handoff was superseded by ADR-0005 (2026-10-12). Last reviewed: 2026-10-12.
+> **Doc type:** Prompt — Historical: stage 1 run 2026-10-09 (checkpoint A passed), stage 2 in progress when the JavaFX handoff was superseded by ADR-0005 (2026-10-12). Last reviewed: 2026-11-01.
 
-> Superseded 2026-10-12 by [ADR-0005](../adr/0005-rust-and-egui.md) (Rust and egui); the Tallyline egui rendition replaces this handoff (open point O-112). The text below is kept unchanged as the record.
+> Superseded 2026-10-12 by [ADR-0005](../adr/0005-rust-and-egui.md) (Rust and egui); the Tallyline egui rendition replaces this handoff (open point O-112). The text below is kept as the record.
 
-You are Claude Code, working in the repository `uex-datarunner-client`.
+> Corrected 2026-11-01: repository references now use `greluc/tallyline`; the historical handoff instructions are otherwise unchanged.
+
+You are Claude Code, working in the repository `tallyline`.
 
 The owner has built the app's design system in **Claude Design** with the brief `docs/prompts/design-system.md`. It consists of:
 
