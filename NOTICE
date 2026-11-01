@@ -805,7 +805,15 @@ The NOTICE SHA-256 is 49cf7bcb103eb3244150a23bb23d840370a4762914faf1b450072a4b03
 The authors disclaim copyright; the source notice is annotated NONE/blessing
 for REUSE, without assigning that licence to unrelated project code.
 
-13. Image decoding dependencies (preparation)
+13. Shared image intake and decoder spike origin
+
+The image intake under crates/adapter-files/src/image_intake and the generated
+regression fixtures under crates/adapter-files/tests/image_decode are adapted
+from greluc/tallyline, prototype/decoder-check/src and tests, commit
+2f5477efadb411b9ef385598c204eb4fff5cbf87; modified 2026-11-01: public shared
+raster/intake APIs, bounded metadata and codec allocations, streaming PNG box
+reduction, reusable ICC transforms and independently generated HDR curve tests.
+Copyright 2026 Lucas Greuloch; GPL-3.0-or-later. Existing source notices remain.
 
 The decoder graph uses png0.18.1 (MIT OR Apache-2.0), zune-jpeg0.5.15 and
 zune-core0.5.3 (MIT OR Apache-2.0 OR Zlib), image0.25.10 (MIT OR Apache-2.0),

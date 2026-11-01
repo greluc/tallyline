@@ -11,3 +11,5 @@ pub use crate::layout::StorageLayout;
 pub use crate::logo::decode_logo;
 
 pub use crate::backup::BackupSetStore;
+pub use crate::image_intake::read_image;
+pub use crate::image_intake::read_image_file;

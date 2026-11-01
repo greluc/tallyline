@@ -6,6 +6,8 @@ All notable changes are recorded here.
 
 ### Added
 
+- Added shared bounded PNG/JPEG/BMP intake with explicit colour conversion, full-precision 16-bit PNG handling, HDR/unsupported-colour advice and original-size findings after integer box reduction. The capture UI and recognition pipeline remain in progress (R-CAP-8, R-OCR-17).
+
 - Per-terminal LIVE priors retain exact prices and SCU, container sizes, status and source age across restarts, with independent 30-minute freshness and bounded ten-terminal requests. PTU contains no borrowed LIVE priors (R-API-1, R-API-5, R-API-6).
 
 - Added environment-specific terminal and commodity browsing with searchable cached records, passive refresh status and endpoint ages. Channel-to-UEX mapping controls save before applying and remain independent of the optional Game.log witness; native reference-worker wiring remains in progress. Global staff notices are capped literal text, and resolved reference failures clear without hiding settings errors (R-API-1, R-API-2, R-API-6, R-CAP-3a, R-UI-8, R-UI-13, R-UI-16).

@@ -22,6 +22,8 @@ Starting Tallyline again activates the existing installed or portable instance. 
 
 Open-source licence rows show documented licence choices; their upstream declarations and complete legal texts remain in the offline catalogue. The current source graph uses egui/eframe 0.37.0; [the adoption record](supply-chain/latest-stable-adoption.json) lists eligible releases, upstream constraints and the approved native limits.
 
+The shared image intake decodes SDR PNG (including full-precision 16-bit samples), JPEG and BMP into sRGB. It identifies HDR containers and unsupported colour encodings by content, gives SDR-copy advice and bounds file, header, pixel, profile and codec memory before decoding. Large supported inputs receive integer box reduction with their original dimensions recorded (R-CAP-8, R-OCR-17). Capture import controls and the recognition pipeline remain in progress.
+
 ## Plan
 
 | Document | Contents |

@@ -96,3 +96,11 @@ The browser accepts immutable cache snapshots from its worker. Native worker com
 UEX staff notices appear in the global status area in every view, limited to 280 Unicode characters and displayed literally without interpreting markup or links. Paused submissions or Datacenter maintenance leave cached reference browsing available; the last successful parameters remain available offline.
 
 A successful reference update clears a resolved reference-refresh delivery notice. It preserves an unrelated settings error until that settings operation succeeds. The reference page uses the same global status area without displaying a second copy.
+
+## Screenshot formats
+
+The shared decoder accepts SDR PNG, JPEG and BMP by their contents, even when a file extension is wrong. Sixteen-bit PNG samples retain their full precision through conversion to eight-bit sRGB. ICC colour profiles and supported PNG colour metadata are applied explicitly.
+
+HDR PNG encoding and unsupported colour profiles receive **HDR or unsupported colour encoding – use an SDR copy**. JPEG XR, AVIF, HEIF and EXR originals are recognised but are not decoded or repeatedly retried. For a Game Bar JPEG XR original, use its SDR PNG copy when one is available; this does not claim that every capture tool creates such a copy. Other tools need an SDR PNG or JPEG capture. Capture-method recommendations still await the paired-capture checks in M2.
+
+Files exceeding a hard size, metadata, pixel, profile or decoder-memory limit are set aside with a reason. Supported inputs above the 20 MP working budget are reduced with integer boxes, including edge pixels; the result records the original dimensions. Import controls and recognition are still being connected to this shared intake.

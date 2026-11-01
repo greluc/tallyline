@@ -63,3 +63,4 @@ pub enum TradeSide {
     /// Sell inventory to the terminal.
     Sell,
 }
+pub use crate::image_raster::{ImageRaster, InvalidRaster};
