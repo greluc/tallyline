@@ -18,6 +18,7 @@ pub mod header;
 pub mod licence;
 pub mod listing;
 pub mod lockfile;
+pub mod native;
 pub mod notices;
 pub mod osv;
 pub mod quality;
@@ -41,3 +42,6 @@ mod token_reconciliation;
 
 #[cfg(test)]
 mod quality_tests;
+
+#[cfg(test)]
+mod native_scope_tests;

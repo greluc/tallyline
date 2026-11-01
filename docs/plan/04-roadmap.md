@@ -10,6 +10,8 @@ Implementation tickets published 2026-11-01: [M1](https://github.com/greluc/tall
 
 Status 2026-11-01 (quality gates): core coverage is automatic in `cargo xtask check`; changed-line PR and full nightly mutation checks enforce the initial 70% floor. Both select exact core membership, fail malformed inputs and visibly skip while no core exists, so no baseline is claimed. Pinned tool Windows compatibility is checked; Linux CI and the first full-core measurement/ratchet remain open (09 §8, 11 §B3, `docs/dependency-pins.md`).
 
+Status 2026-11-01 (native scope): `cargo xtask check` enforces the three owner-approved issue #80 restrictions with negative metadata fixtures for native activation and supported-target leakage (09 §3b, `xtask/README.md`). The general native inventory and S-12 build-script/procedural-macro source review remain open; this guard does not complete M0.
+
 ## M0 – Foundation and verification
 
 - [x] Licence decided by the project owner: GPL-3.0-or-later, contributions under a DCO 1.1 sign-off plus the CLA, Star Citizen Fan Kit unit adopted ([ADR-0003](../adr/0003-licence-and-contributions.md), 2026-10-08)

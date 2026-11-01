@@ -8,6 +8,8 @@
 pub enum Step {
     /// The supply-chain guard of 10 S-4 over the repository files; it runs before any Cargo call.
     SupplyChainGuard,
+    /// The approved disabled-feature and off-target native package restrictions.
+    NativeScope,
     /// Line coverage for the documented core crates.
     CoreCoverage,
     /// The justification rule of 10 S-6 over the suppressions in `deny.toml`.
@@ -46,6 +48,7 @@ impl Step {
     pub fn name(&self) -> &'static str {
         match self {
             Self::SupplyChainGuard => "supply-chain guard",
+            Self::NativeScope => "native scope",
             Self::CoreCoverage => "core coverage",
             Self::DenySuppressions => "cargo-deny suppressions",
             Self::VetExemptions => "cargo-vet exemptions",
@@ -73,6 +76,7 @@ fn cargo(name: &'static str, args: &[&str]) -> Step {
 pub fn plan() -> Vec<Step> {
     vec![
         Step::SupplyChainGuard,
+        Step::NativeScope,
         cargo(
             "cargo-deny",
             &["deny", "--locked", "check", "licenses", "sources", "bans"],
@@ -130,6 +134,7 @@ mod tests {
             Step::Cargo { args, .. } => args.iter().map(String::as_str).collect(),
             Step::RequirementTags { list } => list.iter().map(String::as_str).collect(),
             Step::SupplyChainGuard
+            | Step::NativeScope
             | Step::DenySuppressions
             | Step::VetExemptions
             | Step::Dependabot
@@ -168,6 +173,7 @@ mod tests {
             names,
             [
                 "supply-chain guard",
+                "native scope",
                 "cargo-deny",
                 "cargo-deny suppressions",
                 "cargo-vet exemptions",
