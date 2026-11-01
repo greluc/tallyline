@@ -73,4 +73,15 @@ A newer standard release appears as a persistent notice with **Open release note
 
 Source builds compare against the fixed development package version. The signed-release build identity is supplied separately by the release workflow; development builds make no claim to be signed releases.
 
-Settings schema 4 retains the independent UEX environment choice for each game channel. Migration backs up the exact old settings before replacement and preserves release checks, saved notices and the optional Game.log witness. The mapping controls are still being implemented; changing the witness directory preserves these mappings.
+Settings schema 4 retains the independent UEX environment choice for each game channel. Migration backs up the exact old settings before replacement and preserves release checks, saved notices and the optional Game.log witness. The mapping controls save before applying; changing the witness directory preserves these mappings.
+
+
+## Browsing cached reference data
+
+Open **Reference data** to select LIVE, HOTFIX, PTU, EPTU or TECH-PREVIEW. The selected game channel uses its saved UEX mapping: LIVE and HOTFIX default to UEX LIVE; the other three default to UEX PTU. **Settings → UEX environment mapping** changes one channel at a time after a successful save. These choices do not enable the Game.log witness or read game files.
+
+Search terminals by name, nickname, display name or location and commodities by name or code. Rows show the UEX ID to distinguish duplicate labels and codes. Selecting a terminal issues a background terminal-price request; selecting a commodity only changes the local selection. PTU browsing includes entries unavailable on LIVE. It never displays LIVE prices as PTU reference data.
+
+The global status distinguishes **No reference data yet**, usable cached data and an offline cache. Each loaded endpoint shows **Age at last update**, the elapsed seconds from its last successful fetch to the worker's clock observation; missing endpoints show **Not loaded yet**. A reversed clock shows an unknown age rather than a fresh value. **Refresh reference data** queues a background refresh without clearing records, search, selection or keyboard focus. A failed refresh retains the last successful data and fetch times. Background results never switch pages, open dialogs or change the window state.
+
+The browser accepts immutable cache snapshots from its worker. Native worker composition remains in progress in this implementation slice; until connected, the page shows the explicit no-data state and an unavailable-worker notice for a refresh request.

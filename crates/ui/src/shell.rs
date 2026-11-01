@@ -25,6 +25,9 @@ pub fn show_shell(
         {
             state.leave_settings();
         }
+        if ui.button(catalogue.text("reference.title")).clicked() {
+            state.show_reference();
+        }
         if ui.button(catalogue.text("menu.settings")).clicked() {
             state.show_settings();
         }
@@ -37,17 +40,12 @@ pub fn show_shell(
     });
     ui.separator();
     ui.horizontal_wrapped(|ui| {
-        for key in [
-            "status.mode",
-            "status.environment",
-            "status.connection",
-            "status.reference",
-            "status.queue",
-        ] {
+        for key in ["status.mode", "status.queue"] {
             ui.label(catalogue.text(key));
             ui.separator();
         }
     });
+    crate::reference_views::show_reference_status(ui, state, catalogue);
     commands.extend(crate::updates::notice(ui, state, catalogue));
     if let Some(notice) = state.notice() {
         ui.label(catalogue.text("status.action_required"));
@@ -66,6 +64,7 @@ pub fn show_shell(
                 commands.extend(state.act(action));
             }
         }
+        View::Reference => crate::api::show_reference_browser(ui, state, catalogue),
         View::Home => {
             ui.heading(catalogue.text("home.title"));
             ui.label(catalogue.text("home.empty"));
@@ -93,6 +92,7 @@ pub fn show_shell(
                 }
             }
             commands.extend(crate::updates::settings(ui, state, catalogue));
+            commands.extend(crate::reference_views::show_mapping(ui, state, catalogue));
             commands.extend(crate::game_witness::show(ui, state, catalogue));
             if ui.button(catalogue.text("action.done")).clicked() {
                 state.leave_settings();

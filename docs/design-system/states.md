@@ -114,3 +114,8 @@ Found when version `1791537441-68f0` was checked against its brief and the plan 
 ## Release update states (2026-11-01)
 
 The desktop shell draws release status with normal token-backed text and controls. A newer standard release has a persistent bordered notice with a version label, **Open release notes** and **Dismiss update notice**. Settings shows a distinct text status for not checked, no newer release and unavailable; none relies on colour alone. The setting is a labelled checkbox, off by default, and changes only after a successful save. Results never select another view, open a modal, request focus or change window state (R-UI-16). Dismissal waits for successful persistence and survives restarts; the same release stays hidden, while a different newer release can appear. A known available release survives unavailable checks and restarts without another request.
+
+
+## Reference browser states (2026-11-01)
+
+The reference browser uses normal token-backed labels and controls in every theme. Global text identifies the mapped UEX environment, an empty cache, usable cached data or offline retained records, with a separate static refresh label. Endpoint ages distinguish missing data from an unknown age after a reversed clock. Search fields have explicit accessible label associations and stable widget IDs so background status changes preserve keyboard focus. Terminal and commodity rows expose their UEX IDs alongside display text; selection never depends on colour alone. Channel mapping is independent of the optional witness and remains unchanged until persistence succeeds (R-CAP-3a, R-UI-8, R-UI-13, R-UI-16, R-UI-17).

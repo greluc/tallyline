@@ -23,3 +23,7 @@ mod licences;
 mod theme;
 
 mod updates;
+
+mod reference_browser;
+
+mod reference_views;

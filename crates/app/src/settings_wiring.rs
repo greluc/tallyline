@@ -180,7 +180,8 @@ fn run(
                 | SettingsCommand::CompleteOnboarding
                 | SettingsCommand::ChangeUpdateChecks(_)
                 | SettingsCommand::DismissUpdate => true,
-                SettingsCommand::ChangeWitnessMode(_)
+                SettingsCommand::ChangeEnvironmentMapping(_, _)
+                | SettingsCommand::ChangeWitnessMode(_)
                 | SettingsCommand::ChangeGameChannel(_)
                 | SettingsCommand::RefreshWitness => false,
             };
@@ -189,6 +190,9 @@ fn run(
                 SettingsCommand::DismissUpdate | SettingsCommand::ChangeUpdateChecks(_)
             );
             let result = match command {
+                SettingsCommand::ChangeEnvironmentMapping(channel, environment) => {
+                    crate::game_wiring::change_mapping(settings_path.clone(), channel, environment)
+                }
                 SettingsCommand::DismissUpdate => settings.dismiss_update(),
                 SettingsCommand::ChangeUpdateChecks(checks) => {
                     settings.change_update_checks(checks)

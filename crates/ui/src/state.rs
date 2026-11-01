@@ -16,6 +16,8 @@ pub enum View {
     Onboarding,
     /// The main workspace and its empty capture state.
     Home,
+    /// Cached environment-specific terminal and commodity browsing.
+    Reference,
     /// Application preferences.
     Settings,
 }
@@ -23,6 +25,17 @@ pub enum View {
 /// A worker result that never requests a dialog or window command.
 #[derive(Debug)]
 pub enum BackgroundEvent {
+    /// A passive refresh starts without replacing cached records.
+    ReferenceRefreshStarted,
+    /// Environment-specific cache state and its injected clock observation.
+    ReferenceUpdated {
+        /// LIVE records.
+        live: tallyline_reference_data::api::model::ReferenceSnapshot,
+        /// PTU records with no borrowed LIVE priors.
+        ptu: tallyline_reference_data::api::model::ReferenceSnapshot,
+        /// The worker clock when these snapshots were published.
+        observed_at: tallyline_shared_kernel::api::model::Timestamp,
+    },
     /// Passive release metadata result with no window command.
     UpdateChecked(tallyline_workflows::api::model::UpdateStatus),
     /// Local witness settings and sanitised facts from the file worker.
@@ -41,6 +54,7 @@ pub enum BackgroundEvent {
 #[derive(Default)]
 pub struct ShellState {
     view: View,
+    references: crate::reference_browser::ReferenceBrowser,
     notice: Option<String>,
     dialogs: DialogPresenter,
     settings: AppSettings,
@@ -101,6 +115,9 @@ impl ShellState {
         }
         self.busy = true;
         Some(match action {
+            UserAction::ChangeEnvironmentMapping(channel, environment) => {
+                SettingsCommand::ChangeEnvironmentMapping(channel, environment)
+            }
             UserAction::DismissUpdate => SettingsCommand::DismissUpdate,
             UserAction::ChangeUpdateChecks(checks) => SettingsCommand::ChangeUpdateChecks(checks),
             UserAction::ChooseTheme(theme) => SettingsCommand::ChangeTheme(theme),
@@ -113,6 +130,12 @@ impl ShellState {
     /// Applies a worker result without changing the view or window state.
     pub fn receive(&mut self, event: BackgroundEvent) {
         match event {
+            BackgroundEvent::ReferenceRefreshStarted => self.references.started(),
+            BackgroundEvent::ReferenceUpdated {
+                live,
+                ptu,
+                observed_at,
+            } => self.references.updated(live, ptu, observed_at),
             BackgroundEvent::UpdateChecked(status) => {
                 if self.settings.update_checks()
                     == tallyline_workflows::api::model::UpdateChecks::Enabled
@@ -185,6 +208,11 @@ impl ShellState {
 
 /// A direct user request that requires durable preferences.
 pub enum UserAction {
+    /// Persist an independent UEX environment for one game channel.
+    ChangeEnvironmentMapping(
+        tallyline_game::api::model::GameEnvironment,
+        tallyline_shared_kernel::api::model::UexEnvironment,
+    ),
     /// Persist dismissal of the available release.
     DismissUpdate,
     /// Change permission for daily release metadata checks.
@@ -204,6 +232,11 @@ pub enum UserAction {
 /// A settings operation handled outside the UI thread.
 #[derive(Clone, PartialEq, Eq)]
 pub enum SettingsCommand {
+    /// Persist an independent UEX environment for one game channel.
+    ChangeEnvironmentMapping(
+        tallyline_game::api::model::GameEnvironment,
+        tallyline_shared_kernel::api::model::UexEnvironment,
+    ),
     /// Save the explicit release notice dismissal.
     DismissUpdate,
     /// Persist release-check permission.
@@ -223,6 +256,11 @@ pub enum SettingsCommand {
 impl std::fmt::Debug for SettingsCommand {
     fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
+            Self::ChangeEnvironmentMapping(channel, environment) => formatter
+                .debug_tuple("ChangeEnvironmentMapping")
+                .field(channel)
+                .field(environment)
+                .finish(),
             Self::DismissUpdate => formatter.write_str("DismissUpdate"),
             Self::ChangeUpdateChecks(checks) => formatter
                 .debug_tuple("ChangeUpdateChecks")
@@ -249,3 +287,5 @@ impl ShellState {
         &self.update_status
     }
 }
+
+mod reference;
