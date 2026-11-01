@@ -116,7 +116,7 @@ fn r_nf_5__installed_layout_uses_only_profile_and_xdg_roots() {
     let local = directory.0.join("local");
     let windows = tallyline_adapter_files::api::StorageLayout::installed_windows(&roaming, &local);
     assert_eq!(windows.config(), roaming.join("Tallyline"));
-    assert_eq!(windows.data(), local.join("Tallyline"));
+    assert_eq!(windows.data(), local.join("Tallyline/data"));
     assert_eq!(windows.logs(), local.join("Tallyline/logs"));
     assert_eq!(windows.cache(), local.join("Tallyline/cache"));
     let linux = tallyline_adapter_files::api::StorageLayout::installed_linux(
@@ -127,7 +127,7 @@ fn r_nf_5__installed_layout_uses_only_profile_and_xdg_roots() {
     );
     assert_eq!(linux.config(), roaming.join("tallyline"));
     assert_eq!(linux.data(), local.join("tallyline"));
-    assert_eq!(linux.logs(), directory.0.join("state/tallyline"));
+    assert_eq!(linux.logs(), directory.0.join("state/tallyline/logs"));
     assert_eq!(linux.cache(), directory.0.join("cache/tallyline"));
 }
 
@@ -164,4 +164,56 @@ fn r_nf_5__future_schema_is_never_overwritten() {
     assert!(store.load().is_err());
     assert!(store.save(&AppSettings::default()).is_err());
     assert_eq!(std::fs::read(path).unwrap(), original);
+}
+
+#[test]
+#[expect(
+    non_snake_case,
+    reason = "Requirement tags use a double underscore separator."
+)]
+fn r_nf_5__installed_data_and_logs_match_the_architecture_storage_rows() {
+    use tallyline_adapter_files::api::StorageLayout;
+    let windows = StorageLayout::installed_windows(
+        std::path::Path::new("roaming"),
+        std::path::Path::new("local"),
+    );
+    let linux = StorageLayout::installed_linux(
+        std::path::Path::new("config"),
+        std::path::Path::new("data"),
+        std::path::Path::new("state"),
+        std::path::Path::new("cache"),
+    );
+    assert_eq!(
+        (windows.data(), linux.logs()),
+        (
+            std::path::Path::new("local/Tallyline/data"),
+            std::path::Path::new("state/tallyline/logs")
+        )
+    );
+}
+
+#[test]
+#[expect(
+    non_snake_case,
+    reason = "Requirement tags use a double underscore separator."
+)]
+fn r_nf_5__invalid_onboarding_reports_only_the_rejected_setting_and_default() {
+    let directory = TestDirectory::new().unwrap();
+    let path = directory.0.join("settings.json");
+    for rejected in [
+        serde_json::json!("true"),
+        serde_json::json!(42),
+        serde_json::Value::Null,
+    ] {
+        let document = serde_json::json!({"schema_version":1,"app":{"theme":"dark","onboarding_complete":rejected},"account":{"token":"private-marker"}});
+        std::fs::write(&path, serde_json::to_vec(&document).unwrap()).unwrap();
+        let loaded = ConfigFile::new(path.clone()).load().unwrap();
+        assert!(!loaded.settings.onboarding_complete());
+        assert_eq!(loaded.errors.len(), 1);
+        let issue = loaded.errors.first().unwrap();
+        assert_eq!(issue.key, "settings.onboarding_complete");
+        assert_eq!(issue.rejected, rejected.to_string());
+        assert_eq!(issue.default, "false");
+        assert!(!issue.rejected.contains("private-marker"));
+    }
 }

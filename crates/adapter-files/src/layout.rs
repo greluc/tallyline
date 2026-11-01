@@ -31,7 +31,7 @@ impl StorageLayout {
     pub fn installed_windows(roaming: &Path, local: &Path) -> Self {
         Self {
             config: roaming.join("Tallyline"),
-            data: local.join("Tallyline"),
+            data: local.join("Tallyline/data"),
             logs: local.join("Tallyline/logs"),
             cache: local.join("Tallyline/cache"),
         }
@@ -43,7 +43,7 @@ impl StorageLayout {
         Self {
             config: config.join("tallyline"),
             data: data.join("tallyline"),
-            logs: state.join("tallyline"),
+            logs: state.join("tallyline/logs"),
             cache: cache.join("tallyline"),
         }
     }

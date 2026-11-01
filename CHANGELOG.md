@@ -12,6 +12,12 @@ All notable changes are recorded here.
 
 ### Fixed
 
+- Invalid onboarding values now report the actual rejected JSON value and default without exposing unrelated account settings (R-NF-5).
+
+- Installed Windows data and Linux logs now use the dedicated directories required by the storage specification; portable paths retain their separate layout (R-NF-5).
+
+- About identifies the fixed development package version together with the OS and architecture (R-UI-18).
+
 - Theme changes now repaint the native root surface and text together, including dark/light/dark transitions. The offline licence catalogue excludes Apache boilerplate from copyright-holder metadata and preserves the actual AccessKit source attribution.
 
 ### Changed

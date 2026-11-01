@@ -110,7 +110,10 @@ impl ConfigFile {
             None => {
                 errors.push(SettingsIssue {
                     key: "settings.onboarding_complete",
-                    rejected: "missing or invalid type".to_owned(),
+                    rejected: document
+                        .get("app")
+                        .and_then(|app| app.get("onboarding_complete"))
+                        .map_or_else(|| "missing".to_owned(), serde_json::Value::to_string),
                     default: "false",
                 });
                 false

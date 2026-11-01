@@ -184,3 +184,28 @@ fn r_ui_8_r_ui_19_q_app__done_leaves_settings_and_preserves_unfinished_onboardin
     }
     Ok(())
 }
+
+#[test]
+#[expect(
+    non_snake_case,
+    reason = "Requirement tags use a double underscore separator."
+)]
+fn r_ui_18__about_identifies_the_fixed_development_version_and_platform() -> Outcome {
+    let mut harness = harness()?;
+    harness.run();
+    harness.get_by_label("Help").click();
+    harness.run();
+    harness.get_by_label("About").click();
+    harness.run();
+    let expected = format!(
+        "Development build {} · {}/{}",
+        env!("CARGO_PKG_VERSION"),
+        std::env::consts::OS,
+        std::env::consts::ARCH
+    );
+    assert!(
+        harness.query_by_label(&expected).is_some(),
+        "About must identify {expected}"
+    );
+    Ok(())
+}

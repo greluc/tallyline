@@ -42,8 +42,9 @@ pub fn show_about_view(
     ui.label(catalogue.text("about.unofficial"));
     ui.label(catalogue.text("about.copyright"));
     ui.label(format!(
-        "{} · {}/{}",
+        "{} {} · {}/{}",
         catalogue.text("about.development"),
+        env!("CARGO_PKG_VERSION"),
         std::env::consts::OS,
         std::env::consts::ARCH
     ));
