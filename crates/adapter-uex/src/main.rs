@@ -1,11 +1,15 @@
 // SPDX-FileCopyrightText: 2026 Lucas Greuloch
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The UEX API spike: read-only GET calls against the live UEX API, printed as shapes only.
+//! The UEX API spike: read-only GET calls and explicitly invoked `data_submit` dry runs.
 //!
-//! Usage: `tallyline-uex-spike [--host space|uk] <command>` with the commands `game-versions`,
-//! `status-levels`, `prices <id_terminal>`, `account` and `report-access`. `account` reads the
-//! secret key from `TALLYLINE_UEX_SECRET_KEY`; `report-access` also reads the app token from
+//! Usage: `tallyline-uex-spike [--host uk|space] <command>` with the commands `game-versions`,
+//! `status-levels`, `prices <id_terminal>`, `account`, `report-access` and
+//! `dry-run <id_terminal> <id_commodity> <price_buy> <status_buy> <scu_buy> \
+//! <game_version> <date_added> \
+//! [container_sizes|-] [invalid_commodity_id]`.
+//! `account` reads the secret key from `TALLYLINE_UEX_SECRET_KEY`; `report-access` and `dry-run`
+//! also read the app token from
 //! `TALLYLINE_UEX_APP_TOKEN`. Nothing is written to disk, and neither a credential, the personal
 //! data of an answer nor the message text of a UEX error is printed.
 
@@ -20,12 +24,16 @@ use tallyline_adapter_uex::api::{
     AppToken, ClientIdentity, ReadError, ReaderSettings, SecretKey, UexReader,
 };
 
-const SPACE_HOST: &str = "https://api.uexcorp.space/2.0/";
 const UK_HOST: &str = "https://api.uexcorp.uk/2.0/";
+const SPACE_HOST: &str = "https://api.uexcorp.space/2.0/";
 const SECRET_KEY_VARIABLE: &str = "TALLYLINE_UEX_SECRET_KEY";
 const APP_TOKEN_VARIABLE: &str = "TALLYLINE_UEX_APP_TOKEN";
-const USAGE: &str = "usage: tallyline-uex-spike [--host space|uk] \
-                     game-versions | status-levels | prices <id_terminal> | account | report-access";
+const SCREENSHOT_PATH_VARIABLE: &str = "TALLYLINE_UEX_SCREENSHOT_PATH";
+const USAGE: &str = "usage: tallyline-uex-spike [--host uk|space] \
+                     game-versions | status-levels | prices <id_terminal> | account | report-access | \
+                     dry-run <id_terminal> <id_commodity> <price_buy> <status_buy> <scu_buy> \
+                     <game_version> <date_added> \
+                     [container_sizes|-] [invalid_commodity_id]";
 
 enum Command {
     GameVersions,
@@ -33,6 +41,17 @@ enum Command {
     Prices(TerminalId),
     Account,
     ReportAccess,
+    DryRun {
+        terminal: u64,
+        commodity: u64,
+        price: u64,
+        status: u8,
+        scu: u32,
+        game_version: String,
+        date_added: i64,
+        container_sizes: Option<String>,
+        invalid_commodity: Option<u64>,
+    },
 }
 
 fn main() -> ExitCode {
@@ -58,7 +77,7 @@ fn parse(arguments: &[String]) -> Result<(&'static str, Command), String> {
             "uk" => (UK_HOST, rest),
             _ => return Err(USAGE.to_owned()),
         },
-        rest => (SPACE_HOST, rest),
+        rest => (UK_HOST, rest),
     };
     let command = match rest {
         [name] if name == "game-versions" => Command::GameVersions,
@@ -68,12 +87,101 @@ fn parse(arguments: &[String]) -> Result<(&'static str, Command), String> {
         }
         [name] if name == "account" => Command::Account,
         [name] if name == "report-access" => Command::ReportAccess,
+        [
+            name,
+            terminal,
+            commodity,
+            price,
+            status,
+            scu,
+            game_version,
+            date_added,
+        ] if name == "dry-run" => dry_run_command(
+            (terminal, commodity),
+            price,
+            status,
+            scu,
+            game_version,
+            date_added,
+            (None, None),
+        )?,
+        [
+            name,
+            terminal,
+            commodity,
+            price,
+            status,
+            scu,
+            game_version,
+            date_added,
+            sizes,
+        ] if name == "dry-run" => dry_run_command(
+            (terminal, commodity),
+            price,
+            status,
+            scu,
+            game_version,
+            date_added,
+            ((sizes != "-").then(|| sizes.to_owned()), None),
+        )?,
+        [
+            name,
+            terminal,
+            commodity,
+            price,
+            status,
+            scu,
+            game_version,
+            date_added,
+            sizes,
+            invalid_commodity,
+        ] if name == "dry-run" => dry_run_command(
+            (terminal, commodity),
+            price,
+            status,
+            scu,
+            game_version,
+            date_added,
+            (
+                (sizes != "-").then(|| sizes.to_owned()),
+                Some(parse_u64(invalid_commodity)?),
+            ),
+        )?,
         _ => return Err(USAGE.to_owned()),
     };
     Ok((host, command))
 }
 
+fn dry_run_command(
+    (terminal, commodity): (&str, &str),
+    price: &str,
+    status: &str,
+    scu: &str,
+    game_version: &str,
+    date_added: &str,
+    (container_sizes, invalid_commodity): (Option<String>, Option<u64>),
+) -> Result<Command, String> {
+    Ok(Command::DryRun {
+        terminal: parse_u64(terminal)?,
+        commodity: parse_u64(commodity)?,
+        price: parse_u64(price)?,
+        status: status.parse().map_err(|_| USAGE.to_owned())?,
+        scu: scu.parse().map_err(|_| USAGE.to_owned())?,
+        game_version: game_version.to_owned(),
+        date_added: date_added.parse().map_err(|_| USAGE.to_owned())?,
+        container_sizes,
+        invalid_commodity,
+    })
+}
+
+fn parse_u64(value: &str) -> Result<u64, String> {
+    value.parse::<u64>().map_err(|_| USAGE.to_owned())
+}
+
 fn run(host: &str, command: &Command, out: &mut impl Write) -> Result<(), String> {
+    if matches!(command, Command::DryRun { .. }) && host != UK_HOST {
+        return Err("data_submit dry runs require the primary .uk host".to_owned());
+    }
     let identity = ClientIdentity::new("tallyline-uex-spike", env!("CARGO_PKG_VERSION"));
     let settings = ReaderSettings::new(host, identity).map_err(|error| format!("{error:?}"))?;
     let reader = UexReader::new(&settings).map_err(|error| format!("{error:?}"))?;
@@ -81,7 +189,7 @@ fn run(host: &str, command: &Command, out: &mut impl Write) -> Result<(), String
         .enable_all()
         .build()
         .map_err(|error| error.to_string())?;
-    let lines = runtime.block_on(lines(&reader, command))?;
+    let lines = runtime.block_on(lines(&reader, &settings, command))?;
     writeln!(out, "host: {host}").map_err(|error| error.to_string())?;
     for line in lines {
         writeln!(out, "{line}").map_err(|error| error.to_string())?;
@@ -89,7 +197,11 @@ fn run(host: &str, command: &Command, out: &mut impl Write) -> Result<(), String
     Ok(())
 }
 
-async fn lines(reader: &UexReader, command: &Command) -> Result<Vec<String>, String> {
+async fn lines(
+    reader: &UexReader,
+    settings: &ReaderSettings,
+    command: &Command,
+) -> Result<Vec<String>, String> {
     match command {
         Command::GameVersions => {
             let versions = reader.game_versions().await.map_err(describe)?;
@@ -137,6 +249,63 @@ async fn lines(reader: &UexReader, command: &Command) -> Result<Vec<String>, Str
                 access.rows
             )])
         }
+        Command::DryRun {
+            terminal,
+            commodity,
+            price,
+            status,
+            scu,
+            game_version,
+            date_added,
+            container_sizes,
+            invalid_commodity,
+        } => {
+            use tallyline_adapter_uex::api::UexSubmitter;
+            use tallyline_adapter_uex::api::model::{DryRunReport, SubmitPrice};
+
+            let key = secret_key()?;
+            let token = AppToken::new(&variable(APP_TOKEN_VARIABLE)?);
+            let row = SubmitPrice {
+                id_commodity: *commodity,
+                price_buy: Some(*price),
+                price_sell: None,
+                status_buy: Some(*status),
+                status_sell: None,
+                scu_buy: Some(*scu),
+                scu_sell: None,
+                container_sizes: container_sizes.clone(),
+            };
+            let mut prices = vec![row];
+            if let Some(id_commodity) = invalid_commodity {
+                prices.push(SubmitPrice {
+                    id_commodity: *id_commodity,
+                    price_buy: Some(1),
+                    price_sell: Some(1),
+                    status_buy: None,
+                    status_sell: None,
+                    scu_buy: None,
+                    scu_sell: None,
+                    container_sizes: None,
+                });
+            }
+            let report = DryRunReport::new(
+                *terminal,
+                game_version.clone(),
+                *date_added,
+                screenshot()?,
+                prices,
+            );
+            let submitter = UexSubmitter::new(settings).map_err(|error| format!("{error:?}"))?;
+            let success = submitter
+                .dry_run(&token, &key, &report)
+                .await
+                .map_err(describe)?;
+            Ok(vec![format!(
+                "dry run accepted: {} report id(s), date_added {}",
+                success.ids_reports.len(),
+                success.date_added
+            )])
+        }
     }
 }
 
@@ -172,11 +341,74 @@ fn variable(name: &str) -> Result<String, String> {
     env::var(name).map_err(|_| format!("{name} is not set"))
 }
 
+fn screenshot() -> Result<Option<String>, String> {
+    match env::var(SCREENSHOT_PATH_VARIABLE) {
+        Ok(path) => {
+            let bytes =
+                std::fs::read(path).map_err(|_| "could not read screenshot file".to_owned())?;
+            let encoded = base64(&bytes);
+            if encoded.len() > 10_000_000 {
+                return Err("screenshot exceeds the 10 MB request limit".to_owned());
+            }
+            Ok(Some(encoded))
+        }
+        Err(_) => Ok(None),
+    }
+}
+
+fn base64(bytes: &[u8]) -> String {
+    const ALPHABET: &[u8; 64] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+    let mut encoded = String::with_capacity(bytes.len().div_ceil(3) * 4);
+    for chunk in bytes.chunks(3) {
+        let first = chunk.first().copied().unwrap_or(0);
+        let second = chunk.get(1).copied().unwrap_or(0);
+        let third = chunk.get(2).copied().unwrap_or(0);
+        encoded.push(base64_character(ALPHABET, usize::from(first >> 2)));
+        encoded.push(base64_character(
+            ALPHABET,
+            usize::from(((first & 0b11) << 4) | (second >> 4)),
+        ));
+        encoded.push(if chunk.len() > 1 {
+            base64_character(
+                ALPHABET,
+                usize::from(((second & 0b1111) << 2) | (third >> 6)),
+            )
+        } else {
+            '='
+        });
+        encoded.push(if chunk.len() > 2 {
+            base64_character(ALPHABET, usize::from(third & 0b11_1111))
+        } else {
+            '='
+        });
+    }
+    encoded
+}
+
+fn base64_character(alphabet: &[u8; 64], index: usize) -> char {
+    alphabet.get(index).copied().map_or('=', char::from)
+}
+
 fn describe(error: ReadError) -> String {
     match error {
         ReadError::Rejected {
-            http_status, code, ..
-        } => format!("UEX refused the request: HTTP {http_status}, code {code}"),
+            http_status,
+            code,
+            data,
+            ..
+        } => {
+            let detail = match data {
+                Some(tallyline_adapter_uex::api::RejectedData::Row(row)) => {
+                    format!(", failed row {row}")
+                }
+                Some(tallyline_adapter_uex::api::RejectedData::Report {
+                    id_terminal,
+                    id_commodity,
+                }) => format!(", report terminal {id_terminal}, commodity {id_commodity}"),
+                Some(tallyline_adapter_uex::api::RejectedData::Other) | None => String::new(),
+            };
+            format!("UEX refused the request: HTTP {http_status}, code {code}{detail}")
+        }
         ReadError::NotJson { .. }
         | ReadError::Redirect { .. }
         | ReadError::Malformed { .. }
@@ -187,17 +419,17 @@ fn describe(error: ReadError) -> String {
 
 #[cfg(test)]
 mod tests {
-    use super::{Command, SPACE_HOST, TerminalId, UK_HOST, parse};
+    use super::{Command, SPACE_HOST, TerminalId, UK_HOST, base64, parse};
 
     fn arguments(text: &str) -> Vec<String> {
         text.split_whitespace().map(str::to_owned).collect()
     }
 
     #[test]
-    fn the_space_host_is_the_default() {
+    fn the_uk_host_is_the_default() {
         assert!(matches!(
             parse(&arguments("game-versions")),
-            Ok((SPACE_HOST, Command::GameVersions))
+            Ok((UK_HOST, Command::GameVersions))
         ));
     }
 
@@ -207,6 +439,41 @@ mod tests {
             parse(&arguments("--host uk prices 89")),
             Ok((UK_HOST, Command::Prices(TerminalId(89))))
         ));
+    }
+
+    #[test]
+    fn the_space_host_remains_available_for_comparison() {
+        assert!(matches!(
+            parse(&arguments("--host space game-versions")),
+            Ok((SPACE_HOST, Command::GameVersions))
+        ));
+    }
+
+    #[test]
+    fn dry_run_parses_row_level_container_sizes_and_a_validation_row() {
+        assert!(matches!(
+            parse(&arguments(
+                "dry-run 89 24 136 3 86 4.10.2 1790000000 1,2,4 31"
+            )),
+            Ok((UK_HOST, Command::DryRun {
+                terminal: 89,
+                commodity: 24,
+                price: 136,
+                status: 3,
+                scu: 86,
+                container_sizes: Some(sizes),
+                invalid_commodity: Some(31),
+                ..
+            })) if sizes == "1,2,4"
+        ));
+    }
+
+    #[test]
+    fn screenshot_bytes_are_base64_encoded_with_standard_padding() {
+        assert_eq!(base64(b"f"), "Zg==");
+        assert_eq!(base64(b"fo"), "Zm8=");
+        assert_eq!(base64(b"foo"), "Zm9v");
+        assert_eq!(base64(&[0, 255]), "AP8=");
     }
 
     #[test]

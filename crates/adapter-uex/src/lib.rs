@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 Lucas Greuloch
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The UEX API adapter: a read-only HTTP client for the UEX API 2.0 and its anti-corruption layer.
+//! The UEX API adapter: a read client and `data_submit` dry-run client for UEX API 2.0.
 
 #![forbid(unsafe_code)]
 

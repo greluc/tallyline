@@ -1,15 +1,16 @@
 // SPDX-FileCopyrightText: 2026 Lucas Greuloch
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The HTTP transport: one `reqwest` client with the explicit TLS stack, GET only, capped bodies.
+//! The HTTP transport: one `reqwest` client with the explicit TLS stack and capped response bodies.
 
 use std::sync::Arc;
 use std::time::Duration;
 
-use reqwest::header::{HeaderMap, HeaderName, HeaderValue, USER_AGENT};
+use reqwest::header::{CONTENT_TYPE, HeaderMap, HeaderName, HeaderValue, USER_AGENT};
 use rustls::ClientConfig;
 use rustls::crypto::aws_lc_rs;
 use rustls_platform_verifier::BuilderVerifierExt;
+use serde::Serialize;
 use serde_json::Value;
 
 use crate::api::{BuildError, ReadError, ReaderSettings};
@@ -74,7 +75,42 @@ impl Transport {
             value.set_sensitive(true);
             request = request.header(name, value);
         }
-        let mut response = request.send().await.map_err(transport_error)?;
+        let response = request.send().await.map_err(transport_error)?;
+        self.read_response(response).await
+    }
+
+    /// Sends a JSON `POST` and returns the `data` of its response envelope.
+    pub(crate) async fn post<T: Serialize>(
+        &self,
+        resource: &str,
+        payload: &T,
+        headers: &[(&str, &str)],
+    ) -> Result<Value, ReadError> {
+        let url = self
+            .base_url
+            .join(resource)
+            .map_err(|error| ReadError::Transport(format!("resource path: {error}")))?;
+        let body = serde_json::to_vec(payload).map_err(|error| ReadError::Malformed {
+            detail: format!("could not serialise data_submit payload: {error}"),
+        })?;
+        let mut request = self
+            .client
+            .post(url)
+            .header(CONTENT_TYPE, "application/json")
+            .body(body);
+        for (name, value) in headers {
+            let name = HeaderName::from_bytes(name.as_bytes())
+                .map_err(|error| ReadError::Transport(error.to_string()))?;
+            let mut value = HeaderValue::from_str(value)
+                .map_err(|_| ReadError::Transport(format!("header {name} has an invalid value")))?;
+            value.set_sensitive(true);
+            request = request.header(name, value);
+        }
+        let response = request.send().await.map_err(transport_error)?;
+        self.read_response(response).await
+    }
+
+    async fn read_response(&self, mut response: reqwest::Response) -> Result<Value, ReadError> {
         let http_status = response.status().as_u16();
         if response.status().is_redirection() {
             return Err(ReadError::Redirect { http_status });

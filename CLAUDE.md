@@ -4,7 +4,7 @@ This file is the shared source of truth for Claude Code and Codex. Codex also re
 
 **Tallyline** (the product name, decided 2026-10-12, O-8; the GitHub repository is still `uex-datarunner-client`) is a desktop client (Windows + Linux) for capturing Star Citizen commodity terminal data – **manually or via screenshot OCR** – and submitting it to the **UEX API 2.0** (`POST /data_submit`). Current UEX data (terminals, commodities, latest prices, status levels, tolerances) are **constraints and default values** for recognition and selection.
 
-**Status:** planning phase, milestone M0 in `docs/plan/04-roadmap.md` has started. The code so far is the `xtask` crate (`cargo xtask check`, the supply-chain guard and the vendor hash list, `rust-toolchain.toml`, workspace lints) and `crates/adapter-uex` (`tallyline-adapter-uex`: the read-only UEX client of the M0 API spike and its CLI `tallyline-uex-spike`, issue #24); every other crate is created with its first test, under `crates/`. Implementation language: Rust with egui; our own code is Rust only and native code in a dependency is allowed only as a registered exception (ADR-0005, accepted 2026-10-12; it supersedes ADR-0001's Java 27 + JavaFX choice). Licence: GPL-3.0-or-later (ADR-0003). Do not invent build commands, file paths, crates or type names that exist neither in `docs/` nor in the tree; if something is not written down, it has not been decided: ask. A crate, version or command that ADR-0005 does not name is "chosen and verified at source in M0".
+**Status:** planning phase, milestone M0 in `docs/plan/04-roadmap.md` has started. The code so far is the `xtask` crate (`cargo xtask check`, the supply-chain guard and the vendor hash list, `rust-toolchain.toml`, workspace lints) and `crates/adapter-uex` (`tallyline-adapter-uex`: the UEX M0 API spike read client and `data_submit` dry-run client, issue #67); every other crate is created with its first test, under `crates/`. Implementation language: Rust with egui; our own code is Rust only and native code in a dependency is allowed only as a registered exception (ADR-0005, accepted 2026-10-12; it supersedes ADR-0001's Java 27 + JavaFX choice). Licence: GPL-3.0-or-later (ADR-0003). Do not invent build commands, file paths, crates or type names that exist neither in `docs/` nor in the tree; if something is not written down, it has not been decided: ask. A crate, version or command that ADR-0005 does not name is "chosen and verified at source in M0".
 
 ## Language
 
@@ -177,7 +177,7 @@ cargo test --workspace --locked # all tests
 cargo test <name> --locked      # targeted tests
 cargo run                       # start the app (the binary crate's name is O-122)
 cargo run --release -p ocr-eval -- --corpus "$TALLYLINE_CORPUS_DIR"   # OCR evaluation (tools/ocr-eval)
-cargo run --locked -p tallyline-adapter-uex -- [--host space|uk] game-versions   # read-only UEX API spike (GET only; also status-levels, prices <id>, account, report-access)
+cargo run --locked -p tallyline-adapter-uex -- [--host uk|space] game-versions   # UEX API spike (GET; also status-levels, prices <id>, account, report-access, dry-run <terminal> <commodity> <price_buy> <status_buy> <scu_buy> <version> <date_added> [container_sizes|-] [invalid_commodity_id]); screenshot input uses TALLYLINE_UEX_SCREENSHOT_PATH
 cargo update --dry-run          # available updates (adopt stable ones only)
 cargo xtask package             # installer for the current OS (cargo-packager)
 ```

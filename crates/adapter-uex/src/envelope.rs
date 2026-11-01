@@ -5,7 +5,7 @@
 
 use serde_json::Value;
 
-use crate::api::ReadError;
+use crate::api::{ReadError, RejectedData};
 
 const OK_STATUS: &str = "ok";
 
@@ -29,15 +29,40 @@ pub(crate) fn data(http_status: u16, body: &[u8]) -> Result<Value, ReadError> {
             Some(Value::String(message)) => message,
             Some(_) | None => String::new(),
         };
+        let data = envelope
+            .remove("data")
+            .filter(|value| !value.is_null())
+            .map(rejected_data);
         return Err(ReadError::Rejected {
             http_status,
             code: status,
             message,
+            data,
         });
     }
     envelope.remove("data").ok_or_else(|| ReadError::Malformed {
         detail: "the ok envelope has no data".to_owned(),
     })
+}
+
+fn rejected_data(value: Value) -> RejectedData {
+    if let Some(row) = value.get("row").and_then(Value::as_u64)
+        && let Ok(row) = usize::try_from(row)
+    {
+        return RejectedData::Row(row);
+    }
+    if let Some(report) = value.get("report")
+        && let (Some(id_terminal), Some(id_commodity)) = (
+            report.get("id_terminal").and_then(Value::as_u64),
+            report.get("id_commodity").and_then(Value::as_u64),
+        )
+    {
+        return RejectedData::Report {
+            id_terminal,
+            id_commodity,
+        };
+    }
+    RejectedData::Other
 }
 
 #[cfg(test)]
@@ -79,6 +104,7 @@ mod tests {
                 http_status: 500,
                 code: "error".to_owned(),
                 message: String::new(),
+                data: None,
             })
         );
     }
