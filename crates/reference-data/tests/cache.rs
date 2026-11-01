@@ -1141,3 +1141,56 @@ fn r_api_1__failed_forced_refresh_retries_even_when_the_previous_success_is_stil
     assert!(!application.terminal_priors_due(TerminalId(17)));
     assert_eq!(application.state(), ReferenceState::Cached);
 }
+
+#[test]
+#[expect(
+    non_snake_case,
+    reason = "Requirement tags use a double underscore separator."
+)]
+fn r_man_1__manual_terminal_search_accepts_fuzzy_names_without_resolving_shared_display_names() {
+    use tallyline_reference_data::api::model::{Terminal, TerminalText};
+    use tallyline_shared_kernel::api::model::TerminalId;
+    let terminal = |id, location: &str| {
+        Terminal::new(
+            TerminalId(id),
+            TerminalText {
+                name: "Orbital Depot".to_owned(),
+                nickname: "OD".to_owned(),
+                display_name: "Shared shop".to_owned(),
+                location: location.to_owned(),
+            },
+            true,
+        )
+    };
+    let app = ReferenceApplication::load(
+        MemoryCache(vec![CachedReference::new(
+            Timestamp::from_seconds(100),
+            EndpointData::Terminals(vec![
+                terminal(1, "Stanton / ArcCorp"),
+                terminal(2, "Pyro / Ruin"),
+            ]),
+        )]),
+        FixedClock,
+    )
+    .unwrap();
+    assert_eq!(
+        app.snapshot(UexEnvironment::Live)
+            .terminals("orb dpt")
+            .len(),
+        2
+    );
+    assert_eq!(
+        app.snapshot(UexEnvironment::Live)
+            .terminals("Shared shop")
+            .len(),
+        2
+    );
+    assert_eq!(
+        app.snapshot(UexEnvironment::Live)
+            .terminals("Pyro")
+            .first()
+            .unwrap()
+            .id(),
+        TerminalId(2)
+    );
+}

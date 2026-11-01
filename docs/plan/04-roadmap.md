@@ -238,3 +238,7 @@ Issue #102 adds `tools/ocr-eval inspect` and separate `annotate` proposals, the 
 ## M1 shell implementation record — 2026-11-01
 
 Issue #80 adds the native shell, first-launch legal screen, theme persistence, versioned settings, installed and portable directory probes, and user-driven legal dialogs. Tests are at the approved application, actual-filesystem and UI command/paint seams. The remaining M1 capture, account, reference and submission work is separate; this record does not complete M1 or close O-27 or the packaging spike O-116.
+
+### Manual Draft implementation checkpoint (2026-11-01)
+
+Issue #83 has the initial Reporting aggregate/application and shared SQLite schema-three repository, exact typed Draft fields, explicit UEX takeover, stale-write rejection and backed-up migration contracts. The editor and app-owned bounded storage worker support keyboard field commands and durable restart. The milestone and issue stay open: R-MAN-4 depends on the shared validation/confirmation slices; game-version resolution, release/submission and native GUI acceptance remain outstanding. No requirement or invariant is weakened by this implementation checkpoint.

@@ -31,6 +31,9 @@ pub fn show_shell(
         if ui.button(catalogue.text("menu.settings")).clicked() {
             state.show_settings();
         }
+        if ui.button(catalogue.text("manual.title")).clicked() {
+            state.show_manual();
+        }
         ui.menu_button(catalogue.text("menu.help"), |ui| {
             if ui.button(catalogue.text("menu.about")).clicked() {
                 state.open_about();
@@ -64,6 +67,7 @@ pub fn show_shell(
                 commands.extend(state.act(action));
             }
         }
+        View::Manual => crate::manual_views::show_manual_editor(ui, state, catalogue),
         View::Reference => crate::reference_views::show_browser_contents(ui, state, catalogue),
         View::Home => {
             ui.heading(catalogue.text("home.title"));

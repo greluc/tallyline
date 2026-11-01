@@ -6,6 +6,8 @@ All notable changes are recorded here.
 
 ### Added
 
+- Added persistent manual commodity Drafts with explicit terminal, side and environment choices, keyboard field entry, aged UEX references and explicit takeover. Draft edits survive restart without credentials; schema-three storage migrates after coordinated backups. Shared validation and submission remain in progress (R-MAN-1, R-MAN-2, R-MAN-3, R-MAN-6, R-NF-11).
+
 - The desktop reference worker now loads SQLite data before network responses, rechecks versions at startup and fetches terminal priors on opening. Failed saves retain old visible records; closing cancels pending GETs and joins the cache owner before releasing the writer lease (R-API-1, R-API-2, R-UI-13, R-NF-10).
 
 - Per-terminal LIVE priors retain exact prices and SCU, container sizes, status and source age across restarts, with independent 30-minute freshness and bounded ten-terminal requests. PTU contains no borrowed LIVE priors (R-API-1, R-API-5, R-API-6).
