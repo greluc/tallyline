@@ -9,3 +9,8 @@ pub use crate::instance::{
 
 pub use crate::release_token::ReleaseTokenFile;
 pub use crate::releases::ReleaseClient;
+
+/// Platform startup outcomes.
+pub mod model;
+
+pub use crate::ocr_startup::prepare_ocr_process;

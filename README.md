@@ -115,3 +115,5 @@ Terminal priors now cache exact price/stock values and source provenance indepen
 The native reference browser now receives SQLite snapshots before its first network response and refreshes through the primary UEX host on an app-owned worker. Closing cancels pending GETs and joins the cache owner before releasing writer locks.
 
 Reference status retains bounded Cloudflare Ray metadata and the injected UTC observation time for the last non-JSON response. The primary app uses the fixed `.uk` origin; the technical CLI requires explicit expert-host disclosure before sending credentials to an alternative host. Cached browsing remains usable after a transport failure.
+
+Tallyline prepares local OCR telemetry mitigation before startup work. If required, it relaunches its own executable once with a private child environment; no separate launcher is needed. Windows keeps a waiting bootstrap parent without opening a helper console. The native OCR and packaged network verification remain in progress (R-NF-12).

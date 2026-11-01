@@ -112,6 +112,9 @@ The shared decoder accepts SDR PNG, JPEG and BMP by their contents, even when a 
 HDR PNG encoding and unsupported colour profiles receive **HDR or unsupported colour encoding – use an SDR copy**. JPEG XR, AVIF, HEIF and EXR originals are recognised but are not decoded or repeatedly retried. For a Game Bar JPEG XR original, use its SDR PNG copy when one is available; this does not claim that every capture tool creates such a copy. Other tools need an SDR PNG or JPEG capture. Capture-method recommendations still await the paired-capture checks in M2.
 
 Files exceeding a hard size, metadata, pixel, profile or decoder-memory limit are set aside with a reason. Supported inputs above the 20 MP working budget are reduced with integer boxes, including edge pixels; the result records the original dimensions. Import controls and recognition are still being connected to this shared intake.
+
+At startup Tallyline prepares the local OCR telemetry mitigation before opening storage or starting workers. It may relaunch the same executable once; no separate programme or launcher is required. On Windows a waiting bootstrap parent remains until the app closes and opens no helper console. Failed preparation stops startup before any OCR library can initialise. Native OCR loading and packaged telemetry checks are still in progress (R-NF-12).
+
 ## Manual commodity Drafts
 
 Open **Manual Report**, then choose the environment, terminal and Buy/Sell side explicitly and select **Create Draft**. On first use no environment or side is selected. The environment of the most recently edited manual Draft is offered on later starts. Terminal search covers names, nicknames, screen display names and location/system text, including fuzzy character sequences; the separate location filter narrows results. Previously used terminals appear first. Shared names still show each terminal and location separately; select the intended result explicitly.

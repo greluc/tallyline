@@ -3280,6 +3280,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "tallyline-adapter-ocr"
+version = "0.1.0"
+dependencies = [
+ "tallyline-shared-kernel",
+]
+
+[[package]]
 name = "tallyline-adapter-platform"
 version = "0.1.0"
 dependencies = [

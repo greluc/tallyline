@@ -15,4 +15,6 @@ mod socket;
 mod windows_socket;
 
 mod release_token;
+
+mod ocr_startup;
 mod releases;
