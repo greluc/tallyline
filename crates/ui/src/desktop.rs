@@ -59,15 +59,17 @@ impl eframe::App for DesktopShell {
     fn clear_color(&self, visuals: &egui::Visuals) -> [f32; 4] {
         visuals.panel_fill.to_normalized_gamma_f32()
     }
-    fn ui(&mut self, ui: &mut egui::Ui, _: &mut eframe::Frame) {
+    fn logic(&mut self, context: &egui::Context, _: &mut eframe::Frame) {
         if let Some(commands) = &self.window_commands {
             for command in commands.try_iter() {
-                crate::api::apply_window_command(ui.ctx(), command);
+                crate::api::apply_window_command(context, command);
             }
         }
         for event in self.events.try_iter() {
             self.state.receive(event);
         }
+    }
+    fn ui(&mut self, ui: &mut egui::Ui, _: &mut eframe::Frame) {
         let theme =
             crate::api::resolve_theme(self.state.settings().theme(), ui.ctx().system_theme());
         if self.theme != Some(theme) {

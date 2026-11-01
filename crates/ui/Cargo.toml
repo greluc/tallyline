@@ -26,3 +26,7 @@ workspace = true
 
 [dependencies.tallyline-game]
 path = "../game"
+
+[[test]]
+name = "native_activation"
+harness = false
