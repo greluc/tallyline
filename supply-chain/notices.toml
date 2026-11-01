@@ -178,3 +178,14 @@ version = "5.0.0 source; portable Rust profile ppocr-bgr48-linear8u-v1"
 licence = "BSD-3-Clause"
 source = "https://github.com/opencv/opencv/blob/40738fb16ceddb5fb3fea747585f7ce6abb0605b/modules/imgproc/src/resize.cpp"
 copyright = ["2000-2008, 2017 Intel Corporation", "2009 Willow Garage Inc.", "2014-2015 Itseez Inc."]
+
+[[component]]
+directory = "paddleocr"
+name = "PaddleOCR PP-OCRv6 Small model data and canonical dictionary"
+shipped = "always"
+files = [{ repository = "supply-chain/notices/paddleocr/LICENSE" }]
+[component.catalogue]
+version = "Small det 28fe5895c24fd108c19eb3e8479f4ab385fbfc62; rec b8f84f0b80c529de40b4fbb3544b84fa7233a513"
+licence = "Apache-2.0"
+source = "https://huggingface.co/PaddlePaddle/PP-OCRv6_small_rec_onnx/tree/b8f84f0b80c529de40b4fbb3544b84fa7233a513"
+copyright = ["Copyright (c) 2016 PaddlePaddle Authors. All Rights Reserved. (upstream project licence notice)"]

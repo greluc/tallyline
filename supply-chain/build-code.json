@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "reviewed": "2026-11-01",
+  "reviewed": "2026-11-02",
   "reviewer": "GPT-6.1 Sol (AI agent)",
   "scope": "S-12 build-time behaviour inventory. All production script entrypoints and newly adopted macro implementation modules read; existing macros retain established cargo-vet coverage with entrypoint/import/capability inspection only. Does not claim fresh full-crate security audits. AWS-LC native implementation and remaining builder details retain accepted ADR-0006 source-review limitations. No network/download found in directly reviewed production paths; inherited dependencies remain separate audit obligations.",
   "entries": [
@@ -1705,6 +1705,20 @@
           "sha256": "ad320bc635887879bdbbf1b9322da4a157ec2c5a4243bd7c2cf9b6884a3b2a41"
         }
       ]
+    },
+    {
+      "name": "tallyline-adapter-ocr",
+      "version": "0.1.0",
+      "kind": "custom-build",
+      "workspace": {
+        "manifest_path": "crates/adapter-ocr/Cargo.toml",
+        "source_path": "crates/adapter-ocr/build.rs"
+      },
+      "source_sha256": "66480f25bd98a890414c08b3bd0c9e36430cfeb604e762c1a23dc144bff082d2",
+      "behaviour": "Reads only the three committed fixed Small OCR data files, checks exact byte sizes and streaming SHA-256, and emits public compile-time file/hash/size identities plus Cargo rebuild directives. No network, subprocess, native compilation, runtime library or model execution.",
+      "review_scope": "Complete self-contained script read. All expected hashes and own build logic are in this exact source; sha2 is the existing pinned reviewed build dependency. This is S-12 source/behaviour review, not a native runtime, model accuracy, packaging or clean-OS acceptance certificate.",
+      "reviewed": "2026-11-02",
+      "reviewer": "GPT-6.1 Sol (AI agent)"
     }
   ],
   "contexts": [

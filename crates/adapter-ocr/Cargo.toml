@@ -8,6 +8,10 @@ publish.workspace = true
 
 [dependencies]
 tallyline-shared-kernel.workspace = true
+sha2.workspace = true
+
+[build-dependencies]
+sha2.workspace = true
 
 [lints]
 workspace = true

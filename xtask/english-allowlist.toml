@@ -20,3 +20,7 @@ reason = "Canonical cargo-vet generated publisher identity must remain verbatim;
 path = "supply-chain/audits.toml"
 line = "user-id = 82913 # Volker Str\u00f6bel (vstroebel)"
 reason = "Canonical cargo-vet generated publisher identity must remain verbatim; no other line or audit/trust note is exempt."
+
+[[exception]]
+path = "crates/adapter-ocr/assets/small/ppocrv6_dict.txt"
+reason = "The byte-exact Apache-2.0 upstream OCR alphabet contains multilingual glyph labels and must not be translated or reordered."
