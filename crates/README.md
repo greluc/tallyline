@@ -10,3 +10,4 @@ The workspace crates of Tallyline: the core (`shared-kernel`, the context crates
 | `adapter-files/` | `tallyline-adapter-files` | versioned atomic settings and installed/portable directory self-tests |
 | `ui/` | `tallyline-ui` | owned shell state, message catalogue, legal unit and user-driven dialogs |
 | `app/` | `tallyline-app` | native `tallyline` composition root and bounded settings worker |
+| `adapter-platform/` | `tallyline-adapter-platform` | two-lock writer election and bounded local activation; the three approved Windows FFI sites |

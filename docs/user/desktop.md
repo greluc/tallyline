@@ -40,3 +40,11 @@ The visible issue identifies `settings.onboarding_complete`, the rejected
 Where the project has explicitly elected one dual-licence option, its licence
 row shows that selected SPDX expression. The bundled catalogue separately
 retains the upstream declaration and every complete original legal text.
+
+## Starting the app again
+
+Installed and portable launches share a fixed per-user instance lock and local activation socket. A second launch restores the existing window; Windows may flash its taskbar button instead. If the existing instance cannot acknowledge activation within two seconds, a localised already-running notice appears. Close the notice and switch to the existing window. The second launch never opens another writable application store.
+
+The data lock is `instance.lock` in the selected data directory. Windows keeps the shared lock at `%LOCALAPPDATA%/Tallyline/instance.lock` and the socket at `%LOCALAPPDATA%/Tallyline/run/a`. Linux always holds `$XDG_STATE_HOME/tallyline/instance.lock`, with the normal `~/.local/state` fallback, even when a runtime directory is available. It additionally uses `$XDG_RUNTIME_DIR/tallyline.lock` and `$XDG_RUNTIME_DIR/tl-a` when that directory is absolute, owned by the user and 0700. Otherwise it uses `$XDG_STATE_HOME/tallyline/instance.lock` and the private `run/a` directory/socket there, with the normal `~/.local/state` fallback. Portable mode does not move these per-user locations. Launches share the normal per-user state root. Different runtime environments still exclude a second writer, but may show the already-running notice instead of activating a differently located endpoint. Independently overriding HOME or XDG_STATE_HOME is outside this discovery guarantee. A socket pathname that exceeds the OS limit is refused visibly.
+
+Crash recovery releases OS locks automatically. The next lock holder removes the stale socket; no manual lock-file deletion is needed. Do not delete lock files while an instance is running.
