@@ -109,6 +109,7 @@ fn run_check(root: &Path) -> io::Result<ExitCode> {
 fn run_step(step: &Step, root: &Path) -> io::Result<bool> {
     match step {
         Step::SupplyChainGuard => guard_passes(root),
+        Step::NativeScope => native_scope_passes(root),
         Step::DenySuppressions => deny_suppressions_pass(root),
         Step::VetExemptions => vet_exemptions_pass(root),
         Step::Dependabot => dependabot_passes(root),
@@ -228,6 +229,28 @@ fn coverage_passes(root: &Path) -> io::Result<bool> {
         .current_dir(root)
         .status()?
         .success())
+}
+fn native_scope_passes(root: &Path) -> io::Result<bool> {
+    let mut passed = true;
+    for target in SHIPPED_TARGETS {
+        let metadata = cargo_stdout(
+            root,
+            &[
+                "metadata",
+                "--locked",
+                "--format-version",
+                "1",
+                "--filter-platform",
+                target,
+            ],
+        )?;
+        let findings = xtask::native::violations(&metadata).map_err(io::Error::other)?;
+        for finding in &findings {
+            writeln!(io::stderr(), "{target}: {finding}")?;
+        }
+        passed &= findings.is_empty();
+    }
+    Ok(passed)
 }
 fn architecture_passes(root: &Path) -> io::Result<bool> {
     let metadata = cargo_stdout(
