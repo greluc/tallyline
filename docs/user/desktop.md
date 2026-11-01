@@ -8,6 +8,10 @@ Choose **Settings** to select Follow OS (the default), Dark, Light or High contr
 
 The minimum window size is 800 × 640 logical pixels. Both Fan Kit notices use 14 egui points, above the 10 pt floor (13.33 egui points at 100 % scale). Their stored strings have no inserted line break; the layout can flow them over several lines. The logo is not tinted or modified. The existing light/dark asset mapping follows the README; the owner's kit check remains O-27.
 
+## Recognition delivery under evaluation
+
+Corrected 2026-11-01: the owner requires image recognition to stay entirely on this computer and the chosen initial installation profile to include its runtime and models. A separate Ollama or Python installation is not a product prerequisite. [The runtime and reader comparison](../local-vision-runtime-research.md) and [ADR-0012](../adr/0012-strictly-local-recognition-delivery.md) record this direction; the desktop does not yet perform recognition. Additional OCR and local VLM combinations are being evaluated rather than advertised as proven improvements. The existing Visual C++ Redistributable prerequisite for the planned Windows OCR runtime remains a delivery obstacle to resolve before release.
+
 ## Running a source build
 
 Keep the committed lockfile when building. The [dependency adoption record](../../supply-chain/latest-stable-adoption.json) records the current eligible stable versions, retained upstream constraints and native boundaries; complete third-party legal texts remain available offline.

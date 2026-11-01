@@ -342,15 +342,17 @@ Both are computed separately (`Deviation`: `EQUAL`, `MINOR`, `MAJOR`, `NO_REFERE
 
 The report confidence equals the worst mandatory field of the sent rows ([11](11-ddd-and-tdd.md) §A1), not the mean, so that individual errors are not "averaged away"; fields that are not sent do not count.
 
-### 2.7 Optional AI second reader (VLM via Ollama, only while the game is closed)
+### 2.7 Optional local AI readers (Automatic mode only while the game is closed)
 
 **Why two readers?**
 
-- basetool measured that **different** readers make different errors. Their two VLMs contradicted each other in 8 of 430 cells, but never agreed on the same wrong value.
-- Running the same model twice, on the other hand, achieves nothing (0 of 5 errors found, 2 new ones created).
-- Classic OCR and VLM are such a decorrelated pair.
+- Different readers can expose one another's errors; the joint error rate must be measured on this corpus rather than inferred from model names or sizes.
+- Basetool's earlier small repeated-model experiment found none of five errors and introduced two new ones. Repeats can measure stability but are not additional independent votes.
+- Classic OCR plus a VLM is one candidate pairing; its joint errors still need measurement.
 
-The numbers come from the refinery domain; whether they transfer is checked by the bake-off (assumption A8).
+Corrected 2026-11-01: the earlier refinery observation of eight disagreements in 430 cells without a shared wrong answer was superseded by Basetool's 2026-10-22 addendum: two Qwen3-VL sizes shared incorrect digits and could outvote a correct OCR reader. Its reference verifier changed to Qwen3.5 9B beside Qwen3-VL 8B. [The reviewed source and measurement links](../local-vision-runtime-research.md#32-an-important-correction-to-the-inherited-rationale) preserve that evidence. Whether any reader combination improves commodity recognition remains the bake-off question (A8); agreement alone is not calibrated confidence.
+
+The initial installation profile supplies its chosen local engines and model assets ([ADR-0012](../adr/0012-strictly-local-recognition-delivery.md)). Engine selection remains open; the Ollama protocol examples below are an evaluation route, not an external-program prerequisite. Compare extra classic OCR readers, VLMs and their combinations independently on weak and strong hardware. No prompt receives golden values, UEX priors or another first reader's answer. Unverified corpus entries report reference concordance only.
 
 **Flow:**
 

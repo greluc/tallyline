@@ -1,6 +1,6 @@
 # Local vision runtimes and complementary recognition readers
 
-> **Doc type:** Living reference — research and proposals; no decision accepted. Last reviewed: 2026-11-01.
+> **Doc type:** Living reference — runtime research and proposals; product constraints accepted in ADR-0012, engine choice pending. Last reviewed: 2026-11-01.
 
 ## 1. Conclusion and scope
 
@@ -14,7 +14,7 @@ The proposed product direction is:
 4. Treat `llama.cpp` plus `libmtmd`, accessed through a published Rust binding, as the leading practical GGUF delivery candidate. Compare it with the genuinely usable published `mistralrs` SDK before accepting a backend: ADR-0005 requires preference for a mature Rust alternative when it satisfies the need. Neither “written in Rust” nor “has an LLM example” proves the complete shipped graph is free of native code or supports the required vision model.
 5. Evaluate additional OCR readers before paying the resource cost of several VLMs. PP-OCRv6 Medium is the lowest-friction first comparison; Tesseract provides a different recognition method. Additional models earn their place through fewer undetected errors and useful disagreement, rather than the number of agreeing votes.
 
-These are research recommendations, not dependency selections, native-code exceptions, accepted ADRs or permission to download/run models. The later owner instruction makes inference **strictly local**, including optional paths. Existing R-VLM-6 permits confirmed remote hosts and Ollama cloud models; that normative text has not been changed here.
+Corrected 2026-11-01: [ADR-0012](adr/0012-strictly-local-recognition-delivery.md) records the owner's strictly local inference and complete initial-installation requirements; R-VLM-6/7 now exclude the earlier remote-consent and separate-Ollama paths. The runtime comparisons below remain research recommendations, not dependency selections, native-code exceptions or approval to redistribute a backend. Local experiments are authorised separately by the user's request to test the models.
 
 There is a separate whole-application obstacle: accepted ADR-0009 currently requires a separately installed Visual C++ Redistributable for Windows OCR. Replacing Ollama alone therefore does **not** meet the new installation goal. Section 8 identifies the choices that need a new decision.
 

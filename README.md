@@ -4,7 +4,7 @@ Tallyline is a cross-platform desktop client (Windows + Linux) for Star Citizen 
 
 > Corrected 2026-11-01: the GitHub repository is now [greluc/tallyline](https://github.com/greluc/tallyline).
 
-While the game is running, a lightweight local OCR does the work. Optionally, a local AI model (via Ollama) re-checks the results once the game is closed.
+While the game is running, lightweight local OCR does the work. Optional local AI can re-check results once the game is closed. The planned installation supplies its selected recognition runtime and models without a separate Ollama installation; the engine and model combinations are still being evaluated. Images are never sent to cloud or LAN inference services ([ADR-0012](docs/adr/0012-strictly-local-recognition-delivery.md)).
 
 > Status: **M1 desktop foundation in progress**. The native shell provides first-launch onboarding, themes, legal notices and atomic application settings. Capture and submission workflows are still being implemented. The implementation uses Rust and egui, with native code only in registered exceptions ([ADR-0005](docs/adr/0005-rust-and-egui.md)).
 

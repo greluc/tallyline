@@ -143,9 +143,9 @@ Implementation 2026-11-01 (R-NF-10): the app elects before writable startup; ada
 Requires M3 (shared resolution, validation and stitching). Can run in parallel to M4 if there is capacity.
 
 - [ ] `adapter-platform`: `GameProcessMonitor` hysteresis and AI-run interval (R-VLM-2); process and channel detection come with M4, or are built here if M5 runs before M4 (then with the test-first case and the A7 verification listed in M4)
-- [ ] `adapter-vlm`: `OllamaClient` (`/api/version`, `/api/tags`, `/api/show`, `/api/ps`, `/api/pull`, `/api/chat`), loopback-host check and remote-model classification with consent (R-VLM-6; no proxy for loopback), digest comparison with the evaluated-model list (S-27), cancellation and unloading (`keep_alive: 0`). Verify assumption A20 and set the minimum Ollama version from it. Tests:
+- [ ] `adapter-vlm`: select and supply a verified local engine/profile without a separate programme or later installation (ADR-0012, R-VLM-6/7). Compare bundled library/private-worker and bundled-Ollama candidates before choosing. If HTTP is used, loopback only with proxying/redirects off; reject all remote/cloud models and fail closed. Verify model/prompt/runtime identities, cancellation and unloading. The Windows OCR prerequisite remains a delivery blocker until a separately reviewed replacement is verified. Tests:
   - recorded `/api/tags` and `/api/show` responses: a local model, `name:cloud`, `name:120b-cloud`, and a custom-named model with `remote_host`;
-  - host cases: `localhost`, `LOCALHOST.`, `127.1.2.3` and `[::1]` are used without asking; `localhost.example.com`, `0.0.0.0` and a LAN address only after confirmation.
+  - host cases for any HTTP route: allow literal loopback only; refuse `localhost.example.com`, `0.0.0.0`, LAN hosts and remote/cloud models without an override; reject unavailable metadata before sending crops.
 - [ ] Prompt v1 plus deterministic answer parser (golden tests with recorded answers, without Ollama in CI; the example answer in 07 §2.7 yields quantity 333 and price 3237; a literal `?` yields `Unreadable`)
 - [ ] `recognition`: fusion rules over the per-reader candidate sets (07 §2.7), property-tested. Named tests:
   - F1: OCR {96705, 6705} + VLM 6705 → 6705, `Repaired`, 0.85;
@@ -153,12 +153,12 @@ Requires M3 (shared resolution, validation and stitching). Can run in parallel t
   - recorded VLM answers for the partial cards in `pyro-gateway-stanton-01` sell-1/buy-1/buy-2 → no row;
   - a model that is not evaluated never lifts a field above "confirm" through the VLM.
 - [ ] `workflows`: AI queue (persisted), `RecognitionPolicy`; `ui`: settings (Off / Automatic / Always), AI job states (pending, incl. "interrupted – game started"; running; done; failed with reason; cancelled; obsolete) and the queue-paused reason (02 §4b), display of both candidates on contradiction, model management with pull progress; a test per AI job transition, including truncation after the retry and Ollama disappearing mid-run
-- [ ] **Bake-off** on the corpus with local models only (R-VLM-6): models (including `qwen3-vl:8b-instruct`, `qwen3-vl:4b-instruct`), Markdown vs. `format` output, image size; metrics "OCR only" / "VLM only" / "fusion", runtime, VRAM. Output: the evaluated-model list resource (name, tag, manifest digest(s), approximate download size, metrics; R-VLM-11, S-27)
+- [ ] **Bake-off** of local VLMs and complementary OCR readers, separately and in paired/selected multi-reader combinations, on weak and strong hardware (R-VLM-11). Bind engine/assets/prompt/preprocessing/settings, preserve blind first outputs, and measure reference matching, missed/joint errors, runtime and peak RAM/VRAM. Unverified data yields concordance only. Candidates include the different Qwen3-VL 8B and Qwen3.5 9B families and smaller profiles; no model is recommended without measured fit/gain.
 
 **Acceptance criteria:**
 
 - Game start aborts an AI run within ≤ 5 s (2 s interval during a run plus abort) and unloads the model (test with simulated process).
-- Without Ollama there is no error message.
+- A selected initial recognition profile works without a separate Ollama/Python installation or later setup; absent/disabled optional AI causes no startup error.
 - The fusion measurably lowers "silently wrong" and "flagged" on the corpus compared with "OCR only". **If that is not the case, the feature is not shipped** (assumption A8).
 
 ## Requirement coverage
