@@ -1,6 +1,6 @@
 # Design system
 
-> **Doc type:** Living reference — draft (JavaFX handoff stage 2; JavaFX mechanism superseded by ADR-0005). Last reviewed: 2026-10-12.
+> **Doc type:** Living reference — draft (JavaFX handoff stage 2; JavaFX mechanism superseded by ADR-0005). Last reviewed: 2026-11-01.
 
 > **Note 2026-10-12, updated 2026-11-01:** [ADR-0005](../adr/0005-rust-and-egui.md) replaces JavaFX with egui. Tallyline continues as the design system; its egui rendition (the crate `tallyline-egui`) replaces the JavaFX CSS handoff described below. The token values, state names and contrast results in this directory stay; the JavaFX-specific parts are marked where they occur. The crate was recreated for issue #32; remaining work is listed in "egui rendition (ADR-0005)" below.
 
@@ -17,7 +17,7 @@ The Claude Design artifacts (system and screens canvas) are private references; 
 
 ## egui rendition (ADR-0005)
 
-Added 2026-10-12; implementation recreated 2026-11-01 for issue #32. [ADR-0005](../adr/0005-rust-and-egui.md) D6 keeps Tallyline and replaces its JavaFX CSS handoff by an egui rendition. The crate `tallyline-egui` v0.1.0 (egui 0.36.2) is in `crates/egui/`.
+Added 2026-10-12; implementation recreated 2026-11-01 for issue #32. [ADR-0005](../adr/0005-rust-and-egui.md) D6 keeps Tallyline and replaces its JavaFX CSS handoff by an egui rendition. The crate `tallyline-egui` v0.1.0 is in `crates/egui/`. Corrected 2026-11-01: it uses the eligible stable egui 0.37.0; the original recreation used 0.36.2.
 
 **What the recreated crate provides:**
 - resolved named colours for the dark, light and high-contrast themes;

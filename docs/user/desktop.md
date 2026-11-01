@@ -10,6 +10,8 @@ The minimum window size is 800 × 640 logical pixels. Both Fan Kit notices use 1
 
 ## Running a source build
 
+Keep the committed lockfile when building. The [dependency adoption record](../../supply-chain/latest-stable-adoption.json) records the current eligible stable versions, retained upstream constraints and native boundaries; complete third-party legal texts remain available offline.
+
 Run `cargo build --locked -p tallyline-app`, followed by `target/debug/tallyline --assets crates/ui/assets` (Windows: `target/debug/tallyline.exe --assets crates/ui/assets`). The `--assets` argument selects the asset directory for a source build. Packaged images keep the same `fonts/` subtree under `assets/` next to the executable; font files and their OFL texts stay separate and unmodified.
 
 For a local image with its complete offline licence catalogue, run `cargo xtask notices` (network access is required by this explicit CI workflow, O-135), then copy `target/notices/<target>/legal/` beside the executable. The supported target names are `x86_64-pc-windows-msvc` and `x86_64-unknown-linux-gnu`.

@@ -239,3 +239,28 @@ fn decimal_runtime_scope_rejects_every_unreviewed_feature() {
         );
     }
 }
+
+#[test]
+fn send_wrapper_activation_is_rejected_for_every_version_and_workspace_root() {
+    for version in ["0.6.0", "99.0.0"] {
+        let excluded = metadata("send_wrapper", version, &[], false);
+        assert!(violations(&excluded.to_string()).unwrap().is_empty());
+        let mut reachable = metadata("send_wrapper", version, &["futures"], true);
+        reachable["packages"].as_array_mut().unwrap().push(json!({
+            "id": "second", "name": "xtask", "version": "0.0.0"
+        }));
+        reachable["workspace_members"] = json!(["second"]);
+        reachable["resolve"]["nodes"]
+            .as_array_mut()
+            .unwrap()
+            .push(json!({
+                "id": "second", "features": [], "deps": [{"name": "renamed_root", "pkg": "root"}]
+            }));
+        assert!(
+            violations(&reachable.to_string())
+                .unwrap()
+                .iter()
+                .any(|finding| { finding.contains("send_wrapper") && finding.contains(version) })
+        );
+    }
+}

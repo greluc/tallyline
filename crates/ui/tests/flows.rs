@@ -224,6 +224,11 @@ fn r_ocr_20__settings_shows_default_off_and_emits_only_explicit_witness_commands
     harness.state_mut().shell.show_settings();
     harness.run();
     assert!(harness.query_by_label("Game log witness off").is_some());
+    assert!(
+        harness
+            .query_by_role_and_label(egui::Role::TextInput, "Game channel directory")
+            .is_some()
+    );
     harness
         .get_by_label("Enable read-only Game.log witness")
         .click();
@@ -311,7 +316,9 @@ fn r_nf_7_r_ui_16__release_notice_is_passive_actionable_and_dismissible() -> Out
             .iter()
             .find_map(|command| match command {
                 egui::OutputCommand::OpenUrl(url) => Some(url.url.as_str()),
-                egui::OutputCommand::CopyText(_) | egui::OutputCommand::CopyImage(_) => None,
+                egui::OutputCommand::CopyText(_)
+                | egui::OutputCommand::CopyImage(_)
+                | egui::OutputCommand::TextSelectionSettled(_) => None,
             }),
         Some("https://github.com/greluc/tallyline/releases/tag/v2.0.1")
     );

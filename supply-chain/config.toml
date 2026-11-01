@@ -28,7 +28,7 @@ criteria = "safe-to-deploy"
 notes = "S-6 justified off-target exemption, not a source-soundness audit: absent from both shipped-target graphs x86_64-pc-windows-msvc and x86_64-unknown-linux-gnu, and native-scope rejects any reachable version including renamed edges. Complete source inspection found unsafe Android bionic-deprecated empty-CString 92-byte output buffer/reconstruction defects and Rust-ABI callback declarations; do not activate Android or conceal these defects. Final filtered metadata and native-scope passed 2026-11-01. Separate suppression register revisit 2027-04-13 or before any activation."
 
 [[exemptions.aws-lc-sys]]
-version = "0.46.0"
+version = "0.47.0"
 criteria = "safe-to-deploy"
 notes = "AWS-LC C, C++ and assembler sources of about two million lines that cannot be audited by reading; registered native-code exception of ADR-0006"
 
@@ -121,6 +121,11 @@ notes = "not compiled for the shipped targets x86_64-pc-windows-msvc and x86_64-
 version = "2.17.0"
 criteria = "safe-to-deploy"
 notes = "not compiled for the shipped targets x86_64-pc-windows-msvc and x86_64-unknown-linux-gnu; locked only as a dependency of another platform"
+
+[[exemptions.send_wrapper]]
+version = "0.6.0"
+criteria = "safe-to-deploy"
+notes = "S-6 exact off-target exemption only, not a source-soundness audit: package is absent from both supported target graphs x86_64-pc-windows-msvc and x86_64-unknown-linux-gnu. Complete src/lib.rs and src/futures.rs inspection identified an unresolved optional Future/Stream Pin projection and wrong-thread Drop/leak contract concern; no unrestricted audit or publisher trust is granted. Current full graph enables no optional features. Native-scope rejects every reachable send_wrapper version from every workspace root, including renamed transitive edges, with or without the futures feature. Revisit 2027-04-13 or before any target, feature, version or activation change; activation needs a focussed source review and explicit owner approval."
 
 [[exemptions.simd_cesu8]]
 version = "1.2.0"

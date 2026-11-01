@@ -2,18 +2,18 @@
 # cargo-vet imports lock
 
 [[publisher.accesskit]]
-version = "0.24.1"
-when = "2026-06-12"
+version = "0.25.1"
+when = "2026-09-25"
 user-id = 27789
 user-login = "DataTriny"
 user-name = "Arnold Loubriat"
 
 [[publisher.accesskit_consumer]]
-version = "0.35.0"
-when = "2026-03-04"
-user-id = 143177
-user-login = "mwcampbell"
-user-name = "Matt Campbell"
+version = "0.39.1"
+when = "2026-09-25"
+user-id = 27789
+user-login = "DataTriny"
+user-name = "Arnold Loubriat"
 
 [[publisher.ahash]]
 version = "0.8.12"
@@ -64,8 +64,8 @@ user-login = "cuviper"
 user-name = "Josh Stone"
 
 [[publisher.aws-lc-rs]]
-version = "1.18.2"
-when = "2026-10-12"
+version = "1.19.0"
+when = "2026-10-28"
 user-id = 156764
 user-login = "justsmth"
 user-name = "Justin W Smith"
@@ -147,8 +147,8 @@ user-login = "kchibisov"
 user-name = "Kirill Chibisov"
 
 [[publisher.cc]]
-version = "1.9.0"
-when = "2026-10-19"
+version = "1.10.0"
+when = "2026-10-23"
 trusted-publisher = "github:rust-lang/cc-rs"
 
 [[publisher.clipboard-win]]
@@ -261,50 +261,50 @@ user-login = "kchibisov"
 user-name = "Kirill Chibisov"
 
 [[publisher.ecolor]]
-version = "0.36.2"
-when = "2026-09-08"
+version = "0.37.0"
+when = "2026-10-15"
 user-id = 197939
 user-login = "rerunio"
 user-name = "Rerun"
 
 [[publisher.eframe]]
-version = "0.36.2"
-when = "2026-09-08"
+version = "0.37.0"
+when = "2026-10-15"
 user-id = 197939
 user-login = "rerunio"
 user-name = "Rerun"
 
 [[publisher.egui]]
-version = "0.36.2"
-when = "2026-09-08"
+version = "0.37.0"
+when = "2026-10-15"
 user-id = 197939
 user-login = "rerunio"
 user-name = "Rerun"
 
 [[publisher.egui-wgpu]]
-version = "0.36.2"
-when = "2026-09-08"
+version = "0.37.0"
+when = "2026-10-15"
 user-id = 197939
 user-login = "rerunio"
 user-name = "Rerun"
 
 [[publisher.egui-winit]]
-version = "0.36.2"
-when = "2026-09-08"
+version = "0.37.0"
+when = "2026-10-15"
 user-id = 197939
 user-login = "rerunio"
 user-name = "Rerun"
 
 [[publisher.egui_glow]]
-version = "0.36.2"
-when = "2026-09-08"
+version = "0.37.0"
+when = "2026-10-15"
 user-id = 197939
 user-login = "rerunio"
 user-name = "Rerun"
 
 [[publisher.egui_kittest]]
-version = "0.36.2"
-when = "2026-09-08"
+version = "0.37.0"
+when = "2026-10-15"
 user-id = 197939
 user-login = "rerunio"
 user-name = "Rerun"
@@ -317,15 +317,15 @@ user-login = "cuviper"
 user-name = "Josh Stone"
 
 [[publisher.emath]]
-version = "0.36.2"
-when = "2026-09-08"
+version = "0.37.0"
+when = "2026-10-15"
 user-id = 197939
 user-login = "rerunio"
 user-name = "Rerun"
 
 [[publisher.epaint]]
-version = "0.36.2"
-when = "2026-09-08"
+version = "0.37.0"
+when = "2026-10-15"
 user-id = 197939
 user-login = "rerunio"
 user-name = "Rerun"
@@ -376,6 +376,13 @@ user-name = "Laurenz Stampfl"
 version = "0.1.15"
 when = "2026-10-19"
 trusted-publisher = "github:rust-lang/cc-rs"
+
+[[publisher.fixedbitset]]
+version = "0.5.7"
+when = "2024-04-14"
+user-id = 120881
+user-login = "james7132"
+user-name = "James Liu"
 
 [[publisher.flate2]]
 version = "1.1.10"
@@ -480,8 +487,8 @@ when = "2026-06-17"
 trusted-publisher = "github:rust-random/getrandom"
 
 [[publisher.glifo]]
-version = "0.2.0"
-when = "2026-07-29"
+version = "0.3.0"
+when = "2026-08-07"
 user-id = 288469
 user-login = "LaurenzV"
 user-name = "Laurenz Stampfl"
@@ -557,6 +564,12 @@ user-login = "behdad"
 user-name = "Behdad Esfahbod"
 
 [[publisher.hashbrown]]
+version = "0.15.5"
+when = "2025-08-07"
+user-id = 55123
+user-login = "rust-lang-owner"
+
+[[publisher.hashbrown]]
 version = "0.16.1"
 when = "2025-11-20"
 user-id = 55123
@@ -625,53 +638,53 @@ user-login = "seanmonstar"
 user-name = "Sean McArthur"
 
 [[publisher.icu_collections]]
-version = "2.3.0"
-when = "2026-08-13"
-user-id = 128408
-user-login = "sffc"
-user-name = "Shane F. Carr"
+version = "2.4.0"
+when = "2026-10-22"
+user-id = 166196
+user-login = "robertbastian"
+user-name = "Robert Bastian"
 
 [[publisher.icu_locale_core]]
-version = "2.3.0"
-when = "2026-08-13"
-user-id = 128408
-user-login = "sffc"
-user-name = "Shane F. Carr"
+version = "2.4.0"
+when = "2026-10-22"
+user-id = 166196
+user-login = "robertbastian"
+user-name = "Robert Bastian"
 
 [[publisher.icu_normalizer]]
-version = "2.3.0"
-when = "2026-08-13"
-user-id = 128408
-user-login = "sffc"
-user-name = "Shane F. Carr"
+version = "2.4.0"
+when = "2026-10-22"
+user-id = 166196
+user-login = "robertbastian"
+user-name = "Robert Bastian"
 
 [[publisher.icu_normalizer_data]]
-version = "2.3.0"
-when = "2026-08-13"
-user-id = 128408
-user-login = "sffc"
-user-name = "Shane F. Carr"
+version = "2.4.0"
+when = "2026-10-22"
+user-id = 166196
+user-login = "robertbastian"
+user-name = "Robert Bastian"
 
 [[publisher.icu_properties]]
-version = "2.3.0"
-when = "2026-08-13"
-user-id = 128408
-user-login = "sffc"
-user-name = "Shane F. Carr"
+version = "2.4.0"
+when = "2026-10-22"
+user-id = 166196
+user-login = "robertbastian"
+user-name = "Robert Bastian"
 
 [[publisher.icu_properties_data]]
-version = "2.3.0"
-when = "2026-08-13"
-user-id = 128408
-user-login = "sffc"
-user-name = "Shane F. Carr"
+version = "2.4.0"
+when = "2026-10-22"
+user-id = 166196
+user-login = "robertbastian"
+user-name = "Robert Bastian"
 
 [[publisher.icu_provider]]
-version = "2.3.1"
-when = "2026-08-20"
-user-id = 128408
-user-login = "sffc"
-user-name = "Shane F. Carr"
+version = "2.4.0"
+when = "2026-10-22"
+user-id = 166196
+user-login = "robertbastian"
+user-name = "Robert Bastian"
 
 [[publisher.image]]
 version = "0.25.10"
@@ -876,6 +889,13 @@ user-id = 110371
 user-login = "MarijnS95"
 user-name = "Marijn Suijten"
 
+[[publisher.nom]]
+version = "8.0.0"
+when = "2025-01-26"
+user-id = 959
+user-login = "Geal"
+user-name = "Geoffroy Couprie"
+
 [[publisher.num_cpus]]
 version = "1.17.0"
 when = "2025-05-30"
@@ -1058,6 +1078,13 @@ user-id = 2017
 user-login = "mbrubeck"
 user-name = "Matt Brubeck"
 
+[[publisher.os_pipe]]
+version = "1.2.3"
+when = "2025-10-11"
+user-id = 3589
+user-login = "oconnor663"
+user-name = "Jack O'Connor"
+
 [[publisher.parking_lot]]
 version = "0.12.5"
 when = "2025-10-03"
@@ -1078,6 +1105,13 @@ when = "2026-05-15"
 user-id = 4033
 user-login = "waywardmonkeys"
 user-name = "Bruce Mitchener"
+
+[[publisher.petgraph]]
+version = "0.8.3"
+when = "2025-09-30"
+user-id = 126199
+user-login = "ABorgna"
+user-name = "Agustín Borgna"
 
 [[publisher.pin-project]]
 version = "1.1.13"
@@ -1291,8 +1325,8 @@ user-login = "sunfishcode"
 user-name = "Dan Gohman"
 
 [[publisher.rustix]]
-version = "1.1.5"
-when = "2026-09-16"
+version = "1.1.6"
+when = "2026-10-27"
 user-id = 6825
 user-login = "sunfishcode"
 user-name = "Dan Gohman"
@@ -1525,15 +1559,15 @@ user-login = "197g"
 user-name = "Aurelia Molzer"
 
 [[publisher.tinystr]]
-version = "0.8.4"
-when = "2026-08-13"
-user-id = 128408
-user-login = "sffc"
-user-name = "Shane F. Carr"
+version = "0.8.5"
+when = "2026-10-22"
+user-id = 166196
+user-login = "robertbastian"
+user-name = "Robert Bastian"
 
 [[publisher.tokio]]
-version = "1.53.3"
-when = "2026-10-13"
+version = "1.54.1"
+when = "2026-10-21"
 user-id = 6741
 user-login = "Darksonn"
 user-name = "Alice Ryhl"
@@ -1629,6 +1663,13 @@ user-id = 172786
 user-login = "hds"
 user-name = "Hayden Stainsby"
 
+[[publisher.tree_magic_mini]]
+version = "3.2.2"
+when = "2025-11-14"
+user-id = 2017
+user-login = "mbrubeck"
+user-name = "Matt Brubeck"
+
 [[publisher.try-lock]]
 version = "0.2.5"
 when = "2023-12-07"
@@ -1649,6 +1690,13 @@ when = "2026-10-12"
 user-id = 3618
 user-login = "dtolnay"
 user-name = "David Tolnay"
+
+[[publisher.unicode-properties]]
+version = "0.1.4"
+when = "2025-10-30"
+user-id = 1139
+user-login = "Manishearth"
+user-name = "Manish Goregaokar"
 
 [[publisher.unicode-segmentation]]
 version = "1.13.3"
@@ -1693,15 +1741,15 @@ user-login = "KodrAus"
 user-name = "Ashley Mannix"
 
 [[publisher.vello_common]]
-version = "0.1.0"
-when = "2026-07-29"
+version = "0.2.0"
+when = "2026-08-07"
 user-id = 288469
 user-login = "LaurenzV"
 user-name = "Laurenz Stampfl"
 
 [[publisher.vello_cpu]]
-version = "0.1.0"
-when = "2026-07-29"
+version = "0.2.0"
+when = "2026-08-07"
 user-id = 288469
 user-login = "LaurenzV"
 user-name = "Laurenz Stampfl"
@@ -1769,13 +1817,6 @@ user-id = 4118
 user-login = "ids1024"
 user-name = "Ian Douglas Scott"
 
-[[publisher.wayland-protocols-experimental]]
-version = "20250721.0.1"
-when = "2025-07-29"
-user-id = 4118
-user-login = "ids1024"
-user-name = "Ian Douglas Scott"
-
 [[publisher.wayland-scanner]]
 version = "0.31.11"
 when = "2026-07-22"
@@ -1798,11 +1839,11 @@ user-login = "amodm"
 user-name = "Amod Malviya"
 
 [[publisher.webpki-root-certs]]
-version = "1.0.10"
-when = "2026-10-19"
-user-id = 209038
-user-login = "cpu"
-user-name = "Daniel McCarney"
+version = "1.0.11"
+when = "2026-10-23"
+user-id = 2751
+user-login = "ctz"
+user-name = "Joe Birr-Pixton"
 
 [[publisher.weezl]]
 version = "0.1.12"
@@ -1959,6 +2000,13 @@ user-login = "kennykerr"
 user-name = "Kenny Kerr"
 
 [[publisher.windows-sys]]
+version = "0.59.0"
+when = "2024-07-30"
+user-id = 64539
+user-login = "kennykerr"
+user-name = "Kenny Kerr"
+
+[[publisher.windows-sys]]
 version = "0.61.2"
 when = "2025-10-06"
 user-id = 64539
@@ -2054,6 +2102,13 @@ version = "0.57.1"
 when = "2026-04-17"
 trusted-publisher = "github:bytecodealliance/wit-bindgen"
 
+[[publisher.wl-clipboard-rs]]
+version = "0.9.4"
+when = "2026-09-28"
+user-id = 5538
+user-login = "YaLTeR"
+user-name = "Ivan Molodetskikh"
+
 [[publisher.writeable]]
 version = "0.6.4"
 when = "2026-08-13"
@@ -2111,11 +2166,11 @@ user-login = "kornelski"
 user-name = "Kornel"
 
 [[publisher.yoke]]
-version = "0.8.3"
-when = "2026-06-03"
-user-id = 1139
-user-login = "Manishearth"
-user-name = "Manish Goregaokar"
+version = "0.8.4"
+when = "2026-10-22"
+user-id = 166196
+user-login = "robertbastian"
+user-name = "Robert Bastian"
 
 [[publisher.yoke-derive]]
 version = "0.8.4"
@@ -2161,18 +2216,18 @@ user-login = "sffc"
 user-name = "Shane F. Carr"
 
 [[publisher.zerovec]]
-version = "0.11.8"
-when = "2026-08-19"
-user-id = 1139
-user-login = "Manishearth"
-user-name = "Manish Goregaokar"
+version = "0.11.9"
+when = "2026-10-22"
+user-id = 166196
+user-login = "robertbastian"
+user-name = "Robert Bastian"
 
 [[publisher.zerovec-derive]]
-version = "0.11.6"
-when = "2026-08-20"
-user-id = 128408
-user-login = "sffc"
-user-name = "Shane F. Carr"
+version = "0.11.7"
+when = "2026-10-22"
+user-id = 166196
+user-login = "robertbastian"
+user-name = "Robert Bastian"
 
 [[publisher.zlib-rs]]
 version = "0.6.8"

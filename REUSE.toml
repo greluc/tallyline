@@ -96,3 +96,9 @@ path = "supply-chain/notices/accesskit/LICENSE.chromium"
 precedence = "override"
 SPDX-FileCopyrightText = "2015 The Chromium Authors"
 SPDX-License-Identifier = "BSD-3-Clause"
+
+[[annotations]]
+path = "supply-chain/notices/sqlite/NOTICE"
+precedence = "override"
+SPDX-FileCopyrightText = "NONE"
+SPDX-License-Identifier = "blessing"

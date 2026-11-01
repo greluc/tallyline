@@ -91,6 +91,12 @@ criteria = "safe-to-deploy"
 version = "0.4.0"
 notes = "AI source review: read all five production Rust files (lib, state, node, filter, query), README and both manifests. Archive SHA-256 90ceaa75eb0036a32b6b9833962eb18137449e9817e2e586006471925b727fd5 matches Cargo.lock. Safe AccessKit tree wrapper: ownership/lifetimes, recursive querying, role/label/value/predicate filters, BTreeSet label suppression, Arc predicates and query macros reviewed. No unsafe, build script, native compilation, process, network, environment or filesystem access. Missing/duplicate queries deliberately panic and pathological caller trees/predicates can exhaust resources; debug/panic output can include UI labels/values, so use redacted test data. Cargo.toml.orig's egui Git patch is absent from normalised published dependency manifest. AccessKit dependencies remain separate obligations. AI review, not a claim of completed human review."
 
+[[audits.kittest]]
+who = "GPT-6.1 Sol (AI delta source review)"
+criteria = "safe-to-run"
+delta = "0.4.0 -> 0.5.0"
+notes = "AI review of the complete packaged-tree delta and new src/lib.rs: AccessKitNode re-export moves from accesskit_consumer::Node to NodeRef; dependency requirements move accesskit 0.24 to 0.25 and accesskit_consumer 0.35 to 0.39. Other source changes are lint attributes and documentation inclusion; manifests also update MSRV 1.92 to 1.95, lint policy, packaged lockfile and VCS revision. No build script, procedural macro or new ambient I/O in changed code. Dependencies require separate coverage. Archive SHA-256 0bb81a721ba76aa095b7f45deb180504f786904e56ca4b8e141f66eb89a78b75 checked against exact registry metadata and candidate lockfile. Relies on existing 0.4.0 coverage; safe-to-run only. AI delta review, not completed human review; owner reviews and approves this record."
+
 [[audits.once_cell]]
 who = "Claude Opus 5.5 (AI agent, for Lucas Greuloch)"
 criteria = "safe-to-deploy"
@@ -132,6 +138,12 @@ who = "Claude Opus 5.5 (AI agent, for Lucas Greuloch)"
 criteria = "safe-to-deploy"
 delta = "1.15.2 -> 1.16.2"
 notes = "Rewrites push into separate inline and heap paths and retain as a std-style in-place compaction with a panic guard; both unsafe paths checked for bounds, double drop and panic safety. Adds a PhantomData marker that makes may_dangle drop checking sound. Read by an AI agent; the owner reviews the record in the pull request."
+
+[[audits.smallvec]]
+who = "GPT-6.1 Sol (AI delta source review)"
+criteria = "safe-to-deploy"
+delta = "1.16.3 -> 1.16.4"
+notes = "AI review of the complete packaged-tree delta: Rust source files are byte-identical. Changes are package version in both manifests, packaged VCS revision, and the crate's own packaged Cargo.lock (syn 3.0.7 to 3.0.9 and unicode-ident 1.0.26 to 1.0.27). No new build script, procedural macro or runtime capability. Archive SHA-256 d0d5d4b1981b8bbbb7aed204cae5726d683d5d6ac7e74ec54122ea28f315e7c8 checked against exact registry metadata and candidate lockfile. This delta relies on prior coverage of 1.16.3; it is not a fresh full-crate soundness audit. The owner approved this exact record locally on 2026-11-01; the source-review scope remains the stated AI delta review."
 
 [[audits.smithay-clipboard]]
 who = "GPT-6.1 Sol (AI source review)"
@@ -208,10 +220,17 @@ notes = "Trusted publisher for one year; initial adoption of the egui applicatio
 
 [[trusted.accesskit_consumer]]
 criteria = "safe-to-deploy"
-user-id = 143177 # Matt Campbell (mwcampbell)
+user-id = 143177
 start = "2026-03-04"
 end = "2027-11-01"
 notes = "S-6 narrow own-project release/maintenance authority: current own-crate owners mwcampbell143177 andDataTriny27789; mwcampbell sponsorprofile explicitly states leaddeveloper and is linked by official accesskit.dev; actual same-project feature development Mar2026. Continuing shared project stewardship, not sole active maintenance or sponsorship alone. Exact locked version(s)0.35.0 actual publishermwcampbell/143177 verified live2026-11-01. Dated facts and stated continuity inference; no cross-project endorsement or native enablement."
+
+[[trusted.accesskit_consumer]]
+criteria = "safe-to-run"
+user-id = 27789 # Arnold Loubriat (DataTriny)
+start = "2026-09-25"
+end = "2027-11-01"
+notes = "S-6 own-project authority checked 2026-11-01. Exact accesskit_consumer 0.39.1 publisher DataTriny/27789 verified at https://crates.io/api/v1/crates/accesskit_consumer/0.39.1. AccessKit official release accesskit_consumer-v0.39.2 is released by DataTriny; https://github.com/AccessKit/accesskit/releases This is publisher trust, not a fresh source audit. Includes future publications by this publisher for this crate within the stated dates; no native target, backend, feature or exemption approval."
 
 [[trusted.ahash]]
 criteria = "safe-to-deploy"
@@ -540,6 +559,13 @@ trusted-publisher = "github:rust-lang/cc-rs"
 start = "2025-09-05"
 end = "2027-10-14"
 
+[[trusted.fixedbitset]]
+criteria = "safe-to-deploy"
+user-id = 120881 # James Liu (james7132)
+start = "2024-04-14"
+end = "2027-11-01"
+notes = "S-6 own-project authority checked 2026-11-01. Exact fixedbitset 0.5.7 publisher james7132/120881 verified at https://crates.io/api/v1/crates/fixedbitset/0.5.7. Official fixedbitset v0.5.7 release author james7132; https://github.com/petgraph/fixedbitset/releases/tag/v0.5.7 This is publisher trust, not a fresh source audit. Includes future publications by this publisher for this crate within the stated dates; no native target, backend, feature or exemption approval."
+
 [[trusted.flate2]]
 criteria = "safe-to-deploy"
 user-id = 980 # Sebastian Thiel (Byron)
@@ -707,9 +733,9 @@ notes = "Trusted publisher for one year; initial adoption of the egui applicatio
 [[trusted.hashbrown]]
 criteria = "safe-to-deploy"
 user-id = 55123 # rust-lang-owner
-start = "2025-11-20"
+start = "2025-08-07"
 end = "2027-11-01"
-notes = "S-6: live crates.io confirms hashbrown 0.16.1 publisher rust-lang-owner/55123. Existing Bytecode Alliance trusted.hashbrown endorses this same crate/account safe-to-deploy through 2027-01-24. Verified 2026-11-01."
+notes = "S-6 own-project authority checked 2026-11-01. Exact hashbrown 0.15.5 publisher rust-lang-owner/55123 verified at https://crates.io/api/v1/crates/hashbrown/0.15.5. Existing approved audit sources Bytecode Alliance, Mozilla and ISRG each trust this same crate/account beginning 2025-04-30; https://raw.githubusercontent.com/bytecodealliance/wasmtime/main/supply-chain/audits.toml This is publisher trust, not a fresh source audit. Includes future publications by this publisher for this crate within the stated dates; no native target, backend, feature or exemption approval."
 
 [[trusted.hermit-abi]]
 criteria = "safe-to-deploy"
@@ -766,11 +792,25 @@ user-id = 128408 # Shane F. Carr (sffc)
 start = "2022-08-05"
 end = "2027-10-14"
 
+[[trusted.icu_collections]]
+criteria = "safe-to-deploy"
+user-id = 166196 # Robert Bastian (robertbastian)
+start = "2026-10-22"
+end = "2027-11-01"
+notes = "S-6 own-project authority checked 2026-11-01. Exact icu_collections 2.4.0 publisher robertbastian/166196 verified at https://crates.io/api/v1/crates/icu_collections/2.4.0. Robert Bastian authored the official ICU4X 2.4.0 release; same-project CODEOWNERS also grants component maintenance. This rule covers this named ICU4X crate only; https://github.com/unicode-org/icu4x/releases/tag/icu%402.4.0 This is publisher trust, not a fresh source audit. Includes future publications by this publisher for this crate within the stated dates; no native target, backend, feature or exemption approval."
+
 [[trusted.icu_locale_core]]
 criteria = "safe-to-deploy"
 user-id = 128408 # Shane F. Carr (sffc)
 start = "2024-11-23"
 end = "2027-10-14"
+
+[[trusted.icu_locale_core]]
+criteria = "safe-to-deploy"
+user-id = 166196 # Robert Bastian (robertbastian)
+start = "2026-10-22"
+end = "2027-11-01"
+notes = "S-6 own-project authority checked 2026-11-01. Exact icu_locale_core 2.4.0 publisher robertbastian/166196 verified at https://crates.io/api/v1/crates/icu_locale_core/2.4.0. Robert Bastian authored the official ICU4X 2.4.0 release; same-project CODEOWNERS also grants component maintenance. This rule covers this named ICU4X crate only; https://github.com/unicode-org/icu4x/releases/tag/icu%402.4.0 This is publisher trust, not a fresh source audit. Includes future publications by this publisher for this crate within the stated dates; no native target, backend, feature or exemption approval."
 
 [[trusted.icu_normalizer]]
 criteria = "safe-to-deploy"
@@ -778,11 +818,25 @@ user-id = 128408 # Shane F. Carr (sffc)
 start = "2022-08-05"
 end = "2027-10-14"
 
+[[trusted.icu_normalizer]]
+criteria = "safe-to-deploy"
+user-id = 166196 # Robert Bastian (robertbastian)
+start = "2026-10-22"
+end = "2027-11-01"
+notes = "S-6 own-project authority checked 2026-11-01. Exact icu_normalizer 2.4.0 publisher robertbastian/166196 verified at https://crates.io/api/v1/crates/icu_normalizer/2.4.0. Robert Bastian authored the official ICU4X 2.4.0 release; same-project CODEOWNERS also grants component maintenance. This rule covers this named ICU4X crate only; https://github.com/unicode-org/icu4x/releases/tag/icu%402.4.0 This is publisher trust, not a fresh source audit. Includes future publications by this publisher for this crate within the stated dates; no native target, backend, feature or exemption approval."
+
 [[trusted.icu_normalizer_data]]
 criteria = "safe-to-deploy"
 user-id = 128408 # Shane F. Carr (sffc)
 start = "2023-09-23"
 end = "2027-10-14"
+
+[[trusted.icu_normalizer_data]]
+criteria = "safe-to-deploy"
+user-id = 166196 # Robert Bastian (robertbastian)
+start = "2026-10-22"
+end = "2027-11-01"
+notes = "S-6 own-project authority checked 2026-11-01. Exact icu_normalizer_data 2.4.0 publisher robertbastian/166196 verified at https://crates.io/api/v1/crates/icu_normalizer_data/2.4.0. Robert Bastian authored the official ICU4X 2.4.0 release; same-project CODEOWNERS also grants component maintenance. This rule covers this named ICU4X crate only; https://github.com/unicode-org/icu4x/releases/tag/icu%402.4.0 This is publisher trust, not a fresh source audit. Includes future publications by this publisher for this crate within the stated dates; no native target, backend, feature or exemption approval."
 
 [[trusted.icu_properties]]
 criteria = "safe-to-deploy"
@@ -790,17 +844,38 @@ user-id = 128408 # Shane F. Carr (sffc)
 start = "2021-11-02"
 end = "2027-10-14"
 
+[[trusted.icu_properties]]
+criteria = "safe-to-deploy"
+user-id = 166196 # Robert Bastian (robertbastian)
+start = "2026-10-22"
+end = "2027-11-01"
+notes = "S-6 own-project authority checked 2026-11-01. Exact icu_properties 2.4.0 publisher robertbastian/166196 verified at https://crates.io/api/v1/crates/icu_properties/2.4.0. Robert Bastian authored the official ICU4X 2.4.0 release; same-project CODEOWNERS also grants component maintenance. This rule covers this named ICU4X crate only; https://github.com/unicode-org/icu4x/releases/tag/icu%402.4.0 This is publisher trust, not a fresh source audit. Includes future publications by this publisher for this crate within the stated dates; no native target, backend, feature or exemption approval."
+
 [[trusted.icu_properties_data]]
 criteria = "safe-to-deploy"
 user-id = 128408 # Shane F. Carr (sffc)
 start = "2023-09-23"
 end = "2027-10-14"
 
+[[trusted.icu_properties_data]]
+criteria = "safe-to-deploy"
+user-id = 166196 # Robert Bastian (robertbastian)
+start = "2026-10-22"
+end = "2027-11-01"
+notes = "S-6 own-project authority checked 2026-11-01. Exact icu_properties_data 2.4.0 publisher robertbastian/166196 verified at https://crates.io/api/v1/crates/icu_properties_data/2.4.0. Robert Bastian authored the official ICU4X 2.4.0 release; same-project CODEOWNERS also grants component maintenance. This rule covers this named ICU4X crate only; https://github.com/unicode-org/icu4x/releases/tag/icu%402.4.0 This is publisher trust, not a fresh source audit. Includes future publications by this publisher for this crate within the stated dates; no native target, backend, feature or exemption approval."
+
 [[trusted.icu_provider]]
 criteria = "safe-to-deploy"
 user-id = 128408 # Shane F. Carr (sffc)
 start = "2021-07-29"
 end = "2027-10-14"
+
+[[trusted.icu_provider]]
+criteria = "safe-to-deploy"
+user-id = 166196 # Robert Bastian (robertbastian)
+start = "2026-10-22"
+end = "2027-11-01"
+notes = "S-6 own-project authority checked 2026-11-01. Exact icu_provider 2.4.0 publisher robertbastian/166196 verified at https://crates.io/api/v1/crates/icu_provider/2.4.0. Robert Bastian authored the official ICU4X 2.4.0 release; same-project CODEOWNERS also grants component maintenance. This rule covers this named ICU4X crate only; https://github.com/unicode-org/icu4x/releases/tag/icu%402.4.0 This is publisher trust, not a fresh source audit. Includes future publications by this publisher for this crate within the stated dates; no native target, backend, feature or exemption approval."
 
 [[trusted.image]]
 criteria = "safe-to-deploy"
@@ -990,6 +1065,13 @@ start = "2024-04-26"
 end = "2027-11-01"
 notes = "S-6 direct own-project release/maintenance authority: rust-mobile/ndk exact packaged release49bbbba1 for ndk0.9.0/ndk-sys0.6.0, releasePR472 byMarijnS95; currentOctober2026maintenance761020ca/5ae5c56f byMarijnS95. Exact crates.io ndk-sys 0.6.0+11769913 publisherMarijnS95/110371 verifiedlive2026-11-01; packaged VCS matched same upstream. This does not authorise Android target/native enablement."
 
+[[trusted.nom]]
+criteria = "safe-to-deploy"
+user-id = 959 # Geoffroy Couprie (Geal)
+start = "2025-01-26"
+end = "2027-11-01"
+notes = "S-6 own-project authority checked 2026-11-01. Exact nom 8.0.0 publisher Geal/959 verified at https://crates.io/api/v1/crates/nom/8.0.0. Same-project CODEOWNERS assigns all paths to Geal; https://github.com/rust-bakery/nom/blob/main/.github/CODEOWNERS This is publisher trust, not a fresh source audit. Includes future publications by this publisher for this crate within the stated dates; no native target, backend, feature or exemption approval."
+
 [[trusted.num_cpus]]
 criteria = "safe-to-deploy"
 user-id = 359 # Sean McArthur (seanmonstar)
@@ -1149,6 +1231,13 @@ start = "2026-08-21"
 end = "2027-11-01"
 notes = "S-6 direct own-project maintenance: reem/rust-ordered-float exact 5.5.1 release d0ff7fb1 authored/committed by mbrubeck; current 2026-10-25 other-contributor merge aa4c4f2d committed by mbrubeck. Exact live 5.5.0 publisher mbrubeck/2017 and publication 2026-08-21 verified after S-7 cooldown pin; extend existing trust start to cover this exact publication. Packaged source and upstream verified; direct release/merge authority, not cross-crate inference."
 
+[[trusted.os_pipe]]
+criteria = "safe-to-deploy"
+user-id = 3589 # Jack O'Connor (oconnor663)
+start = "2025-10-11"
+end = "2027-11-01"
+notes = "S-6 own-project authority checked 2026-11-01. Exact os_pipe 1.2.3 publisher oconnor663/3589 verified at https://crates.io/api/v1/crates/os_pipe/1.2.3. Exact release commit 228ee175117faf1bf0cce99942ce579244215da4 authored and committed by oconnor663; current other-author changes also committed by this maintainer; https://github.com/oconnor663/os_pipe.rs/commits/master This is publisher trust, not a fresh source audit. Includes future publications by this publisher for this crate within the stated dates; no native target, backend, feature or exemption approval."
+
 [[trusted.parking_lot]]
 criteria = "safe-to-deploy"
 user-id = 2915 # Amanieu d'Antras (Amanieu)
@@ -1169,6 +1258,13 @@ user-id = 4033 # Bruce Mitchener (waywardmonkeys)
 start = "2025-01-20"
 end = "2027-11-01"
 notes = "Trusted publisher for one year; initial adoption of the egui application dependency graph in issue #33."
+
+[[trusted.petgraph]]
+criteria = "safe-to-deploy"
+user-id = 126199 # Agustín Borgna (ABorgna)
+start = "2025-09-30"
+end = "2027-11-01"
+notes = "S-6 own-project authority checked 2026-11-01. Exact petgraph 0.8.3 publisher ABorgna/126199 verified at https://crates.io/api/v1/crates/petgraph/0.8.3. Official CONTRIBUTING.md explicitly names ABorgna as a current petgraph maintainer; https://github.com/petgraph/petgraph/blob/master/CONTRIBUTING.md This is publisher trust, not a fresh source audit. Includes future publications by this publisher for this crate within the stated dates; no native target, backend, feature or exemption approval."
 
 [[trusted.pin-project]]
 criteria = "safe-to-deploy"
@@ -1561,6 +1657,13 @@ user-id = 128408 # Shane F. Carr (sffc)
 start = "2022-08-04"
 end = "2027-10-14"
 
+[[trusted.tinystr]]
+criteria = "safe-to-deploy"
+user-id = 166196 # Robert Bastian (robertbastian)
+start = "2026-10-22"
+end = "2027-11-01"
+notes = "S-6 own-project authority checked 2026-11-01. Exact tinystr 0.8.5 publisher robertbastian/166196 verified at https://crates.io/api/v1/crates/tinystr/0.8.5. Robert Bastian authored the official ICU4X 2.4.0 release; same-project CODEOWNERS also grants component maintenance. This rule covers this named ICU4X crate only; https://github.com/unicode-org/icu4x/releases/tag/icu%402.4.0 This is publisher trust, not a fresh source audit. Includes future publications by this publisher for this crate within the stated dates; no native target, backend, feature or exemption approval."
+
 [[trusted.tokio]]
 criteria = "safe-to-deploy"
 user-id = 6741 # Alice Ryhl (Darksonn)
@@ -1646,6 +1749,13 @@ user-id = 172786 # Hayden Stainsby (hds)
 start = "2024-11-27"
 end = "2027-10-14"
 
+[[trusted.tree_magic_mini]]
+criteria = "safe-to-deploy"
+user-id = 2017 # Matt Brubeck (mbrubeck)
+start = "2025-11-14"
+end = "2027-11-01"
+notes = "S-6 own-project authority checked 2026-11-01. Exact tree_magic_mini 3.2.2 publisher mbrubeck/2017 verified at https://crates.io/api/v1/crates/tree_magic_mini/3.2.2. Exact version release commit 75bf1b01dc81d5c0b3377a3202792fa83097872c authored and committed by mbrubeck in the same project; https://github.com/mbrubeck/tree_magic/commit/75bf1b01dc81d5c0b3377a3202792fa83097872c This is publisher trust, not a fresh source audit. Includes future publications by this publisher for this crate within the stated dates; no native target, backend, feature or exemption approval."
+
 [[trusted.try-lock]]
 criteria = "safe-to-deploy"
 user-id = 359 # Sean McArthur (seanmonstar)
@@ -1664,6 +1774,13 @@ criteria = "safe-to-deploy"
 user-id = 3618 # David Tolnay (dtolnay)
 start = "2021-10-02"
 end = "2027-10-14"
+
+[[trusted.unicode-properties]]
+criteria = "safe-to-deploy"
+user-id = 1139 # Manish Goregaokar (Manishearth)
+start = "2025-10-30"
+end = "2027-11-01"
+notes = "S-6 own-project authority checked 2026-11-01. Exact unicode-properties 0.1.4 publisher Manishearth/1139 verified at https://crates.io/api/v1/crates/unicode-properties/0.1.4. Manishearth merged the Unicode 18 release preparation PR17, official merge commit b5594806088d6492327228a74d05c881b9b3c042; https://github.com/unicode-rs/unicode-properties/pull/17 This is publisher trust, not a fresh source audit. Includes future publications by this publisher for this crate within the stated dates; no native target, backend, feature or exemption approval."
 
 [[trusted.untrusted]]
 criteria = "safe-to-deploy"
@@ -2016,6 +2133,13 @@ user-id = 6743 # Ed Page (epage)
 start = "2023-02-22"
 end = "2027-10-14"
 
+[[trusted.wl-clipboard-rs]]
+criteria = "safe-to-deploy"
+user-id = 5538 # Ivan Molodetskikh (YaLTeR)
+start = "2026-09-28"
+end = "2027-11-01"
+notes = "S-6 own-project authority checked 2026-11-01. Exact wl-clipboard-rs 0.9.4 publisher YaLTeR/5538 verified at https://crates.io/api/v1/crates/wl-clipboard-rs/0.9.4. Same-project exact release commit 16b63adcbd2191a8c29c2a467342fc24b4ea82dc authored and committed by YaLTeR; other-author maintenance also committed by YaLTeR; https://github.com/YaLTeR/wl-clipboard-rs/commit/16b63adcbd2191a8c29c2a467342fc24b4ea82dc This is publisher trust, not a fresh source audit. Includes future publications by this publisher for this crate within the stated dates; no native target, backend, feature or exemption approval."
+
 [[trusted.writeable]]
 criteria = "safe-to-deploy"
 user-id = 128408 # Shane F. Carr (sffc)
@@ -2077,6 +2201,13 @@ user-id = 1139 # Manish Goregaokar (Manishearth)
 start = "2021-05-01"
 end = "2027-10-14"
 
+[[trusted.yoke]]
+criteria = "safe-to-deploy"
+user-id = 166196 # Robert Bastian (robertbastian)
+start = "2026-10-22"
+end = "2027-11-01"
+notes = "S-6 own-project authority checked 2026-11-01. Exact yoke 0.8.4 publisher robertbastian/166196 verified at https://crates.io/api/v1/crates/yoke/0.8.4. Robert Bastian authored the official ICU4X 2.4.0 release; same-project CODEOWNERS also grants component maintenance. This rule covers this named ICU4X crate only; https://github.com/unicode-org/icu4x/releases/tag/icu%402.4.0 This is publisher trust, not a fresh source audit. Includes future publications by this publisher for this crate within the stated dates; no native target, backend, feature or exemption approval."
+
 [[trusted.yoke-derive]]
 criteria = "safe-to-deploy"
 user-id = 166196 # Robert Bastian (robertbastian)
@@ -2127,11 +2258,25 @@ user-id = 1139 # Manish Goregaokar (Manishearth)
 start = "2021-04-19"
 end = "2027-10-14"
 
+[[trusted.zerovec]]
+criteria = "safe-to-deploy"
+user-id = 166196 # Robert Bastian (robertbastian)
+start = "2026-10-22"
+end = "2027-11-01"
+notes = "S-6 own-project authority checked 2026-11-01. Exact zerovec 0.11.9 publisher robertbastian/166196 verified at https://crates.io/api/v1/crates/zerovec/0.11.9. Robert Bastian authored the official ICU4X 2.4.0 release; same-project CODEOWNERS also grants component maintenance. This rule covers this named ICU4X crate only; https://github.com/unicode-org/icu4x/releases/tag/icu%402.4.0 This is publisher trust, not a fresh source audit. Includes future publications by this publisher for this crate within the stated dates; no native target, backend, feature or exemption approval."
+
 [[trusted.zerovec-derive]]
 criteria = "safe-to-deploy"
 user-id = 128408 # Shane F. Carr (sffc)
 start = "2022-08-05"
 end = "2027-10-14"
+
+[[trusted.zerovec-derive]]
+criteria = "safe-to-deploy"
+user-id = 166196 # Robert Bastian (robertbastian)
+start = "2026-10-22"
+end = "2027-11-01"
+notes = "S-6 own-project authority checked 2026-11-01. Exact zerovec-derive 0.11.7 publisher robertbastian/166196 verified at https://crates.io/api/v1/crates/zerovec-derive/0.11.7. Robert Bastian authored the official ICU4X 2.4.0 release; same-project CODEOWNERS also grants component maintenance. This rule covers this named ICU4X crate only; https://github.com/unicode-org/icu4x/releases/tag/icu%402.4.0 This is publisher trust, not a fresh source audit. Includes future publications by this publisher for this crate within the stated dates; no native target, backend, feature or exemption approval."
 
 [[trusted.zlib-rs]]
 criteria = "safe-to-deploy"

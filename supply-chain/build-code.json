@@ -70,12 +70,12 @@
     },
     {
       "name": "aws-lc-rs",
-      "version": "1.18.2",
+      "version": "1.19.0",
       "kind": "custom-build",
-      "archive_sha256": "faac5829c2b74c28f830747e7818ccfb684261b5f48a1118b1e2a13d36dfab13",
+      "archive_sha256": "048006790404103c488e6c5616b3e7e702a71292aadda08e8f7698a9e0d2eb53",
       "source_sha256": "791f97e6abdb685bcc722342d49f2646b3146b209f68753669c178716f6cee01",
       "behaviour": "Validates crypto-provider features, handles explicit development-test environment flags, forwards selected DEP_AWS_LC metadata and MSVC linker flag.",
-      "review_scope": "Complete build-script executable code read; helper scope stated separately. This is S-12 behaviour review, not whole-crate cargo-vet certification.",
+      "review_scope": "Complete build-script executable code read; helper scope stated separately. This is S-12 behaviour review, not whole-crate cargo-vet certification. Updated version: entrypoint is byte-identical to the previous reviewed version; no new script behaviour is inferred.",
       "sources_read_or_inspected": [
         {
           "path": "build.rs",
@@ -85,16 +85,68 @@
     },
     {
       "name": "aws-lc-sys",
-      "version": "0.46.0",
+      "version": "0.47.0",
       "kind": "custom-build",
-      "archive_sha256": "f1622d8446a2d4b2ce0c7eefc73dd43a99779028d5ee5c2dd8073a658ba8a2bc",
-      "source_sha256": "8144aba9f6165a3f0dcb76547cf788d78fbcd4cd12a525f315fc6d4756ea19fb",
+      "archive_sha256": "8bfbe32ac36b3c428696ce315464181bc4029d689fd58e3f2a4e58c252242f52",
+      "source_sha256": "c6d21709e49e952cd068b1ec2b99aa27552192f579db3137da6ce1f12280c88a",
       "behaviour": "Compiles bundled AWS-LC C/C++/assembler through cc or CMake; uses packaged prebuilt NASM objects when allowed and NASM absent; compiler probes may compile and run local memcmp probe. See ADR-0006 inherited native-source exception and detailed review below.",
-      "review_scope": "Complete production builder/main.rs read; selected cc_builder compiler/probe/build dispatch, cmake_builder feature/configuration/build dispatch and full nasm_builder read. Remaining builder helper detail/native implementation inherits accepted ADR-0006 exception; not a complete AWS-LC or full builder-module audit.",
+      "review_scope": "Retains prior complete production entrypoint and selected helper review. The coordinating AI agent read the complete production build-script delta from 0.46.0: is_unstable feature query, cc template clone/cache, inactive system-library floors, and eleven target source-list changes. This is delta review, not a complete helper-module reread or two-million-line AWS-LC audit. All 26 prebuilt NASM objects were compared across all raw bytes; only COFF timestamp bytes 4..7 and the exact aws_lc_0_46_0_ to aws_lc_0_47_0_ namespace differ. Native scope remains separately owner-approved.",
       "sources_read_or_inspected": [
         {
           "path": "builder/main.rs",
-          "sha256": "8144aba9f6165a3f0dcb76547cf788d78fbcd4cd12a525f315fc6d4756ea19fb"
+          "sha256": "c6d21709e49e952cd068b1ec2b99aa27552192f579db3137da6ce1f12280c88a"
+        },
+        {
+          "path": "builder/cc_builder/apple_aarch64.rs",
+          "sha256": "fe7f2ecda4cdca97d0cc12d284814a5c9008862ae33e35b3a07db00cd8ff4c74"
+        },
+        {
+          "path": "builder/cc_builder/apple_x86_64.rs",
+          "sha256": "7d769246b65efcc21892cd3bede29e8ec66ad33de1ea475aaf922ac0c5ceaac4"
+        },
+        {
+          "path": "builder/cc_builder/linux_aarch64.rs",
+          "sha256": "b1be7413ef56a3b5635a27387d3ab631382b1c71da4ccbd991650f1f6571f706"
+        },
+        {
+          "path": "builder/cc_builder/linux_arm.rs",
+          "sha256": "4d746155f3d829e9821a0527d77125a45258337ce23f5213f8334aa054a2cc21"
+        },
+        {
+          "path": "builder/cc_builder/linux_ppc64le.rs",
+          "sha256": "2699aa7124aff42a40c681cbc86e4769b1dd8c57a15d7ba888680a482444222f"
+        },
+        {
+          "path": "builder/cc_builder/linux_x86.rs",
+          "sha256": "7c6226d00ffa0b54b68952be4d35e4e82b274408930e03e8378595aaf65f976f"
+        },
+        {
+          "path": "builder/cc_builder/linux_x86_64.rs",
+          "sha256": "d1e1233b83cdc270b9543596336cbeec948db831385905b307a73790d2ecb71b"
+        },
+        {
+          "path": "builder/cc_builder/universal.rs",
+          "sha256": "f3a6e016639c467ac2d77fe1b6069b0a5e65ee4f37b3c6f78c6286ccd14e5dc9"
+        },
+        {
+          "path": "builder/cc_builder/win_aarch64.rs",
+          "sha256": "9f4354947cbee8250e04487ce4d97c77e6a37675aaca7d914ecbcf8a800e7eba"
+        },
+        {
+          "path": "builder/cc_builder/win_x86.rs",
+          "sha256": "cb7178a1862e45b4e21bd9e65dfe554da0fbbab4251a53c81bf2f1812ff2cd0f"
+        },
+        {
+          "path": "builder/cc_builder/win_x86_64.rs",
+          "sha256": "d5597482d0c0b750aa9108fe8ea7f5307a1518421e261b28ea646be5fd61a028"
+        },
+        {
+          "path": "builder/cc_builder.rs",
+          "sha256": "aaec5a8afa702e2866e0f43ed8902343eae6b78669ea5fd07e876e21280c2b36"
+        },
+        {
+          "path": "builder/system_library.rs",
+          "sha256": "81b5a5aca6d726a23517c81dd9ba9c64e59633ee48647b6a8abaa826288dcf1e"
         }
       ]
     },
@@ -386,12 +438,12 @@
     },
     {
       "name": "icu_normalizer_data",
-      "version": "2.3.0",
+      "version": "2.4.0",
       "kind": "custom-build",
-      "archive_sha256": "1563da1ed3e0b3bf3d74c9b85917ac9c56464d2f57242270c09c9e752f8021a0",
+      "archive_sha256": "20f0088bfb7441f7a37fa0c9e20cb1e9cba1cac6b9ce8cd2a6dc44294f8e8cbc",
       "source_sha256": "c2d446772e3d766a804963dbf36e51729f910920f91f4b68c0c199fe6ca0853e",
       "behaviour": "Reads ICU4X_DATA_DIR presence; emits custom-data cfg only; script itself does not read custom data.",
-      "review_scope": "Complete build-script executable code read; helper scope stated separately. This is S-12 behaviour review, not whole-crate cargo-vet certification.",
+      "review_scope": "Complete build-script executable code read; helper scope stated separately. This is S-12 behaviour review, not whole-crate cargo-vet certification. Updated version: entrypoint is byte-identical to the previous reviewed version; no new script behaviour is inferred.",
       "sources_read_or_inspected": [
         {
           "path": "build.rs",
@@ -401,12 +453,12 @@
     },
     {
       "name": "icu_properties_data",
-      "version": "2.3.0",
+      "version": "2.4.0",
       "kind": "custom-build",
-      "archive_sha256": "e590f038c1464a96894fd6d10127e90a8be4509f56ff7ecef851b15cee0b7caa",
+      "archive_sha256": "b98f29af82d02b163fe50161388350e743bb3107cc8e8c2f7314cb505faddfcf",
       "source_sha256": "c2d446772e3d766a804963dbf36e51729f910920f91f4b68c0c199fe6ca0853e",
       "behaviour": "Reads ICU4X_DATA_DIR presence; emits custom-data cfg only; script itself does not read custom data.",
-      "review_scope": "Complete build-script executable code read; helper scope stated separately. This is S-12 behaviour review, not whole-crate cargo-vet certification.",
+      "review_scope": "Complete build-script executable code read; helper scope stated separately. This is S-12 behaviour review, not whole-crate cargo-vet certification. Updated version: entrypoint is byte-identical to the previous reviewed version; no new script behaviour is inferred.",
       "sources_read_or_inspected": [
         {
           "path": "build.rs",
@@ -432,21 +484,6 @@
     {
       "name": "jni-macros",
       "version": "0.22.4",
-      "kind": "proc-macro",
-      "archive_sha256": "a00109accc170f0bdb141fed3e393c565b6f5e072365c3bd58f5b062591560a3",
-      "source_sha256": "9bf7c9414000272b3c729fda9356298d848d87539a97acae9c6c17818308f956",
-      "behaviour": "Generates JNI string/signature/mangling/native-method and Java type bindings from token input.",
-      "review_scope": "Existing package: entrypoint/import and ambient-capability scan only in this pass; established cargo-vet coverage retained. Not a fresh all-module unsafe review or full crate certification.",
-      "sources_read_or_inspected": [
-        {
-          "path": "src/lib.rs",
-          "sha256": "9bf7c9414000272b3c729fda9356298d848d87539a97acae9c6c17818308f956"
-        }
-      ]
-    },
-    {
-      "name": "jni-macros",
-      "version": "0.22.4",
       "kind": "custom-build",
       "archive_sha256": "a00109accc170f0bdb141fed3e393c565b6f5e072365c3bd58f5b062591560a3",
       "source_sha256": "1efa966c0bf5a3887d88d9fad2e11a905e3927055e4981c2ee7e873ea6f1e80b",
@@ -456,6 +493,21 @@
         {
           "path": "build.rs",
           "sha256": "1efa966c0bf5a3887d88d9fad2e11a905e3927055e4981c2ee7e873ea6f1e80b"
+        }
+      ]
+    },
+    {
+      "name": "jni-macros",
+      "version": "0.22.4",
+      "kind": "proc-macro",
+      "archive_sha256": "a00109accc170f0bdb141fed3e393c565b6f5e072365c3bd58f5b062591560a3",
+      "source_sha256": "9bf7c9414000272b3c729fda9356298d848d87539a97acae9c6c17818308f956",
+      "behaviour": "Generates JNI string/signature/mangling/native-method and Java type bindings from token input.",
+      "review_scope": "Existing package: entrypoint/import and ambient-capability scan only in this pass; established cargo-vet coverage retained. Not a fresh all-module unsafe review or full crate certification.",
+      "sources_read_or_inspected": [
+        {
+          "path": "src/lib.rs",
+          "sha256": "9bf7c9414000272b3c729fda9356298d848d87539a97acae9c6c17818308f956"
         }
       ]
     },
@@ -874,12 +926,12 @@
     },
     {
       "name": "rustix",
-      "version": "1.1.5",
+      "version": "1.1.6",
       "kind": "custom-build",
-      "archive_sha256": "891efababe418670775f199f0d233d84843c227a0949a883ce15b37c78d6629d",
+      "archive_sha256": "e5e76742e5294153d4dde1207dbec5bdd81eef6fabdc0d2118babadabfd858aa",
       "source_sha256": "f7609b919173e7121493266d0f89db724a1e47bb105ebd05397f869639603eec",
       "behaviour": "Reads target/backend flags and packaged assembly-file presence; compiles small Rust metadata probes through RUSTC/wrapper; writes/removes OUT_DIR/rustix_test_can_compile. No network or native compiler execution.",
-      "review_scope": "Complete 1.1.5 build.rs read; byte-identical to the previously read 1.1.6 script. S-12 behaviour review, not a whole-crate cargo-vet certificate.",
+      "review_scope": "Complete 1.1.5 build.rs read; byte-identical to the previously read 1.1.6 script. S-12 behaviour review, not a whole-crate cargo-vet certificate. Updated version: entrypoint is byte-identical to the previous reviewed version; no new script behaviour is inferred.",
       "sources_read_or_inspected": [
         {
           "path": "build.rs",
@@ -905,21 +957,6 @@
     {
       "name": "rustversion",
       "version": "1.0.23",
-      "kind": "proc-macro",
-      "archive_sha256": "cf54715a573b99ac80df0bc206da022bcd442c974952c7b9720069370852e21f",
-      "source_sha256": "77c732493550b7e7a46ae2d25e89c363a851ba25a9e9a89f1aad67bad4afbb04",
-      "behaviour": "Compiler-version conditional token selection; time helper reads CARGO_PKG_NAME and SystemTime for diagnostics. Build-time generated version expression is local.",
-      "review_scope": "Existing package: entrypoint/import and ambient-capability scan only in this pass; established cargo-vet coverage retained. Not a fresh all-module unsafe review or full crate certification.",
-      "sources_read_or_inspected": [
-        {
-          "path": "src/lib.rs",
-          "sha256": "77c732493550b7e7a46ae2d25e89c363a851ba25a9e9a89f1aad67bad4afbb04"
-        }
-      ]
-    },
-    {
-      "name": "rustversion",
-      "version": "1.0.23",
       "kind": "custom-build",
       "archive_sha256": "cf54715a573b99ac80df0bc206da022bcd442c974952c7b9720069370852e21f",
       "source_sha256": "4438b108d5b198ca43ef0a78509da89861020674abd05166addd1c3058afbfa6",
@@ -933,6 +970,21 @@
         {
           "path": "build/rustc.rs",
           "sha256": "faf67033ec831d968406f5a66c475df337f7221e9d1ab3477fed3a629e1ec5bc"
+        }
+      ]
+    },
+    {
+      "name": "rustversion",
+      "version": "1.0.23",
+      "kind": "proc-macro",
+      "archive_sha256": "cf54715a573b99ac80df0bc206da022bcd442c974952c7b9720069370852e21f",
+      "source_sha256": "77c732493550b7e7a46ae2d25e89c363a851ba25a9e9a89f1aad67bad4afbb04",
+      "behaviour": "Compiler-version conditional token selection; time helper reads CARGO_PKG_NAME and SystemTime for diagnostics. Build-time generated version expression is local.",
+      "review_scope": "Existing package: entrypoint/import and ambient-capability scan only in this pass; established cargo-vet coverage retained. Not a fresh all-module unsafe review or full crate certification.",
+      "sources_read_or_inspected": [
+        {
+          "path": "src/lib.rs",
+          "sha256": "77c732493550b7e7a46ae2d25e89c363a851ba25a9e9a89f1aad67bad4afbb04"
         }
       ]
     },
@@ -1016,21 +1068,6 @@
       "version": "0.19.2",
       "kind": "custom-build",
       "archive_sha256": "3457dea1f0eb631b4034d61d4d8c32074caa6cd1ab2d59f2327bd8461e2c0016",
-      "source_sha256": "58716b46f494cd0bf20df2c2ea32c364d7eb46790ca39a1ae265f5f3ef54cf0b",
-      "behaviour": "Only xkbcommon feature probes locally installed xkbcommon with pkg-config.",
-      "review_scope": "Complete build-script executable code read; helper scope stated separately. This is S-12 behaviour review, not whole-crate cargo-vet certification.",
-      "sources_read_or_inspected": [
-        {
-          "path": "build.rs",
-          "sha256": "58716b46f494cd0bf20df2c2ea32c364d7eb46790ca39a1ae265f5f3ef54cf0b"
-        }
-      ]
-    },
-    {
-      "name": "smithay-client-toolkit",
-      "version": "0.20.0",
-      "kind": "custom-build",
-      "archive_sha256": "0512da38f5e2b31201a93524adb8d3136276fa4fe4aafab4e1f727a82b534cc0",
       "source_sha256": "58716b46f494cd0bf20df2c2ea32c364d7eb46790ca39a1ae265f5f3ef54cf0b",
       "behaviour": "Only xkbcommon feature probes locally installed xkbcommon with pkg-config.",
       "review_scope": "Complete build-script executable code read; helper scope stated separately. This is S-12 behaviour review, not whole-crate cargo-vet certification.",
@@ -1637,16 +1674,20 @@
     },
     {
       "name": "zerovec-derive",
-      "version": "0.11.6",
+      "version": "0.11.7",
       "kind": "proc-macro",
-      "archive_sha256": "34df6fc39dbd26ddc9c10e6a2984476e13acce22e64e4487636ef494369225da",
+      "archive_sha256": "c3743ddbf47738d929cd1ae2e199d40d0162979dfe31aef8ae646d2bf00bf97a",
       "source_sha256": "b583dd33c6a6c18f9f026c2693c260a33a38449ef270573870739e00fcd54923",
-      "behaviour": "Generates ULE/VarULE representations and conversion traits; existing audit retained.",
-      "review_scope": "Existing package: entrypoint/import and ambient-capability scan only in this pass; established cargo-vet coverage retained. Not a fresh all-module unsafe review or full crate certification.",
+      "behaviour": "Generates ULE/VarULE representations and conversion traits; new FatPtr representation and compile-time size/alignment checks replace tuple pointer metadata extraction. The generated code retains an unstable pointer-layout assumption; no unconditional soundness claim.",
+      "review_scope": "Complete packaged 0.11.6-to-0.11.7 delta and changed src/varule.rs derive_impl read by GPT-6.1 Sol AI reviewer. Unchanged macro modules retain established coverage; not a fresh full-crate or all-module unsafe audit. No new ambient build capability found in the changed code.",
       "sources_read_or_inspected": [
         {
           "path": "src/lib.rs",
           "sha256": "b583dd33c6a6c18f9f026c2693c260a33a38449ef270573870739e00fcd54923"
+        },
+        {
+          "path": "src/varule.rs",
+          "sha256": "b7a4a71980d94af898dba418111a512c5edb3cc0d753dedbb3699c38fc45ca43"
         }
       ]
     },

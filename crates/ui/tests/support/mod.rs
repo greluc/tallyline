@@ -208,6 +208,7 @@ fn background_behind(
             }
             Shape::Noop
             | Shape::Vec(_)
+            | Shape::Band(_)
             | Shape::Circle(_)
             | Shape::Ellipse(_)
             | Shape::LineSegment { .. }
@@ -330,6 +331,7 @@ pub fn check_fan_kit_unit<State>(
                 }
                 Shape::Noop
                 | Shape::Vec(_)
+                | Shape::Band(_)
                 | Shape::Circle(_)
                 | Shape::Ellipse(_)
                 | Shape::LineSegment { .. }
@@ -441,6 +443,7 @@ pub fn check_fan_kit_unit<State>(
             }
             Shape::Noop
             | Shape::Vec(_)
+            | Shape::Band(_)
             | Shape::Circle(_)
             | Shape::Ellipse(_)
             | Shape::LineSegment { .. }

@@ -63,7 +63,9 @@ Status 2026-11-01: `cargo xtask check` reads full `cargo metadata --locked --for
 
 The owner-approved restrictions are: `wayland-backend` 0.3.17 must keep feature `log` disabled (its C shims); `android-activity` 0.6.1 and `objc-sys` 0.3.5 must be absent from both supported resolved target graphs. The same reachability guard also excludes `android-properties` on both supported targets: 0.2.2 has unsafe Android property-buffer/callback defects and is covered only as off-target code, not certified as sound. The Apple-only `core-graphics` and `dispatch` packages are also excluded at every version because their unsafe FFI code lacks deployable audit coverage for this graph. These are Rust FFI exclusions, not new native-code exceptions. The guard recognises package names across version changes, so a version bump cannot bypass these restrictions. Later native activation requires new owner approval and a corresponding guard and register change. Packages retained only in lockfile metadata are allowed. Public metadata fixtures cover activation, off-target leakage, excluded packages, renamed and transitive dependencies, and malformed inputs.
 
-This guard enforces those three conditions only. It does not complete the general native-code inventory or the reviewed build-script and procedural-macro list of 10 S-12. A `links` key alone is insufficient to classify native code: `rayon-core` 1.13.0 (`rayon-core`) and `wasm-bindgen-shared` 0.2.130 (`wasm_bindgen`) use pure-Rust coordination markers. Metadata cannot establish the contents or behaviour of arbitrary build scripts; source review remains necessary (09 §3b, 10 S-12).
+The same guard excludes every `send_wrapper` version from both supported graphs. Its optional Future/Stream Pin projection and wrong-thread Drop/leak interaction has an unresolved source-review concern. No source-soundness audit or publisher trust follows from retaining it only in off-target metadata. Activation requires a focussed source review and owner approval; the fixture covers a future version and a renamed transitive dependency from an alternative workspace root.
+
+This guard enforces these explicit package and feature restrictions only. It does not complete the general native-code inventory or the reviewed build-script and procedural-macro list of 10 S-12. A `links` key alone is insufficient to classify native code: `rayon-core` 1.13.0 (`rayon-core`) and `wasm-bindgen-shared` 0.2.130 (`wasm_bindgen`) use pure-Rust coordination markers. Metadata cannot establish the contents or behaviour of arbitrary build scripts; source review remains necessary (09 §3b, 10 S-12).
 
 
 ## Reviewed build-time code
@@ -118,3 +120,5 @@ Decimal runtime scope is exact: rust_decimal defaults and every optional
 feature remain disabled. The same rooted metadata guard rejects any enabled
 feature before workspace build/test work; the pure-runtime architecture
 allowlist does not grant its optional database, JSON or other capabilities.
+
+Git child commands remove the repository-local environment names recognised across the supported Git versions, including the legacy `GIT_INTERNAL_SUPER_PREFIX`. The real Git contract compares this removal set with `git rev-parse --local-env-vars`; an additional name fails rather than inheriting another repository context.
