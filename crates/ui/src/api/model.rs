@@ -8,6 +8,7 @@ pub use crate::state::{BackgroundEvent, SettingsCommand, UserAction, View};
 
 pub use crate::activation::WindowCommand;
 pub use crate::fonts::FontFiles;
+pub use crate::game_witness::GameWitnessView;
 pub use crate::legal_views::AboutAction;
 pub use crate::licences::CopyrightInformation;
 pub use crate::licences::{

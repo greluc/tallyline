@@ -1,6 +1,6 @@
 [workspace]
 resolver = "3"
-members = ["crates/shared-kernel", "crates/reference-data", "xtask", "crates/adapter-uex", "crates/egui", "tools/ocr-eval", "crates/workflows", "crates/adapter-files", "crates/ui", "crates/app", "crates/adapter-platform"]
+members = ["crates/shared-kernel", "crates/reference-data", "xtask", "crates/adapter-uex", "crates/egui", "tools/ocr-eval", "crates/workflows", "crates/adapter-files", "crates/ui", "crates/app", "crates/adapter-platform", "crates/game"]
 
 [workspace.dependencies]
 tallyline-shared-kernel = { path = "crates/shared-kernel" }
@@ -64,4 +64,3 @@ struct_excessive_bools = "deny"
 missing_errors_doc = "deny"
 missing_panics_doc = "deny"
 missing_safety_doc = "deny"
-

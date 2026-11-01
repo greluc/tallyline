@@ -12,3 +12,6 @@ sha2.workspace = true
 
 [lints]
 workspace = true
+
+[dependencies.tallyline-adapter-files]
+path = "../../crates/adapter-files"

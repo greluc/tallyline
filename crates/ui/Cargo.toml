@@ -23,3 +23,6 @@ sha2.workspace = true
 
 [lints]
 workspace = true
+
+[dependencies.tallyline-game]
+path = "../game"

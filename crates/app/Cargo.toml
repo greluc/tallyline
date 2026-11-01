@@ -22,3 +22,6 @@ tallyline-ui = { path = "../ui" }
 
 [lints]
 workspace = true
+
+[dependencies.tallyline-game]
+path = "../game"

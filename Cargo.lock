@@ -2283,6 +2283,7 @@ version = "0.0.0"
 dependencies = [
  "serde_json",
  "sha2",
+ "tallyline-adapter-files",
 ]
 
 [[package]]
@@ -3181,6 +3182,8 @@ dependencies = [
  "image",
  "png",
  "serde_json",
+ "tallyline-game",
+ "tallyline-shared-kernel",
  "tallyline-workflows",
 ]
 
@@ -3215,6 +3218,7 @@ dependencies = [
  "egui",
  "tallyline-adapter-files",
  "tallyline-adapter-platform",
+ "tallyline-game",
  "tallyline-ui",
  "tallyline-workflows",
  "tracing",
@@ -3225,6 +3229,13 @@ name = "tallyline-egui"
 version = "0.1.0"
 dependencies = [
  "egui",
+]
+
+[[package]]
+name = "tallyline-game"
+version = "0.1.0"
+dependencies = [
+ "tallyline-shared-kernel",
 ]
 
 [[package]]
@@ -3252,6 +3263,7 @@ dependencies = [
  "serde_json",
  "sha2",
  "tallyline-egui",
+ "tallyline-game",
  "tallyline-workflows",
 ]
 

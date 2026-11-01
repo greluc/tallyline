@@ -17,6 +17,7 @@ mod shell;
 mod activation;
 pub mod api;
 mod desktop;
+mod game_witness;
 mod legal_views;
 mod licences;
 mod theme;

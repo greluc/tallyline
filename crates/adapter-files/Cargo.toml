@@ -17,3 +17,9 @@ workspace = true
 
 [dev-dependencies]
 image = { workspace = true, features = ["png"] }
+
+[dependencies.tallyline-game]
+path = "../game"
+
+[dependencies.tallyline-shared-kernel]
+path = "../shared-kernel"
