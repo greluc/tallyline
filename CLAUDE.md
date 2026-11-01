@@ -1,4 +1,6 @@
-# CLAUDE.md – Tallyline
+# Agent instructions – Tallyline
+
+This file is the shared source of truth for Claude Code and Codex. Codex also reads `AGENTS.md`, which points here. Apply the same repository, privacy, contribution and review rules regardless of which agent is working. Where a global agent instruction conflicts with this project file, the more specific project rule applies; ask @greluc when the conflict changes a requirement, accepted decision or external-write boundary.
 
 **Tallyline** (the product name, decided 2026-10-12, O-8; the GitHub repository is still `uex-datarunner-client`) is a desktop client (Windows + Linux) for capturing Star Citizen commodity terminal data – **manually or via screenshot OCR** – and submitting it to the **UEX API 2.0** (`POST /data_submit`). Current UEX data (terminals, commodities, latest prices, status levels, tolerances) are **constraints and default values** for recognition and selection.
 
@@ -284,6 +286,18 @@ The code carries no comments besides rustdoc, the rustdoc is short and precise, 
 - A lint suppression is allowed only where the rule is genuinely wrong at that site, as `#[expect(lint, reason = "…")]` (preferred) or `#[allow(lint, reason = "…")]` with one short sentence in `reason` (ADR-0005 D11, O-118); this is the only place where prose may sit inside code besides rustdoc. The suppression also gets a row of the suppression register (09 §3a: location, rule, reason, date, revisit when), and a `cargo-deny`, `cargo-audit` or `cargo-vet` exception gets its expiry date there; the longer reasoning goes into the commit message and the PR.
 - Out of scope: generated files (`Cargo.lock`, SBOMs, generated token and icon code), vendored files (the `cargo vendor` directory), Markdown, test fixtures whose content is the data under test, and verbatim third-party text.
 - Before deleting a comment, check that it held nothing a tool reads. Existing comments are not stripped as a side effect of an unrelated task: apply the rule to what you write and touch, and offer @greluc a sweep.
+
+This project rule is stricter than the global Claude comment rule: technical comments are not permitted here. Rustdoc, licence headers and tool directives remain as specified above.
+
+## Shared agent workflow
+
+- **Rust style:** Follow the [Google Rust Style Guide](https://google.github.io/styleguide/rustguide.html), excluding rules marked `[chrome]` and rules for other named platforms. Follow official Rust style rules where the guide defers to them. Project conventions, ADRs and enforced tooling take precedence where they are more specific; ask @greluc before adopting a conflicting deviation. Apply the guide to new and touched code, not as an unsolicited whole-codebase restyle.
+- **Code quality:** Avoid duplication, dead code, god functions or files, magic numbers, leaky abstractions, needless clones, casts or allocations, stringly typed data, swallowed errors and temporary workarounds. Prefer small modules with one responsibility and narrow interfaces. If a clean fix is outside the task, explain the remaining issue and propose a follow-up instead of adding a TODO.
+- **Windows shell:** Use modern PowerShell (`pwsh`) for terminal work on this machine. Avoid Git Bash unless a required tool has no PowerShell route. Quote paths, prefer structured tool arguments for multiline content, and verify shell-written files before relying on them.
+- **Worktrees and scratch files:** If creating a worktree or temporary file on this machine, put it under `D:\Coding\claude-worktrees` and remove temporary artefacts when finished. Follow the active host's worktree tooling and permissions; if that location is unavailable, keep work in the current checkout when suitable rather than silently choosing another location.
+- **Identity:** The project contact and git identity use `lucas.greuloch@gmail.com`; `lucas.greuloch@pm.me` is retired and must not be used. Never hand-write a DCO trailer; use `git commit -s` after checking the repository's configured identity.
+- **Agent attribution:** Conventional Commits, commit signing-off and authorship rules above apply to every agent. Add a `Co-Authored-By` trailer only when the active agent platform supplies an attribution identity and its contribution policy calls for one; never guess an address or copy a trailer from another commit. Follow the current session's repository and commit permissions.
+- **Review and verification:** Review the diff for requirement/ADR coverage, privacy and external-write boundaries, docs, tests and generated artefacts. Run checks only when requested or required by a project workflow; report exactly what was and was not run.
 
 ## When you change…
 
