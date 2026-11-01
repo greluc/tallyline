@@ -6,11 +6,25 @@
 #![forbid(unsafe_code)]
 
 mod executor;
+mod instance_wiring;
 mod settings_wiring;
 
 use tallyline_ui::api::{Catalogue, DesktopShell, configure_fonts};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let layout = settings_wiring::storage_layout()?;
+    let primary = match tallyline_adapter_platform::api::elect(instance_wiring::paths(&layout)?)? {
+        tallyline_adapter_platform::api::Election::Primary(primary) => primary,
+        tallyline_adapter_platform::api::Election::Secondary(
+            tallyline_adapter_platform::api::ActivationOutcome::Activated,
+        ) => return Ok(()),
+        tallyline_adapter_platform::api::Election::Secondary(
+            tallyline_adapter_platform::api::ActivationOutcome::Unavailable,
+        ) => {
+            return already_running();
+        }
+    };
+    let (_writer_lease, listener) = primary.into_parts();
     let (files, light_logo, dark_logo) =
         executor::spawn("tallyline-resources", || -> std::io::Result<_> {
             Ok((
@@ -39,22 +53,30 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             configure_fonts(&creation.egui_ctx, files);
             let catalogue = Catalogue::english()?;
 
-            let (commands, events, worker) = settings_wiring::start(creation.egui_ctx.clone())?;
-            lifecycle_sender.send(worker)?;
-            Ok(Box::new(DesktopShell::new(
-                &creation.egui_ctx,
-                catalogue,
-                light_logo,
-                dark_logo,
-                commands,
-                events,
-            )))
+            let (commands, events, worker) =
+                settings_wiring::start(creation.egui_ctx.clone(), layout)?;
+            let (activation_commands, activation_events) = std::sync::mpsc::sync_channel(1);
+            let activation_worker =
+                instance_wiring::start(listener, activation_commands, creation.egui_ctx.clone())?;
+            lifecycle_sender.send((worker, activation_worker))?;
+            Ok(Box::new(
+                DesktopShell::new(
+                    &creation.egui_ctx,
+                    catalogue,
+                    light_logo,
+                    dark_logo,
+                    commands,
+                    events,
+                )
+                .with_window_commands(activation_events),
+            ))
         }),
     );
-    for worker in lifecycle_receiver.try_iter() {
+    for (worker, activation_worker) in lifecycle_receiver.try_iter() {
         worker
             .join()
             .map_err(|_| std::io::Error::other("settings worker terminated unexpectedly"))?;
+        activation_worker.finish()?;
     }
     result?;
     Ok(())
@@ -93,4 +115,26 @@ fn logo_pixels(bytes: &[u8]) -> std::io::Result<egui::ColorImage> {
         [raster.width as usize, raster.height as usize],
         &raster.rgba,
     ))
+}
+
+fn already_running() -> Result<(), Box<dyn std::error::Error>> {
+    let fonts = font_files()?;
+    let catalogue = Catalogue::english()?;
+    eframe::run_native(
+        "Tallyline",
+        eframe::NativeOptions {
+            renderer: eframe::Renderer::Wgpu,
+            viewport: egui::ViewportBuilder::default()
+                .with_inner_size([420.0, 140.0])
+                .with_resizable(false),
+            ..Default::default()
+        },
+        Box::new(move |creation| {
+            configure_fonts(&creation.egui_ctx, fonts);
+            Ok(Box::new(tallyline_ui::api::AlreadyRunningNotice::new(
+                catalogue,
+            )))
+        }),
+    )?;
+    Ok(())
 }

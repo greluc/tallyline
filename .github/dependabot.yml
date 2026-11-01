@@ -4,10 +4,11 @@ updates:
   - package-ecosystem: cargo
     directory: /
     schedule:
-      interval: weekly
-      day: monday
+      interval: daily
+    allow:
+      - dependency-type: all
     cooldown:
-      default-days: 7
+      default-days: 0
     open-pull-requests-limit: 5
     assignees:
       - greluc
@@ -18,10 +19,11 @@ updates:
   - package-ecosystem: github-actions
     directory: /
     schedule:
-      interval: weekly
-      day: monday
+      interval: daily
+    allow:
+      - dependency-type: all
     cooldown:
-      default-days: 7
+      default-days: 0
     open-pull-requests-limit: 5
     assignees:
       - greluc

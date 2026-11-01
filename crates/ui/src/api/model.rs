@@ -6,6 +6,7 @@
 pub use crate::fan_kit::{FAN_KIT_LOGO_ALT_TEXT, FAN_KIT_LOGO_TEXTURE_NAME, LegalPlacement};
 pub use crate::state::{BackgroundEvent, SettingsCommand, UserAction, View};
 
+pub use crate::activation::WindowCommand;
 pub use crate::fonts::FontFiles;
 pub use crate::legal_views::AboutAction;
 pub use crate::licences::CopyrightInformation;

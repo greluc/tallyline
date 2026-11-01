@@ -12,6 +12,8 @@ pub use crate::fonts::configure_fonts;
 pub use crate::shell::{show_shell, wake_up};
 pub use crate::state::ShellState;
 
+pub use crate::activation::AlreadyRunningNotice;
+pub use crate::activation::apply_window_command;
 pub use crate::desktop::DesktopShell;
 pub use crate::legal_views::{show_about_view, show_onboarding_view};
 pub use crate::licences::parse_licence_catalogue;
