@@ -3248,9 +3248,9 @@ dependencies = [
 name = "tallyline-adapter-files"
 version = "0.1.0"
 dependencies = [
- "serde",
  "image",
  "png",
+ "serde",
  "serde_json",
  "tallyline-game",
  "tallyline-shared-kernel",
@@ -3262,17 +3262,17 @@ name = "tallyline-adapter-platform"
 version = "0.1.0"
 dependencies = [
  "reqwest",
+ "rustix 1.1.5",
  "rustls",
  "rustls-platform-verifier",
  "serde",
  "serde_json",
+ "socket2",
  "tallyline-workflows",
  "tokio",
- "wiremock",
- "rustix 1.1.5",
- "socket2",
  "tracing",
  "windows-sys 0.61.2",
+ "wiremock",
 ]
 
 [[package]]
@@ -3305,15 +3305,17 @@ dependencies = [
 name = "tallyline-app"
 version = "0.1.0"
 dependencies = [
- "tallyline-shared-kernel",
- "tokio",
  "eframe",
  "egui",
+ "serde_json",
  "tallyline-adapter-files",
  "tallyline-adapter-platform",
+ "tallyline-adapter-storage",
  "tallyline-game",
+ "tallyline-shared-kernel",
  "tallyline-ui",
  "tallyline-workflows",
+ "tokio",
  "tracing",
 ]
 
@@ -3369,9 +3371,9 @@ version = "0.1.0"
 dependencies = [
  "tallyline-adapter-files",
  "tallyline-adapter-platform",
- "wiremock",
- "tokio",
  "tallyline-shared-kernel",
+ "tokio",
+ "wiremock",
 ]
 
 [[package]]

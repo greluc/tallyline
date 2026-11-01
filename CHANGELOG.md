@@ -22,6 +22,8 @@ All notable changes are recorded here.
 
 ### Fixed
 
+- Settings migration with an existing SQLite database now creates one integrity-checked database/config backup set before replacement. Backup failure stops startup processing and preserves the previous files (R-NF-11).
+
 - Backup retention preserves the newly created snapshot when the clock moves backwards and retains the newest three completed creations across restarts. Failed backups and timestamp collisions leave existing snapshots untouched (R-NF-11).
 
 - Update-check timestamps outside the settings format are refused without panicking or replacing saved preferences (R-NF-7, R-NF-5).

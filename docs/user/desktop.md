@@ -74,3 +74,5 @@ A newer standard release appears as a persistent notice with **Open release note
 Source builds compare against the fixed development package version. The signed-release build identity is supplied separately by the release workflow; development builds make no claim to be signed releases.
 
 Settings schema 4 retains the independent UEX environment choice for each game channel. Migration backs up the exact old settings before replacement and preserves release checks, saved notices and the optional Game.log witness. The mapping controls are still being implemented; changing the witness directory preserves these mappings.
+
+If a local database already exists, settings migration backs it up consistently alongside the old settings in `data/backup`. A failed backup stops startup processing; it never falls back to a settings-only copy of an existing database.
