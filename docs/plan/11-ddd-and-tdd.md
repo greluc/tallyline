@@ -205,6 +205,8 @@ Stateless domain logic that belongs to no single aggregate (pure functions):
 
 ### B2. Outside-in per use case
 
+**Test boundaries confirmed 2026-11-01:** @greluc approved the public application APIs of the context crates and `workflows`; adapter contracts exercised with real temporary files, SQLite and local HTTP mock servers; UI state and commands plus the critical egui onboarding, submission-block and Fan Kit flows; and corpus/golden tests for recognition and fusion as the test boundaries for M1–M5. Hardware, native OS behaviour and real capture evidence are additionally verified in practical checks. Tests observe these boundaries rather than private implementation details.
+
 1. **Acceptance test** at the application-service level of the context crate (or `workflows` for cross-context use cases) (domain language, fakes for all ports), derived from the requirement. The test carries the requirement ID by the traceability mechanism of B4 (a qualified ID such as `R-VAL-1:ocr` where 04 splits the requirement).
 2. Unit tests for aggregates, value objects and domain services follow from it.
 3. Finally come the adapters with their contract tests.
