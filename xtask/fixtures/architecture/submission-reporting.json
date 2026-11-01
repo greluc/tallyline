@@ -1,0 +1,23 @@
+{
+  "workspace_members": [
+    "path+tallyline-submission",
+    "path+tallyline-reporting"
+  ],
+  "packages": [
+    {
+      "dependencies": [
+        {
+          "name": "tallyline-reporting",
+          "kind": null
+        }
+      ],
+      "id": "path+tallyline-submission",
+      "name": "tallyline-submission"
+    },
+    {
+      "dependencies": [],
+      "id": "path+tallyline-reporting",
+      "name": "tallyline-reporting"
+    }
+  ]
+}

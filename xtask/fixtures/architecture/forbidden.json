@@ -1,0 +1,18 @@
+{
+  "workspace_members": [
+    "path+tallyline-shared-kernel"
+  ],
+  "packages": [
+    {
+      "dependencies": [
+        {
+          "kind": null,
+          "source": "registry",
+          "name": "reqwest"
+        }
+      ],
+      "id": "path+tallyline-shared-kernel",
+      "name": "tallyline-shared-kernel"
+    }
+  ]
+}

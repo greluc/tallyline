@@ -1,0 +1,28 @@
+{
+  "workspace_members": [
+    "path+tallyline-shared-kernel",
+    "path+tallyline-game"
+  ],
+  "packages": [
+    {
+      "dependencies": [
+        {
+          "name": "tallyline-game",
+          "kind": null
+        }
+      ],
+      "id": "path+tallyline-shared-kernel",
+      "name": "tallyline-shared-kernel"
+    },
+    {
+      "dependencies": [
+        {
+          "name": "tallyline-shared-kernel",
+          "kind": null
+        }
+      ],
+      "id": "path+tallyline-game",
+      "name": "tallyline-game"
+    }
+  ]
+}

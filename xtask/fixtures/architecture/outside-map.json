@@ -1,0 +1,33 @@
+{
+  "workspace_members": [
+    "path+tallyline-shared-kernel",
+    "path+tallyline-game",
+    "path+tallyline-adapter-uex"
+  ],
+  "packages": [
+    {
+      "dependencies": [],
+      "id": "path+tallyline-shared-kernel",
+      "name": "tallyline-shared-kernel"
+    },
+    {
+      "dependencies": [
+        {
+          "name": "tallyline-shared-kernel",
+          "kind": null
+        },
+        {
+          "name": "tallyline-adapter-uex",
+          "kind": null
+        }
+      ],
+      "id": "path+tallyline-game",
+      "name": "tallyline-game"
+    },
+    {
+      "dependencies": [],
+      "id": "path+tallyline-adapter-uex",
+      "name": "tallyline-adapter-uex"
+    }
+  ]
+}

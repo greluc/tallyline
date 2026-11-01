@@ -20,6 +20,8 @@ pub enum Step {
     SourceHeaders,
     /// The English check over the tracked files (ADR-0005 D12).
     English,
+    /// The Cargo dependency edges against the architecture context map.
+    Architecture,
     /// A Cargo invocation that must exit successfully.
     Cargo {
         /// The name shown in the report.
@@ -48,6 +50,7 @@ impl Step {
             Self::LicenceCopy => "licence copy",
             Self::SourceHeaders => "source headers",
             Self::English => "english",
+            Self::Architecture => "architecture",
             Self::Cargo { name, .. } => name,
             Self::RequirementTags { .. } => "requirement tags",
         }
@@ -77,6 +80,7 @@ pub fn plan() -> Vec<Step> {
         Step::LicenceCopy,
         Step::SourceHeaders,
         Step::English,
+        Step::Architecture,
         cargo("format", &["fmt", "--all", "--check"]),
         cargo(
             "clippy",
@@ -127,7 +131,8 @@ mod tests {
             | Step::Dependabot
             | Step::LicenceCopy
             | Step::SourceHeaders
-            | Step::English => Vec::new(),
+            | Step::English
+            | Step::Architecture => Vec::new(),
         }
     }
 
@@ -151,7 +156,7 @@ mod tests {
     }
 
     #[test]
-    fn the_plan_runs_the_supply_chain_steps_first_then_format_clippy_rustdoc_tests_and_tags() {
+    fn the_plan_runs_the_supply_chain_and_architecture_steps_before_quality_checks() {
         let plan = plan();
         let names: Vec<_> = plan.iter().map(Step::name).collect();
         assert_eq!(
@@ -165,6 +170,7 @@ mod tests {
                 "licence copy",
                 "source headers",
                 "english",
+                "architecture",
                 "format",
                 "clippy",
                 "rustdoc",

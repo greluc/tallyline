@@ -1,0 +1,34 @@
+{
+  "workspace_members": [
+    "path+tallyline-shared-kernel",
+    "path+tallyline-reference-data",
+    "path+tallyline-adapter-uex"
+  ],
+  "packages": [
+    {
+      "dependencies": [],
+      "id": "path+tallyline-shared-kernel",
+      "name": "tallyline-shared-kernel"
+    },
+    {
+      "dependencies": [
+        {
+          "name": "tallyline-shared-kernel",
+          "kind": null
+        }
+      ],
+      "id": "path+tallyline-reference-data",
+      "name": "tallyline-reference-data"
+    },
+    {
+      "dependencies": [
+        {
+          "name": "tallyline-reference-data",
+          "kind": null
+        }
+      ],
+      "id": "path+tallyline-adapter-uex",
+      "name": "tallyline-adapter-uex"
+    }
+  ]
+}

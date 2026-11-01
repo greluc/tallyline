@@ -1,7 +1,6 @@
 bootstrap-exemptions 1
 block-buffer
 cfg-if
-cpufeatures
 crypto-common
 digest
 hashbrown

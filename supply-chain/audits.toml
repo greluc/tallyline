@@ -79,11 +79,39 @@ criteria = "safe-to-run"
 version = "0.6.5"
 notes = "Read all of src/: no unsafe code, no build script; the mock server binds only 127.0.0.1 on an OS-assigned port and connects only to its own address for a readiness probe; no filesystem or process access, and it reads only the WIREMOCK_BODY_PRINT_LIMIT environment variable. Read by an AI agent; the owner reviews the record in the pull request."
 
+[[trusted.accesskit]]
+criteria = "safe-to-deploy"
+user-id = 27789 # Arnold Loubriat (DataTriny)
+start = "2025-10-02"
+end = "2027-11-01"
+notes = "Trusted publisher for one year; initial adoption of the egui application dependency graph in issue #33."
+
+[[trusted.ahash]]
+criteria = "safe-to-deploy"
+user-id = 25353 # Tom Kaitchuck (tkaitchuck)
+start = "2019-02-28"
+end = "2027-11-01"
+notes = "Trusted publisher for one year; initial adoption of the egui application dependency graph in issue #33."
+
 [[trusted.aho-corasick]]
 criteria = "safe-to-deploy"
 user-id = 189 # Andrew Gallant (BurntSushi)
 start = "2019-03-28"
 end = "2027-10-14"
+
+[[trusted.arrayvec]]
+criteria = "safe-to-deploy"
+user-id = 356 # bluss (bluss)
+start = "2019-07-10"
+end = "2027-11-01"
+notes = "Trusted publisher for one year; initial adoption of the egui application dependency graph in issue #33."
+
+[[trusted.autocfg]]
+criteria = "safe-to-deploy"
+user-id = 539 # Josh Stone (cuviper)
+start = "2019-05-22"
+end = "2027-11-01"
+notes = "Trusted publisher for one year; initial adoption of the egui application dependency graph in issue #33."
 
 [[trusted.aws-lc-rs]]
 criteria = "safe-to-deploy"
@@ -96,6 +124,20 @@ criteria = "safe-to-deploy"
 user-id = 3204 # Ashley Mannix (KodrAus)
 start = "2019-05-02"
 end = "2027-10-14"
+
+[[trusted.bytemuck]]
+criteria = "safe-to-deploy"
+user-id = 7211 # Lokathor (Lokathor)
+start = "2019-09-22"
+end = "2027-11-01"
+notes = "Trusted publisher for one year; initial adoption of the egui application dependency graph in issue #33."
+
+[[trusted.bytemuck_derive]]
+criteria = "safe-to-deploy"
+user-id = 7211 # Lokathor (Lokathor)
+start = "2020-08-21"
+end = "2027-11-01"
+notes = "Trusted publisher for one year; initial adoption of the egui application dependency graph in issue #33."
 
 [[trusted.bytes]]
 criteria = "safe-to-deploy"
@@ -115,11 +157,53 @@ user-id = 55123 # rust-lang-owner
 start = "2022-10-29"
 end = "2027-10-14"
 
+[[trusted.color]]
+criteria = "safe-to-deploy"
+user-id = 106440 # Tom Churchman (tomcur)
+start = "2025-04-30"
+end = "2027-11-01"
+notes = "Trusted publisher for one year; initial adoption of the egui application dependency graph in issue #33."
+
 [[trusted.displaydoc]]
 criteria = "safe-to-deploy"
 user-id = 1139 # Manish Goregaokar (Manishearth)
 start = "2024-06-20"
 end = "2027-10-14"
+
+[[trusted.ecolor]]
+criteria = "safe-to-deploy"
+user-id = 197939 # Rerun (rerunio)
+start = "2024-12-16"
+end = "2027-11-01"
+notes = "Trusted publisher for one year; initial adoption of the egui application dependency graph in issue #33."
+
+[[trusted.egui]]
+criteria = "safe-to-deploy"
+user-id = 197939 # Rerun (rerunio)
+start = "2024-12-16"
+end = "2027-11-01"
+notes = "Trusted publisher for one year; initial adoption of the egui application dependency graph in issue #33."
+
+[[trusted.either]]
+criteria = "safe-to-deploy"
+user-id = 539 # Josh Stone (cuviper)
+start = "2019-04-02"
+end = "2027-11-01"
+notes = "Trusted publisher for one year; initial adoption of the egui application dependency graph in issue #33."
+
+[[trusted.emath]]
+criteria = "safe-to-deploy"
+user-id = 197939 # Rerun (rerunio)
+start = "2024-12-16"
+end = "2027-11-01"
+notes = "Trusted publisher for one year; initial adoption of the egui application dependency graph in issue #33."
+
+[[trusted.epaint]]
+criteria = "safe-to-deploy"
+user-id = 197939 # Rerun (rerunio)
+start = "2024-12-16"
+end = "2027-11-01"
+notes = "Trusted publisher for one year; initial adoption of the egui application dependency graph in issue #33."
 
 [[trusted.equivalent]]
 criteria = "safe-to-deploy"
@@ -127,11 +211,25 @@ user-id = 539 # Josh Stone (cuviper)
 start = "2023-02-05"
 end = "2027-10-14"
 
+[[trusted.fearless_simd]]
+criteria = "safe-to-deploy"
+user-id = 288469 # Laurenz Stampfl (LaurenzV)
+start = "2025-08-26"
+end = "2027-11-01"
+notes = "Trusted publisher for one year; initial adoption of the egui application dependency graph in issue #33."
+
 [[trusted.find-msvc-tools]]
 criteria = "safe-to-deploy"
 trusted-publisher = "github:rust-lang/cc-rs"
 start = "2025-09-05"
 end = "2027-10-14"
+
+[[trusted.font-types]]
+criteria = "safe-to-deploy"
+user-id = 81909 # Chad Brokaw (dfrg)
+start = "2023-08-28"
+end = "2027-11-01"
+notes = "Trusted publisher for one year; initial adoption of the egui application dependency graph in issue #33."
 
 [[trusted.futures]]
 criteria = "safe-to-deploy"
@@ -193,11 +291,32 @@ trusted-publisher = "github:rust-random/getrandom"
 start = "2025-12-27"
 end = "2027-10-14"
 
+[[trusted.glifo]]
+criteria = "safe-to-deploy"
+user-id = 288469 # Laurenz Stampfl (LaurenzV)
+start = "2026-05-30"
+end = "2027-11-01"
+notes = "Trusted publisher for one year; initial adoption of the egui application dependency graph in issue #33."
+
+[[trusted.guillotiere]]
+criteria = "safe-to-deploy"
+user-id = 1281 # Nicolas Silva (nical)
+start = "2019-03-29"
+end = "2027-11-01"
+notes = "Trusted publisher for one year; initial adoption of the egui application dependency graph in issue #33."
+
 [[trusted.h2]]
 criteria = "safe-to-deploy"
 user-id = 359 # Sean McArthur (seanmonstar)
 start = "2019-03-13"
 end = "2027-10-14"
+
+[[trusted.harfrust]]
+criteria = "safe-to-deploy"
+user-id = 299582 # Behdad Esfahbod (behdad)
+start = "2025-06-10"
+end = "2027-11-01"
+notes = "Trusted publisher for one year; initial adoption of the egui application dependency graph in issue #33."
 
 [[trusted.http]]
 criteria = "safe-to-deploy"
@@ -283,6 +402,13 @@ user-id = 128408 # Shane F. Carr (sffc)
 start = "2021-07-29"
 end = "2027-10-14"
 
+[[trusted.itertools]]
+criteria = "safe-to-deploy"
+user-id = 1442 # Jack Wrenn (jswrenn)
+start = "2019-10-27"
+end = "2027-11-01"
+notes = "Trusted publisher for one year; initial adoption of the egui application dependency graph in issue #33."
+
 [[trusted.itoa]]
 criteria = "safe-to-deploy"
 user-id = 3618 # David Tolnay (dtolnay)
@@ -294,6 +420,13 @@ criteria = "safe-to-deploy"
 user-id = 55123 # rust-lang-owner
 start = "2024-07-23"
 end = "2027-10-14"
+
+[[trusted.kurbo]]
+criteria = "safe-to-deploy"
+user-id = 106440 # Tom Churchman (tomcur)
+start = "2025-07-21"
+end = "2027-11-01"
+notes = "Trusted publisher for one year; initial adoption of the egui application dependency graph in issue #33."
 
 [[trusted.lazy_static]]
 criteria = "safe-to-deploy"
@@ -307,11 +440,25 @@ trusted-publisher = "github:rust-lang/libc"
 start = "2026-10-02"
 end = "2027-10-26"
 
+[[trusted.linebender_resource_handle]]
+criteria = "safe-to-deploy"
+user-id = 109051 # Daniel McNab (DJMcNab)
+start = "2025-09-09"
+end = "2027-11-01"
+notes = "Trusted publisher for one year; initial adoption of the egui application dependency graph in issue #33."
+
 [[trusted.litemap]]
 criteria = "safe-to-deploy"
 user-id = 128408 # Shane F. Carr (sffc)
 start = "2021-08-27"
 end = "2027-10-14"
+
+[[trusted.lock_api]]
+criteria = "safe-to-deploy"
+user-id = 2915 # Amanieu d'Antras (Amanieu)
+start = "2019-05-04"
+end = "2027-11-01"
+notes = "Trusted publisher for one year; initial adoption of the egui application dependency graph in issue #33."
 
 [[trusted.log]]
 criteria = "safe-to-deploy"
@@ -343,11 +490,39 @@ user-id = 4556 # Dirkjan Ochtman (djc)
 start = "2025-12-29"
 end = "2027-10-14"
 
+[[trusted.parking_lot]]
+criteria = "safe-to-deploy"
+user-id = 2915 # Amanieu d'Antras (Amanieu)
+start = "2019-05-04"
+end = "2027-11-01"
+notes = "Trusted publisher for one year; initial adoption of the egui application dependency graph in issue #33."
+
+[[trusted.parking_lot_core]]
+criteria = "safe-to-deploy"
+user-id = 2915 # Amanieu d'Antras (Amanieu)
+start = "2019-05-04"
+end = "2027-11-01"
+notes = "Trusted publisher for one year; initial adoption of the egui application dependency graph in issue #33."
+
+[[trusted.peniko]]
+criteria = "safe-to-deploy"
+user-id = 4033 # Bruce Mitchener (waywardmonkeys)
+start = "2025-01-20"
+end = "2027-11-01"
+notes = "Trusted publisher for one year; initial adoption of the egui application dependency graph in issue #33."
+
 [[trusted.pin-project-lite]]
 criteria = "safe-to-deploy"
 trusted-publisher = "github:taiki-e/pin-project-lite"
 start = "2026-02-27"
 end = "2027-10-14"
+
+[[trusted.polycool]]
+criteria = "safe-to-deploy"
+user-id = 2423 # jneem
+start = "2025-10-09"
+end = "2027-11-01"
+notes = "Trusted publisher for one year; initial adoption of the egui application dependency graph in issue #33."
 
 [[trusted.potential_utf]]
 criteria = "safe-to-deploy"
@@ -360,6 +535,20 @@ criteria = "safe-to-deploy"
 user-id = 3618 # David Tolnay (dtolnay)
 start = "2019-04-23"
 end = "2027-10-14"
+
+[[trusted.profiling]]
+criteria = "safe-to-deploy"
+user-id = 54231 # Philip Degarmo (aclysma)
+start = "2020-11-25"
+end = "2027-11-01"
+notes = "Trusted publisher for one year; initial adoption of the egui application dependency graph in issue #33."
+
+[[trusted.redox_syscall]]
+criteria = "safe-to-deploy"
+user-id = 42742 # 4lDO2 (4lDO2)
+start = "2020-07-10"
+end = "2027-11-01"
+notes = "Trusted publisher for one year; initial adoption of the egui application dependency graph in issue #33."
 
 [[trusted.regex]]
 criteria = "safe-to-deploy"
@@ -438,6 +627,20 @@ criteria = "safe-to-deploy"
 user-id = 189 # Andrew Gallant (BurntSushi)
 start = "2019-07-16"
 end = "2027-10-14"
+
+[[trusted.scopeguard]]
+criteria = "safe-to-deploy"
+user-id = 2915 # Amanieu d'Antras (Amanieu)
+start = "2020-02-16"
+end = "2027-11-01"
+notes = "Trusted publisher for one year; initial adoption of the egui application dependency graph in issue #33."
+
+[[trusted.self_cell]]
+criteria = "safe-to-deploy"
+user-id = 18325 # Lukas Bergdoll (Voultapher)
+start = "2021-04-26"
+end = "2027-11-01"
+notes = "Trusted publisher for one year; initial adoption of the egui application dependency graph in issue #33."
 
 [[trusted.serde]]
 criteria = "safe-to-deploy"
@@ -601,6 +804,13 @@ user-id = 359 # Sean McArthur (seanmonstar)
 start = "2020-07-10"
 end = "2027-10-14"
 
+[[trusted.unicode-general-category]]
+criteria = "safe-to-deploy"
+user-id = 2516 # Wesley Moore (wezm)
+start = "2019-12-13"
+end = "2027-11-01"
+notes = "Trusted publisher for one year; initial adoption of the egui application dependency graph in issue #33."
+
 [[trusted.unicode-ident]]
 criteria = "safe-to-deploy"
 user-id = 3618 # David Tolnay (dtolnay)
@@ -618,6 +828,34 @@ criteria = "safe-to-deploy"
 user-id = 1139 # Manish Goregaokar (Manishearth)
 start = "2021-02-18"
 end = "2027-10-14"
+
+[[trusted.uuid]]
+criteria = "safe-to-deploy"
+user-id = 3204 # Ashley Mannix (KodrAus)
+start = "2019-10-18"
+end = "2027-11-01"
+notes = "Trusted publisher for one year; initial adoption of the egui application dependency graph in issue #33."
+
+[[trusted.vello_common]]
+criteria = "safe-to-deploy"
+user-id = 288469 # Laurenz Stampfl (LaurenzV)
+start = "2026-01-08"
+end = "2027-11-01"
+notes = "Trusted publisher for one year; initial adoption of the egui application dependency graph in issue #33."
+
+[[trusted.vello_cpu]]
+criteria = "safe-to-deploy"
+user-id = 288469 # Laurenz Stampfl (LaurenzV)
+start = "2026-01-08"
+end = "2027-11-01"
+notes = "Trusted publisher for one year; initial adoption of the egui application dependency graph in issue #33."
+
+[[trusted.version_check]]
+criteria = "safe-to-deploy"
+user-id = 3864 # Sergio Benitez (SergioBenitez)
+start = "2019-05-24"
+end = "2027-11-01"
+notes = "Trusted publisher for one year; initial adoption of the egui application dependency graph in issue #33."
 
 [[trusted.walkdir]]
 criteria = "safe-to-deploy"
@@ -744,6 +982,20 @@ criteria = "safe-to-deploy"
 user-id = 166196 # Robert Bastian (robertbastian)
 start = "2023-01-26"
 end = "2027-10-14"
+
+[[trusted.zerocopy]]
+criteria = "safe-to-deploy"
+trusted-publisher = "github:google/zerocopy"
+start = "2026-09-08"
+end = "2027-11-01"
+notes = "Trusted publisher for one year; initial adoption of the egui application dependency graph in issue #33."
+
+[[trusted.zerocopy-derive]]
+criteria = "safe-to-deploy"
+trusted-publisher = "github:google/zerocopy"
+start = "2026-09-08"
+end = "2027-11-01"
+notes = "Trusted publisher for one year; initial adoption of the egui application dependency graph in issue #33."
 
 [[trusted.zerofrom]]
 criteria = "safe-to-deploy"

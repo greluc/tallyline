@@ -21,3 +21,57 @@ directory = "s2n-bignum"
 name = "The s2n-bignum library inside aws-lc-sys"
 shipped = { with-crate = "aws-lc-sys" }
 files = [{ repository = "supply-chain/notices/s2n-bignum/LICENSE" }]
+
+[[component]]
+directory = "egui"
+name = "The egui crate from emilk/egui"
+shipped = { with-crate = "egui" }
+files = [
+    { repository = "supply-chain/notices/egui/LICENSE-APACHE" },
+    { repository = "supply-chain/notices/egui/LICENSE-MIT" },
+]
+
+[[component]]
+directory = "ecolor"
+name = "The ecolor crate from emilk/egui"
+shipped = { with-crate = "ecolor" }
+files = [
+    { repository = "supply-chain/notices/ecolor/LICENSE-APACHE" },
+    { repository = "supply-chain/notices/ecolor/LICENSE-MIT" },
+]
+
+[[component]]
+directory = "emath"
+name = "The emath crate from emilk/egui"
+shipped = { with-crate = "emath" }
+files = [
+    { repository = "supply-chain/notices/emath/LICENSE-APACHE" },
+    { repository = "supply-chain/notices/emath/LICENSE-MIT" },
+]
+
+[[component]]
+directory = "epaint"
+name = "The epaint crate from emilk/egui"
+shipped = { with-crate = "epaint" }
+files = [
+    { repository = "supply-chain/notices/epaint/LICENSE-APACHE" },
+    { repository = "supply-chain/notices/epaint/LICENSE-MIT" },
+]
+
+[[component]]
+directory = "accesskit"
+name = "The accesskit crate from AccessKit/accesskit"
+shipped = { with-crate = "accesskit" }
+files = [
+    { repository = "supply-chain/notices/accesskit/LICENSE-APACHE" },
+    { repository = "supply-chain/notices/accesskit/LICENSE-MIT" },
+]
+
+[[component]]
+directory = "profiling"
+name = "The profiling crate from aclysma/profiling"
+shipped = { with-crate = "profiling" }
+files = [
+    { repository = "supply-chain/notices/profiling/LICENSE-APACHE" },
+    { repository = "supply-chain/notices/profiling/LICENSE-MIT" },
+]

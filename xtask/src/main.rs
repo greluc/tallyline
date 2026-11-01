@@ -12,6 +12,7 @@ use std::io::{self, Write};
 use std::path::{Path, PathBuf};
 use std::process::{Command, ExitCode};
 
+use xtask::architecture;
 use xtask::check::{Step, plan};
 use xtask::dco;
 use xtask::deny::unjustified_suppressions;
@@ -112,6 +113,7 @@ fn run_step(step: &Step, root: &Path) -> io::Result<bool> {
         Step::LicenceCopy => licence_copy_passes(root),
         Step::SourceHeaders => source_headers_pass(root),
         Step::English => english_passes(root),
+        Step::Architecture => architecture_passes(root),
         Step::Cargo { args, env, .. } => Ok(Command::new(cargo_program())
             .args(args)
             .envs(env.iter().copied())
@@ -120,6 +122,18 @@ fn run_step(step: &Step, root: &Path) -> io::Result<bool> {
             .success()),
         Step::RequirementTags { list } => check_requirement_tags(list, root),
     }
+}
+
+fn architecture_passes(root: &Path) -> io::Result<bool> {
+    let metadata = cargo_stdout(
+        root,
+        &["metadata", "--locked", "--no-deps", "--format-version", "1"],
+    )?;
+    let findings = architecture::violations(&metadata);
+    for finding in &findings {
+        writeln!(io::stderr(), "{}", finding.0)?;
+    }
+    Ok(findings.is_empty())
 }
 
 fn run_guard(root: &Path) -> io::Result<ExitCode> {
