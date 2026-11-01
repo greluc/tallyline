@@ -248,7 +248,7 @@ The price in the example lies above the effective tolerance of the prior. Furthe
 - **Mutation testing** (`cargo-mutants`) for the core crates, to check whether the tests really find bugs – with TDD, the honest check against "tests that assert nothing":
   - Initial value for the mutation score ≥ 70 %; it is fixed after the first measurement and may only rise.
   - Runs in the PR for changed code and fully nightly.
-  - **The `cargo-mutants` version, and that it runs on this workspace under the pinned toolchain, have not been checked** → M0.
+  - **Corrected 2026-11-01:** `cargo-mutants` 27.1.0 and `cargo-llvm-cov` 0.9.1 were verified with the pinned Rust 1.99.0 toolchain on Windows; their archive hashes and CI pins are in [dependency-pins](../dependency-pins.md). An isolated mutation smoke test caught all four mutants; the workspace mutant listing and an `xtask` coverage smoke test also ran. `cargo xtask mutation` enforces the completed-report score and explicitly skips a workspace with no core crates. No core baseline has been measured or frozen yet; the first full-core run must record it. The configured Linux CI runs remain to be observed.
 - **Coverage** is measured with `cargo-llvm-cov`; the gate value is defined in 09.
 - **Never red on `main`:** red/green happens locally or in the feature branch; every commit on `main` is green.
 - **The refactor step is mandatory:** after green, clean up (names according to the Ubiquitous Language, remove duplicates) while the tests stay green.
