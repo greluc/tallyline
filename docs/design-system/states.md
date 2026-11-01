@@ -118,3 +118,9 @@ The desktop shell draws release status with normal token-backed text and control
 ## Settings control names (2026-11-01)
 
 The Game channel directory text input is associated with its visible catalogue label for accessibility metadata. The critical drawn Settings flow checks the input role and that exact name; upgrading the harness keeps its accessible-name validation enabled (R-OCR-20, R-UI-17a).
+
+## Reference browser states (2026-11-01)
+
+The reference browser uses normal token-backed labels and controls in every theme. Global text identifies the mapped UEX environment, an empty cache, usable cached data or offline retained records, with a separate static refresh label. Endpoint ages distinguish missing data from an unknown age after a reversed clock. Search fields have explicit accessible label associations and stable widget IDs so background status changes preserve keyboard focus. Terminal and commodity rows expose their UEX IDs alongside display text; selection never depends on colour alone. Channel mapping is independent of the optional witness and remains unchanged until persistence succeeds (R-CAP-3a, R-UI-8, R-UI-13, R-UI-16, R-UI-17).
+
+The shell shows one copy of reference status in every view, including the parameter endpoint age and at most 280 Unicode characters of literal UEX staff text. Markup and links have no active behaviour. A paused submission service leaves browser controls enabled; reference delivery recovery clears its own notice without suppressing a settings failure.

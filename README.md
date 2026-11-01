@@ -14,6 +14,8 @@ Build with `cargo build --locked -p tallyline-app`, then run `target/debug/tally
 
 The optional **Game log witness** in Settings reads only version-validated local facts after explicit opt-in. Choose a channel, enable the witness and refresh to inspect sanitised buy-side observations; `cargo run -p ocr-eval --locked -- witness --channel <directory>` offers the same bounded read-only inspection. Prices, quantities and status values are never filled from the log (R-OCR-20).
 
+The **Reference data** page lets you choose LIVE, HOTFIX, PTU, EPTU or TECH-PREVIEW and search terminal names, locations, commodity names and codes. It retains your selection and search during passive refreshes and displays the supplied cache state and endpoint ages. **Settings → UEX environment mapping** changes each channel independently of the optional Game.log witness. Global staff notices remain capped plain text, including while submissions are paused. The native reference worker is still being connected to this browser.
+
 Settings also offers optional **daily release updates**, off by default. A newer standard GitHub release appears as a passive notice with release notes; offline checks never interrupt work or take focus, and failed settings validation preserves saved preferences. Settings backup retention also survives clock changes. Downloads and installation remain your choice (R-NF-7, R-UI-16).
 
 Starting Tallyline again activates the existing installed or portable instance. If activation fails, an already-running notice appears and no second writer starts (R-NF-10).
