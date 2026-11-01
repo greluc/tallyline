@@ -64,7 +64,7 @@ pub fn show_shell(
                 commands.extend(state.act(action));
             }
         }
-        View::Reference => crate::api::show_reference_browser(ui, state, catalogue),
+        View::Reference => crate::reference_views::show_browser_contents(ui, state, catalogue),
         View::Home => {
             ui.heading(catalogue.text("home.title"));
             ui.label(catalogue.text("home.empty"));

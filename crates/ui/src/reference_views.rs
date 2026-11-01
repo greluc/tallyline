@@ -17,6 +17,15 @@ pub(crate) const CHANNELS: [(GameEnvironment, &str); 5] = [
 
 /// Draws cached vocabularies and queues only explicit reference requests.
 pub fn show_reference_browser(ui: &mut egui::Ui, state: &mut ShellState, catalogue: &Catalogue) {
+    show_reference_status(ui, state, catalogue);
+    show_browser_contents(ui, state, catalogue);
+}
+
+pub(crate) fn show_browser_contents(
+    ui: &mut egui::Ui,
+    state: &mut ShellState,
+    catalogue: &Catalogue,
+) {
     ui.heading(catalogue.text("reference.title"));
     ui.label(catalogue.text("reference.channel"));
     ui.horizontal_wrapped(|ui| {
@@ -38,7 +47,6 @@ pub fn show_reference_browser(ui: &mut egui::Ui, state: &mut ShellState, catalog
     {
         state.references_mut().refresh();
     }
-    show_reference_status(ui, state, catalogue);
     if let Some(snapshot) = state.reference_snapshot()
         && let Some(versions) = snapshot.game_versions()
     {
@@ -82,6 +90,7 @@ pub(crate) fn show_reference_status(ui: &mut egui::Ui, state: &ShellState, catal
                 (Endpoint::Commodities, "reference.commodities"),
                 (Endpoint::GameVersions, "reference.versions"),
                 (Endpoint::StatusLevels, "reference.status_levels"),
+                (Endpoint::Parameters, "reference.parameters"),
             ] {
                 let age = snapshot.fetched_at(endpoint).map_or_else(
                     || catalogue.text("reference.never_loaded").to_owned(),
@@ -97,6 +106,14 @@ pub(crate) fn show_reference_status(ui: &mut egui::Ui, state: &ShellState, catal
                 ui.label(format!("{}: {age}", catalogue.text(key)));
             }
         });
+    }
+    if let Some(notification) = state
+        .reference_snapshot()
+        .and_then(|snapshot| snapshot.parameters())
+        .and_then(|parameters| parameters.staff_notification())
+    {
+        ui.label(catalogue.text("reference.staff_notification"));
+        ui.label(notification);
     }
 }
 

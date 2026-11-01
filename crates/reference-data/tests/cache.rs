@@ -806,3 +806,123 @@ fn r_api_6__terminal_container_limit_is_optional_immutable_and_retained_in_snaps
         );
     }
 }
+
+#[test]
+#[expect(
+    non_snake_case,
+    reason = "Requirement tags use a double underscore separator."
+)]
+fn r_api_1_r_sub_5_r_ui_8__closed_submission_parameters_do_not_remove_cached_browsing_or_interpret_staff_text()
+ {
+    use tallyline_reference_data::api::model::{
+        CommodityConstraints, ReferenceParameters, SubmissionAcceptance,
+    };
+    let constraints = CommodityConstraints {
+        price_variation_percent: 25,
+        prior_ttl_days: std::num::NonZeroU32::new(15).unwrap(),
+        scu_variation_percent: 5000,
+    };
+    for bits in 0..16 {
+        let acceptance = SubmissionAcceptance {
+            datacenter: (bits & 1 != 0).into(),
+            reports: (bits & 2 != 0).into(),
+            commodity: (bits & 4 != 0).into(),
+            ptu: (bits & 8 != 0).into(),
+        };
+        assert_eq!(acceptance.allows(UexEnvironment::Live), bits & 7 == 7);
+        assert_eq!(acceptance.allows(UexEnvironment::Ptu), bits & 13 == 13);
+    }
+    let notification = format!("<b>&amp;</b>{}", "🛰".repeat(300));
+    let parameters = ReferenceParameters::new(
+        SubmissionAcceptance {
+            datacenter: (false).into(),
+            reports: (true).into(),
+            commodity: (true).into(),
+            ptu: (true).into(),
+        },
+        constraints,
+        Some(&notification),
+    );
+    let application = ReferenceApplication::load(
+        MemoryCache(vec![
+            CachedReference::new(
+                Timestamp::from_seconds(1),
+                EndpointData::Commodities(vec![Commodity::new(
+                    CommodityId(1),
+                    "Ore",
+                    "ORE",
+                    true,
+                    CommodityAverages::default(),
+                )]),
+            ),
+            CachedReference::new(
+                Timestamp::from_seconds(1),
+                EndpointData::Parameters(parameters),
+            ),
+        ]),
+        FixedClock,
+    )
+    .unwrap();
+    let snapshot = application.snapshot(UexEnvironment::Live);
+    assert_eq!(snapshot.commodities("ore").len(), 1);
+    let parameters = snapshot.parameters().unwrap();
+    assert!(!parameters.acceptance().allows(UexEnvironment::Live));
+    assert_eq!(parameters.constraints(), constraints);
+    let text = parameters.staff_notification().unwrap();
+    assert!(text.starts_with("<b>&amp;</b>"));
+    assert_eq!(text.chars().count(), 280);
+}
+
+#[test]
+#[expect(
+    non_snake_case,
+    reason = "Requirement tags use a double underscore separator."
+)]
+fn r_api_1_r_sub_5__parameter_cache_has_daily_ttl_and_fifteen_minute_send_freshness() {
+    use tallyline_reference_data::api::model::{
+        CommodityConstraints, ReferenceParameters, SubmissionAcceptance,
+    };
+    let parameters = ReferenceParameters::new(
+        SubmissionAcceptance {
+            datacenter: (true).into(),
+            reports: (true).into(),
+            commodity: (true).into(),
+            ptu: (false).into(),
+        },
+        CommodityConstraints {
+            price_variation_percent: 25,
+            prior_ttl_days: std::num::NonZeroU32::new(15).unwrap(),
+            scu_variation_percent: 5000,
+        },
+        None,
+    );
+    for (now, send_due, daily_due) in [
+        (1000, false, false),
+        (900999, false, false),
+        (901000, true, false),
+        (86400999, true, false),
+        (86401000, true, true),
+        (999, true, true),
+    ] {
+        let cached = CachedReference::new(
+            Timestamp::from_millis(1000),
+            EndpointData::Parameters(parameters.clone()),
+        );
+        let mut application =
+            ReferenceApplication::load(MemoryCache(vec![cached]), MillisecondClock(now)).unwrap();
+        assert_eq!(application.due().contains(&Endpoint::Parameters), daily_due);
+        assert_eq!(
+            application
+                .due_before_send()
+                .contains(&Endpoint::Parameters),
+            send_due
+        );
+        application.refresh_failed(Endpoint::Parameters);
+        assert_eq!(
+            application.snapshot(UexEnvironment::Live).parameters(),
+            Some(&parameters)
+        );
+    }
+    let empty = ReferenceApplication::load(MemoryCache(vec![]), At(0)).unwrap();
+    assert!(empty.due_before_send().contains(&Endpoint::Parameters));
+}

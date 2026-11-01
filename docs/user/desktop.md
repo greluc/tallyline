@@ -87,4 +87,8 @@ Search terminals by name, nickname, display name or location and commodities by 
 
 The global status distinguishes **No reference data yet**, usable cached data and an offline cache. Each loaded endpoint shows **Age at last update**, the elapsed seconds from its last successful fetch to the worker's clock observation; missing endpoints show **Not loaded yet**. A reversed clock shows an unknown age rather than a fresh value. **Refresh reference data** queues a background refresh without clearing records, search, selection or keyboard focus. A failed refresh retains the last successful data and fetch times. Background results never switch pages, open dialogs or change the window state.
 
-The browser accepts immutable cache snapshots from its worker. Native worker composition remains in progress in this implementation slice; until connected, the page shows the explicit no-data state and an unavailable-worker notice for a refresh request.
+The browser accepts immutable cache snapshots from its worker. Native worker composition remains in progress in this implementation slice; until connected, the page shows the explicit no-data state and an unavailable-refresh notice for a refresh request.
+
+UEX staff notices appear in the global status area in every view, limited to 280 Unicode characters and displayed literally without interpreting markup or links. Paused submissions or Datacenter maintenance leave cached reference browsing available; the last successful parameters remain available offline.
+
+A successful reference update clears a resolved reference-refresh delivery notice. It preserves an unrelated settings error until that settings operation succeeds. The reference page uses the same global status area without displaying a second copy.

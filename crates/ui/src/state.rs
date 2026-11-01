@@ -56,6 +56,7 @@ pub struct ShellState {
     view: View,
     references: crate::reference_browser::ReferenceBrowser,
     notice: Option<String>,
+    reference_notice: Option<String>,
     dialogs: DialogPresenter,
     settings: AppSettings,
     busy: bool,
@@ -135,7 +136,10 @@ impl ShellState {
                 live,
                 ptu,
                 observed_at,
-            } => self.references.updated(live, ptu, observed_at),
+            } => {
+                self.references.updated(live, ptu, observed_at);
+                self.reference_notice = None;
+            }
             BackgroundEvent::UpdateChecked(status) => {
                 if self.settings.update_checks()
                     == tallyline_workflows::api::model::UpdateChecks::Enabled
@@ -176,7 +180,7 @@ impl ShellState {
     /// Returns the persistent action notice.
     #[must_use]
     pub fn notice(&self) -> Option<&str> {
-        self.notice.as_deref()
+        self.notice.as_deref().or(self.reference_notice.as_deref())
     }
 
     /// Returns the active primary view.

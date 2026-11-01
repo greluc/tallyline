@@ -59,8 +59,7 @@ The `unsafe` code of the platform adapter is registered here too. Edition 2024 m
 
 | Location | Rule | Reason | Date | Revisit when |
 |---|---|---|---|---|
-| `crates/ui/tests/reference_browser.rs`, requirement-tagged tests | `non_snake_case` | The traceability grammar contains a double underscore | 2026-11-01 | the tag grammar changes or rustc accepts consecutive underscores |
-| `crates/ui/tests/reference_browser.rs`, shared resources module | `dead_code` | The shared harness fixture supplies unused artwork helpers alongside the required bundled fonts | 2026-11-01 | the shared resource fixture separates font and artwork helpers |
+| `crates/ui/tests/reference_browser/*.rs`, requirement-tagged tests | `non_snake_case` | The traceability grammar contains a double underscore | 2026-11-01 | the tag grammar changes or rustc accepts consecutive underscores |
 | `crates/adapter-platform/src/windows_socket.rs`, `Winsock::start` | `unsafe_code` | Owner-approved bounded WSAStartup receives valid initialised writable WSADATA; its direct error code is checked; a guard balances every success without opening another socket | 2026-11-01 | socket2 offers startup without TCP/UDP creation, or the Windows floor/API changes |
 | `crates/adapter-platform/src/windows_socket.rs`, `Winsock::cleanup` | `unsafe_code` | Owner-approved final Arc guard calls WSACleanup exactly once after its sockets close; structured logging reports cleanup failure | 2026-11-01 | the lifetime wrapper, socket ownership or Winsock integration changes |
 | `crates/adapter-platform/src/windows_socket.rs`, `WindowsSocket::new` | `unsafe_code` | Owner-approved WSASocketW creates only non-inheritable AF_UNIX/SOCK_STREAM; failure is checked immediately; the owned handle transfers once into OwnedSocket then socket2 without its UDP initialiser | 2026-11-01 | socket2 offers a safe compliant constructor, or socket flags/ownership change |

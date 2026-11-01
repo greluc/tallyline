@@ -70,6 +70,6 @@ impl ShellState {
     /// Retains cached browsing data and displays a failed command delivery.
     pub fn reference_command_failed(&mut self, notice: String) {
         self.references.unavailable();
-        self.notice = Some(notice);
+        self.reference_notice = Some(notice);
     }
 }

@@ -49,7 +49,8 @@ impl ReferenceSnapshot {
                 ),
                 EndpointData::Terminals(_)
                 | EndpointData::GameVersions(_)
-                | EndpointData::StatusLevels(_) => entry.clone(),
+                | EndpointData::StatusLevels(_)
+                | EndpointData::Parameters(_) => entry.clone(),
             })
             .collect();
         Self {
@@ -75,7 +76,8 @@ impl ReferenceSnapshot {
                 EndpointData::Commodities(items) => items.as_slice(),
                 EndpointData::Terminals(_)
                 | EndpointData::GameVersions(_)
-                | EndpointData::StatusLevels(_) => &[],
+                | EndpointData::StatusLevels(_)
+                | EndpointData::Parameters(_) => &[],
             })
             .filter(|item| {
                 item.name().to_lowercase().contains(&query)
@@ -94,7 +96,8 @@ impl ReferenceSnapshot {
                 EndpointData::Terminals(items) => items.as_slice(),
                 EndpointData::Commodities(_)
                 | EndpointData::GameVersions(_)
-                | EndpointData::StatusLevels(_) => &[],
+                | EndpointData::StatusLevels(_)
+                | EndpointData::Parameters(_) => &[],
             })
             .filter(|terminal| {
                 let text = terminal.text();
@@ -118,7 +121,8 @@ impl ReferenceSnapshot {
             EndpointData::GameVersions(versions) => Some(versions),
             EndpointData::Commodities(_)
             | EndpointData::Terminals(_)
-            | EndpointData::StatusLevels(_) => None,
+            | EndpointData::StatusLevels(_)
+            | EndpointData::Parameters(_) => None,
         })
     }
 
@@ -129,9 +133,22 @@ impl ReferenceSnapshot {
             EndpointData::StatusLevels(levels) => Some(levels),
             EndpointData::Commodities(_)
             | EndpointData::Terminals(_)
-            | EndpointData::GameVersions(_) => None,
+            | EndpointData::GameVersions(_)
+            | EndpointData::Parameters(_) => None,
         })
     }
+    /// Returns cached submission policy, tolerances and capped literal staff text.
+    #[must_use]
+    pub fn parameters(&self) -> Option<&crate::api::model::ReferenceParameters> {
+        self.entries.iter().find_map(|entry| match entry.data() {
+            EndpointData::Parameters(parameters) => Some(parameters),
+            EndpointData::Commodities(_)
+            | EndpointData::Terminals(_)
+            | EndpointData::GameVersions(_)
+            | EndpointData::StatusLevels(_) => None,
+        })
+    }
+
     /// Returns one endpoint's successful fetch time without creating an observation.
     #[must_use]
     pub fn fetched_at(&self, endpoint: Endpoint) -> Option<Timestamp> {
