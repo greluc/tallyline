@@ -1,8 +1,8 @@
 # Current Game.log witness validation
 
-> **Doc type:** Living reference — partial evidence; paired timing measured, mapping coverage remains open. Last reviewed: 2026-11-01.
+> **Doc type:** Living reference — initial validation complete; supported scope and exclusions recorded. Last reviewed: 2026-11-01.
 
-This is the dated result of the local current-LIVE review for issue #107, R-OCR-20, A24 and O-101. It records observations, not a production format or mapping registry. The witness remains opt-in and default off; unknown formats and mappings supply no automatic resolving evidence. The implementation and its privacy tests belong to issue #108.
+This is the dated result of the local current-LIVE review for issue #107, R-OCR-20, A24 and O-101. It records the validated initial evidence scope, not a production parser or exhaustive mapping registry. The witness remains opt-in and default off; unknown formats and mappings supply no automatic resolving evidence. The implementation and its privacy tests belong to issue #108.
 
 ## Evidence boundary
 
@@ -114,13 +114,17 @@ Expected interpretation: candidate location code at the log time; drop the handl
 
 Synthetic matching examples under the existing rule: with a certain capture at `12:04:00Z` and the latest validated kiosk load at `12:00:00Z`, the four-minute offset is inside the default window. A capture at `12:06:00Z` is outside it; a load after the capture and a `CaptureTimeUncertain` capture are ineligible. These examples illustrate the requirement, not a newly measured offset.
 
-## Remaining acceptance evidence
+## Completed initial validation and unsupported scope
 
-Issue #107 remains partial. The current format and dangerous keyword collision are directly observed; buy-side interpretation, unavailable sell-side facts and the limited version witness remain consistent with A24. Complete current-version validation still needs:
+Corrected 2026-11-01: the research spike for issue #107 is complete for the finite initial allowlist below. The earlier partial status incorrectly treated exhaustive mapping coverage as a completion prerequisite. R-OCR-20 requires mappings validated per game version, and the M2 spike calls for the first validated format and matching window; neither requires every location or internal commodity name to be mapped. The two issue acceptance criteria are met by the current-version buy-side and size evidence, unavailable sell-side facts, limited version witness, and privacy-preserving findings and synthetic specimens.
 
-- Game-owned localisation or independently checked captures linking the remaining internal commodity names to exact UEX IDs, with unknown and unprocessed forms kept separate.
-- Remaining location-code/template identities, especially an independent station-name link for the Patch City candidate; the three paired correspondences above do not validate every shared-template location.
-- Broader per-version mapping coverage beyond the selected paired captures. Timing is now measured for 150 captures; the existing window is retained.
-- The #108 parser's independent privacy checks before any persistent witness facts exist.
+The validated initial scope is:
 
-The M2 spike checkbox remains open. This document introduces no parser, persistent game-log data, normative change, verified corpus entry or API write.
+- **Build and format:** build `4.10.197.2878`, branch `sc-alpha-4.10.2`; the shop-inventory payload with all three required markers, the location-inventory shape and the player-inventory exclusion documented above. This does not validate every 4.10 build or a future patch.
+- **Terminal mapping allowlist:** `RR_P6_LEO` + `SCShop_Pyro_RestStop_Rund_Admin` → terminal 466; `RR_CRU_LEO` + `SCShop_Admin_lt_base_g` → terminal 259; `Nyx_Levski` + `SCShop_Levski_CargoOffice_Commodities` → terminal 778. The paired location and template are required evidence; no template is a terminal identity by itself.
+- **Commodity mapping allowlist:** `ResourceType.PlasmaFuel` → commodity 104; `ResourceType.QuantumFuel` → 87; `ResourceType.RMC` → 63; `ResourceType.AltruciaToxin_unprocessed` → 66. The independently inspected captures, explicit labels and exact UEX cross-checks above establish this selected scope without claiming packaged-localisation provenance.
+- **Matching:** retain the existing five-minute starting window, supported by 150 measured pairs. Only the latest preceding valid load within the window and a certain capture time can count. Buy-side assortment and sizes remain distinct from the location-only use for sell captures; the version witness remains major/minor only.
+
+The Patch City candidate, Checkmate candidate, every unlisted location/template or commodity mapping, and other builds remain unsupported by this initial allowlist. Further independently established mappings can extend coverage; similar names, discarded suffixes and unverified corpus expectations cannot. The original capture-time localisation and current packaged-localisation provenance remain unverified, without invalidating the independently inspected paired-capture evidence.
+
+The M2 research-spike checkbox is complete. Issue #108 still owns the production parser, maintained mapping representation, opt-in/default-off behaviour, unsupported-format and unmapped-name handling, and independent privacy tests proving that player fields never persist or escape through logs or diagnostics. This document introduces none of that implementation, no persistent game-log data, normative change or API write. All corpus verification flags remain false; selected pixel inspection does not make an entry golden data.
