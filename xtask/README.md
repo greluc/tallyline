@@ -95,6 +95,35 @@ comments use this boundary; audit/trust notes retain the English rule. Unicode
 escapes in the TOML configuration encode the original names without adding a
 self-exemption for the allowlist file.
 
+Target evidence added 2026-11-02: existing `targets` selectors still bind the
+conservative target-filtered metadata, unchanged. An optional `resolved_targets`
+object adds a second, independent exact activation/feature selector for every
+supported target: `null` means absent and an array means present with exactly
+those features. It cannot waive the original metadata, archive, source or
+full-feature bindings. Missing evidence or malformed selectors fail closed.
+
+The CLI collects the complete workspace tree directly with locked/offline Cargo,
+normal/build/dev edges, depth prefixes and `{p}|{f}` formatting. The reviewed
+Cargo build is exactly `cargo 1.99.0 (5f94df478 2026-08-27)`; its source at
+[commit 5f94df478](https://github.com/rust-lang/cargo/tree/5f94df478/src/ops/cargo_tree)
+uses the target feature resolver, filters inactive platform/optional edges and
+includes host build/procedural-macro dependencies. Collection records that
+Cargo build, the observed Cargo host and the requested target. The parser checks
+every workspace root, package identity, edge, feature, depth and duplicate
+reference against full metadata; unknown or ambiguous identities fail closed.
+Missing/empty output is never evidence of exclusion. Host and target occurrences
+are conservatively unioned. A Linux target tree collected on Windows therefore
+includes Windows host units and is not evidence of a matching-host Linux build.
+
+This distinguishes inactive optional feature-union edges without silently
+redefining existing approvals. Baseline tree features differ from metadata for
+Windows getrandom 0.3.4 and for half 2.7.1 and zlib-rs 0.6.8 on both targets; their
+existing metadata selectors remain exact. Cargo documents the tree as an
+approximation of compilation, not a unit-plan or emitted-code proof. The
+source-bound collection is an additional activation guard; matching-host builds
+and practical native acceptance remain separate requirements. This prerequisite
+adds no credential dependency, native approval, trust or vet exemption.
+
 ## Approved SQLite source scope
 
 `cargo xtask sqlite-native` checks `supply-chain/sqlite-native.json`: exact
