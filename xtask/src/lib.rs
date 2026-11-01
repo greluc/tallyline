@@ -30,6 +30,7 @@ pub mod requirement;
 pub mod sources;
 pub mod sqlite_native;
 pub mod tags;
+pub mod target_graph;
 pub mod tracked;
 pub mod vendor;
 pub mod vet;
@@ -60,3 +61,6 @@ mod sqlite_native_tests;
 
 #[cfg(test)]
 mod build_code_workspace_tests;
+
+#[cfg(test)]
+mod target_graph_tests;
