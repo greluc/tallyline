@@ -11,6 +11,7 @@ name = "tallyline-uex-spike"
 path = "src/main.rs"
 
 [dependencies]
+tallyline-submission.workspace = true
 tallyline-reference-data.workspace = true
 tallyline-shared-kernel.workspace = true
 reqwest.workspace = true
