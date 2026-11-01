@@ -42,6 +42,7 @@ impl Drop for GameDirectory {
 fn enabled() -> GameSettings {
     GameSettings {
         witness: WitnessMode::On,
+        ..GameSettings::default()
     }
 }
 

@@ -57,3 +57,30 @@ fn r_cap_3a__channel_mapping_is_configurable_without_changing_other_channels() {
         UexEnvironment::Live
     );
 }
+
+#[test]
+#[expect(
+    non_snake_case,
+    reason = "Requirement tags use a double underscore separator."
+)]
+fn r_cap_3a_r_nf_5__failed_mapping_save_preserves_active_game_preferences() {
+    use tallyline_game::api::model::GameSettings;
+    use tallyline_game::api::{GameSettingsApplication, GameSettingsStore};
+    struct ReadOnly;
+    impl GameSettingsStore for ReadOnly {
+        type Error = &'static str;
+        fn save_game_settings(&mut self, _: &GameSettings) -> Result<(), Self::Error> {
+            Err("read-only")
+        }
+    }
+    let initial = GameSettings::default();
+    let changed = GameSettings {
+        environment_mapping: initial
+            .environment_mapping
+            .with_environment(GameEnvironment::Hotfix, UexEnvironment::Ptu),
+        ..initial.clone()
+    };
+    let mut application = GameSettingsApplication::new(initial.clone(), ReadOnly);
+    assert_eq!(application.change_settings(changed), Err("read-only"));
+    assert_eq!(application.settings(), &initial);
+}

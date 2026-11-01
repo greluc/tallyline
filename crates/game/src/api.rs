@@ -26,7 +26,7 @@ pub fn inspect_witness(settings: &GameSettings, source: &impl GameLogSource) -> 
 pub trait GameSettingsStore {
     /// A persistence failure.
     type Error;
-    /// Saves opt-in preferences atomically.
+    /// Saves channel mapping and witness preferences atomically.
     ///
     /// # Errors
     /// Returns the failure without applying the proposed preferences.

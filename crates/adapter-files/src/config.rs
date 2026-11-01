@@ -71,11 +71,15 @@ impl ConfigFile {
         if document
             .get("schema_version")
             .and_then(serde_json::Value::as_u64)
-            != Some(3)
+            != Some(4)
         {
-            if let Some(app) = document
-                .get_mut("app")
-                .and_then(serde_json::Value::as_object_mut)
+            if document
+                .get("schema_version")
+                .and_then(serde_json::Value::as_u64)
+                .is_some_and(|version| version < 3)
+                && let Some(app) = document
+                    .get_mut("app")
+                    .and_then(serde_json::Value::as_object_mut)
             {
                 app.insert("update_checks".to_owned(), serde_json::json!(false));
                 for key in [
@@ -123,7 +127,7 @@ impl ConfigFile {
             document
                 .get("schema_version")
                 .and_then(serde_json::Value::as_u64),
-            Some(1..=3)
+            Some(1..=4)
         ) {
             return Err(io::Error::new(
                 io::ErrorKind::InvalidData,
@@ -225,7 +229,7 @@ impl ConfigFile {
             Ok(content) => serde_json::from_slice(&content)
                 .map_err(|_| io::Error::new(io::ErrorKind::InvalidData, "invalid settings JSON"))?,
             Err(error) if error.kind() == io::ErrorKind::NotFound => {
-                serde_json::json!({"schema_version":3})
+                serde_json::json!({"schema_version":4})
             }
             Err(error) => return Err(error),
         };
@@ -233,7 +237,7 @@ impl ConfigFile {
             document
                 .get("schema_version")
                 .and_then(serde_json::Value::as_u64),
-            Some(1..=3)
+            Some(1..=4)
         ) {
             return Err(io::Error::new(
                 io::ErrorKind::InvalidData,
@@ -244,7 +248,7 @@ impl ConfigFile {
     }
 
     pub(crate) fn write_document(&mut self, mut document: serde_json::Value) -> io::Result<()> {
-        if let Some(previous @ 1..=2) = document
+        if let Some(previous @ 1..=3) = document
             .get("schema_version")
             .and_then(serde_json::Value::as_u64)
         {
@@ -256,7 +260,7 @@ impl ConfigFile {
                 &fs::read(&self.path)?,
             )?;
         }
-        Self::object(&mut document)?.insert("schema_version".to_owned(), serde_json::json!(3));
+        Self::object(&mut document)?.insert("schema_version".to_owned(), serde_json::json!(4));
         let content = serde_json::to_vec_pretty(&document)?;
         let temporary = self.path.with_extension("json.pending");
         let mut file = OpenOptions::new()
