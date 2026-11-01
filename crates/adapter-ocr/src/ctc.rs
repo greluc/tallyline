@@ -43,6 +43,12 @@ pub enum CtcError {
 }
 
 impl CtcDecoder {
+    /// Returns the model class count, including blank zero.
+    #[must_use]
+    pub fn class_count(&self) -> usize {
+        self.alphabet.len() + 1
+    }
+
     /// Creates a decoder from every nonblank model label, including space if present.
     ///
     /// # Errors

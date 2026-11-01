@@ -3283,6 +3283,7 @@ dependencies = [
 name = "tallyline-adapter-ocr"
 version = "0.1.0"
 dependencies = [
+ "sha2",
  "tallyline-shared-kernel",
 ]
 

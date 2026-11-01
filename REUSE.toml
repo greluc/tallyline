@@ -102,3 +102,27 @@ path = "supply-chain/notices/sqlite/NOTICE"
 precedence = "override"
 SPDX-FileCopyrightText = "NONE"
 SPDX-License-Identifier = "blessing"
+
+[[annotations]]
+path = ["crates/adapter-ocr/assets/small/*.onnx", "crates/adapter-ocr/assets/small/ppocrv6_dict.txt"]
+precedence = "override"
+SPDX-FileCopyrightText = "2016 PaddlePaddle Authors"
+SPDX-License-Identifier = "Apache-2.0"
+
+[[annotations]]
+path = "crates/adapter-ocr/assets/small/provenance.json"
+precedence = "closest"
+SPDX-FileCopyrightText = "2026 Lucas Greuloch"
+SPDX-License-Identifier = "GPL-3.0-or-later"
+
+[[annotations]]
+path = "crates/adapter-ocr/assets/small/SHA256SUMS"
+precedence = "closest"
+SPDX-FileCopyrightText = "2026 Lucas Greuloch"
+SPDX-License-Identifier = "GPL-3.0-or-later"
+
+[[annotations]]
+path = "supply-chain/notices/paddleocr/LICENSE"
+precedence = "override"
+SPDX-FileCopyrightText = "2016 PaddlePaddle Authors"
+SPDX-License-Identifier = "Apache-2.0"

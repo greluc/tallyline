@@ -4,6 +4,8 @@ All notable changes are recorded here.
 
 ## [Unreleased]
 
+- Add fixed Small OCR model/dictionary data with build/load integrity checks and offline Apache-2.0 evidence. Native OCR execution and installation-profile acceptance remain in progress (R-OCR-1, R-SEC-7).
+
 - Prepare local OCR telemetry mitigation before startup through a bounded relaunch of the same executable, without requiring a separate launcher or mutating a running multithreaded environment (R-NF-12).
 
 ### Added
