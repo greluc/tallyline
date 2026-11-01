@@ -24,3 +24,24 @@ path = "../game"
 
 [dependencies.tallyline-shared-kernel]
 path = "../shared-kernel"
+
+[dependencies.moxcms]
+workspace = true
+
+[dependencies.zune-jpeg]
+workspace = true
+
+[dependencies.zune-core]
+workspace = true
+
+[dependencies.image]
+workspace = true
+features = ["bmp"]
+
+[dev-dependencies.jpeg-encoder]
+version = "=0.7.1"
+default-features = false
+features = ["std"]
+
+[dependencies.fdeflate]
+workspace = true

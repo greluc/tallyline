@@ -804,3 +804,13 @@ SQLite 3.54.1 amalgamation, alongside the existing blessing.txt text.
 The NOTICE SHA-256 is 49cf7bcb103eb3244150a23bb23d840370a4762914faf1b450072a4b03c14670.
 The authors disclaim copyright; the source notice is annotated NONE/blessing
 for REUSE, without assigning that licence to unrelated project code.
+
+13. Image decoding dependencies (preparation)
+
+The decoder graph uses png0.18.1 (MIT OR Apache-2.0), zune-jpeg0.5.15 and
+zune-core0.5.3 (MIT OR Apache-2.0 OR Zlib), image0.25.10 (MIT OR Apache-2.0),
+moxcms0.9.1 directly and0.8.1 through image (BSD-3-Clause OR Apache-2.0),
+and fdeflate0.3.7 (MIT OR Apache-2.0). Complete upstream texts and notices
+are copied from the checksum-verified packages into the offline legal catalogue.
+The std-only jpeg-encoder0.7.1 test fixture writer is never shipped; its
+(MIT OR Apache-2.0) AND IJG licence is the existing O-130 test-only exception.

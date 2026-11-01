@@ -15,3 +15,8 @@ reason = "Canonical cargo-vet generated publisher identity must remain verbatim;
 path = "supply-chain/audits.toml"
 line = "user-id = 6134 # Bastian K\u00f6cher (bkchr)"
 reason = "Canonical cargo-vet generated publisher identity must remain verbatim; no other line or audit/trust note is exempt."
+
+[[exception]]
+path = "supply-chain/audits.toml"
+line = "user-id = 82913 # Volker Str\u00f6bel (vstroebel)"
+reason = "Canonical cargo-vet generated publisher identity must remain verbatim; no other line or audit/trust note is exempt."

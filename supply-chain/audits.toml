@@ -910,6 +910,13 @@ user-id = 55123 # rust-lang-owner
 start = "2024-07-23"
 end = "2027-10-14"
 
+[[trusted.jpeg-encoder]]
+criteria = "safe-to-run"
+user-id = 82913 # Volker Ströbel (vstroebel)
+start = "2026-07-27"
+end = "2027-11-01"
+notes = "S-6 own-project publisher authority verified2026-11-01: exact jpeg-encoder0.7.1 publisher and current sole owner vstroebel/82913; packaged VCS baf40191ae25a32e56a884fa6e001c4fe938d451 matches vstroebel/jpeg-encoder. Current PR40 merger vstroebel at8fe7e7beb9a2be686c8662f96d27170074d08ffc and PR39 merger vstroebel at3849e2baa1f3715a5f50d13e42e2d8d58cf13d7a. Same named-crate future releases within these dates only. This is publisher trust, not a complete source audit. Test-only std feature; defaults and simd disabled, no build script or dependencies; O-130 permits this exact test licence. No native, assembly, exemption or imported source scope is added."
+
 [[trusted.khronos-egl]]
 criteria = "safe-to-deploy"
 user-id = 52759 # Timothée Haudebourg (timothee-haudebourg)
