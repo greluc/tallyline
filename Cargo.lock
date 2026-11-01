@@ -3253,6 +3253,8 @@ dependencies = [
  "rustls-platform-verifier",
  "serde",
  "serde_json",
+ "tallyline-reference-data",
+ "tallyline-shared-kernel",
  "tokio",
  "wiremock",
 ]

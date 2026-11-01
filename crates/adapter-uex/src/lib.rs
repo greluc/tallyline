@@ -13,5 +13,13 @@ pub mod api;
 )]
 mod contract_tests;
 mod envelope;
+mod reference_wire;
 mod transport;
 mod wire;
+
+#[cfg(test)]
+#[expect(
+    non_snake_case,
+    reason = "Requirement tags use a double underscore separator."
+)]
+mod terminal_contract_tests;

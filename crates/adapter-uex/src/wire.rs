@@ -26,13 +26,13 @@ const CONTAINER_SIZE_SEPARATOR: char = ',';
 /// A number that UEX may send as a JSON number or as a numeric string.
 #[derive(Deserialize)]
 #[serde(untagged)]
-enum Numeric {
+pub(crate) enum Numeric {
     Number(Number),
     Text(String),
 }
 
 impl Numeric {
-    fn whole(&self, field: &str) -> Result<u64, ReadError> {
+    pub(crate) fn whole(&self, field: &str) -> Result<u64, ReadError> {
         let parsed = match self {
             Self::Number(number) => number.as_u64(),
             Self::Text(text) => text.trim().parse().ok(),
@@ -50,7 +50,7 @@ impl Numeric {
             .ok_or_else(|| malformed(&format!("{field} is not a number")))
     }
 
-    fn flag(&self, field: &str) -> Result<bool, ReadError> {
+    pub(crate) fn flag(&self, field: &str) -> Result<bool, ReadError> {
         match self.whole(field)? {
             0 => Ok(false),
             1 => Ok(true),
@@ -204,7 +204,7 @@ fn container_sizes(csv: &str) -> Result<Vec<ContainerSize>, ReadError> {
         .collect()
 }
 
-fn unescaped(text: &str) -> String {
+pub(crate) fn unescaped(text: &str) -> String {
     let mut result = String::with_capacity(text.len());
     let mut rest = text;
     while let Some(start) = rest.find('&') {
@@ -224,7 +224,7 @@ fn unescaped(text: &str) -> String {
     result
 }
 
-fn parse<T: DeserializeOwned>(data: Value, resource: &str) -> Result<T, ReadError> {
+pub(crate) fn parse<T: DeserializeOwned>(data: Value, resource: &str) -> Result<T, ReadError> {
     serde_json::from_value(data).map_err(|_| {
         malformed(&format!(
             "{resource} data does not match the documented shape"
@@ -232,7 +232,7 @@ fn parse<T: DeserializeOwned>(data: Value, resource: &str) -> Result<T, ReadErro
     })
 }
 
-fn malformed(detail: &str) -> ReadError {
+pub(crate) fn malformed(detail: &str) -> ReadError {
     ReadError::Malformed {
         detail: detail.to_owned(),
     }
