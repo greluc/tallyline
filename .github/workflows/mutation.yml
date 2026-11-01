@@ -51,7 +51,7 @@ jobs:
           echo "$RUNNER_TEMP/cargo-mutants" >> "$GITHUB_PATH"
 
       - name: Verify pinned cargo-mutants
-        run: test "$(cargo-mutants --version)" = "cargo-mutants ${MUTANTS_VERSION}"
+        run: test "$(cargo --locked mutants --version)" = "cargo-mutants ${MUTANTS_VERSION}"
 
       - name: Test mutations in pull request changes
         if: github.event_name == 'pull_request'
