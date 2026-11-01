@@ -12,6 +12,13 @@ pub mod api;
     reason = "tagged test names use a double underscore (11 B4)"
 )]
 mod contract_tests;
+#[cfg(test)]
+#[expect(
+    non_snake_case,
+    reason = "Requirement tags use a double underscore separator."
+)]
+mod credential_contract_tests;
+mod credentials;
 mod envelope;
 mod parameter_wire;
 mod prior_wire;
