@@ -41,3 +41,17 @@ pub(crate) fn change_mode(path: PathBuf, mode: WitnessMode) -> io::Result<()> {
     next.witness = mode;
     GameSettingsApplication::new(loaded.settings, store).change_settings(next)
 }
+
+pub(crate) fn change_mapping(
+    path: PathBuf,
+    channel: tallyline_game::api::model::GameEnvironment,
+    environment: tallyline_shared_kernel::api::model::UexEnvironment,
+) -> io::Result<()> {
+    let store = ConfigFile::new(path);
+    let loaded = store.load_game_preferences()?;
+    let mut next = loaded.settings.clone();
+    next.environment_mapping = next
+        .environment_mapping
+        .with_environment(channel, environment);
+    GameSettingsApplication::new(loaded.settings, store).change_settings(next)
+}

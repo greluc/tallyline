@@ -15,6 +15,7 @@ pub struct DesktopShell {
     unit: FanKitUnit,
     dark_unit: FanKitUnit,
     commands: Option<SyncSender<SettingsCommand>>,
+    reference_commands: Option<SyncSender<crate::api::model::ReferenceCommand>>,
     events: Receiver<BackgroundEvent>,
     theme: Option<UiTheme>,
     window_commands: Option<Receiver<crate::api::model::WindowCommand>>,
@@ -37,6 +38,7 @@ impl DesktopShell {
             dark_unit: FanKitUnit::new(context, &catalogue, dark_pixels),
             catalogue,
             commands: Some(commands),
+            reference_commands: None,
             events,
             theme: None,
             window_commands: None,
@@ -51,6 +53,18 @@ impl DesktopShell {
         commands: Receiver<crate::api::model::WindowCommand>,
     ) -> Self {
         self.window_commands = Some(commands);
+        self
+    }
+}
+
+impl DesktopShell {
+    /// Attaches the bounded worker channel for explicit reference-data requests.
+    #[must_use]
+    pub fn with_reference_commands(
+        mut self,
+        commands: SyncSender<crate::api::model::ReferenceCommand>,
+    ) -> Self {
+        self.reference_commands = Some(commands);
         self
     }
 }
@@ -91,6 +105,19 @@ impl eframe::App for DesktopShell {
                 show_shell(ui, &mut self.state, &self.catalogue, unit)
             })
             .inner;
+        if let Some(command) = self.state.references_mut().take_command() {
+            let sent = self
+                .reference_commands
+                .as_ref()
+                .is_some_and(|sender| sender.try_send(command).is_ok());
+            if !sent {
+                self.state.reference_command_failed(
+                    self.catalogue
+                        .text("reference.worker_unavailable")
+                        .to_owned(),
+                );
+            }
+        }
         for command in commands {
             if let Some(sender) = &self.commands
                 && sender.try_send(command).is_err()
@@ -108,5 +135,6 @@ impl eframe::App for DesktopShell {
 impl Drop for DesktopShell {
     fn drop(&mut self) {
         drop(self.commands.take());
+        drop(self.reference_commands.take());
     }
 }

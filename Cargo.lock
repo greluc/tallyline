@@ -3363,6 +3363,8 @@ dependencies = [
  "sha2",
  "tallyline-egui",
  "tallyline-game",
+ "tallyline-reference-data",
+ "tallyline-shared-kernel",
  "tallyline-workflows",
 ]
 

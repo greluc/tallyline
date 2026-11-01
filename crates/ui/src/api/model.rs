@@ -14,3 +14,5 @@ pub use crate::licences::CopyrightInformation;
 pub use crate::licences::{
     LicenceCatalogue, LicenceCatalogueError, LicenceComponent, LicenceNotice,
 };
+
+pub use crate::reference_browser::{ReferenceBrowser, ReferenceCommand};
