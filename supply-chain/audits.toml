@@ -187,6 +187,12 @@ criteria = "safe-to-deploy"
 version = "0.3.12"
 notes = "AI full executable-source/provenance review by GPT-6.1 Sol: read complete src/lib.rs, src/protocol_macro.rs and both manifests of0.3.12. Only feature-gated module wiring and fixed package-relative protocol paths to wayland_scanner generate_interfaces/client/server_code macros; imports match declared cross-protocol dependencies. No own build script, native compilation, runtime initialisers or ambient network/process/environment/file access. Scanner/backend/client/server dependencies remain separate audit obligations; no automatic protocol connection/request is performed. Did not manually line-review every XML; verified all10 packaged XML files byte-for-byte by Git blob hash against complete canonical upstream tree canonical gitlab.freedesktop.org/wlroots/wlr-protocols a741f0ac5d655338a5100fc34bc8cec87d237346, exact submodule pin of wayland-rs a3d7927d (no mismatches). Every one of26 archive files matches cached reviewed package, no links/traversal; archive SHA-256 matches Cargo.lock. Generated bindings depend on trusted scanner and callers must obey Wayland object/permission/lifetime contracts. This certifies exact immutable package, not a future publisher grant. AI-reviewed; owner reviews record in pull request."
 
+[[audits.windows-registry]]
+who = "Codex (AI source review)"
+criteria = "safe-to-deploy"
+version = "0.6.1"
+notes = "AI source review: read all 11 production Rust files, both manifests, packaged VCS metadata and complete elected MIT licence; archive SHA-256 02752bf7fbdcce7f2a27a742f798510f3e5ad88dbe84871e5168e2120c3d5720 and all recorded runtime hashes verified. Checked HKEY/HANDLE ownership and Drop, borrowed predefined keys and OpenOptions/transaction lifetimes, terminated UTF-16 argument storage, checked Win32 result and length conversions, typed integer sizes, bounds-checked registry reads/iteration and aligned HeapAlloc-backed Data with initialised bytes. Also read windows-strings0.5.1 HStringBuilder/HStringHeader and the HSTRING empty-buffer contract relevant to this crate; their remaining implementation and other dependencies remain separate audit obligations. Registry strings use bounded slices rather than an unbounded terminator scan. Size/type queries can race with local registry changes and yield stale type/trailing zero data or errors; allocation failure and unexpected iterator errors may panic. No atomic snapshot or panic-free API is claimed. No build script, proc macro, native compilation, download, runtime network, process/thread launch or telemetry; exposes deliberate registry mutation APIs but performs none at import. Current selected consumer hyper-util0.1.21 opens CURRENT_USER Internet Settings read-only and reads ProxyEnable/ProxyServer/ProxyOverride; it calls no mutation/transaction/iterator APIs. Windows only, default/std features; Linux excludes the crate. Trusts OS ABI/result contracts and unsafe raw-API caller contracts. No blanket future publisher trust or claim of completed human review. Reassess changed source/features/consumer capabilities."
+
 [[audits.wiremock]]
 who = "Claude Opus 5.5 (AI agent, for Lucas Greuloch)"
 criteria = "safe-to-run"
@@ -876,6 +882,13 @@ start = "2026-09-21"
 end = "2027-11-01"
 notes = "S-6 direct own-project role: exact 0.1.25 publisher 4lDO2/42742, published 2026-09-21, remains live own-crate owner alongside jackpot51. Packaged upstream is canonical gitlab.redox-os.org/redox-os/libredox.git, VCS 9a9fc664b027a93a2fa5b27167858956c7566d2d. Canonical Git fetch verifies this actual master merge of another contributor's get-set-rlimit MR35 on 2026-09-16, authored/committed by Jacob Lorentzon with the same 4lDO2 identity named as sole Cargo author. Current upstream HEAD 1ec76f79ba8587ea8af7bed68a83eb1b41eaa817 retains that explicit author. This is direct project author/current owner/merge authority, not generic Redox membership. GitLab HTTP API was unavailable; canonical Git objects were inspected."
 
+[[trusted.libsqlite3-sys]]
+criteria = "safe-to-deploy"
+user-id = 5062 # gwenn (gwenn)
+start = "2026-10-25"
+end = "2027-11-01"
+notes = "S-6 same-crate maintainer authority verified 2026-11-01: exact libsqlite3-sys0.39.1 publisher gwenn/5062, archive14a5f01b87b92705d07b433c06f96cbc764637d81a0bffb5734ce17cf0f9a2b3; packaged VCSfb7c711f4e988db149f43cac68f7865b25d0b10e matches upstream PR1920 Bump bundled SQLite version to3.54.1, authored and merged by gwenn2026-10-25, with primary pull API merged_by evidence. Current crates.io owner gwenn, alongside thomcc. This trusts this account's publications of this crate from2026-10-25 until2027-11-01, including future versions in that window; it is not a full bundled SQLite C/Rust audit. Separate exact native source/build/feature guard and registered exception O109 remain required; publisher trust alone grants no changed source version, assembler selector, SQLCipher, bindgen, extension or target activation. Exact packaged C/header/ext bytes match official SQLite3.54.1 amalgamation; complete build.rs read separately under S12."
+
 [[trusted.linebender_resource_handle]]
 criteria = "safe-to-deploy"
 user-id = 109051 # Daniel McNab (DJMcNab)
@@ -1330,6 +1343,20 @@ criteria = "safe-to-deploy"
 user-id = 2342 # Brian Smith (briansmith)
 start = "2019-07-03"
 end = "2027-10-14"
+
+[[trusted.rusqlite]]
+criteria = "safe-to-deploy"
+user-id = 5062 # gwenn (gwenn)
+start = "2026-10-28"
+end = "2027-11-01"
+notes = "S-6 same-crate maintainer authority verified 2026-11-01: exact rusqlite0.41.1 publisher gwenn/5062, archive da9bba6f3506135e120a6586df05be18b48d18896600646a4bec8f993d91a594; packaged VCS18ee76dbb976d5ef7e37ad5a8fffae678ca21a78 is the project's Prepare next release commit authored and committed by gwenn2026-10-28. Current crates.io owner gwenn, alongside thomcc. This trusts this account's publications of this crate from2026-10-28 until2027-11-01, including future versions in that window; it is not an exact-version source audit. Native approval and the separate source/feature/hash guard remain exact to reviewed sys0.39.1/SQLite3.54.1 and wrapper0.41.1; new source versions/features cannot inherit native approval. No claim of a full wrapper or bundled C line audit."
+
+[[trusted.rust_decimal]]
+criteria = "safe-to-deploy"
+user-id = 5326 # Paul Mason (paupino)
+start = "2026-09-02"
+end = "2027-11-01"
+notes = "S-6 same-crate maintainer authority verified 2026-11-01: exact rust_decimal 1.43.0 publisher and sole current crates.io owner paupino/5326; packaged VCS 8592462ca2d928ea46e6358e530a5c7d4b38f7d6 matches the upstream version 1.43.0 release commit authored and committed by paupino. Archive 7653272e75dcac41dc199fbea6f5797633994fafd339943c06c9af16bf29cd3a. Trust covers this account's publications of this same crate from 2026-09-02 until 2027-11-01, including future versions in that window; it is not a full arithmetic/source audit. Chosen configuration has all defaults/features disabled: only existing arrayvec and num-traits normal dependencies, no serde/JSON/database/random/wasm/proc-macro feature. Runtime crate forbids unsafe code and selected module gates expose pure decimal arithmetic/string operations; no runtime I/O, thread or FFI path selected. Complete build.rs read separately under S-12: package README to OUT_DIR documentation transformation only, no network/process/native code. Feature/purity and build-source changes require S-5/S-12 review; new native activation is never granted by this trust record."
 
 [[trusted.rustc-hash]]
 criteria = "safe-to-deploy"

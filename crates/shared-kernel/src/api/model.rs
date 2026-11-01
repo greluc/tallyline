@@ -1,7 +1,9 @@
 // SPDX-FileCopyrightText: 2026 Lucas Greuloch
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Shared numeric identities and precise Unix timestamps.
+//! Shared identities, exact decimal values and precise Unix timestamps.
+
+pub use crate::decimal::{InvalidDecimal, PricePerScu, ScuQuantity};
 
 use std::time::Duration;
 
@@ -42,3 +44,12 @@ pub struct CommodityId(pub u32);
 /// The numeric UEX terminal identity.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct TerminalId(pub u32);
+
+/// The UEX universe selected by a game-channel mapping.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum UexEnvironment {
+    /// Production universe.
+    Live,
+    /// Public test universe.
+    Ptu,
+}

@@ -92,3 +92,29 @@ line makes the exception stale. The two generated cargo-vet publisher-name
 comments use this boundary; audit/trust notes retain the English rule. Unicode
 escapes in the TOML configuration encode the original names without adding a
 self-exemption for the allowlist file.
+
+## Approved SQLite source scope
+
+`cargo xtask sqlite-native` checks `supply-chain/sqlite-native.json`: exact
+locked wrapper/sys identities, complete bundled source and build-script
+hashes, full plus both supported target feature/reachability graphs, expiry
+and rejected compiler/native overrides. Explicit Cargo env/target Rust flags
+are checked as well as ambient inputs; MSVC CL/_CL_, CFLAGS and forged Rust
+feature cfgs cannot silently activate the C timer selectors. Real source
+collection rejects missing files, symlinks and escaping paths. The check is
+second in the aggregate plan, after the supply-chain guard, and stops the
+plan before workspace build/test work on failure. Its pure metadata/configuration
+and real-file fixtures do not compile native code. The independent existing
+Rust literal assembly inventory retains its exact approved set.
+
+The 2026-11-01 reference-data extension also rejects every reachable version
+of system-configuration and system-configuration-sys on either supported
+target, including renamed dependency edges. Both retain justified off-target
+S-6 exemptions with their concrete review limitations. Native-scope and
+build-code failures stop the aggregate check before workspace build/test work;
+no feature or package is removed from audit input to obtain a pass.
+
+Decimal runtime scope is exact: rust_decimal defaults and every optional
+feature remain disabled. The same rooted metadata guard rejects any enabled
+feature before workspace build/test work; the pure-runtime architecture
+allowlist does not grant its optional database, JSON or other capabilities.

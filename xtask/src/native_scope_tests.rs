@@ -200,3 +200,42 @@ fn apple_ffi_bindings_must_stay_outside_supported_graphs() {
         );
     }
 }
+
+#[test]
+fn apple_system_proxy_bindings_must_remain_absent_even_through_renamed_edges() {
+    for (name, version) in [
+        ("system-configuration", "0.7.0"),
+        ("system-configuration-sys", "0.6.0"),
+        ("system-configuration", "99.0.0"),
+        ("system-configuration-sys", "99.0.0"),
+    ] {
+        let excluded = metadata(name, version, &[], false);
+        assert!(violations(&excluded.to_string()).unwrap().is_empty());
+        let reachable = metadata(name, version, &["unexpected"], true);
+        assert!(
+            violations(&reachable.to_string())
+                .unwrap()
+                .iter()
+                .any(|finding| finding.contains(name)),
+            "{name} {version}"
+        );
+    }
+}
+
+#[test]
+fn decimal_runtime_scope_rejects_every_unreviewed_feature() {
+    assert!(
+        violations(&metadata("rust_decimal", "1.43.0", &[], true).to_string())
+            .unwrap()
+            .is_empty()
+    );
+    for feature in ["std", "serde", "db-postgres"] {
+        assert!(
+            violations(&metadata("rust_decimal", "1.43.0", &[feature], true).to_string())
+                .unwrap()
+                .iter()
+                .any(|finding| finding.contains("rust_decimal")),
+            "{feature}"
+        );
+    }
+}

@@ -126,7 +126,7 @@ fn r_api_1__successful_refresh_becomes_visible_only_after_atomic_persistence() {
         Some(Timestamp::from_seconds(7_200))
     );
     assert_eq!(application.commodities(UexEnvironment::Live, "").len(), 1);
-    assert!(application.due().is_empty());
+    assert!(!application.due().contains(&Endpoint::Commodities));
 }
 
 #[test]
@@ -242,4 +242,431 @@ fn r_api_1__later_success_replaces_old_records_and_clears_offline_state() {
         reopened.fetched_at(Endpoint::Commodities),
         Some(Timestamp::from_seconds(7_200))
     );
+}
+
+struct MillisecondClock(u64);
+impl Clock for MillisecondClock {
+    fn now(&self) -> Timestamp {
+        Timestamp::from_millis(self.0)
+    }
+}
+
+#[test]
+#[expect(
+    non_snake_case,
+    reason = "Requirement tags use a double underscore separator."
+)]
+fn r_api_1__freshness_keeps_milliseconds_and_rechecks_future_dated_cache() {
+    for (now, due) in [(3_699_998, false), (3_699_999, true), (99_998, true)] {
+        let entry = CachedReference::new(
+            Timestamp::from_millis(99_999),
+            EndpointData::Commodities(vec![]),
+        );
+        let application =
+            ReferenceApplication::load(MemoryCache(vec![entry]), MillisecondClock(now)).unwrap();
+        assert_eq!(application.due().contains(&Endpoint::Commodities), due);
+    }
+}
+
+#[test]
+#[expect(
+    non_snake_case,
+    reason = "Requirement tags use a double underscore separator."
+)]
+fn r_api_1_r_api_6_r_ui_8__cached_terminal_search_preserves_identity_and_location_context() {
+    use tallyline_reference_data::api::model::{Terminal, TerminalText};
+    use tallyline_shared_kernel::api::model::TerminalId;
+    let terminals = vec![
+        Terminal::new(
+            TerminalId(17),
+            TerminalText {
+                name: "Trade and Development Division".to_owned(),
+                nickname: "TDD".to_owned(),
+                display_name: "Trade Centre".to_owned(),
+                location: "Stanton / ArcCorp / Area18".to_owned(),
+            },
+            true,
+        ),
+        Terminal::new(
+            TerminalId(18),
+            TerminalText {
+                name: "Trade and Development Division".to_owned(),
+                nickname: "TDD".to_owned(),
+                display_name: "Trade Centre".to_owned(),
+                location: "Pyro / Test Station".to_owned(),
+            },
+            false,
+        ),
+    ];
+    let cached = CachedReference::new(
+        Timestamp::from_seconds(100),
+        EndpointData::Terminals(terminals),
+    );
+    let mut application =
+        ReferenceApplication::load(MemoryCache(vec![cached]), FixedClock).unwrap();
+    for query in ["DEVELOPMENT", "tdd", "trade centre", "AREA18"] {
+        assert_eq!(
+            application
+                .terminals(UexEnvironment::Live, query)
+                .iter()
+                .map(|terminal| terminal.id())
+                .collect::<Vec<_>>(),
+            vec![TerminalId(17)]
+        );
+    }
+    assert_eq!(
+        application
+            .terminals(UexEnvironment::Ptu, "tdd")
+            .iter()
+            .map(|terminal| terminal.id())
+            .collect::<Vec<_>>(),
+        vec![TerminalId(17), TerminalId(18)]
+    );
+    assert_eq!(
+        application
+            .terminals(UexEnvironment::Ptu, "test station")
+            .first()
+            .unwrap()
+            .text()
+            .location,
+        "Pyro / Test Station"
+    );
+    assert!(
+        application
+            .terminals(UexEnvironment::Live, "unmatched")
+            .is_empty()
+    );
+    assert!(!application.due().contains(&Endpoint::Terminals));
+    application.refresh_failed(Endpoint::Terminals);
+    assert_eq!(application.state(), ReferenceState::Offline);
+    assert_eq!(application.terminals(UexEnvironment::Live, "tdd").len(), 1);
+}
+
+#[test]
+#[expect(
+    non_snake_case,
+    reason = "Requirement tags use a double underscore separator."
+)]
+fn r_api_1__another_endpoint_success_does_not_clear_an_unrecovered_failure() {
+    let mut application = ReferenceApplication::load(
+        MemoryCache(vec![CachedReference::new(
+            Timestamp::from_seconds(100),
+            EndpointData::Commodities(vec![]),
+        )]),
+        FixedClock,
+    )
+    .unwrap();
+    application.refresh_failed(Endpoint::Commodities);
+    application
+        .refreshed(EndpointData::Terminals(vec![]))
+        .unwrap();
+    assert_eq!(application.state(), ReferenceState::Offline);
+    assert_eq!(
+        application.fetched_at(Endpoint::Commodities),
+        Some(Timestamp::from_seconds(100))
+    );
+    assert_eq!(
+        application.fetched_at(Endpoint::Terminals),
+        Some(Timestamp::from_seconds(7_200))
+    );
+    application
+        .refreshed(EndpointData::Commodities(vec![]))
+        .unwrap();
+    assert_eq!(application.state(), ReferenceState::Cached);
+}
+
+#[test]
+#[expect(
+    non_snake_case,
+    reason = "Requirement tags use a double underscore separator."
+)]
+fn r_api_1__terminal_refresh_expires_at_twelve_hours_independently_of_commodities() {
+    for (now, terminal_due) in [(43_299, false), (43_300, true)] {
+        let application = ReferenceApplication::load(
+            MemoryCache(vec![
+                CachedReference::new(
+                    Timestamp::from_seconds(100),
+                    EndpointData::Terminals(vec![]),
+                ),
+                CachedReference::new(
+                    Timestamp::from_seconds(100),
+                    EndpointData::Commodities(vec![]),
+                ),
+            ]),
+            At(now),
+        )
+        .unwrap();
+        assert_eq!(
+            application.due().contains(&Endpoint::Terminals),
+            terminal_due
+        );
+        assert!(application.due().contains(&Endpoint::Commodities));
+    }
+}
+
+#[test]
+#[expect(
+    non_snake_case,
+    reason = "Requirement tags use a double underscore separator."
+)]
+fn r_cap_3b__cached_versions_remain_read_data_and_successful_fetches_return_fresh_observations() {
+    use tallyline_reference_data::api::model::GameVersions;
+    let cached = CachedReference::new(
+        Timestamp::from_seconds(100),
+        EndpointData::GameVersions(GameVersions {
+            live: "4.9".to_owned(),
+            ptu: Some("3.24.2a".to_owned()),
+        }),
+    );
+    let mut application =
+        ReferenceApplication::load(MemoryCache(vec![cached]), FixedClock).unwrap();
+    assert_eq!(application.game_versions().unwrap().live, "4.9");
+    assert_eq!(
+        application.fetched_at(Endpoint::GameVersions),
+        Some(Timestamp::from_seconds(100))
+    );
+    let fetched = GameVersions {
+        live: "4.10.2".to_owned(),
+        ptu: None,
+    };
+    let observation = application
+        .refreshed(EndpointData::GameVersions(fetched.clone()))
+        .unwrap();
+    assert_eq!(observation.endpoint, Endpoint::GameVersions);
+    assert_eq!(observation.fetched_at, Timestamp::from_seconds(7_200));
+    assert_eq!(observation.game_versions, Some(fetched.clone()));
+    assert_eq!(application.game_versions(), Some(&fetched));
+    let next = application
+        .refreshed(EndpointData::GameVersions(fetched.clone()))
+        .unwrap();
+    assert_eq!(next.game_versions, Some(fetched));
+    let vocabulary = application
+        .refreshed(EndpointData::Commodities(vec![]))
+        .unwrap();
+    assert_eq!(vocabulary.game_versions, None);
+}
+
+#[test]
+#[expect(
+    non_snake_case,
+    reason = "Requirement tags use a double underscore separator."
+)]
+fn r_api_1_r_sub_5__version_send_freshness_is_fifteen_minutes_and_normal_ttl_is_one_day() {
+    use tallyline_reference_data::api::model::GameVersions;
+    for (now, send_due, normal_due) in [
+        (999, false, false),
+        (1_000, true, false),
+        (86_499, true, false),
+        (86_500, true, true),
+    ] {
+        let cached = CachedReference::new(
+            Timestamp::from_seconds(100),
+            EndpointData::GameVersions(GameVersions {
+                live: "4.10.2".to_owned(),
+                ptu: None,
+            }),
+        );
+        let application = ReferenceApplication::load(MemoryCache(vec![cached]), At(now)).unwrap();
+        assert_eq!(
+            application
+                .due_before_send()
+                .contains(&Endpoint::GameVersions),
+            send_due
+        );
+        assert_eq!(
+            application.due().contains(&Endpoint::GameVersions),
+            normal_due
+        );
+    }
+    let empty = ReferenceApplication::load(MemoryCache(vec![]), At(0)).unwrap();
+    assert_eq!(empty.game_versions(), None);
+    assert!(empty.due_before_send().contains(&Endpoint::GameVersions));
+}
+
+#[test]
+#[expect(
+    non_snake_case,
+    reason = "Requirement tags use a double underscore separator."
+)]
+fn r_api_1__cached_status_levels_keep_side_specific_labels_and_daily_freshness() {
+    use std::num::NonZeroU8;
+    use tallyline_reference_data::api::model::{StatusLevel, StatusLevels};
+    let levels = StatusLevels {
+        buy: vec![StatusLevel {
+            code: NonZeroU8::new(7).unwrap(),
+            name: "Maximum Inventory (Full)".to_owned(),
+            short_name: "Maximum".to_owned(),
+            abbreviation: "MA".to_owned(),
+        }],
+        sell: vec![StatusLevel {
+            code: NonZeroU8::new(7).unwrap(),
+            name: "Maximum Inventory (No Demand)".to_owned(),
+            short_name: "Maximum".to_owned(),
+            abbreviation: "ND".to_owned(),
+        }],
+    };
+    for (now, due) in [(86_499, false), (86_500, true)] {
+        let cached = CachedReference::new(
+            Timestamp::from_seconds(100),
+            EndpointData::StatusLevels(levels.clone()),
+        );
+        let application = ReferenceApplication::load(MemoryCache(vec![cached]), At(now)).unwrap();
+        assert_eq!(application.status_levels(), Some(&levels));
+        assert_eq!(application.due().contains(&Endpoint::StatusLevels), due);
+    }
+    let mut empty = ReferenceApplication::load(MemoryCache(vec![]), FixedClock).unwrap();
+    assert_eq!(empty.status_levels(), None);
+    let event = empty
+        .refreshed(EndpointData::StatusLevels(levels.clone()))
+        .unwrap();
+    assert_eq!(event.endpoint, Endpoint::StatusLevels);
+    assert_eq!(event.game_versions, None);
+    assert_eq!(empty.status_levels(), Some(&levels));
+}
+
+#[test]
+#[expect(
+    non_snake_case,
+    reason = "Requirement tags use a double underscore separator."
+)]
+fn r_api_6__environment_snapshots_physically_remove_live_averages_and_remain_immutable() {
+    let mut application = ReferenceApplication::load(
+        MemoryCache(vec![CachedReference::new(
+            Timestamp::from_seconds(100),
+            EndpointData::Commodities(vec![
+                Commodity::new(CommodityId(7), "Test Ore", "SAME", false, Some(82)),
+                Commodity::new(CommodityId(8), "Live Ore", "SAME", true, Some(120)),
+            ]),
+        )]),
+        FixedClock,
+    )
+    .unwrap();
+    let ptu = application.snapshot(UexEnvironment::Ptu);
+    assert_eq!(ptu.environment(), UexEnvironment::Ptu);
+    assert_eq!(ptu.commodities("same").len(), 2);
+    assert!(
+        ptu.commodities("")
+            .iter()
+            .all(|commodity| commodity.average_price(UexEnvironment::Live).is_none())
+    );
+    assert_eq!(ptu.commodities("TEST")[0].id(), CommodityId(7));
+    assert!(!ptu.commodities("TEST")[0].available(UexEnvironment::Live));
+    assert!(ptu.commodities("unmatched").is_empty());
+    let live = application.snapshot(UexEnvironment::Live);
+    assert_eq!(live.commodities("").len(), 1);
+    assert_eq!(
+        live.commodities("")[0].average_price(UexEnvironment::Live),
+        Some(120)
+    );
+    application
+        .refreshed(EndpointData::Commodities(vec![Commodity::new(
+            CommodityId(9),
+            "Later Ore",
+            "LATER",
+            true,
+            None,
+        )]))
+        .unwrap();
+    application.refresh_failed(Endpoint::Commodities);
+    assert_eq!(ptu.commodities("same").len(), 2);
+    assert_eq!(
+        ptu.fetched_at(Endpoint::Commodities),
+        Some(Timestamp::from_seconds(100))
+    );
+    assert_eq!(ptu.state(), ReferenceState::Cached);
+    assert_eq!(
+        application.snapshot(UexEnvironment::Ptu).state(),
+        ReferenceState::Offline
+    );
+}
+
+#[test]
+#[expect(
+    non_snake_case,
+    reason = "Requirement tags use a double underscore separator."
+)]
+fn r_api_1_r_api_6__snapshots_search_terminal_context_and_retain_typed_metadata() {
+    use std::num::NonZeroU8;
+    use tallyline_reference_data::api::model::{
+        GameVersions, StatusLevel, StatusLevels, Terminal, TerminalText,
+    };
+    use tallyline_shared_kernel::api::model::TerminalId;
+    let terminals = vec![
+        Terminal::new(
+            TerminalId(17),
+            TerminalText {
+                name: "Same".to_owned(),
+                nickname: "NICK".to_owned(),
+                display_name: "Market".to_owned(),
+                location: "Stanton / Area18".to_owned(),
+            },
+            true,
+        ),
+        Terminal::new(
+            TerminalId(18),
+            TerminalText {
+                name: "Same".to_owned(),
+                nickname: "NICK".to_owned(),
+                display_name: "Market".to_owned(),
+                location: "Pyro / Test Station".to_owned(),
+            },
+            false,
+        ),
+    ];
+    let versions = GameVersions {
+        live: "4.9".to_owned(),
+        ptu: None,
+    };
+    let levels = StatusLevels {
+        buy: vec![StatusLevel {
+            code: NonZeroU8::new(7).unwrap(),
+            name: "Full".to_owned(),
+            short_name: "Full".to_owned(),
+            abbreviation: "MA".to_owned(),
+        }],
+        sell: vec![],
+    };
+    let application = ReferenceApplication::load(
+        MemoryCache(vec![
+            CachedReference::new(
+                Timestamp::from_seconds(100),
+                EndpointData::Terminals(terminals),
+            ),
+            CachedReference::new(
+                Timestamp::from_seconds(110),
+                EndpointData::GameVersions(versions.clone()),
+            ),
+            CachedReference::new(
+                Timestamp::from_seconds(120),
+                EndpointData::StatusLevels(levels.clone()),
+            ),
+        ]),
+        FixedClock,
+    )
+    .unwrap();
+    let live = application.snapshot(UexEnvironment::Live);
+    for query in ["SAME", "nick", "market", "AREA18"] {
+        assert_eq!(
+            live.terminals(query)
+                .iter()
+                .map(|terminal| terminal.id())
+                .collect::<Vec<_>>(),
+            vec![TerminalId(17)]
+        );
+    }
+    assert!(live.terminals("unmatched").is_empty());
+    let ptu = application.snapshot(UexEnvironment::Ptu);
+    assert_eq!(ptu.terminals("market").len(), 2);
+    assert_eq!(ptu.terminals("test station")[0].id(), TerminalId(18));
+    assert_eq!(ptu.game_versions(), Some(&versions));
+    assert_eq!(ptu.status_levels(), Some(&levels));
+    let empty = ReferenceApplication::load(MemoryCache(vec![]), FixedClock)
+        .unwrap()
+        .snapshot(UexEnvironment::Live);
+    assert!(empty.commodities("").is_empty());
+    assert!(empty.terminals("").is_empty());
+    assert_eq!(empty.game_versions(), None);
+    assert_eq!(empty.status_levels(), None);
+    assert_eq!(empty.fetched_at(Endpoint::Commodities), None);
+    assert_eq!(empty.state(), ReferenceState::NoReferenceData);
 }

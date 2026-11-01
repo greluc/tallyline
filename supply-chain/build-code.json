@@ -554,6 +554,21 @@
       ]
     },
     {
+      "name": "libsqlite3-sys",
+      "version": "0.39.1",
+      "kind": "custom-build",
+      "archive_sha256": "14a5f01b87b92705d07b433c06f96cbc764637d81a0bffb5734ce17cf0f9a2b3",
+      "source_sha256": "769b31370a41aa722e1d5a530012432c985bb142eab34d095481ffd1a3436e1b",
+      "behaviour": "Default bundled branch copies packaged bindings to OUT_DIR and compiles packaged SQLite3.54.1 C through cc. No download. System-link/SQLCipher/bindgen/extension and environment override branches are outside the separately approved native scope.",
+      "review_scope": "Complete exact build.rs read including inactive branches; no external helper module. S-12 behaviour review, not a full SQLite C/Rust source audit. Exact native source/features and compiler overrides are enforced separately.",
+      "sources_read_or_inspected": [
+        {
+          "path": "build.rs",
+          "sha256": "769b31370a41aa722e1d5a530012432c985bb142eab34d095481ffd1a3436e1b"
+        }
+      ]
+    },
+    {
       "name": "naga",
       "version": "30.0.1",
       "kind": "custom-build",
@@ -828,6 +843,21 @@
       ]
     },
     {
+      "name": "rust_decimal",
+      "version": "1.43.0",
+      "kind": "custom-build",
+      "archive_sha256": "7653272e75dcac41dc199fbea6f5797633994fafd339943c06c9af16bf29cd3a",
+      "source_sha256": "8e3e103ed2ddeeafa2ff5429256bde8ae0060520f27c0d422a3561d3e17006c9",
+      "behaviour": "Reads packaged README.md and writes OUT_DIR/README-lib.md documentation. No network, subprocess, compiler invocation, native source or procedural macro; runtime defaults/features all disabled.",
+      "review_scope": "AI S-12 behaviour review: complete build.rs read; this is not a whole-crate security audit or new native activation approval.",
+      "sources_read_or_inspected": [
+        {
+          "path": "build.rs",
+          "sha256": "8e3e103ed2ddeeafa2ff5429256bde8ae0060520f27c0d422a3561d3e17006c9"
+        }
+      ]
+    },
+    {
       "name": "rustix",
       "version": "0.38.44",
       "kind": "custom-build",
@@ -1008,6 +1038,21 @@
         {
           "path": "build.rs",
           "sha256": "58716b46f494cd0bf20df2c2ea32c364d7eb46790ca39a1ae265f5f3ef54cf0b"
+        }
+      ]
+    },
+    {
+      "name": "system-configuration-sys",
+      "version": "0.6.0",
+      "kind": "custom-build",
+      "archive_sha256": "8e1d1b10ced5ca923a1fcb8d03e96b8d3268065d724548c0211415ff6ac6bac4",
+      "source_sha256": "cf4c21c898e9671345d4684c75014189623574f9ec96414999a9db2d73b1e40f",
+      "behaviour": "Only emits framework=SystemConfiguration when TARGET contains -apple. No compilation, download or process execution. Inactive on both supported targets; native-scope rejects every reachable version.",
+      "review_scope": "AI S-12 behaviour review: complete build.rs read; this is not a whole-crate security audit or new native activation approval.",
+      "sources_read_or_inspected": [
+        {
+          "path": "build.rs",
+          "sha256": "cf4c21c898e9671345d4684c75014189623574f9ec96414999a9db2d73b1e40f"
         }
       ]
     },

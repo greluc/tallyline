@@ -6,6 +6,7 @@
 pub mod model;
 
 use std::fmt;
+use tallyline_reference_data::api::model::Terminal;
 
 use crate::transport::Transport;
 use crate::wire;
@@ -226,7 +227,7 @@ pub enum RejectedData {
 /// The UEX API 2.0 reader: GET requests only, no redirects, a capped body size.
 #[derive(Debug)]
 pub struct UexReader {
-    transport: Transport,
+    pub(crate) transport: Transport,
 }
 
 /// The UEX submission client. Its only write operation is a `data_submit` dry run.
@@ -284,6 +285,17 @@ impl UexReader {
         Ok(Self { transport })
     }
 
+    /// Reads selectable commodity terminals without credentials or LIVE filtering.
+    ///
+    /// # Errors
+    /// Returns a transport, envelope or malformed-reference failure.
+    pub async fn terminals(&self) -> Result<Vec<Terminal>, ReadError> {
+        let data = self
+            .transport
+            .get("terminals/", &[("type", "commodity")], &[])
+            .await?;
+        crate::reference_wire::terminals(data)
+    }
     /// Reads `GET /game_versions`: the current LIVE and PTU version.
     ///
     /// # Errors

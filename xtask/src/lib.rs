@@ -28,6 +28,7 @@ pub mod register;
 pub mod registry;
 pub mod requirement;
 pub mod sources;
+pub mod sqlite_native;
 pub mod tags;
 pub mod tracked;
 pub mod vendor;
@@ -53,3 +54,6 @@ mod build_code_tests;
 
 #[cfg(test)]
 mod native_assembly_tests;
+
+#[cfg(test)]
+mod sqlite_native_tests;

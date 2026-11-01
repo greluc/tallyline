@@ -61,6 +61,10 @@ The data lock is `instance.lock` in the selected data directory. Windows keeps t
 
 Crash recovery releases OS locks automatically. The next lock holder removes the stale socket; no manual lock-file deletion is needed. Do not delete lock files while an instance is running.
 
+## UEX proxy support under implementation
+
+The UEX adapter uses proxy environment variables and Windows static Internet Settings through the system-proxy feature. Tallyline does not alter those settings. PAC/autodiscovery and per-protocol Windows ProxyServer lists are not supported by the current upstream path; full system-proxy acceptance remains pending. The desktop shell still makes no UEX requests while reference-data wiring is being implemented.
+
 ## Release updates
 
 In **Settings → Release updates**, enable **Check for release updates daily** to check the public Tallyline GitHub Releases endpoint. It is off by default. Only the request and app name/version are sent; no UEX credentials, paths or observations are included. The preference and last attempted check persist across restarts. Failed attempts count towards the full 24-hour interval, and moving the clock backwards delays the next check. The app checks at startup when due, after opt-in, and while open once the interval elapses.

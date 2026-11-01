@@ -11,6 +11,8 @@ name = "tallyline-uex-spike"
 path = "src/main.rs"
 
 [dependencies]
+tallyline-reference-data.workspace = true
+tallyline-shared-kernel.workspace = true
 reqwest.workspace = true
 rustls.workspace = true
 rustls-platform-verifier.workspace = true

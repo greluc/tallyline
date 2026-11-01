@@ -6,6 +6,8 @@ All notable changes are recorded here.
 
 ### Added
 
+- Added exact decimal price/quantity value types and enabled environment/static Windows proxy support in the UEX adapter. PAC and per-protocol Windows proxy lists remain unsupported; desktop reference-data wiring is still in progress (R-API-3, R-API-5).
+
 - Added optional daily GitHub release checks, off by default, and a persistent dismissible release-notes link. Offline or invalid replies remain passive; checks never download or install updates, and the permission, last attempt, validated notice and dismissal survive restarts in settings schema 3 (R-NF-7, R-UI-16).
 
 - Added an optional, default-off Game.log witness with channel selection, safe unavailability reasons and sanitised facts in Settings and the offline eval tool. Only the documented build and finite mapping allowlist are accepted; logs never supply reported prices, quantities or status values, and settings migrate forwards to schema 2 (R-OCR-20, R-NF-5).

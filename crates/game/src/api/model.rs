@@ -3,6 +3,8 @@
 
 //! Game witness preferences and privacy-safe results.
 
+pub use crate::environment_mapping::{EnvironmentMapping, GameEnvironment};
+
 use std::collections::BTreeSet;
 use tallyline_shared_kernel::api::model::{CommodityId, TerminalId, Timestamp};
 

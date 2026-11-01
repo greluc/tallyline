@@ -8,3 +8,6 @@ publish.workspace = true
 
 [lints]
 workspace = true
+
+[dependencies]
+rust_decimal.workspace = true

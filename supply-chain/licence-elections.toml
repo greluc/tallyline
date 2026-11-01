@@ -85,3 +85,11 @@ declared = "Apache-2.0 OR MIT"
 elected = "MIT"
 source = "NOTICE section 11; docs/plan/09-engineering-principles.md section 3b; owner approval 2026-11-01"
 reason = "The documented native review elects the MIT option. Exact source identity and native activation limits remain separately enforced; every original text is preserved."
+
+[[election]]
+crate = "windows-registry"
+version = "0.6.1"
+declared = "MIT OR Apache-2.0"
+elected = "MIT"
+source = "supply-chain/audits.toml exact AI source review; supply-chain/README.md Decimal and system-proxy selection 2026-11-01"
+reason = "The reviewed package permits MIT; its complete original MIT text and all other original legal material remain included. No new native activation or human audit is claimed."

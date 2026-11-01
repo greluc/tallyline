@@ -101,7 +101,7 @@ pub fn violations(metadata: &str) -> Vec<Violation> {
     result
 }
 
-const PURE_CORE_DEPENDENCIES: &[&str] = &["tracing"];
+const PURE_CORE_DEPENDENCIES: &[&str] = &["tracing", "rust_decimal"];
 
 pub(crate) fn is_core(name: &str) -> bool {
     matches!(

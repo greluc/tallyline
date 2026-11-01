@@ -5,10 +5,24 @@
 
 pub mod model;
 
-use model::{CachedReference, Commodity, Endpoint, EndpointData, ReferenceState, UexEnvironment};
+use model::{
+    CachedReference, Commodity, Endpoint, EndpointData, GameVersions, ReferenceDataRefreshed,
+    ReferenceSnapshot, ReferenceState, StatusLevels, Terminal, UexEnvironment,
+};
 use tallyline_shared_kernel::api::Clock;
 use tallyline_shared_kernel::api::model::Timestamp;
 
+/// Fetches one typed public response without owning application workers or clocks.
+pub trait ReferenceDataFetcher {
+    /// The transport or boundary-mapping failure.
+    type Error;
+
+    /// Requests one endpoint without exposing its wire representation.
+    fn fetch(
+        &self,
+        endpoint: Endpoint,
+    ) -> impl std::future::Future<Output = Result<EndpointData, Self::Error>>;
+}
 /// Loads and atomically replaces successful reference responses.
 pub trait ReferenceDataCache {
     /// The persistence failure type.
@@ -33,6 +47,7 @@ pub struct ReferenceApplication<S, C> {
     clock: C,
     entries: Vec<CachedReference>,
     state: ReferenceState,
+    failed: Vec<Endpoint>,
 }
 
 impl<S: ReferenceDataCache, C: Clock> ReferenceApplication<S, C> {
@@ -52,6 +67,7 @@ impl<S: ReferenceDataCache, C: Clock> ReferenceApplication<S, C> {
             clock,
             entries,
             state,
+            failed: Vec::new(),
         })
     }
 
@@ -62,7 +78,10 @@ impl<S: ReferenceDataCache, C: Clock> ReferenceApplication<S, C> {
         self.entries
             .iter()
             .flat_map(|entry| match entry.data() {
-                EndpointData::Commodities(items) => items.iter(),
+                EndpointData::Commodities(items) => items.as_slice(),
+                EndpointData::Terminals(_)
+                | EndpointData::GameVersions(_)
+                | EndpointData::StatusLevels(_) => &[],
             })
             .filter(|item| {
                 item.available(environment)
@@ -72,40 +91,127 @@ impl<S: ReferenceDataCache, C: Clock> ReferenceApplication<S, C> {
             .collect()
     }
 
-    /// Returns endpoints whose successful fetch has expired.
+    /// Searches terminal labels and location context without merging identities.
     #[must_use]
-    pub fn due(&self) -> Vec<Endpoint> {
-        [Endpoint::Commodities]
-            .into_iter()
-            .filter(|endpoint| {
-                self.fetched_at(*endpoint).is_none_or(|at| {
-                    self.clock.now().seconds().saturating_sub(at.seconds())
-                        >= endpoint.ttl_seconds()
-                })
+    pub fn terminals(&self, environment: UexEnvironment, query: &str) -> Vec<&Terminal> {
+        let query = query.to_lowercase();
+        self.entries
+            .iter()
+            .flat_map(|entry| match entry.data() {
+                EndpointData::Terminals(items) => items.as_slice(),
+                EndpointData::Commodities(_)
+                | EndpointData::GameVersions(_)
+                | EndpointData::StatusLevels(_) => &[],
+            })
+            .filter(|terminal| {
+                let text = terminal.text();
+                terminal.available(environment)
+                    && [
+                        &text.name,
+                        &text.nickname,
+                        &text.display_name,
+                        &text.location,
+                    ]
+                    .iter()
+                    .any(|field| field.to_lowercase().contains(&query))
             })
             .collect()
     }
+    /// Returns cached versions without creating a version-history observation.
+    #[must_use]
+    pub fn game_versions(&self) -> Option<&GameVersions> {
+        self.entries.iter().find_map(|entry| match entry.data() {
+            EndpointData::GameVersions(versions) => Some(versions),
+            EndpointData::Commodities(_)
+            | EndpointData::Terminals(_)
+            | EndpointData::StatusLevels(_) => None,
+        })
+    }
+    /// Returns the cached status vocabulary with distinct buy and sell labels.
+    #[must_use]
+    pub fn status_levels(&self) -> Option<&StatusLevels> {
+        self.entries.iter().find_map(|entry| match entry.data() {
+            EndpointData::StatusLevels(levels) => Some(levels),
+            EndpointData::Commodities(_)
+            | EndpointData::Terminals(_)
+            | EndpointData::GameVersions(_) => None,
+        })
+    }
+    /// Returns endpoints whose successful fetch has expired.
+    #[must_use]
+    pub fn due(&self) -> Vec<Endpoint> {
+        [
+            Endpoint::Commodities,
+            Endpoint::Terminals,
+            Endpoint::GameVersions,
+            Endpoint::StatusLevels,
+        ]
+        .into_iter()
+        .filter(|endpoint| self.expired(*endpoint, endpoint.ttl_seconds()))
+        .collect()
+    }
 
+    /// Returns loaded send-gate endpoints that need a new successful observation.
+    #[must_use]
+    pub fn due_before_send(&self) -> Vec<Endpoint> {
+        [Endpoint::GameVersions]
+            .into_iter()
+            .filter(|endpoint| self.expired(*endpoint, 900))
+            .collect()
+    }
+
+    fn expired(&self, endpoint: Endpoint, ttl_seconds: u64) -> bool {
+        self.fetched_at(endpoint).is_none_or(|at| {
+            self.clock
+                .now()
+                .millis()
+                .checked_sub(at.millis())
+                .is_none_or(|age| age >= u128::from(ttl_seconds) * 1_000)
+        })
+    }
     /// Publishes a successful network response only after persistence succeeds.
     ///
     /// # Errors
     /// Returns the storage failure without replacing active data or fetch time.
-    pub fn refreshed(&mut self, data: EndpointData) -> Result<(), S::Error> {
+    pub fn refreshed(&mut self, data: EndpointData) -> Result<ReferenceDataRefreshed, S::Error> {
         let entry = CachedReference::new(self.clock.now(), data);
         self.store.replace(&entry)?;
+        let event = ReferenceDataRefreshed {
+            endpoint: entry.endpoint(),
+            fetched_at: entry.fetched_at(),
+            game_versions: match entry.data() {
+                EndpointData::GameVersions(versions) => Some(versions.clone()),
+                EndpointData::Commodities(_)
+                | EndpointData::Terminals(_)
+                | EndpointData::StatusLevels(_) => None,
+            },
+        };
         self.entries
             .retain(|old| old.endpoint() != entry.endpoint());
+        self.failed.retain(|endpoint| *endpoint != entry.endpoint());
         self.entries.push(entry);
-        self.state = ReferenceState::Cached;
-        Ok(())
+        self.state = if self.failed.is_empty() {
+            ReferenceState::Cached
+        } else {
+            ReferenceState::Offline
+        };
+        Ok(event)
     }
     /// Retains previous data and fetch times after a failed request.
-    pub fn refresh_failed(&mut self, _endpoint: Endpoint) {
+    pub fn refresh_failed(&mut self, endpoint: Endpoint) {
+        if !self.failed.contains(&endpoint) {
+            self.failed.push(endpoint);
+        }
         if !self.entries.is_empty() {
             self.state = ReferenceState::Offline;
         }
     }
 
+    /// Captures immutable environment-specific read data for a consumer.
+    #[must_use]
+    pub fn snapshot(&self, environment: UexEnvironment) -> ReferenceSnapshot {
+        ReferenceSnapshot::new(environment, self.state, &self.entries)
+    }
     /// Returns the visible connection state.
     #[must_use]
     pub const fn state(&self) -> ReferenceState {
