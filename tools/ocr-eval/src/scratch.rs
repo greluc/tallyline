@@ -15,7 +15,14 @@ impl Scratch {
                 std::env::temp_dir().join(format!("ocr-eval-{}-{attempt}", std::process::id()));
             match fs::create_dir(&path) {
                 Ok(()) => return Self(path),
-                Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists => continue,
+                Err(error)
+                    if matches!(
+                        error.kind(),
+                        std::io::ErrorKind::AlreadyExists | std::io::ErrorKind::PermissionDenied
+                    ) =>
+                {
+                    continue;
+                }
                 Err(error) => panic!("cannot create test directory: {error}"),
             }
         }

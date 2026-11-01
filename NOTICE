@@ -741,3 +741,21 @@ and 0.6.5 at https://raw.githubusercontent.com/madsmtm/objc2/d7d2fa23ceaa5e6096c
 build/distribution is approved. The archive/source hashes bind the inspected
 material; this native-effects review is separate from cargo-vet source audits
 and does not claim a complete unsafe-code or third-party-source audit.
+
+
+12. Documented licence elections in the offline catalogue
+-------------------------------------------------------
+
+The exact crate/version choices in supply-chain/licence-elections.toml record
+the eleven dual-licence MIT elections of section 11 and 09 section 3b. The
+catalogue shows that elected option and separately preserves the unmodified
+manifest declaration. All original licence/notice texts remain bundled;
+choosing one option does not remove the other upstream texts.
+
+Reviewed 2026-11-01: the existing AWS-LC jitterentropy BSD-3-Clause election
+(section 2.19) is already explicit in its reviewed resource metadata; its
+complete original dual-licence text remains present. s2n-bignum retains its
+Apache-2.0 resource entry. No new exclusive ISC/Apache choice is invented for
+the compound aws-lc-rs/aws-lc-sys declarations. The planned ort/ort-sys MIT
+election of section 2.3 remains documented for their future adoption; these
+crates and ONNX Runtime are not in this current shipped graph.

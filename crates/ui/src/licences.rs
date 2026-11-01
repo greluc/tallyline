@@ -38,6 +38,9 @@ pub struct LicenceComponent {
     pub version: String,
     /// The declared or elected SPDX expression.
     pub licence: String,
+    /// The unmodified upstream manifest expression, when the component has one.
+    #[serde(default)]
+    pub declared_licence: Option<String>,
     /// The source-code URL.
     pub source: String,
     /// Verbatim copyright-holder lines.
@@ -105,6 +108,10 @@ pub fn parse_licence_catalogue(text: &str) -> Result<LicenceCatalogue, LicenceCa
             || !(component.source.starts_with("https://")
                 || component.source.starts_with("http://"))
             || matches!(&component.copyright, CopyrightInformation::Provided { notices } if notices.is_empty() || notices.iter().any(|line| line.trim().is_empty()))
+            || component
+                .declared_licence
+                .as_ref()
+                .is_some_and(|text| text.trim().is_empty())
             || component.notices.is_empty()
             || component
                 .notices

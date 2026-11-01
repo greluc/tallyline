@@ -200,3 +200,22 @@ fn r_ui_16__a_background_save_does_not_pull_the_user_back_into_settings() {
     ));
     assert_eq!(shell.view(), View::Home);
 }
+
+#[test]
+#[expect(
+    non_snake_case,
+    reason = "Requirement tags use a double underscore separator."
+)]
+fn r_ui_18__the_elected_licence_keeps_its_separate_upstream_declaration() {
+    let parsed = tallyline_ui::api::parse_licence_catalogue(
+        r#"{"schema_version":1,"components":[{"name":"Example","version":"1.2.3","licence":"MIT","declared_licence":"MIT OR Apache-2.0","source":"https://example.invalid/source","copyright":{"status":"not_stated_by_upstream"},"notices":[{"path":"LICENSE","text":"Original licence text"}]}]}"#,
+    );
+    assert!(parsed.is_ok(), "{parsed:?}");
+    let catalogue = parsed.unwrap();
+    let component = catalogue.components().first().unwrap();
+    assert_eq!(component.licence, "MIT");
+    assert_eq!(
+        component.declared_licence.as_deref(),
+        Some("MIT OR Apache-2.0")
+    );
+}
