@@ -62,5 +62,7 @@ mod sqlite_native_tests;
 #[cfg(test)]
 mod build_code_workspace_tests;
 
+mod ort_scope;
+
 #[cfg(test)]
 mod target_graph_tests;

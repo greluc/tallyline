@@ -279,3 +279,110 @@ fn send_wrapper_activation_is_rejected_for_every_version_and_workspace_root() {
         );
     }
 }
+
+#[test]
+fn ort_native_scope_rejects_features_outside_the_exact_accepted_binding() {
+    for (name, index) in [("ort", 1), ("ort-sys", 2)] {
+        for feature in [
+            "default",
+            "download-binaries",
+            "copy-dylibs",
+            "cuda",
+            "training",
+            "unknown",
+        ] {
+            let mut input = runtime_metadata();
+            input["resolve"]["nodes"][index]["features"]
+                .as_array_mut()
+                .unwrap()
+                .push(json!(feature));
+            assert!(
+                violations(&input.to_string())
+                    .unwrap()
+                    .iter()
+                    .any(|finding| finding.contains(name)),
+                "{name}/{feature}"
+            );
+        }
+    }
+}
+fn runtime_metadata() -> Value {
+    let api: Vec<_> = (17..=31).map(|api| format!("api-{api}")).collect();
+    let mut wrapper = api.clone();
+    wrapper.extend(["std", "load-dynamic", "preload-dylibs"].map(str::to_owned));
+    let mut system = api;
+    system.extend(["std", "disable-linking"].map(str::to_owned));
+    json!({
+        "packages": [
+            {"id": "root", "name": "tallyline-adapter-ocr", "version": "0.1.0"},
+            {"id": "wrapper", "name": "ort", "version": "2.0.0-rc.14"},
+            {"id": "system", "name": "ort-sys", "version": "2.0.0-rc.14"}
+        ],
+        "workspace_members": ["root"],
+        "resolve": {"nodes": [
+            {"id": "root", "features": [], "deps": [{"name": "renamed", "pkg": "wrapper"}]},
+            {"id": "wrapper", "features": wrapper, "deps": [{"name": "renamed_sys", "pkg": "system"}]},
+            {"id": "system", "features": system, "deps": []}
+        ]}
+    })
+}
+
+#[test]
+fn ort_native_scope_keeps_the_binding_private_even_when_renamed() {
+    let good = runtime_metadata();
+    assert!(violations(&good.to_string()).unwrap().is_empty());
+    let mut outside = good.clone();
+    outside["packages"][0]["name"] = json!("tallyline-app");
+    assert!(
+        violations(&outside.to_string())
+            .unwrap()
+            .iter()
+            .any(|finding| finding.contains("only tallyline-adapter-ocr"))
+    );
+    let mut bypass = good;
+    bypass["resolve"]["nodes"][0]["deps"]
+        .as_array_mut()
+        .unwrap()
+        .push(json!({"name": "bypass", "pkg": "system"}));
+    assert!(
+        violations(&bypass.to_string())
+            .unwrap()
+            .iter()
+            .any(|finding| finding.contains("only ort"))
+    );
+}
+
+#[test]
+fn ort_native_scope_requires_the_reviewed_version_and_complete_feature_closure() {
+    for index in [1, 2] {
+        for version in ["2.0.0-rc.13", "2.0.0-rc.15", "2.0.0"] {
+            let mut input = runtime_metadata();
+            input["packages"][index]["version"] = json!(version);
+            assert!(
+                !violations(&input.to_string()).unwrap().is_empty(),
+                "{version}"
+            );
+        }
+        let good = runtime_metadata();
+        let features = good["resolve"]["nodes"][index]["features"]
+            .as_array()
+            .unwrap();
+        for removed in 0..features.len() {
+            let mut input = good.clone();
+            input["resolve"]["nodes"][index]["features"]
+                .as_array_mut()
+                .unwrap()
+                .remove(removed);
+            assert!(
+                !violations(&input.to_string()).unwrap().is_empty(),
+                "removed {removed}"
+            );
+        }
+        let mut duplicate = good;
+        duplicate["resolve"]["nodes"][index]["features"]
+            .as_array_mut()
+            .unwrap()
+            .push(json!("std"));
+        assert!(!violations(&duplicate.to_string()).unwrap().is_empty());
+    }
+}
