@@ -617,6 +617,8 @@ pub enum ImportMode { Manual, Automatic }
 
 ## 5. Reference data (`reference-data`, fetching in `adapter-uex`, cache in `adapter-storage`)
 
+Implementation status 2026-11-01: the initial eference-data application loads typed cached commodity records before network work, preserves successful fetch times after failures and publishes refreshed records only after atomic persistence succeeds. shared-kernel supplies Clock, Unix-second Timestamp and CommodityId. Its public acceptance seam covers expired-cache search, explicit empty-cache state and failed persistence. SQLite, the remaining endpoint models and desktop wiring are still being implemented; this initial core slice does not complete issue #81.
+
 - The endpoints and TTLs are in [06-uex-api.md](06-uex-api.md). At startup, data is loaded from the cache (immediately usable), then refreshed in the background.
 - **In-memory indexes:**
   - Commodity names (EN, localised, code)

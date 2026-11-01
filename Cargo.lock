@@ -3228,6 +3228,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "tallyline-reference-data"
+version = "0.1.0"
+dependencies = [
+ "tallyline-shared-kernel",
+]
+
+[[package]]
+name = "tallyline-shared-kernel"
+version = "0.1.0"
+
+[[package]]
 name = "tallyline-ui"
 version = "0.1.0"
 dependencies = [
