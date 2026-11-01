@@ -3,3 +3,7 @@
 The `ocr-eval` workspace package inspects schema-version-two corpus entries, image availability, expected values, conditions, measured bands and frozen reference metadata. Run it with `cargo run -p ocr-eval --locked -- inspect`; use `--public <directory>` to inspect another public fixture directory. Private inputs come only from `TALLYLINE_CORPUS_DIR`.
 
 `cargo run -p ocr-eval --locked -- annotate <expected.json> <anchors.json> <proposal.json>` writes a separate, exclusive-create proposal. See [the contributor capture guide](../../docs/user/corpus-capture.md) for anchor coordinates, privacy rules and report interpretation. Recognition, snapshot replay and accuracy measurements remain separate roadmap work.
+
+## Explicit Game.log witness inspection
+
+`cargo run -p ocr-eval --locked -- witness --channel <directory>` explicitly opts into a local read-only inspection of the selected channel's manifest and Game.log. It prints sanitised facts separately from corpus accuracy output; it is not recognition, a Reader or a submission path. The output uses closed reasons for unavailable inputs and a finite build/mapping allowlist. It contains no raw lines, source path, player fields, prices, quantities or status values. See [the validation record](../../docs/game-log-validation.md) and [the desktop guide](../../docs/user/desktop.md).

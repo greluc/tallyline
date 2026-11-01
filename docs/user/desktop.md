@@ -23,13 +23,13 @@ For a local image with its complete offline licence catalogue, run `cargo xtask 
 | Logs | `%LOCALAPPDATA%\Tallyline\logs` | `$XDG_STATE_HOME/tallyline/logs`, default `~/.local/state/tallyline/logs` |
 | Regenerable cache | `%LOCALAPPDATA%\Tallyline\cache` | `$XDG_CACHE_HOME/tallyline`, default `~/.cache/tallyline` |
 
-The shell currently persists only application preferences. The durable-data, log and cache directories are created and tested for the later workflows; no database is placed in the cache.
+The shell persists application preferences and the local game-channel selection and witness opt-in. Witness facts remain in memory; no raw game log or witness snapshot is written into application storage. The durable-data, log and cache directories are created and tested for the later workflows; no database is placed in the cache.
 
 For portable mode, place `portable.marker` next to the executable. All state then lives below that executable's `data/{config,data,logs,cache}` directory. Installed builds write no state into their installation directory. A failed directory self-test stays visible and never falls back to the installation directory. New Linux state directories use mode 0700; a directory accessible to another user produces a warning.
 
 ## Settings errors
 
-The settings file has schema version 1. Writes preserve other contexts' sections and replace the prior file atomically after syncing a temporary file in the same directory. A rejected theme or onboarding value is replaced with its default and reported with its key, rejected value and default. An unsupported schema is never overwritten. A failed save keeps the active settings unchanged. Malformed JSON and filesystem errors stay visible; correct or move the affected file before retrying.
+Corrected 2026-11-01: the settings file has schema version 2; version-one files load with the witness off and migrate forwards on the next successful save. Older builds refuse the newer schema. Writes preserve other contexts' sections and replace the prior file atomically after syncing a temporary file in the same directory. A rejected theme or onboarding value is replaced with its default and reported with its key, rejected value and default. An unsupported schema is never overwritten. A failed save keeps the active settings unchanged. Malformed JSON and filesystem errors stay visible; correct or move the affected file before retrying.
 
 Background results update the status area and persistent notices. They open no dialog and do not raise, restore or focus the window. The shell repaints on input and channel results; it uses static progress text and no spinner or continuous animation. It does not inspect game memory, inject input or create an overlay.
 
@@ -40,6 +40,18 @@ The visible issue identifies `settings.onboarding_complete`, the rejected
 Where the project has explicitly elected one dual-licence option, its licence
 row shows that selected SPDX expression. The bundled catalogue separately
 retains the upstream declaration and every complete original legal text.
+
+## Optional local Game.log witness
+
+Open **Settings → Game log witness**, enter the directory of the game channel containing `Game.log` and `build_manifest.id`, and choose **Use channel and switch witness off**. Then select **Enable read-only Game.log witness**. Access is off by default; selecting another channel revokes the old opt-in. **Refresh witness facts** reads the selected files once on the background settings worker. There is no watcher or network request.
+
+The status explains an unselected channel, unreadable files, an unvalidated build or payload, or a size limit. Settings shows the major/minor version and latest 50 sanitised buy-side observations; unknown terminal or commodity IDs remain absent. An enabled source can have zero observations when no kiosk was opened. The validated initial scope is build `4.10.197.2878` with branch `sc-alpha-4.10.2`, three terminal pairs and four commodity aliases listed in [the validation record](../game-log-validation.md). Similar names and other builds do not extend that scope.
+
+These facts prepare later recognition resolution; this shell does not resolve or submit reports from them. The log is never a Reader. Sell captures may eventually use location only; buy-side assortment and sizes are never sell-side evidence. No price, quantity or status from any log record is retained as a reported value. The witness only provides major/minor version evidence, never a UEX patch or certainty. Capture matching, the latest preceding load and the five-minute window belong to the later resolution flow.
+
+Raw lines, player fields, session and endpoint data never cross the parser boundary. The selected directory stays in the local settings file and is omitted from witness debug/eval output. Neither Game.log nor witness observations belong in diagnostics. Future Scan persistence and the diagnostics exporter must preserve these exclusions; those workflows are not supplied by this source implementation.
+
+For complete sanitised observations, explicitly run `cargo run -p ocr-eval --locked -- witness --channel <directory>`. Its JSON contains only safe state/reason codes, major/minor version, UTC Unix milliseconds, allowlisted IDs and buy-side container-size sets. The manifest is limited to 64 KiB, Game.log to 128 MiB and an individual line to 16 KiB. Exceeding a limit disables this inspection rather than truncating evidence.
 
 ## Starting the app again
 

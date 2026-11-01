@@ -69,6 +69,8 @@ The domain terms are binding: the same terms in docs, UI and code (all English).
 | Environment confirmation (`EnvironmentConfirmation`) | the user's report-level confirmation of a manual Report's environment against a running game channel that maps to another UEX environment (R-CAP-10, from M4); records the observed running channel and the time, and counts only for that channel (default until the owner decides) |
 | AI job (`AiJob`) | one VLM re-read of one capture's panel crops for one Draft report; process-manager state of `workflows` (states in [02](02-architecture.md) §4b) |
 
+**Initial witness read model (2026-11-01):** `game::api::model::WitnessSnapshot` mirrors the existing game-log availability states: `Off` (`gamelog-off`), `Available` (`gamelog-on`) and `Unavailable` (`gamelog-not-available`, with a closed reason). It is an application read result, not a Capture or recognition processing state. `ShopInventoryFact` contains only a log timestamp, optional validated terminal/commodity IDs and buy-side container sizes. Unsupported mappings stay absent; no raw name, player field or reported value crosses the adapter. The source remains separate from Reader and resolution. `GameSettingsApplication` applies opt-in only after its store succeeds.
+
 ### A2. Bounded Contexts
 
 | Context | Responsibility | Core model | Relationship |

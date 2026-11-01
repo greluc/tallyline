@@ -69,7 +69,8 @@ fn run(
                 .join("\n"),
         ));
     }
-    let store = ConfigFile::new(layout.config().join("settings.json"));
+    let settings_path = layout.config().join("settings.json");
+    let store = ConfigFile::new(settings_path.clone());
     let loaded = store.load()?;
     deliver(
         outgoing,
@@ -90,18 +91,38 @@ fn run(
             ),
         )?;
     }
+    deliver_game(outgoing, context, &settings_path)?;
     let mut settings = SettingsApplication::new(loaded.settings, store);
     while let Ok(command) = incoming.recv() {
+        let app_command = match &command {
+            SettingsCommand::ChangeTheme(_) | SettingsCommand::CompleteOnboarding => true,
+            SettingsCommand::ChangeWitnessMode(_)
+            | SettingsCommand::ChangeGameChannel(_)
+            | SettingsCommand::RefreshWitness => false,
+        };
         let result = match command {
             SettingsCommand::ChangeTheme(theme) => settings.change_theme(theme),
             SettingsCommand::CompleteOnboarding => settings.complete_onboarding(),
+            SettingsCommand::ChangeWitnessMode(mode) => {
+                crate::game_wiring::change_mode(settings_path.clone(), mode)
+            }
+            SettingsCommand::ChangeGameChannel(channel) => {
+                ConfigFile::new(settings_path.clone()).change_game_channel(&channel)
+            }
+            SettingsCommand::RefreshWitness => Ok(()),
         };
         match result {
-            Ok(()) => deliver(
-                outgoing,
-                context,
-                BackgroundEvent::SettingsLoaded(settings.settings().clone()),
-            )?,
+            Ok(()) => {
+                if app_command {
+                    deliver(
+                        outgoing,
+                        context,
+                        BackgroundEvent::SettingsLoaded(settings.settings().clone()),
+                    )?;
+                } else {
+                    deliver_game(outgoing, context, &settings_path)?;
+                }
+            }
             Err(error) => deliver(
                 outgoing,
                 context,
@@ -153,4 +174,17 @@ pub(crate) fn storage_layout() -> io::Result<StorageLayout> {
             &xdg("XDG_CACHE_HOME", ".cache"),
         ))
     }
+}
+
+fn deliver_game(
+    sender: &SyncSender<BackgroundEvent>,
+    context: &egui::Context,
+    path: &std::path::Path,
+) -> io::Result<()> {
+    let (view, issues) = crate::game_wiring::view(&ConfigFile::new(path.to_owned()))?;
+    deliver(sender, context, BackgroundEvent::GameWitnessLoaded(view))?;
+    if !issues.is_empty() {
+        deliver(sender, context, BackgroundEvent::Failure(issues.join("\n")))?;
+    }
+    Ok(())
 }

@@ -4,6 +4,8 @@
 //! Owned shell state and worker result handling.
 
 use crate::api::DialogPresenter;
+use crate::game_witness::GameWitnessView;
+use tallyline_game::api::model::WitnessMode;
 use tallyline_workflows::api::model::{AppSettings, Theme};
 
 /// A primary shell view.
@@ -21,6 +23,8 @@ pub enum View {
 /// A worker result that never requests a dialog or window command.
 #[derive(Debug)]
 pub enum BackgroundEvent {
+    /// Local witness settings and sanitised facts from the file worker.
+    GameWitnessLoaded(GameWitnessView),
     /// An actionable failure that stays visible across view changes.
     Failure(String),
     /// Preferences loaded or successfully committed by the file worker.
@@ -40,9 +44,21 @@ pub struct ShellState {
     settings: AppSettings,
     busy: bool,
     ready: bool,
+    game_witness: GameWitnessView,
+    game_channel_draft: String,
 }
 
 impl ShellState {
+    /// Returns the user-editable local channel selection.
+    pub fn game_channel_draft(&mut self) -> &mut String {
+        &mut self.game_channel_draft
+    }
+    /// Returns the last durable local witness observation.
+    #[must_use]
+    pub const fn game_witness(&self) -> &GameWitnessView {
+        &self.game_witness
+    }
+
     /// Returns whether startup established a writable settings store.
     #[must_use]
     pub const fn ready(&self) -> bool {
@@ -83,12 +99,20 @@ impl ShellState {
         self.busy = true;
         Some(match action {
             UserAction::ChooseTheme(theme) => SettingsCommand::ChangeTheme(theme),
+            UserAction::ChooseGameChannel(channel) => SettingsCommand::ChangeGameChannel(channel),
+            UserAction::RefreshWitness => SettingsCommand::RefreshWitness,
+            UserAction::ChangeWitnessMode(mode) => SettingsCommand::ChangeWitnessMode(mode),
             UserAction::ContinueOnboarding => SettingsCommand::CompleteOnboarding,
         })
     }
     /// Applies a worker result without changing the view or window state.
     pub fn receive(&mut self, event: BackgroundEvent) {
         match event {
+            BackgroundEvent::GameWitnessLoaded(view) => {
+                self.game_channel_draft = view.channel_directory.clone().unwrap_or_default();
+                self.game_witness = view;
+                self.busy = false;
+            }
             BackgroundEvent::Failure(notice) => {
                 self.notice = Some(notice);
                 self.busy = false;
@@ -144,6 +168,12 @@ impl ShellState {
 
 /// A direct user request that requires durable preferences.
 pub enum UserAction {
+    /// Choose a channel directory and revoke the previous opt-in.
+    ChooseGameChannel(String),
+    /// Refresh only after an explicit user request.
+    RefreshWitness,
+    /// Enable or disable read-only witness access.
+    ChangeWitnessMode(WitnessMode),
     /// Select a colour theme.
     ChooseTheme(Theme),
     /// Acknowledge the first-launch screen.
@@ -151,10 +181,33 @@ pub enum UserAction {
 }
 
 /// A settings operation handled outside the UI thread.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, PartialEq, Eq)]
 pub enum SettingsCommand {
+    /// Persist a channel directory and disable witness access.
+    ChangeGameChannel(String),
+    /// Read sanitised facts under the durable opt-in preference.
+    RefreshWitness,
+    /// Persist explicit read-only witness access.
+    ChangeWitnessMode(WitnessMode),
     /// Save and apply a colour theme.
     ChangeTheme(Theme),
     /// Save acknowledgement of the onboarding screen.
     CompleteOnboarding,
+}
+
+impl std::fmt::Debug for SettingsCommand {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::ChangeGameChannel(_) => {
+                formatter.write_str("ChangeGameChannel(<local selection>)")
+            }
+            Self::RefreshWitness => formatter.write_str("RefreshWitness"),
+            Self::ChangeWitnessMode(mode) => formatter
+                .debug_tuple("ChangeWitnessMode")
+                .field(mode)
+                .finish(),
+            Self::ChangeTheme(theme) => formatter.debug_tuple("ChangeTheme").field(theme).finish(),
+            Self::CompleteOnboarding => formatter.write_str("CompleteOnboarding"),
+        }
+    }
 }

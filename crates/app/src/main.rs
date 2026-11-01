@@ -6,6 +6,7 @@
 #![forbid(unsafe_code)]
 
 mod executor;
+mod game_wiring;
 mod instance_wiring;
 mod settings_wiring;
 

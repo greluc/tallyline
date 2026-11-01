@@ -1,6 +1,6 @@
 [workspace]
 resolver = "3"
-members = ["crates/shared-kernel", "crates/reference-data", "xtask", "crates/adapter-uex", "crates/egui", "tools/ocr-eval", "crates/workflows", "crates/adapter-files", "crates/ui", "crates/app", "crates/adapter-platform", "crates/adapter-storage"]
+members = ["crates/shared-kernel", "crates/reference-data", "xtask", "crates/adapter-uex", "crates/egui", "tools/ocr-eval", "crates/workflows", "crates/adapter-files", "crates/ui", "crates/app", "crates/adapter-platform", "crates/adapter-storage", "crates/game"]
 
 [workspace.dependencies]
 tallyline-adapter-storage = { path = "crates/adapter-storage" }

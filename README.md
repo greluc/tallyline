@@ -12,6 +12,8 @@ While the game is running, a lightweight local OCR does the work. Optionally, a 
 
 Build with `cargo build --locked -p tallyline-app`, then run `target/debug/tallyline --assets crates/ui/assets` (on Windows, `target/debug/tallyline.exe`). The explicit assets argument selects the separately shipped font files; an installed or portable image instead keeps `assets/fonts/` next to the executable. See the [desktop guide](docs/user/desktop.md) for the storage paths, portable marker and settings errors. The shell does not send reports or contact UEX.
 
+The optional **Game log witness** in Settings reads only version-validated local facts after explicit opt-in. Choose a channel, enable the witness and refresh to inspect sanitised buy-side observations; `cargo run -p ocr-eval --locked -- witness --channel <directory>` offers the same bounded read-only inspection. Prices, quantities and status values are never filled from the log (R-OCR-20).
+
 Starting Tallyline again activates the existing installed or portable instance. If activation fails, an already-running notice appears and no second writer starts (R-NF-10).
 
 Open-source licence rows show documented licence choices; their upstream declarations and complete legal texts remain in the offline catalogue.
