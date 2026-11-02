@@ -30,6 +30,8 @@ Runtime source, official release APIs, crates.io metadata, model-author cards/co
 
 Corrected 2026-11-02: later separately owned local experiments have now completed 310 responses on 155 shop-only crops. Their [dated campaign record](local-vision-first-campaign.md) reports inadequate structural coverage, an undefined paired main rate and a separately labelled exploratory name diagnostic. Those measurements do not alter the original research scope, verify the reference annotations, select a production backend or establish a recognition accuracy gain.
 
+Added 2026-11-02: the [author-bound 2B experiments](local-vision-small-model-campaign.md) completed five CPU/five GPU original-prompt responses and five GPU responses under a separate corrected literal-field condition. Six prices become reference-concordant on the same 21 complete development cards, while stock, decimal-point and structural errors remain. This does not establish held-out accuracy, weak-PC requirements or independent-reader agreement.
+
 The available machine has the class of a high-end 32 GiB NVIDIA GPU and roughly 96 GiB system RAM. That makes a later broad local comparison plausible, but supplies no weak-PC evidence. No usable running Ollama service inventory was available; this does not prove Ollama or its model files are absent.
 
 ## 3. What Basetool actually does
@@ -120,7 +122,7 @@ Other neural readers: [ocrs status](https://github.com/robertknight/ocrs/blob/ma
 
 Model-specific dictionaries, tensor layouts, colour order, resize policy, decoding and confidence scales must be frozen. A raw confidence from Tesseract, a CTC probability and a VLM token probability are not interchangeable. Compare raw transcription before shared parsing and then compare the complete validated result. A different detector is evaluated as a separate stage; a recogniser should not be blamed for a crop that omitted half a digit.
 
-Python-first pipelines such as EasyOCR/docTR may be researched later for exports, but a Python/OpenCV installation is not a suitable user prerequisite, and “it can export ONNX” is insufficient evidence for the exact shipped weights/operators/licence. The first campaign already contains additional local OCR implementations without adopting that entire stack.
+Python-first pipelines such as EasyOCR/docTR may be researched later for exports, but a Python/OpenCV installation is not a suitable user prerequisite, and “it can export ONNX” is insufficient evidence for the exact shipped weights/operators/licence. Corrected 2026-11-02: the candidate plan includes additional local OCR implementations; the completed first campaign measured two VLM readers, not complementary-OCR inference.
 
 ## 6. VLM and generative-OCR screening catalogue
 

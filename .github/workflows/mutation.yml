@@ -25,6 +25,7 @@ jobs:
         with:
           persist-credentials: false
           fetch-depth: 0
+          lfs: true
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
 
       - name: Install the pinned Rust toolchain
@@ -65,3 +66,15 @@ jobs:
       - name: Test all core mutations nightly
         if: github.event_name == 'schedule'
         run: cargo xtask mutation
+
+      - name: Retain mutation reports and build logs
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          name: core-mutation-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            target/core-mutation/mutants.out/*.json
+            target/core-mutation/mutants.out/*.txt
+            target/core-mutation/mutants.out/log/
+          if-no-files-found: ignore
+          retention-days: 7

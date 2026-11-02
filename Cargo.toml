@@ -39,6 +39,8 @@ tracing = { version = "0.1.44", default-features = false, features = ["std"] }
 
 egui-wgpu = { version = "=0.37.0", default-features = false }
 
+ort = { version = "=2.0.0-rc.14", default-features = false, features = ["load-dynamic", "api-31"] }
+
 [workspace.package]
 edition = "2024"
 rust-version = "1.99.0"
