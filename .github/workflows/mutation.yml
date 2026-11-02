@@ -60,14 +60,6 @@ jobs:
       - name: Verify pinned cargo-mutants
         run: test "$(cargo --locked mutants --version)" = "cargo-mutants ${MUTANTS_VERSION}"
 
-      - name: Bind shard evidence to this source and workflow attempt
-        env:
-          SHARD_INDEX: ${{ matrix.shard }}
-        run: |
-          directory="target/core-mutation/shard-${SHARD_INDEX}-of-8"
-          mkdir -p "$directory"
-          printf '%s\n' "$MUTATION_HEAD" "$GITHUB_RUN_ID" "$GITHUB_RUN_ATTEMPT" "$MUTATION_SHARD" > "$directory/identity.txt"
-
       - name: Test mutations in pull request changes
         if: github.event_name == 'pull_request'
         env:
@@ -80,6 +72,15 @@ jobs:
       - name: Test all core mutations nightly
         if: github.event_name == 'schedule'
         run: cargo xtask mutation --shard "$MUTATION_SHARD"
+
+      - name: Bind shard evidence to this source and workflow attempt
+        if: always()
+        env:
+          SHARD_INDEX: ${{ matrix.shard }}
+        run: |
+          directory="target/core-mutation/shard-${SHARD_INDEX}-of-8"
+          test -f "$directory/.tallyline-xtask-owner"
+          printf '%s\n' "$MUTATION_HEAD" "$GITHUB_RUN_ID" "$GITHUB_RUN_ATTEMPT" "$MUTATION_SHARD" > "$directory/identity.txt"
 
       - name: Retain mutation reports and build logs
         if: always()
