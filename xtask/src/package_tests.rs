@@ -584,3 +584,158 @@ fn copy_bound_source_inputs(directory: &crate::scratch::Scratch) -> std::path::P
     }
     root.to_path_buf()
 }
+
+#[test]
+fn r_sec_8_r_nf_4__tool_capture_discards_both_streams_before_persisting_a_fixture_leak() {
+    let directory = crate::scratch::Scratch::new();
+    directory.write("fixture", "capture-contract-harmless-value-918273645");
+    let logs = directory.path().join("logs");
+    std::fs::create_dir(&logs).unwrap();
+    let fixture = std::fs::read(directory.path().join("fixture")).unwrap();
+    let text = std::str::from_utf8(&fixture).unwrap();
+    let wide = text
+        .encode_utf16()
+        .flat_map(u16::to_le_bytes)
+        .collect::<Vec<_>>();
+    let error = crate::package::retain_tool_output(
+        &logs,
+        "tool",
+        &wide,
+        b"innocent stderr",
+        &directory.path().join("fixture"),
+    )
+    .unwrap_err();
+    assert!(error.to_string().contains("not retained"));
+    for name in ["tool.stdout", "tool.stderr"] {
+        let retained = std::fs::read(logs.join(name)).unwrap();
+        assert!(
+            !retained
+                .windows(fixture.len())
+                .any(|bytes| bytes == fixture)
+        );
+        assert!(!retained.windows(wide.len()).any(|bytes| bytes == wide));
+        assert!(
+            std::str::from_utf8(&retained)
+                .unwrap()
+                .contains("not retained")
+        );
+    }
+}
+
+#[test]
+fn r_doc_3__debian_copyright_preserves_terms_and_reviewed_source_scopes() {
+    let directory = crate::scratch::Scratch::new();
+    directory.write("payload/LICENSE", "Synthetic project terms\n");
+    directory.write(
+        "payload/legal/sqlite/LICENSE",
+        "Synthetic native terms\n\nFinal preserved line.\n",
+    );
+    directory.write(
+        "payload/legal/crates/index.tsv",
+        "crate\tversion\tdeclared\tdetected\n",
+    );
+    directory.write("payload/legal/catalogue.json", r#"{"schema_version":1,"components":[{"name":"SQLite","version":"3.54.1","licence":"blessing","source":"https://www.sqlite.org/2026/sqlite-amalgamation-3540100.zip","copyright":{"status":"provided","notices":["Synthetic fixture"]},"notices":[{"path":"sqlite/LICENSE","text":"Synthetic native terms\n\nFinal preserved line.\n"}]}]}"#);
+    let output = directory.path().join("copyright");
+    crate::package::run(&[
+        "copyright".into(),
+        directory.path().join("payload").display().to_string(),
+        output.display().to_string(),
+    ])
+    .unwrap();
+    let inspected = std::process::Command::new(if cfg!(windows) { "python" } else { "python3" }).args(["-c", "import sys,email.parser,json; text=open(sys.argv[1],encoding='utf-8').read(); rows=[dict(email.parser.Parser().parsestr(block).items()) for block in text.strip().split('\\n\\n')]; print(json.dumps(rows))"]).arg(&output).output().unwrap();
+    assert!(
+        inspected.status.success(),
+        "{}",
+        String::from_utf8_lossy(&inspected.stderr)
+    );
+    let rows: serde_json::Value = serde_json::from_slice(&inspected.stdout).unwrap();
+    let rows = rows.as_array().unwrap();
+    assert_eq!(
+        rows[0]["Format"],
+        "https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/"
+    );
+    let native = rows
+        .iter()
+        .find(|row| {
+            row["Files"]
+                .as_str()
+                .is_some_and(|paths| paths.contains("vendor/libsqlite3-sys-0.39.1/sqlite3/*"))
+        })
+        .unwrap();
+    assert!(
+        native["License"]
+            .as_str()
+            .unwrap()
+            .contains("Synthetic native terms\n .\n Final preserved line.")
+    );
+    assert!(
+        native["Copyright"]
+            .as_str()
+            .unwrap()
+            .contains("Synthetic fixture")
+    );
+}
+
+#[test]
+fn r_nf_2_q_installers__debian_archive_has_safe_layout_modes_and_no_maintainer_scripts() {
+    let directory = crate::scratch::Scratch::new();
+    directory.write(
+        "tree/control/control",
+        "Package: tallyline\nVersion: 1.2.3\nArchitecture: amd64\nInstalled-Size: 1\n",
+    );
+    directory.write("tree/control/md5sums", "900150983cd24fb0d6963f7d28e17f72  usr/bin/tallyline\n900150983cd24fb0d6963f7d28e17f72  usr/lib/tallyline/libonnxruntime.so.1.31.0\n");
+    directory.write("tree/data/usr/bin/tallyline", "abc");
+    directory.write(
+        "tree/data/usr/lib/tallyline/libonnxruntime.so.1.31.0",
+        "abc",
+    );
+    let output = directory.path().join("package.deb");
+    crate::package::run(&[
+        "repack-deb".into(),
+        directory.path().join("tree").display().to_string(),
+        output.display().to_string(),
+    ])
+    .unwrap();
+    let script = r#"import sys,io,tarfile,json,hashlib
+raw=open(sys.argv[1],'rb').read(); assert raw[:8]==b'!<arch>\n'; offset=8; parts={}
+while offset<len(raw):
+ h=raw[offset:offset+60]; assert len(h)==60 and h[58:]==b'`\n'; name=h[:16].decode().strip().rstrip('/'); size=int(h[48:58]); assert name not in parts; parts[name]=raw[offset+60:offset+60+size]; offset+=60+size+(size%2)
+assert list(parts)==['debian-binary','control.tar.gz','data.tar.gz'] and parts['debian-binary']==b'2.0\n'
+with tarfile.open(fileobj=io.BytesIO(parts['data.tar.gz']),mode='r:gz') as tar:
+ rows={item.name:item for item in tar}; binary=rows['usr/lib/tallyline/tallyline']; runtime=rows['usr/lib/tallyline/libonnxruntime.so.1.31.0']; link=rows['usr/bin/tallyline']; assert binary.mode==runtime.mode==0o755; assert link.issym() and link.linkname=='../lib/tallyline/tallyline'; assert tar.extractfile(binary).read()==b'abc'
+ for item in rows.values(): assert item.uid==item.gid==item.mtime==0
+with tarfile.open(fileobj=io.BytesIO(parts['control.tar.gz']),mode='r:gz') as tar:
+ assert {item.name for item in tar}=={'control','md5sums'}; sums=tar.extractfile('md5sums').read().decode(); assert 'usr/bin/tallyline' not in sums; assert '900150983cd24fb0d6963f7d28e17f72  usr/lib/tallyline/tallyline' in sums
+print('independent Debian archive inspection passed')"#;
+    let inspected = std::process::Command::new(if cfg!(windows) { "python" } else { "python3" })
+        .args(["-c", script])
+        .arg(output)
+        .output()
+        .unwrap();
+    assert!(
+        inspected.status.success(),
+        "{}",
+        String::from_utf8_lossy(&inspected.stderr)
+    );
+}
+
+#[test]
+fn r_sec_8__protected_build_rejects_a_bad_seal_before_fixture_or_output_access() {
+    let directory = crate::scratch::Scratch::new();
+    directory.write("stage/package-manifest.json", "{}");
+    let output = directory.path().join("output");
+    let error = crate::package::run(&[
+        "build".into(),
+        directory.path().join("stage").display().to_string(),
+        "0".repeat(64),
+        directory
+            .path()
+            .join("missing-fixture")
+            .display()
+            .to_string(),
+        output.display().to_string(),
+    ])
+    .unwrap_err();
+    assert!(error.to_string().contains("seal mismatch"), "{error}");
+    assert!(!output.exists());
+}

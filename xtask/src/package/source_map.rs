@@ -123,7 +123,7 @@ fn invalid(message: &str) -> io::Error {
     io::Error::other(message)
 }
 
-fn source_scopes(component: &Value) -> io::Result<Vec<String>> {
+pub(super) fn source_scopes(component: &Value) -> io::Result<Vec<String>> {
     let name = text(component, "name")?;
     let version = text(component, "version")?;
     let profiles: Value = serde_json::from_str(include_str!(

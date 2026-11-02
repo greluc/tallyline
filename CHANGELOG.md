@@ -6,6 +6,8 @@ All notable changes are recorded here.
 
 ### Added
 
+- Add sealed prebuilt MSI/Debian assembly adapters, original-term DEP-5 output, safe Debian layout and leak-safe tool-log retention. A core CRT probe passes actual WiX validation and read-only engine cases; final protected application packages and installation acceptance remain pending (R-NF-2:installers, R-DOC-3, R-SEC-8).
+
 - Bind every workspace manifest during legal source freshness checks, including feature-only changes with unchanged lockfile bytes; retain verified existing Rust/ORT source offers without helper binaries (R-DOC-3, R-SEC-8).
 
 - Verify actual source-archive file evidence and exact native source scopes before sealing fixture insertion; reject stale legal source bindings in the normal check. Protected installer and actual token-format acceptance remain pending (R-DOC-3, R-SEC-8).

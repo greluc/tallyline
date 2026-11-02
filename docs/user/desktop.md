@@ -187,3 +187,5 @@ Distribution preparation now validates mapped source files in the actual source 
 Distribution preparation now validates mapped source files in the actual source archive and seals the source reference before harmless fixture insertion. Stale legal source bindings fail the normal check. This remains preparatory evidence: complete protected installers, actual UEX token-format confirmation and installed/native acceptance are pending.
 
 The preparation check now also rejects changed workspace manifests, including feature-only changes that leave the dependency lockfile unchanged. Installer and installed-system acceptance remain pending.
+
+Packaging preparation now has fixed MSI/Debian assembly adapters, original component terms and source scopes in Debian metadata, and an independently inspected core CRT prerequisite probe. These are development checks, not a completed release or installation result. Windows OCR still requires the separately installed Visual C++ Redistributable; final protected package and clean-OS/native acceptance remain pending.

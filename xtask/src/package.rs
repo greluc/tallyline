@@ -4,9 +4,16 @@
 //! Source-independent commands for packaging prebuilt distributions.
 
 mod archive;
+mod capture;
+mod copyright;
+mod deb_archive;
+mod debian;
 mod legal;
 mod manifest;
+mod msi;
+mod msi_crt;
 mod payload;
+mod protected;
 mod scan;
 mod source_archive;
 mod source_inputs;
@@ -61,7 +68,7 @@ pub fn run(arguments: &[String]) -> io::Result<()> {
     match arguments.as_slice() {
         [] | ["help"] => writeln!(
             io::stdout(),
-            "usage: xtask package version <vMAJOR.MINOR.PATCH> | tools-verify <windows|linux> <tools> | source-bindings <source-root> | source-verify <payload> <archive> | source-map <payload> <unpacked-source> <archive> <fresh-output> | legal-verify [windows|linux] <payload> | prepare <windows|linux> <vMAJOR.MINOR.PATCH> <payload> <tools> <fresh-stage> | inject <stage> <seal> <fixture> | verify-injected <stage> <seal> <fixture> | verify <stage> <seal> | archive <zip|tar.gz|source.tar.gz> <input> <fresh-output> | scan <unpacked-tree> <fixture-file> [allowed-relative-file]"
+            "usage: xtask package version <vMAJOR.MINOR.PATCH> | tools-verify <windows|linux> <tools> | source-bindings <source-root> | source-verify <payload> <archive> | source-map <payload> <unpacked-source> <archive> <fresh-output> | msi-probe <approved-tools> <fresh-output> | build <stage> <seal> <fixture> <fresh-output> | repack-deb <prepared-tree> <fresh-output> | copyright <payload> <fresh-output> | legal-verify [windows|linux] <payload> | prepare <windows|linux> <vMAJOR.MINOR.PATCH> <payload> <tools> <fresh-stage> | inject <stage> <seal> <fixture> | verify-injected <stage> <seal> <fixture> | verify <stage> <seal> | archive <zip|tar.gz|source.tar.gz> <input> <fresh-output> | scan <unpacked-tree> <fixture-file> [allowed-relative-file]"
         ),
         ["archive", format, input, output] => {
             write_archive(format, Path::new(input), Path::new(output))
@@ -94,6 +101,17 @@ pub fn run(arguments: &[String]) -> io::Result<()> {
             Path::new(archive),
             Path::new(output),
         ),
+        ["msi-probe", tools, output] => probe_msi_tools(Path::new(tools), Path::new(output)),
+        ["build", stage, seal, fixture, output] => build(
+            Path::new(stage),
+            seal,
+            Path::new(fixture),
+            Path::new(output),
+        ),
+        ["repack-deb", tree, output] => repack_debian(Path::new(tree), Path::new(output)),
+        ["copyright", payload, output] => {
+            write_debian_copyright(Path::new(payload), Path::new(output))
+        }
         ["source-bindings", root] => verify_source_bindings(Path::new(root)),
         ["source-verify", payload, archive] => {
             source_map::validate(Path::new(payload), Path::new(archive)).map(|_| ())
@@ -117,7 +135,7 @@ pub fn run(arguments: &[String]) -> io::Result<()> {
         ),
         ["version", tag] => writeln!(io::stdout(), "{}", release_version(tag)?),
         _ => Err(io::Error::other(
-            "usage: xtask package version <vMAJOR.MINOR.PATCH> | tools-verify <windows|linux> <tools> | source-bindings <source-root> | source-verify <payload> <archive> | source-map <payload> <unpacked-source> <archive> <fresh-output> | legal-verify [windows|linux] <payload> | prepare <windows|linux> <vMAJOR.MINOR.PATCH> <payload> <tools> <fresh-stage> | inject <stage> <seal> <fixture> | verify-injected <stage> <seal> <fixture> | verify <stage> <seal> | archive <zip|tar.gz|source.tar.gz> <input> <fresh-output> | scan <unpacked-tree> <fixture-file> [allowed-relative-file]",
+            "usage: xtask package version <vMAJOR.MINOR.PATCH> | tools-verify <windows|linux> <tools> | source-bindings <source-root> | source-verify <payload> <archive> | source-map <payload> <unpacked-source> <archive> <fresh-output> | msi-probe <approved-tools> <fresh-output> | build <stage> <seal> <fixture> <fresh-output> | repack-deb <prepared-tree> <fresh-output> | copyright <payload> <fresh-output> | legal-verify [windows|linux] <payload> | prepare <windows|linux> <vMAJOR.MINOR.PATCH> <payload> <tools> <fresh-stage> | inject <stage> <seal> <fixture> | verify-injected <stage> <seal> <fixture> | verify <stage> <seal> | archive <zip|tar.gz|source.tar.gz> <input> <fresh-output> | scan <unpacked-tree> <fixture-file> [allowed-relative-file]",
         )),
     }
 }
@@ -337,4 +355,71 @@ fn read_fixture(path: &Path) -> io::Result<Vec<u8>> {
 /// Returns stale recorded input bytes, malformed profiles or missing/linked source material.
 pub fn verify_source_bindings(root: &Path) -> io::Result<()> {
     legal::verify_source_inputs(Some(root))
+}
+
+/// Retains bounded tool output only after checking both streams for fixture disclosure.
+///
+/// A disclosure replaces both fresh log files with a fixed diagnostic. No raw leaked
+/// stream is written. This adapter executes no process and reads only the fixture.
+///
+/// # Errors
+/// Returns invalid or linked log directories, unsafe names, streams over eight MiB,
+/// invalid fixture data, existing outputs, I/O failures or discarded disclosure.
+pub fn retain_tool_output(
+    directory: &Path,
+    name: &str,
+    stdout: &[u8],
+    stderr: &[u8],
+    fixture: &Path,
+) -> io::Result<()> {
+    capture::write(directory, name, stdout, stderr, fixture)
+}
+
+/// Writes DEP-5 source-scope and licence metadata from a consistent legal payload.
+///
+/// This secret-free metadata adapter preserves original terms and reviewed source
+/// scopes. General consistency alone does not establish the approved target identity;
+/// protected packaging additionally verifies its sealed intrinsic target profile.
+///
+/// # Errors
+/// Returns incomplete legal data, unreviewed source scopes, an existing output or I/O errors.
+pub fn write_debian_copyright(payload: &Path, output: &Path) -> io::Result<()> {
+    copyright::write(payload, output)
+}
+
+/// Writes a Debian archive from a prepared data/control tree without executing it.
+///
+/// Relocates the app beside its runtime and creates only the fixed relative launcher
+/// link. Control scripts and untrusted links are refused. This layout adapter alone
+/// does not authenticate a target payload; the protected backend additionally seals it.
+///
+/// # Errors
+/// Returns unexpected layouts/control files, unsafe paths, existing outputs or I/O errors.
+pub fn repack_debian(tree: &Path, output: &Path) -> io::Result<()> {
+    deb_archive::repack(tree, output)
+}
+
+/// Assembles native installer and plain archive from a sealed prebuilt stage.
+///
+/// Verifies immutable inputs and source reference before fixture access, clones only
+/// sealed files, then invokes the fixed approved native tool without Cargo or hooks.
+/// The source capsule is never opened or copied by this protected boundary.
+///
+/// # Errors
+/// Returns bad seals, missing source evidence, unsafe/existing outputs, native target
+/// mismatches, tool failures or post-assembly payload/fixture discrepancies.
+pub fn build(stage: &Path, seal: &str, fixture: &Path, output: &Path) -> io::Result<()> {
+    protected::build(stage, seal, fixture, output)
+}
+
+/// Builds and validates a fixed secret-free MSI prerequisite-table probe.
+///
+/// Uses only the exact approved source-built WiX tree, core authoring and a harmless
+/// text marker. It reads no fixture or app, executes no installer action and proves
+/// no protected distribution or installed-system acceptance.
+///
+/// # Errors
+/// Returns tool mismatches, unsafe/existing output, non-Windows host or WiX failures.
+pub fn probe_msi_tools(tools: &Path, output: &Path) -> io::Result<()> {
+    msi::probe(tools, output)
 }

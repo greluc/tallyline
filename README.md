@@ -138,3 +138,5 @@ The [SCU policy evidence](docs/scu-policy-calibration.md) documents explicit rea
 Source preparation now verifies actual archived component bytes and seals a source reference before harmless fixture insertion. The normal check rejects stale legal source bindings. Protected installer and installed-system acceptance remain pending; see [the packaging record](docs/packaging-spike.md).
 
 Distribution source checks also bind every workspace manifest, so feature-only changes invalidate stale legal source bindings even when Cargo.lock stays unchanged.
+
+The packaging helper now includes fixed native backend adapters and independently inspected Debian archive/CRT prerequisite contracts. Actual final protected distributions and clean-OS/native acceptance remain pending; the Windows Visual C++ runtime prerequisite remains unchanged.

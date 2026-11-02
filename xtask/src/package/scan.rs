@@ -83,3 +83,10 @@ fn representations(token: &[u8]) -> io::Result<[Vec<u8>; 3]> {
         text.encode_utf16().flat_map(u16::to_be_bytes).collect(),
     ])
 }
+
+pub(super) fn contains_fixture(bytes: &[u8], fixture: &Path) -> io::Result<bool> {
+    let fixture = super::read_fixture(fixture)?;
+    Ok(representations(&fixture)?
+        .iter()
+        .any(|pattern| bytes.windows(pattern.len()).any(|part| part == pattern)))
+}
