@@ -165,6 +165,8 @@ malformed proof. Host build/procedural-macro and target occurrences are unioned;
 a Linux tree collected on Windows is not matching-host Linux build acceptance.
 No native scope is widened by this additional selector. See the exact collection
 and verification limits in [xtask](../../xtask/README.md#literal-inline-assembly-inventory).
+Windows credential store implementation 2026-11-02 (R-NF-4): the platform adapter calls only the approved owned-store build and binary set/get/delete surface with fixed identifiers and explicit Local persistence. The existing reviewed dependency wrappers retain native allocation erasure/free ownership; this adds no own unsafe block, native source, registry version or feature scope. The platform codec and injected-provider contract tests do not exercise the real OS store. Direct zeroize 1.9.1 with defaults off and alloc only supplies erasing buffer guards; it was already locked and active with these features. Application logging must suppress credential dependency targets before formatting/bridging when the adapter is composed; no native credential provider is invoked by desktop startup in this slice.
+
 Credential native foundation adopted 2026-11-02 under the exact previously
 owner-approved six-surface packet (SHA-256 recorded in
 `supply-chain/credential-adoption.json`). The exact archive/source/full-feature,
