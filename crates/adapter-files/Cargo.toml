@@ -45,3 +45,9 @@ features = ["std"]
 
 [dependencies.fdeflate]
 workspace = true
+
+[dependencies.tallyline-reporting]
+workspace = true
+
+[dependencies.sha2]
+workspace = true

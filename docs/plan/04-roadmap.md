@@ -246,3 +246,7 @@ Issue #80 adds the native shell, first-launch legal screen, theme persistence, v
 ### Manual Draft implementation checkpoint (2026-11-01)
 
 Issue #83 has the initial Reporting aggregate/application and shared SQLite schema-three repository, exact typed Draft fields, explicit UEX takeover, stale-write rejection and backed-up migration contracts. The editor and app-owned bounded storage worker support keyboard field commands and durable restart. The milestone and issue stay open: R-MAN-4 depends on the shared validation/confirmation slices; game-version resolution, release/submission and native GUI acceptance remain outstanding. No requirement or invariant is weakened by this implementation checkpoint.
+
+## Manual attachment implementation checkpoint (2026-11-02)
+
+Issue #85 now has Report-owned attachment selection/privacy/time decisions persisted in SQLite schema 5, real-directory PNG/JPEG region contracts, confirmation-gated bounded PNG/Base64 encoding and an owned serial below-normal image worker. Public application/SQLite contracts cover restart and stale binding rejection; a headless composition contract covers real file preparation, a capacity-one queue, source deletion and marker-free scaled output. Durable region files, account screenshot requirement memory and its dated clear action, attachment UI, complete release/age checks and native visual acceptance remain open. No M1 acceptance box or issue completion is claimed.

@@ -8,6 +8,7 @@
 pub mod api;
 mod application;
 mod assessment;
+mod attachment;
 mod confirmation;
 mod price_assessment;
 mod report;

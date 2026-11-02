@@ -13,4 +13,6 @@ pub use crate::logo::decode_logo;
 pub use crate::backup::BackupSetStore;
 pub use crate::image_intake::read_image;
 pub use crate::image_intake::read_image_file;
+pub use crate::manual_attachment::{encode_manual_attachment, prepare_manual_attachment_file};
+
 pub use crate::private_artifact::write_private_artifact;

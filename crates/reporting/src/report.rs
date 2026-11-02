@@ -3,7 +3,7 @@
 
 //! State-local manual Report invariants.
 
-use crate::api::model::{Deviation, StatusConfirmation};
+use crate::api::model::{Deviation, ManualAttachment, StatusConfirmation, StoredAttachment};
 use tallyline_game::api::model::GameEnvironment;
 use tallyline_shared_kernel::api::model::{
     CommodityId, PricePerScu, ReportId, RowId, ScuQuantity, TerminalId, Timestamp, TradeSide,
@@ -134,6 +134,7 @@ pub struct Report {
     game_version: Option<String>,
     version: u64,
     rows: Vec<ReportRow>,
+    attachment: Option<ManualAttachment>,
 }
 impl Report {
     /// Creates an empty manual Draft at its observation time.
@@ -156,6 +157,7 @@ impl Report {
             game_version: game_version.map(str::to_owned),
             version: 0,
             rows: Vec::new(),
+            attachment: None,
         })
     }
     /// Adds an empty row without copying any reference value.
@@ -307,6 +309,8 @@ pub struct StoredReport {
     pub version: u64,
     /// Explicit rows.
     pub rows: Vec<StoredRow>,
+    /// Selected attachment metadata without original pixels.
+    pub attachment: Option<StoredAttachment>,
 }
 
 /// Persistence-only state of a manual row.
@@ -371,9 +375,22 @@ impl Report {
                 status_confirmation_revoked: row.status_confirmation_revoked,
             });
         }
+        report.attachment = stored.attachment.map(|attachment| ManualAttachment {
+            binding: attachment.binding,
+            time: attachment.time,
+            preview_confirmed: attachment.preview_confirmed,
+        });
+        if report
+            .attachment
+            .is_some_and(|attachment| attachment.time.at() < report.observed_at)
+        {
+            return Err(InvalidReport);
+        }
         report.version = stored.version;
         Ok(report)
     }
 }
 
 mod status;
+
+mod attachment;
