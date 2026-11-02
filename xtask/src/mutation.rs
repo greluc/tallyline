@@ -211,7 +211,9 @@ pub fn aggregate(
             }
             continue;
         }
-        let counts = selected_counts(&read(&report)?, &selection)?;
+        let report_text = read(&report)?;
+        let counts = selected_counts(&report_text, &selection)?;
+        crate::mutation_evidence::verify_cause_logs(&shard.join("mutants.out"), &report_text)?;
         totals.caught = totals
             .caught
             .checked_add(counts.caught)

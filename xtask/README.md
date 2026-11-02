@@ -80,6 +80,10 @@ Install the exact quality-tool versions and verify the archive digests in `docs/
 
 Corrected 2026-11-01: `tallyline-workflows` is the first present core crate. Its full Windows measurement at integration commit `5b1895690ee8462359d9519d90ef27583ead0f95` completed with eight mutants: four caught, four unviable, none missed or timed out. The score is 100% and the non-decreasing floor is frozen at that value. Core line coverage is 33/33 lines (100%). The initial run timed out while running the larger workspace suite; its result was rejected and is not the baseline. The successful repeat used a 120-second minimum test timeout, now passed explicitly by `xtask`; timeouts still fail the report gate. The pinned tool's baseline tests only mutated packages even when mutants run all workspace tests ([upstream source](https://github.com/sourcefrog/cargo-mutants/blob/v27.1.0/src/lab.rs)). Linux and hosted measurements of this core remain pending.
 
+## Mutation cause admission
+
+Both mutation execution and aggregation require bounded retained cause logs before scoring. Named failed tests and coded Rust diagnostics remain separate; known executable-busy, disk, linker and crate-artefact failures invalidate the measurement. The pinned explicit empty-listing protocol is retained as a scoreless skip. See [mutation evidence admission](../docs/mutation-evidence.md) for the exact boundary and the withdrawn historical full-run claims.
+
 ## Approved native-scope restrictions
 
 Status 2026-11-01: `cargo xtask check` reads full `cargo metadata --locked --format-version 1 --filter-platform <target>` for both `x86_64-pc-windows-msvc` and `x86_64-unknown-linux-gnu`, before the other quality checks. It follows `resolve.nodes[].deps[].pkg` from every `workspace_members` root, including renamed dependencies, rather than treating every entry in `packages` as active. Missing or malformed reachable graph data fails closed. Active features come from the resolved node, not the package's feature declarations.

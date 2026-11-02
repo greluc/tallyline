@@ -93,9 +93,29 @@ fn aggregates_viable_and_unviable_shards_but_rejects_all_unviable_and_missing_ev
                 &format!("{directory}/mutants.out/outcomes.json"),
                 &completed_report(full[index].clone(), index == 2).to_string(),
             );
+            scratch.write(
+                &format!("{directory}/mutants.out/log/cause.log"),
+                if index == 2 {
+                    "error[E0277]: Preview does not implement Default\n"
+                } else {
+                    "test domain_contract ... FAILED\nassertion failed: expected value\ntest result: FAILED. 0 passed; 1 failed\n"
+                },
+            );
         }
     }
     assert_eq!(aggregate(scratch.path(), &identity), Ok(Some(100.0)));
+    scratch.write(
+        "core-mutation-42-1-shard-0-of-8/mutants.out/log/cause.log",
+        "test unrelated_loader ... FAILED\nError: ExecutableFileBusy\ntest result: FAILED. 0 passed; 1 failed\n",
+    );
+    assert!(
+        aggregate(scratch.path(), &identity).is_err(),
+        "Infrastructure failure must not count as a caught core mutation."
+    );
+    scratch.write(
+        "core-mutation-42-1-shard-0-of-8/mutants.out/log/cause.log",
+        "test domain_contract ... FAILED\nassertion failed: expected value\ntest result: FAILED. 0 passed; 1 failed\n",
+    );
     scratch.write(
         "core-mutation-42-1-shard-0-of-8/selected-mutants.json",
         &json!([full[1].clone()]).to_string(),
@@ -126,11 +146,19 @@ fn aggregates_viable_and_unviable_shards_but_rejects_all_unviable_and_missing_ev
             &format!("core-mutation-42-1-shard-{index}-of-8/mutants.out/outcomes.json"),
             &completed_report(full[index].clone(), true).to_string(),
         );
+        scratch.write(
+            &format!("core-mutation-42-1-shard-{index}-of-8/mutants.out/log/cause.log"),
+            "error[E0277]: Preview does not implement Default\n",
+        );
     }
     assert!(aggregate(scratch.path(), &identity).is_err());
     scratch.write(
         "core-mutation-42-1-shard-0-of-8/mutants.out/outcomes.json",
         &completed_report(full[0].clone(), false).to_string(),
+    );
+    scratch.write(
+        "core-mutation-42-1-shard-0-of-8/mutants.out/log/cause.log",
+        "test domain_contract ... FAILED\nassertion failed: expected value\ntest result: FAILED. 0 passed; 1 failed\n",
     );
     scratch.write(
         "core-mutation-42-1-shard-7-of-8/identity.txt",
@@ -151,7 +179,7 @@ fn aggregates_viable_and_unviable_shards_but_rejects_all_unviable_and_missing_ev
 }
 
 fn completed_report(mutant: serde_json::Value, unviable: bool) -> serde_json::Value {
-    json!({"cargo_mutants_version":"27.1.0", "end_time":"2026-11-02T00:00:00Z", "total_mutants":1,"caught":usize::from(!unviable),"missed":0,"unviable":usize::from(unviable),"timeout":0,"success":0,"outcomes":[{"scenario":"Baseline","summary":"Success"},{"scenario":{"Mutant":mutant},"summary":if unviable {"Unviable"} else {"CaughtMutant"}}]})
+    json!({"cargo_mutants_version":"27.1.0", "end_time":"2026-11-02T00:00:00Z", "total_mutants":1,"caught":usize::from(!unviable),"missed":0,"unviable":usize::from(unviable),"timeout":0,"success":0,"outcomes":[{"scenario":"Baseline","summary":"Success"},{"scenario":{"Mutant":mutant},"summary":if unviable {"Unviable"} else {"CaughtMutant"},"log_path":"log/cause.log"}]})
 }
 
 #[test]

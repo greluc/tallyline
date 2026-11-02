@@ -73,6 +73,10 @@ mod target_graph_tests;
 mod mutation_tests;
 
 pub mod mutation;
+pub mod mutation_evidence;
+
+#[cfg(test)]
+mod mutation_evidence_tests;
 
 #[cfg(test)]
 mod package_tests;

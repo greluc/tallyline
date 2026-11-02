@@ -4,6 +4,8 @@ All notable changes are recorded here.
 
 ## [Unreleased]
 
+- Reject mutation scores contaminated by known independent test/build infrastructure failures using retained cause logs. Preserve genuine domain-error test failures and the frozen score floor; handle the pinned tool's explicit empty selection without inventing a measured score (R-SEC-1, R-DOC-3).
+
 - Added bounded headless `--build-info` before native bootstrap. About, logs, UEX identity and update comparison share fixed Development `0.0.0` or complete compile-time tag metadata; invalid or partial metadata refuses startup. Bounded source-job receipts bind compiled metadata and executable hashes into protected staging before fixture access; signed-tag/CI authentication and final package acceptance remain release gates (R-NF-11, R-API-7, R-UI-18, R-SEC-8).
 
 ### Added
