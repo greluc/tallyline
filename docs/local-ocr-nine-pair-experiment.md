@@ -85,3 +85,5 @@ Tiny/Tiny is a smaller-resource candidate for subsequent real weak-PC testing; t
 ## Remaining acceptance
 
 Freeze field/layout parsing and calibration separately, then run representative held-out classes and paired error-detection experiments. Evaluate different OCR families (including licence/native-reviewed Tesseract, RTen/ocrs or TrOCR where admissible), not only PP-OCR sizes. Actual weak/medium hardware, whole-app/process-tree peaks, Linux inference, packaged telemetry with positive control, interruption/unload, clean-OS runtime delivery and the no-extra-prerequisite goal remain pending. Existing VLM experiments and this raw OCR matrix do not close those acceptance gaps.
+
+Corrected 2026-11-02: the separate approved [Linux Tesseract PSM 11 pilot](local-ocr-tesseract-experiment.md) has since completed twenty fixed development reads with best/fast and both worker budgets. It supplies a different-family diagnostic comparison, not PP-OCR Linux acceptance, a production combination, calibrated accuracy or a controlled cross-engine performance result. The remaining acceptance boundaries above still apply to this Windows nine-pair experiment.
