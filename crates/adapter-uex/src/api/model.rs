@@ -6,6 +6,10 @@
 use serde::{Deserialize, Serialize};
 use tallyline_shared_kernel::api::model::PricePerScu;
 
+pub use crate::public_contract::{
+    PublicContractCode, PublicContractEndpoint, PublicContractError, PublicContractPayload,
+    PublicContractSchema, PublicContractSnapshot,
+};
 pub use tallyline_shared_kernel::api::model::ContainerSize;
 
 /// The current game versions of `GET /game_versions`.

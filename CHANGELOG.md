@@ -6,6 +6,8 @@ All notable changes are recorded here.
 
 ### Added
 
+- Add credential-free public UEX field/type/code checks and a default-off, main-only weekly workflow. Output excludes response values, and observed drift fails visibly without automatically changing the baseline (R-API-5, R-DOC-2).
+
 - Bind every workspace manifest during legal source freshness checks, including feature-only changes with unchanged lockfile bytes; retain verified existing Rust/ORT source offers without helper binaries (R-DOC-3, R-SEC-8).
 
 - Verify actual source-archive file evidence and exact native source scopes before sealing fixture insertion; reject stale legal source bindings in the normal check. Protected installer and actual token-format acceptance remain pending (R-DOC-3, R-SEC-8).

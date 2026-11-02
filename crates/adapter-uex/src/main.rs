@@ -12,8 +12,19 @@
 //! also read the app token from
 //! `TALLYLINE_UEX_APP_TOKEN`. Nothing is written to disk, and neither a credential, the personal
 //! data of an answer nor the message text of a UEX error is printed.
+//! `contract-snapshot` reads the fixed public routes and prints only field/type and code metadata.
+//! `contract-check` compares those samples with the bundled metadata baseline.
 
 #![forbid(unsafe_code)]
+
+mod contract_cli;
+
+#[cfg(test)]
+#[expect(
+    non_snake_case,
+    reason = "Requirement tags use a double underscore separator."
+)]
+mod contract_cli_tests;
 
 use std::env;
 use std::io::{self, Write};
@@ -30,7 +41,7 @@ const SECRET_KEY_VARIABLE: &str = "TALLYLINE_UEX_SECRET_KEY";
 const APP_TOKEN_VARIABLE: &str = "TALLYLINE_UEX_APP_TOKEN";
 const SCREENSHOT_PATH_VARIABLE: &str = "TALLYLINE_UEX_SCREENSHOT_PATH";
 const USAGE: &str = "usage: tallyline-uex-spike [--confirm-expert-host] [--host uk|space] \
-                     game-versions | status-levels | prices <id_terminal> | account | report-access | \
+                     game-versions | status-levels | prices <id_terminal> | account | report-access | contract-snapshot | contract-check | \
                      dry-run <id_terminal> <id_commodity> <price_buy> <status_buy> <scu_buy> \
                      <game_version> <date_added> \
                      [container_sizes|-] [invalid_commodity_id]";
@@ -56,6 +67,7 @@ enum Command {
 
 fn main() -> ExitCode {
     let mut arguments: Vec<String> = env::args().skip(1).collect();
+    let public_command = contract_cli::command(&arguments);
     let expert_confirmed = arguments
         .first()
         .is_some_and(|argument| argument == "--confirm-expert-host");
@@ -63,9 +75,13 @@ fn main() -> ExitCode {
         arguments.remove(0);
     }
     let mut stdout = io::stdout().lock();
-    let outcome = match parse(&arguments) {
-        Ok((host, command)) => run(host, &command, expert_confirmed, &mut stdout),
-        Err(message) => Err(message),
+    let outcome = match public_command {
+        Some(Ok(mode)) => contract_cli::run(mode, &mut stdout),
+        Some(Err(message)) => Err(message),
+        None => match parse(&arguments) {
+            Ok((host, command)) => run(host, &command, expert_confirmed, &mut stdout),
+            Err(message) => Err(message),
+        },
     };
     match outcome {
         Ok(()) => ExitCode::SUCCESS,
@@ -204,6 +220,19 @@ fn run(
         writeln!(out, "{EXPERT_HOST_WARNING}").map_err(|error| error.to_string())?;
         out.flush().map_err(|error| error.to_string())?;
     }
+    let (reader, settings, runtime) = build_reader(host, expert_confirmed)?;
+    let lines = runtime.block_on(lines(&reader, &settings, command))?;
+    writeln!(out, "host: {host}").map_err(|error| error.to_string())?;
+    for line in lines {
+        writeln!(out, "{line}").map_err(|error| error.to_string())?;
+    }
+    Ok(())
+}
+
+fn build_reader(
+    host: &str,
+    expert_confirmed: bool,
+) -> Result<(UexReader, ReaderSettings, tokio::runtime::Runtime), String> {
     let identity = ClientIdentity::new("tallyline-uex-spike", env!("CARGO_PKG_VERSION"));
     let settings = ReaderSettings::new(host, identity).map_err(|error| format!("{error:?}"))?;
     let settings = if expert_confirmed {
@@ -216,12 +245,7 @@ fn run(
         .enable_all()
         .build()
         .map_err(|error| error.to_string())?;
-    let lines = runtime.block_on(lines(&reader, &settings, command))?;
-    writeln!(out, "host: {host}").map_err(|error| error.to_string())?;
-    for line in lines {
-        writeln!(out, "{line}").map_err(|error| error.to_string())?;
-    }
-    Ok(())
+    Ok((reader, settings, runtime))
 }
 
 async fn lines(
