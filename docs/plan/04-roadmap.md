@@ -1,6 +1,6 @@
 # Roadmap
 
-> **Doc type:** Living plan — active. Last reviewed: 2026-11-01.
+> **Doc type:** Living plan — active. Last reviewed: 2026-11-02.
 
 Amended 2026-10-12 ([ADR-0005](../adr/0005-rust-and-egui.md)): the milestones now build a Rust and egui application. "Module" reads as "Cargo workspace crate" (the context cut of ADR-0002 is unchanged), M0 is rewritten for the Rust toolchain, the supply chain and the new spikes, and the Java-specific items (JDK 27 toolchain check, jlink and ONNX Runtime merge, JavaFX screen-reader spike, JVM heap limits) are gone. The acceptance criteria keep their meaning.
 
@@ -82,6 +82,8 @@ Implementation 2026-11-01 (R-NF-10): the app elects before writable startup; ada
 **Acceptance criteria:** A user captures a terminal manually in < 1 min (target value), submits it and sees the report IDs. A cooldown and the 30-minute row budget survive a restart of the app (R-SUB-2, R-SUB-4). A job interrupted while sending (shutdown, crash, kill) ends as `OutcomeUnknown` and is never sent again automatically, and a user cancel is refused once the job is sending; after a restart, reports with an unfinished job are back in Draft (R-SUB-9, R-SUB-2). All M requirements of this milestone have acceptance tests (requirement-ID tag, qualified where the coverage table qualifies them) that were written **before** the implementation, or an entry under "Verified outside the test suite"; mutation score of the core (`cargo-mutants`) measured and frozen as a lower bound. Release 0.1 carries `LICENSE`, `NOTICE` and the notices directory in every artefact, attaches the source archives of R-DOC-4, and shows the About dialog with the Fan Kit unit, which also appears on the onboarding start screen (R-DOC-3, R-DOC-4, R-UI-18, R-UI-19).
 
 **Status checkpoint 2026-11-02 (#84):** status approval/reassessment and focus decisions are durable through the public Reporting application and schema-four SQLite migration. The sixteen worsening pairs, value/context invalidation, save failures and restart states have public-boundary contracts. The manual review UI, price approvals, SCU calibration (O-140) and complete release/submission gates remain open; no M1 acceptance criterion is marked complete by this checkpoint.
+
+**Status checkpoint 2026-11-02 (#82):** the Linux platform adapter now provides an injected authenticated DH Secret Service session and fixed-record load/save/remove, sharing the bounded Windows bundle codec. Isolated Unix protocol contracts cover the encrypted round trip and closed locked/ambiguous/corrupt/provider-write outcomes, explicit mutation uncertainty and load reconciliation without automatic retry; they do not claim actual OS-store, cross-session persistence, prompt or desktop acceptance. Secure fallback, onboarding and application logging/worker composition remain open, so issue #82 and the M1 credential acceptance criterion are not complete.
 
 ## M2 – OCR core and eval
 
@@ -244,3 +246,7 @@ Issue #80 adds the native shell, first-launch legal screen, theme persistence, v
 ### Manual Draft implementation checkpoint (2026-11-01)
 
 Issue #83 has the initial Reporting aggregate/application and shared SQLite schema-three repository, exact typed Draft fields, explicit UEX takeover, stale-write rejection and backed-up migration contracts. The editor and app-owned bounded storage worker support keyboard field commands and durable restart. The milestone and issue stay open: R-MAN-4 depends on the shared validation/confirmation slices; game-version resolution, release/submission and native GUI acceptance remain outstanding. No requirement or invariant is weakened by this implementation checkpoint.
+
+## Manual attachment implementation checkpoint (2026-11-02)
+
+Issue #85 now has Report-owned attachment selection/privacy/time decisions persisted in SQLite schema 5, real-directory PNG/JPEG region contracts, confirmation-gated bounded PNG/Base64 encoding and an owned serial below-normal image worker. Public application/SQLite contracts cover restart and stale binding rejection; a headless composition contract covers real file preparation, a capacity-one queue, source deletion and marker-free scaled output. Durable region files, account screenshot requirement memory and its dated clear action, attachment UI, complete release/age checks and native visual acceptance remain open. No M1 acceptance box or issue completion is claimed.

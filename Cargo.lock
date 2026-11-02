@@ -3671,7 +3671,9 @@ dependencies = [
  "png",
  "serde",
  "serde_json",
+ "sha2",
  "tallyline-game",
+ "tallyline-reporting",
  "tallyline-shared-kernel",
  "tallyline-workflows",
  "zune-core",
@@ -3749,6 +3751,7 @@ version = "0.1.0"
 dependencies = [
  "eframe",
  "egui",
+ "png",
  "rusqlite",
  "serde_json",
  "tallyline-adapter-files",

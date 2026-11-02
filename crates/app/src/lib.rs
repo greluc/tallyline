@@ -6,6 +6,7 @@
 #![forbid(unsafe_code)]
 
 pub mod api;
+mod attachment_worker;
 mod cpu_worker;
 mod executor;
 mod manual_worker;

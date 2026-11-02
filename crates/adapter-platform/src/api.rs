@@ -23,3 +23,6 @@ pub use crate::windows_credentials::WindowsCredentialStore;
 
 #[cfg(target_os = "linux")]
 pub use crate::linux_credential_bus::LinuxCredentialBus;
+
+#[cfg(target_os = "linux")]
+pub use crate::linux_credentials::LinuxCredentialStore;

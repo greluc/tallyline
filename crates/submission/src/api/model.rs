@@ -229,6 +229,8 @@ pub enum StorageFailure {
     Locked,
     /// The stored record is malformed or ambiguous.
     Corrupt,
+    /// A dispatched mutation may have committed; reconcile storage before another mutation.
+    OutcomeUnknown,
     /// The requested write could not be committed.
     WriteFailed,
 }

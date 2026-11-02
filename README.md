@@ -106,7 +106,7 @@ Game preferences now persist independent channel-to-UEX mappings in settings sch
 
 Startup config migration coordinates existing SQLite and exact settings bytes in one verified backup set, and refuses processing if the backup fails.
 
-Corrected 2026-11-02: the schema-four application database stores manual Drafts and status decisions while preserving exact buy/sell averages and known terminal container limits; PTU snapshots contain no LIVE averages. Existing databases require a coordinated backup before migration. Status approval/reassessment and keyboard-focus persistence are available at the application boundary; the drawn review UI and release remain in progress.
+Corrected 2026-11-02: the schema-five application database stores manual Drafts, status decisions and attachment metadata while preserving exact buy/sell averages and known terminal container limits; PTU snapshots contain no LIVE averages. Existing databases require a coordinated backup before migration. Status approval/reassessment and keyboard-focus persistence are available at the application boundary; the drawn review UI and release remain in progress.
 
 Reference snapshots now retain UEX acceptance switches, commodity tolerances and capped literal staff information independently of browsing availability.
 
@@ -121,3 +121,5 @@ Tallyline prepares local OCR telemetry mitigation before startup work. If requir
 Recognition integration now includes fixed Small model/dictionary/native data, verified private loading and an explicit headless Windows tensor diagnostic. Synthetic model outputs match the fixed dictionary classes. A developer-only portable raw-image/textline reader adds DB boxes, original-raster crops and lazy reusable sessions with explicit inactivity cleanup; desktop capture/recognition, Linux and complete installation-profile acceptance remain in progress (R-OCR-1, R-SEC-7).
 
 Developer-only typed Tiny/Small/Medium OCR research pairs now retain exact model/dictionary identities and private raw experiment receipts. They reuse the existing verified native runtime; production model selection, hardware evidence and complete delivery remain open (R-OCR-1, R-SEC-7; ADR-0012).
+
+Manual screenshot evidence now has a headless application checkpoint: a user-selected source-scale region is bound to the original image hash and exact geometry, and privacy and observation-time decisions persist on its manual Draft. A bounded below-normal image worker encodes only a matching confirmed region as PNG within 1920×1080 and the Base64 limit. SQLite schema 5 migrates after a coordinated backup. Desktop attachment controls, durable crop files, remembered account screenshot requirements and complete release/submission remain in progress; no native visual acceptance is claimed.
