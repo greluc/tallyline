@@ -208,3 +208,22 @@ fn resolved_target_selectors_preserve_exclusion_and_pin_provenance() {
             .any(|finding| finding.contains("resolved assembly activation"))
     );
 }
+
+#[test]
+fn credential_ffi_sources_require_explicit_hash_bound_review_without_literal_assembly() {
+    let scratch = crate::scratch::Scratch::new();
+    scratch.write("Cargo.toml", "[package]");
+    scratch.write("src/utils.rs", "pub fn native_credential_call() {}");
+    scratch.write("src/cred.rs", "pub struct Credential;");
+    scratch.write("src/store.rs", "pub struct Store;");
+    let mut input = metadata();
+    input["packages"][1]["name"] = json!("windows-native-keyring-store");
+    input["packages"][1]["manifest_path"] = json!(scratch.path().join("Cargo.toml"));
+    let found = crate::native_assembly::source_files(&input.to_string()).unwrap();
+    let paths: std::collections::BTreeSet<_> =
+        found.iter().map(|file| file.path.as_str()).collect();
+    assert_eq!(
+        paths,
+        ["src/cred.rs", "src/store.rs", "src/utils.rs"].into()
+    );
+}

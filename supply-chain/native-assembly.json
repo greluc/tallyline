@@ -420,10 +420,22 @@
       "name": "sha2",
       "version": "0.11.1",
       "archive_sha256": "47d7069beb7d6ac7b9acd1039986e73443f24234f41074da099d6f994ac9ad19",
-      "full_features": [],
+      "full_features": [
+        "alloc",
+        "default",
+        "oid"
+      ],
       "targets": {
-        "x86_64-pc-windows-msvc": [],
-        "x86_64-unknown-linux-gnu": []
+        "x86_64-pc-windows-msvc": [
+          "alloc",
+          "default",
+          "oid"
+        ],
+        "x86_64-unknown-linux-gnu": [
+          "alloc",
+          "default",
+          "oid"
+        ]
       },
       "files": {
         "src/sha256/loongarch64_asm.rs": "eda57073e3dbcadca88e908dd261a2782b2bb89c06f1b97468a6ffd1cad407ff",
@@ -432,7 +444,15 @@
         "src/sha512/riscv_zknh/unroll.rs": "5d265d187e9be2dee3860a8565ea9dc95f8ce205d38061d54c1ff824d423eb8a"
       },
       "licence": "MIT OR Apache-2.0",
-      "scope": "RISC-V Zknh and LoongArch hash instruction modules; excluded on both x86_64 targets. x86 SHA/AVX2 implementation uses Rust intrinsics."
+      "scope": "RISC-V Zknh and LoongArch hash instruction modules; excluded on both x86_64 targets. x86 SHA/AVX2 implementation uses Rust intrinsics.",
+      "resolved_targets": {
+        "x86_64-unknown-linux-gnu": [
+          "alloc",
+          "default",
+          "oid"
+        ],
+        "x86_64-pc-windows-msvc": []
+      }
     },
     {
       "name": "zeroize",
@@ -497,6 +517,166 @@
       },
       "licence": "MIT",
       "scope": "Comment-only register/compiler barriers in float formatting on x86_64 (also AArch64); active on both supported targets and emit no machine instructions."
+    },
+    {
+      "name": "windows-native-keyring-store",
+      "version": "1.1.0",
+      "archive_sha256": "063426e76fdec7438d56bb777f67e318a84a25c707b07e575cb8b78e10c028f8",
+      "full_features": [],
+      "targets": {
+        "x86_64-pc-windows-msvc": [],
+        "x86_64-unknown-linux-gnu": null
+      },
+      "resolved_targets": {
+        "x86_64-pc-windows-msvc": [],
+        "x86_64-unknown-linux-gnu": null
+      },
+      "files": {
+        "src/lib.rs": "5b4068c0e4e5fb728e31d0228821d73dfbd2bfb3a4a797356c7bfab5a09aa002",
+        "src/store.rs": "ee47aa2b1a615dde2d566b0e7db4770986a24c7e29fcb724ecbaefde6c720098",
+        "src/tests.rs": "3fcb08ed96b924612c802425f6de743c173dc03766ec573c1686a2a69be86e27",
+        "src/utils.rs": "87704f2a4c55e18630ae830bd96de3c031cd17a6f365ee1d22925dab120c607e",
+        "src/cred.rs": "64c7a692bf61a192f5e76962b2d47ef55a528a054a699682538189c004ed15df"
+      },
+      "licence": "MIT OR Apache-2.0",
+      "scope": "Credential Manager generic Local persistence; CredReadW/CredWriteW/CredDeleteW/CredFree/GetLastError; fixed ASCII app target; ordered single bounded non-empty binary bundle; search/default features disabled.",
+      "approval": "Exact bounded owner native approval; source/hash reconciliation 2026-11-02; not a human source audit; revisit 2027-04-13"
+    },
+    {
+      "name": "cmov",
+      "version": "0.5.4",
+      "archive_sha256": "0c9ea0ac24bc397ab3c98583a3c9ba74fa56b09a4449bbe172b9b1ddb016027a",
+      "full_features": [],
+      "targets": {
+        "x86_64-pc-windows-msvc": [],
+        "x86_64-unknown-linux-gnu": []
+      },
+      "resolved_targets": {
+        "x86_64-pc-windows-msvc": null,
+        "x86_64-unknown-linux-gnu": []
+      },
+      "files": {
+        "src/backends/aarch64.rs": "85bb0412d6d387b9ff7112a9969a3e4432fd517db4b263e9a5ad8b43fb32d0e7",
+        "src/backends/soft.rs": "6d2dacbc9307dd6386f351778ad329b93a9b03a3de0ebd85f9ab18b34791753a",
+        "src/backends/x86.rs": "db21dfca86f27d4c333e521ead6309fde8f27d2e4319047cbc8a3e9be8975ead"
+      },
+      "licence": "Apache-2.0 OR MIT",
+      "scope": "x86_64 normal backend: test/xor/cmov conditional moves in src/backends/x86.rs; AArch64 and soft/ARM asm excluded. No Miri/custom cfg workaround.",
+      "approval": "Exact bounded owner native approval; source/hash reconciliation 2026-11-02; not a human source audit; revisit 2027-04-13"
+    },
+    {
+      "name": "event-listener",
+      "version": "5.4.2",
+      "archive_sha256": "5a23add41df1562121a9393cb065eab5146a1242410f23a644851e90cfd669d2",
+      "full_features": [
+        "default",
+        "parking",
+        "std"
+      ],
+      "targets": {
+        "x86_64-pc-windows-msvc": null,
+        "x86_64-unknown-linux-gnu": [
+          "default",
+          "parking",
+          "std"
+        ]
+      },
+      "resolved_targets": {
+        "x86_64-pc-windows-msvc": null,
+        "x86_64-unknown-linux-gnu": [
+          "default",
+          "parking",
+          "std"
+        ]
+      },
+      "files": {
+        "src/notify.rs": "bb5b9d495941f5513621df5f4d0264e838d0d5e97f75398d9aaabb31a946c43b"
+      },
+      "licence": "Apache-2.0 OR MIT",
+      "scope": "x86_64 !miri !loom notification fence: lock not qword ptr local UnsafeCell in src/notify.rs; no software selector feature.",
+      "approval": "Exact bounded owner native approval; source/hash reconciliation 2026-11-02; not a human source audit; revisit 2027-04-13"
+    },
+    {
+      "name": "num-bigint",
+      "version": "0.4.8",
+      "archive_sha256": "c89e69e7e0f03bea5ef08013795c25018e101932225a656383bd384495ecc367",
+      "full_features": [
+        "std"
+      ],
+      "targets": {
+        "x86_64-pc-windows-msvc": null,
+        "x86_64-unknown-linux-gnu": [
+          "std"
+        ]
+      },
+      "resolved_targets": {
+        "x86_64-pc-windows-msvc": null,
+        "x86_64-unknown-linux-gnu": [
+          "std"
+        ]
+      },
+      "files": {
+        "src/biguint/division.rs": "ded96527f0c3f3172ddd8dacfb98d27b32545ea4c64fe7a59af2c5c209324f5a"
+      },
+      "licence": "MIT OR Apache-2.0",
+      "scope": "x86_64 !miri div_wide register div assembly in src/biguint/division.rs; num and secret-service constrain ^0.4. No no-asm Cargo feature.",
+      "approval": "Exact bounded owner native approval; source/hash reconciliation 2026-11-02; not a human source audit; revisit 2027-04-13"
+    },
+    {
+      "name": "zbus",
+      "version": "5.19.0",
+      "archive_sha256": "5db4be7c075cb421e4b7ee645541604239bd243ba7c357511f4ff3a74b555907",
+      "full_features": [
+        "blocking-api",
+        "tokio"
+      ],
+      "targets": {
+        "x86_64-pc-windows-msvc": null,
+        "x86_64-unknown-linux-gnu": [
+          "blocking-api",
+          "tokio"
+        ]
+      },
+      "resolved_targets": {
+        "x86_64-pc-windows-msvc": null,
+        "x86_64-unknown-linux-gnu": [
+          "blocking-api",
+          "tokio"
+        ]
+      },
+      "files": {
+        "src/win32.rs": "554951caeaf3b9463f6c47e59f06cc2e07b964791a028e49686f187e5b984ca6",
+        "src/address/mod.rs": "14bfbfa71f7b17f7340d891ced5f4535bd2ef01b156f296df1da1f751b69536d",
+        "src/connection/builder.rs": "60c04930d8e581f349951ad95322f21ac9bc9cbdddb2fe9cfee3d02ac1999fdb",
+        "src/connection/handshake/client.rs": "5af34ba455924f1775bd70591a514af3baf2aa93c466b471d17248759547e586",
+        "src/connection/socket/unix.rs": "eea690019fb8b735bfdb05e8914276fd81414d7ca6cb79a088d47fdb1c75732b",
+        "src/fdo/peer.rs": "ef20cbbc68ba97d8e616947e5bb1dc44964134d9aa35eaf7d45a7ecfcf771e92"
+      },
+      "licence": "MIT",
+      "scope": "Linux Tokio local UDS async client only; rustix ancillary descriptor sendmsg/recvmsg compiled; direct libc/NSS/SO_PEERPIDFD peer helpers must remain uncalled. Never zbus peer_creds/peer_credentials, blocking API, TCP, unixexec, server or p2p. Mandatory compiled blocking-api feature from secret-service is not runtime permission.",
+      "approval": "Exact bounded owner native approval; source/hash reconciliation 2026-11-02; not a human source audit; revisit 2027-04-13"
+    },
+    {
+      "name": "signal-hook-registry",
+      "version": "1.4.8",
+      "archive_sha256": "c4db69cba1110affc0e9f7bcd48bbf87b3f4fc7c61fc9155afd4c469eb3d6c1b",
+      "full_features": [],
+      "targets": {
+        "x86_64-pc-windows-msvc": null,
+        "x86_64-unknown-linux-gnu": []
+      },
+      "resolved_targets": {
+        "x86_64-pc-windows-msvc": null,
+        "x86_64-unknown-linux-gnu": []
+      },
+      "files": {
+        "src/half_lock.rs": "b73a0c35a86ce08f583c241b6fab5ad5b5e2cfef93491af12c5f24251ad76e91",
+        "src/lib.rs": "71c67afdcaab442cc75955a6a17e5eb4e17fb725e0db7f8d1930023c680a7204",
+        "tests/unregister_signal.rs": "5baeebbde2bd7e63ae9a1f1e476d33f0bfd368c1edcdab3677de6a62b04f5118"
+      },
+      "licence": "MIT OR Apache-2.0",
+      "scope": "Linux libc signal/sigaction/raise surfaces compiled via upstream zbus -> Tokio process feature; no application process launch or signal registration is authorised by this proposal.",
+      "approval": "Exact bounded owner native approval; source/hash reconciliation 2026-11-02; not a human source audit; revisit 2027-04-13"
     }
   ]
 }

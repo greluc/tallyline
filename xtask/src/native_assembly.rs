@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 Lucas Greuloch
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Conservative literal assembly inventory, not macro expansion or a native-code proof.
+//! Exact credential native sources and conservative literal assembly inventory.
 
 use crate::lockfile::CRATES_IO;
 use serde_json::Value;
@@ -13,7 +13,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 /// The owner-approved assembly inventory; proposed data must stay outside the repository.
 pub const REVIEWED_PATH: &str = "supply-chain/native-assembly.json";
 
-/// One Rust source file containing a literal assembly indicator.
+/// One Rust source file covered by the native inventory.
 #[derive(Clone, Debug)]
 pub struct SourceFile {
     /// Full Cargo package ID.
@@ -24,7 +24,7 @@ pub struct SourceFile {
     pub sha256: String,
 }
 
-/// Collect hashes of registry Rust files with whitespace-aware literal assembly indicators.
+/// Collect hashes of explicit credential native sources and literal assembly indicators.
 ///
 /// Comments and strings count conservatively; renamed/generated macros may escape this heuristic.
 /// Symlinks and paths outside the canonical package root are rejected.
@@ -47,7 +47,13 @@ pub fn source_files(metadata: &str) -> Result<Vec<SourceFile>, String> {
             reject_link(ancestor)?;
         }
         let canonical = fs::canonicalize(root).map_err(|e| e.to_string())?;
-        collect(root, &canonical, text(package, "id")?, &mut files)?;
+        collect(
+            root,
+            &canonical,
+            text(package, "id")?,
+            text(package, "name")?,
+            &mut files,
+        )?;
     }
     Ok(files)
 }
@@ -60,7 +66,13 @@ fn reject_link(path: &Path) -> Result<(), String> {
     Ok(())
 }
 
-fn collect(path: &Path, root: &Path, id: &str, files: &mut Vec<SourceFile>) -> Result<(), String> {
+fn collect(
+    path: &Path,
+    root: &Path,
+    id: &str,
+    name: &str,
+    files: &mut Vec<SourceFile>,
+) -> Result<(), String> {
     let kind = fs::symlink_metadata(path)
         .map_err(|e| e.to_string())?
         .file_type();
@@ -76,14 +88,21 @@ fn collect(path: &Path, root: &Path, id: &str, files: &mut Vec<SourceFile>) -> R
         .map_err(|_| "source path escapes package root")?;
     if kind.is_dir() {
         for entry in fs::read_dir(path).map_err(|e| e.to_string())? {
-            collect(&entry.map_err(|e| e.to_string())?.path(), root, id, files)?;
+            collect(
+                &entry.map_err(|e| e.to_string())?.path(),
+                root,
+                id,
+                name,
+                files,
+            )?;
         }
     } else if path.extension().is_some_and(|extension| extension == "rs") {
         let bytes = fs::read(path).map_err(|e| e.to_string())?;
-        if indicator(&bytes) {
+        let relative = relative.to_string_lossy().replace('\\', "/");
+        if indicator(&bytes) || credential_source(name, &relative) {
             files.push(SourceFile {
                 package_id: id.to_owned(),
-                path: relative.to_string_lossy().replace('\\', "/"),
+                path: relative,
                 sha256: crate::hashlist::sha256_hex(&bytes),
             });
         }
@@ -91,6 +110,28 @@ fn collect(path: &Path, root: &Path, id: &str, files: &mut Vec<SourceFile>) -> R
     Ok(())
 }
 
+fn credential_source(name: &str, path: &str) -> bool {
+    match name {
+        "windows-native-keyring-store" => matches!(
+            path,
+            "src/utils.rs" | "src/cred.rs" | "src/store.rs" | "src/lib.rs" | "src/tests.rs"
+        ),
+        "zbus" => matches!(
+            path,
+            "src/connection/socket/unix.rs"
+                | "src/fdo/peer.rs"
+                | "src/win32.rs"
+                | "src/connection/builder.rs"
+                | "src/connection/handshake/client.rs"
+                | "src/address/mod.rs"
+        ),
+        "signal-hook-registry" => matches!(
+            path,
+            "src/lib.rs" | "src/half_lock.rs" | "tests/unregister_signal.rs"
+        ),
+        _ => false,
+    }
+}
 fn indicator(bytes: &[u8]) -> bool {
     bytes
         .split(|b| !b.is_ascii_alphanumeric() && *b != b'_')

@@ -153,3 +153,14 @@ allowlist does not grant its optional database, JSON or other capabilities.
 Git child commands remove the repository-local environment names recognised across the supported Git versions, including the legacy `GIT_INTERNAL_SUPER_PREFIX`. The real Git contract compares this removal set with `git rev-parse --local-env-vars`; an additional name fails rather than inheriting another repository context.
 
 Workspace-script reviews remain source reviews, not archive trust or exemptions. The `workspace` object contains only `manifest_path` and `source_path`; the entrypoint must remain inside its own reviewed package. Ambiguous workspace/archive records, workspace procedural-macro records, renamed or foreign packages, missing/duplicate membership, path changes, missing or malformed hashes and malformed metadata fail closed. Source hashing requires absolute paths, a real owning workspace manifest, regular source files, canonical package containment, and no symlink/reparse point in file or ancestor paths. Registry scripts keep the existing crates.io/locked archive identity checks; the separate GL consumer restrictions remain in force. The public guard fixtures include actual changed/missing files and an observed Linux symlink-ancestor regression. No workspace build script is adopted merely by supporting this identity format, and no network, native compilation or publisher trust is authorised by it.
+Credential extension 2026-11-02 adds the six exact native source packages to the
+same hash/archive/feature/target inventory. Explicit credential FFI and transport
+selector files are collected even without literal assembly, so dropping their
+review entries fails. The original nineteen package versions remain intact;
+sha2's approved Linux crypto feature addition now also has resolved selectors
+that keep Windows features empty. cmov's metadata selector records the feature
+union while its resolved Windows selector requires absence. The fixed native
+scope guard also rejects future versions or new optional features of credential
+entry points. This dependency foundation does not implement an OS-store adapter.
+
+The resolved credential scope also rejects the off-target zbus Windows SDK helper features Win32_NetworkManagement, Win32_NetworkManagement_IpHelper and Win32_Security_Authorization on every reached windows-sys version. Their appearance only in conservative metadata is recorded separately; no target activation is permitted.

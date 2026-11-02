@@ -15,6 +15,11 @@ user-id = 27789
 user-login = "DataTriny"
 user-name = "Arnold Loubriat"
 
+[[publisher.aes]]
+version = "0.9.3"
+when = "2026-08-28"
+trusted-publisher = "github:RustCrypto/block-ciphers"
+
 [[publisher.ahash]]
 version = "0.8.12"
 when = "2025-05-08"
@@ -56,6 +61,27 @@ user-id = 356
 user-login = "bluss"
 user-name = "bluss"
 
+[[publisher.async-broadcast]]
+version = "0.7.2"
+when = "2024-12-23"
+user-id = 6423
+user-login = "zeenix"
+user-name = "Zeeshan Ali Khan"
+
+[[publisher.async-recursion]]
+version = "1.2.0"
+when = "2026-10-03"
+user-id = 55174
+user-login = "dcchut"
+user-name = "Robert Usher"
+
+[[publisher.async-trait]]
+version = "0.1.92"
+when = "2026-08-08"
+user-id = 3618
+user-login = "dtolnay"
+user-name = "David Tolnay"
+
 [[publisher.autocfg]]
 version = "1.5.1"
 when = "2026-05-22"
@@ -76,6 +102,13 @@ when = "2026-09-10"
 user-id = 3204
 user-login = "KodrAus"
 user-name = "Ashley Mannix"
+
+[[publisher.block-padding]]
+version = "0.4.2"
+when = "2025-11-26"
+user-id = 5059
+user-login = "newpavlov"
+user-name = "Artyom Pavlov"
 
 [[publisher.block2]]
 version = "0.5.1"
@@ -104,6 +137,13 @@ when = "2026-09-11"
 user-id = 7211
 user-login = "Lokathor"
 user-name = "Lokathor"
+
+[[publisher.byteorder]]
+version = "1.5.0"
+when = "2023-10-06"
+user-id = 189
+user-login = "BurntSushi"
+user-name = "Andrew Gallant"
 
 [[publisher.byteorder-lite]]
 version = "0.1.0"
@@ -146,10 +186,20 @@ user-id = 42583
 user-login = "kchibisov"
 user-name = "Kirill Chibisov"
 
+[[publisher.cbc]]
+version = "0.2.1"
+when = "2026-05-20"
+trusted-publisher = "github:RustCrypto/block-modes"
+
 [[publisher.cc]]
 version = "1.10.0"
 when = "2026-10-23"
 trusted-publisher = "github:rust-lang/cc-rs"
+
+[[publisher.cipher]]
+version = "0.5.2"
+when = "2026-05-19"
+trusted-publisher = "github:RustCrypto/traits"
 
 [[publisher.clipboard-win]]
 version = "5.4.3"
@@ -163,6 +213,11 @@ version = "0.1.58"
 when = "2026-03-26"
 user-id = 55123
 user-login = "rust-lang-owner"
+
+[[publisher.cmov]]
+version = "0.5.4"
+when = "2026-05-28"
+trusted-publisher = "github:RustCrypto/utils"
 
 [[publisher.color]]
 version = "0.3.3"
@@ -178,6 +233,13 @@ user-id = 167830
 user-login = "hwittenborn"
 user-name = "Hunter Wittenborn"
 
+[[publisher.const-oid]]
+version = "0.10.2"
+when = "2026-01-07"
+user-id = 267
+user-login = "tarcieri"
+user-name = "Tony Arcieri"
+
 [[publisher.core-foundation]]
 version = "0.9.3"
 when = "2022-02-07"
@@ -191,6 +253,11 @@ when = "2020-09-15"
 user-id = 2396
 user-login = "jdm"
 user-name = "Josh Bowman-Matthews"
+
+[[publisher.cpubits]]
+version = "0.1.1"
+when = "2026-04-28"
+trusted-publisher = "github:RustCrypto/utils"
 
 [[publisher.crc32fast]]
 version = "1.5.3"
@@ -217,6 +284,11 @@ when = "2026-09-05"
 user-id = 33035
 user-login = "taiki-e"
 user-name = "Taiki Endo"
+
+[[publisher.ctutils]]
+version = "0.4.6"
+when = "2026-10-25"
+trusted-publisher = "github:RustCrypto/utils"
 
 [[publisher.cursor-icon]]
 version = "1.2.0"
@@ -323,6 +395,27 @@ user-id = 197939
 user-login = "rerunio"
 user-name = "Rerun"
 
+[[publisher.endi]]
+version = "1.1.1"
+when = "2025-11-26"
+user-id = 6423
+user-login = "zeenix"
+user-name = "Zeeshan Ali Khan"
+
+[[publisher.enumflags2]]
+version = "0.7.12"
+when = "2025-06-09"
+user-id = 38769
+user-login = "meithecatte"
+user-name = "Maja Kądziołka"
+
+[[publisher.enumflags2_derive]]
+version = "0.7.12"
+when = "2025-06-09"
+user-id = 38769
+user-login = "meithecatte"
+user-name = "Maja Kądziołka"
+
 [[publisher.epaint]]
 version = "0.37.0"
 when = "2026-10-15"
@@ -350,6 +443,20 @@ when = "2026-03-18"
 user-id = 1281
 user-login = "nical"
 user-name = "Nicolas Silva"
+
+[[publisher.event-listener]]
+version = "5.4.2"
+when = "2026-07-27"
+user-id = 6423
+user-login = "zeenix"
+user-name = "Zeeshan Ali Khan"
+
+[[publisher.event-listener-strategy]]
+version = "0.5.4"
+when = "2025-03-27"
+user-id = 33035
+user-login = "taiki-e"
+user-name = "Taiki Endo"
 
 [[publisher.fastrand]]
 version = "2.5.0"
@@ -432,6 +539,13 @@ when = "2026-08-11"
 user-id = 33035
 user-login = "taiki-e"
 user-name = "Taiki Endo"
+
+[[publisher.futures-lite]]
+version = "2.6.1"
+when = "2025-08-04"
+user-id = 69526
+user-login = "notgull"
+user-name = "John Nunley"
 
 [[publisher.futures-macro]]
 version = "0.3.34"
@@ -588,6 +702,23 @@ user-id = 91569
 user-login = "mkroening"
 user-name = "Martin Kröning"
 
+[[publisher.hex]]
+version = "0.4.3"
+when = "2021-03-03"
+user-id = 36
+user-login = "KokaKiwi"
+user-name = "KokaKiwi"
+
+[[publisher.hkdf]]
+version = "0.13.0"
+when = "2026-03-30"
+trusted-publisher = "github:RustCrypto/KDFs"
+
+[[publisher.hmac]]
+version = "0.13.0"
+when = "2026-03-29"
+trusted-publisher = "github:RustCrypto/MACs"
+
 [[publisher.http]]
 version = "1.5.0"
 when = "2026-07-29"
@@ -693,6 +824,11 @@ user-id = 11453
 user-login = "197g"
 user-name = "Aurelia Molzer"
 
+[[publisher.inout]]
+version = "0.2.5"
+when = "2026-10-19"
+trusted-publisher = "github:RustCrypto/utils"
+
 [[publisher.itertools]]
 version = "0.15.0"
 when = "2026-06-16"
@@ -726,6 +862,11 @@ when = "2026-07-27"
 user-id = 82913
 user-login = "vstroebel"
 user-name = "Volker Ströbel"
+
+[[publisher.keyring-core]]
+version = "1.0.1"
+when = "2026-10-13"
+trusted-publisher = "github:open-source-cooperative/keyring-core"
 
 [[publisher.khronos-egl]]
 version = "6.0.0"
@@ -842,6 +983,13 @@ user-id = 35980
 user-login = "de-vri-es"
 user-name = "Maarten de Vries"
 
+[[publisher.memoffset]]
+version = "0.9.1"
+when = "2024-03-26"
+user-id = 10122
+user-login = "Gilnaa"
+user-name = "Gilad Naaman"
+
 [[publisher.miniz_oxide]]
 version = "0.8.9"
 when = "2025-06-09"
@@ -909,6 +1057,48 @@ when = "2025-01-26"
 user-id = 959
 user-login = "Geal"
 user-name = "Geoffroy Couprie"
+
+[[publisher.num]]
+version = "0.4.3"
+when = "2024-05-08"
+user-id = 539
+user-login = "cuviper"
+user-name = "Josh Stone"
+
+[[publisher.num-bigint]]
+version = "0.4.8"
+when = "2026-07-05"
+user-id = 539
+user-login = "cuviper"
+user-name = "Josh Stone"
+
+[[publisher.num-complex]]
+version = "0.4.6"
+when = "2024-05-07"
+user-id = 539
+user-login = "cuviper"
+user-name = "Josh Stone"
+
+[[publisher.num-integer]]
+version = "0.1.47"
+when = "2026-08-12"
+user-id = 539
+user-login = "cuviper"
+user-name = "Josh Stone"
+
+[[publisher.num-iter]]
+version = "0.1.46"
+when = "2026-07-07"
+user-id = 539
+user-login = "cuviper"
+user-name = "Josh Stone"
+
+[[publisher.num-rational]]
+version = "0.4.2"
+when = "2024-05-08"
+user-id = 539
+user-login = "cuviper"
+user-name = "Josh Stone"
 
 [[publisher.num_cpus]]
 version = "1.17.0"
@@ -1092,12 +1282,25 @@ user-id = 2017
 user-login = "mbrubeck"
 user-name = "Matt Brubeck"
 
+[[publisher.ordered-stream]]
+version = "0.2.0"
+when = "2023-02-11"
+user-id = 129275
+user-login = "danieldg"
+
 [[publisher.os_pipe]]
 version = "1.2.3"
 when = "2025-10-11"
 user-id = 3589
 user-login = "oconnor663"
 user-name = "Jack O'Connor"
+
+[[publisher.parking]]
+version = "2.2.1"
+when = "2024-09-07"
+user-id = 69526
+user-login = "notgull"
+user-name = "John Nunley"
 
 [[publisher.parking_lot]]
 version = "0.12.5"
@@ -1408,6 +1611,13 @@ user-id = 2915
 user-login = "Amanieu"
 user-name = "Amanieu d'Antras"
 
+[[publisher.secret-service]]
+version = "5.2.0"
+when = "2026-08-29"
+user-id = 103233
+user-login = "brotskydotcom"
+user-name = "Daniel Brotsky"
+
 [[publisher.self_cell]]
 version = "1.3.0"
 when = "2026-07-16"
@@ -1443,6 +1653,13 @@ user-id = 3618
 user-login = "dtolnay"
 user-name = "David Tolnay"
 
+[[publisher.serde_repr]]
+version = "0.1.21"
+when = "2026-07-18"
+user-id = 3618
+user-login = "dtolnay"
+user-name = "David Tolnay"
+
 [[publisher.serde_spanned]]
 version = "1.1.2"
 when = "2026-10-08"
@@ -1454,6 +1671,13 @@ user-name = "Ed Page"
 version = "0.11.1"
 when = "2026-10-12"
 trusted-publisher = "github:RustCrypto/hashes"
+
+[[publisher.signal-hook-registry]]
+version = "1.4.8"
+when = "2025-12-25"
+user-id = 5906
+user-login = "vorner"
+user-name = "Michal 'vorner' Vaner"
 
 [[publisher.simd-adler32]]
 version = "0.3.10"
@@ -1529,6 +1753,13 @@ when = "2026-10-12"
 user-id = 3618
 user-login = "dtolnay"
 user-name = "David Tolnay"
+
+[[publisher.tempfile]]
+version = "3.27.0"
+when = "2026-03-11"
+user-id = 280
+user-login = "Stebalien"
+user-name = "Steven Allen"
 
 [[publisher.termcolor]]
 version = "1.4.1"
@@ -1677,6 +1908,13 @@ user-id = 172786
 user-login = "hds"
 user-name = "Hayden Stainsby"
 
+[[publisher.tracing-attributes]]
+version = "0.1.31"
+when = "2025-11-26"
+user-id = 172786
+user-login = "hds"
+user-name = "Hayden Stainsby"
+
 [[publisher.tree_magic_mini]]
 version = "3.2.2"
 when = "2025-11-14"
@@ -1690,6 +1928,13 @@ when = "2023-12-07"
 user-id = 359
 user-login = "seanmonstar"
 user-name = "Sean McArthur"
+
+[[publisher.uds_windows]]
+version = "1.2.1"
+when = "2026-03-14"
+user-id = 18212
+user-login = "haraldh"
+user-name = "Harald Hoyer"
 
 [[publisher.unicode-general-category]]
 version = "1.1.0"
@@ -1985,6 +2230,11 @@ user-id = 64539
 user-login = "kennykerr"
 user-name = "Kenny Kerr"
 
+[[publisher.windows-native-keyring-store]]
+version = "1.1.0"
+when = "2026-05-24"
+trusted-publisher = "github:open-source-cooperative/windows-native-keyring-store"
+
 [[publisher.windows-numerics]]
 version = "0.3.1"
 when = "2025-10-06"
@@ -2193,6 +2443,34 @@ user-id = 166196
 user-login = "robertbastian"
 user-name = "Robert Bastian"
 
+[[publisher.zbus]]
+version = "5.19.0"
+when = "2026-08-09"
+user-id = 6423
+user-login = "zeenix"
+user-name = "Zeeshan Ali Khan"
+
+[[publisher.zbus_macros]]
+version = "5.19.0"
+when = "2026-08-09"
+user-id = 6423
+user-login = "zeenix"
+user-name = "Zeeshan Ali Khan"
+
+[[publisher.zbus_names]]
+version = "4.3.5"
+when = "2026-10-16"
+user-id = 6423
+user-login = "zeenix"
+user-name = "Zeeshan Ali Khan"
+
+[[publisher.zcheapstr]]
+version = "1.1.0"
+when = "2026-08-10"
+user-id = 6423
+user-login = "zeenix"
+user-name = "Zeeshan Ali Khan"
+
 [[publisher.zerocopy]]
 version = "0.8.63"
 when = "2026-10-13"
@@ -2270,6 +2548,27 @@ when = "2026-03-26"
 user-id = 159371
 user-login = "etemesi254"
 user-name = "Caleb Etemesi"
+
+[[publisher.zvariant]]
+version = "5.15.1"
+when = "2026-10-16"
+user-id = 6423
+user-login = "zeenix"
+user-name = "Zeeshan Ali Khan"
+
+[[publisher.zvariant_derive]]
+version = "5.15.1"
+when = "2026-10-16"
+user-id = 6423
+user-login = "zeenix"
+user-name = "Zeeshan Ali Khan"
+
+[[publisher.zvariant_utils]]
+version = "4.2.0"
+when = "2026-08-18"
+user-id = 6423
+user-login = "zeenix"
+user-name = "Zeeshan Ali Khan"
 
 [[audits.bytecode-alliance.wildcard-audits.bumpalo]]
 who = "Nick Fitzgerald <fitzgen@gmail.com>"
@@ -2397,6 +2696,12 @@ who = "Andrew Brown <andrew.brown@intel.com>"
 criteria = "safe-to-deploy"
 version = "0.2.19"
 notes = "As advertised: a numeric library. The only `unsafe` is from some float-to-int conversions, which seems expected."
+
+[[audits.bytecode-alliance.audits.parking]]
+who = "Chris Fallin <chris@cfallin.org>"
+criteria = "safe-to-deploy"
+version = "2.2.1"
+notes = "forbid-unsafe crate with straightforward imports."
 
 [[audits.bytecode-alliance.audits.percent-encoding]]
 who = "Alex Crichton <alex@alexcrichton.com>"
@@ -2540,6 +2845,13 @@ think this justifies marking this crate as `ub-risk-1`.
 
 Additional review comments can be found at https://crrev.com/c/4723145/31
 """
+aggregated-from = "https://chromium.googlesource.com/chromium/src/+/main/third_party/rust/chromium_crates_io/supply-chain/audits.toml?format=TEXT"
+
+[[audits.google.audits.byteorder]]
+who = "danakj <danakj@chromium.org>"
+criteria = "safe-to-deploy"
+version = "1.5.0"
+notes = "Unsafe review in https://crrev.com/c/5838022"
 aggregated-from = "https://chromium.googlesource.com/chromium/src/+/main/third_party/rust/chromium_crates_io/supply-chain/audits.toml?format=TEXT"
 
 [[audits.google.audits.core-foundation-sys]]
@@ -2844,6 +3156,11 @@ aggregated-from = "https://chromium.googlesource.com/chromiumos/third_party/rust
 who = "David Cook <dcook@divviup.org>"
 criteria = "safe-to-deploy"
 delta = "0.3.3 -> 0.3.4"
+
+[[audits.isrg.audits.num-rational]]
+who = "Brandon Pitman <bran@bran.land>"
+criteria = "safe-to-deploy"
+delta = "0.4.1 -> 0.4.2"
 
 [[audits.isrg.audits.rayon-core]]
 who = "Ameer Ghani <inahga@divviup.org>"
@@ -3240,6 +3557,12 @@ criteria = "safe-to-deploy"
 delta = "0.27.0 -> 0.28.0"
 aggregated-from = "https://raw.githubusercontent.com/mozilla-firefox/firefox/main/supply-chain/audits.toml"
 
+[[audits.mozilla.audits.hex]]
+who = "Simon Friedberger <simon@mozilla.com>"
+criteria = "safe-to-deploy"
+version = "0.4.3"
+aggregated-from = "https://raw.githubusercontent.com/mozilla-firefox/firefox/main/supply-chain/audits.toml"
+
 [[audits.mozilla.audits.idna]]
 who = "Valentin Gosu <valentin.gosu@gmail.com>"
 criteria = "safe-to-deploy"
@@ -3290,6 +3613,13 @@ criteria = "safe-to-deploy"
 version = "0.4.0"
 notes = 'Straightforward checking of procfs for the string "microsoft"'
 aggregated-from = "https://raw.githubusercontent.com/mozilla/cargo-vet/main/supply-chain/audits.toml"
+
+[[audits.mozilla.audits.num-rational]]
+who = "Josh Stone <jistone@redhat.com>"
+criteria = "safe-to-deploy"
+version = "0.4.1"
+notes = "All code written or reviewed by Josh Stone."
+aggregated-from = "https://raw.githubusercontent.com/mozilla-firefox/firefox/main/supply-chain/audits.toml"
 
 [[audits.mozilla.audits.objc2-core-foundation]]
 who = "Andy Leiserson <aleiserson@mozilla.com>"
