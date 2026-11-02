@@ -142,3 +142,69 @@ fn expired_or_malformed_scope_cannot_pass() {
     assert!(findings(&metadata(), &expired, &files()).is_err());
     assert!(violations("{}", "", "{}", &[], &Default::default()).is_err());
 }
+
+#[test]
+fn target_tree_exclusion_requires_evidence_and_rejects_real_activation() {
+    let mut approved = review();
+    approved["packages"][0]["resolved_targets"] = json!({"windows":null,"linux":["std"]});
+    assert!(findings(&metadata(), &approved, &files()).is_err());
+}
+
+#[test]
+fn resolved_target_selectors_preserve_exclusion_and_pin_provenance() {
+    let mut approved = review();
+    approved["packages"][0]["resolved_targets"] = json!({"windows":null,"linux":["std"]});
+    let windows =
+        crate::target_graph::resolved_metadata(&metadata().to_string(), "0app v0.0.0|\n").unwrap();
+    let linux = crate::target_graph::resolved_metadata(
+        &metadata().to_string(),
+        "0app v0.0.0|\n1sample v1.0.0|std\n",
+    )
+    .unwrap();
+    let mut targets: std::collections::BTreeMap<_, _> = [("windows", windows), ("linux", linux)]
+        .map(|(target, graph)| {
+            let mut input = metadata();
+            input["tallyline_target_tree"] = json!({"cargo":crate::target_graph::REVIEWED_CARGO,
+            "host":"x86_64-pc-windows-msvc","target":target,
+            "graph":serde_json::from_str::<Value>(&graph).unwrap()});
+            (target.to_owned(), input.to_string())
+        })
+        .into();
+    let lock = format!(
+        "[[package]]\nname = \"sample\"\nversion = \"1.0.0\"\nsource = \"{}\"\nchecksum = \"{}\"\n",
+        crate::lockfile::CRATES_IO,
+        "a".repeat(64)
+    );
+    let check = |targets: &std::collections::BTreeMap<String, String>| {
+        violations(
+            &metadata().to_string(),
+            &lock,
+            &approved.to_string(),
+            &files(),
+            targets,
+        )
+    };
+    assert!(check(&targets).unwrap().is_empty());
+    let good = targets.clone();
+    for (field, value) in [
+        ("cargo", json!("cargo 1.100.0")),
+        ("host", json!("aarch64-unknown-linux-gnu")),
+        ("target", json!("wrong")),
+        ("graph", json!({})),
+    ] {
+        let mut input: Value = serde_json::from_str(&good["windows"]).unwrap();
+        input["tallyline_target_tree"][field] = value;
+        targets.insert("windows".to_owned(), input.to_string());
+        assert!(check(&targets).is_err(), "{field}");
+    }
+    let mut input: Value = serde_json::from_str(&good["windows"]).unwrap();
+    input["tallyline_target_tree"]["graph"] = metadata();
+    targets = good;
+    targets.insert("windows".to_owned(), input.to_string());
+    assert!(
+        check(&targets)
+            .unwrap()
+            .iter()
+            .any(|finding| finding.contains("resolved assembly activation"))
+    );
+}

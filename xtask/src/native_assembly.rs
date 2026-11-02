@@ -235,12 +235,69 @@ fn check_target(
     findings: &mut Vec<String>,
 ) -> Result<(), String> {
     let document: Value = serde_json::from_str(metadata).map_err(|e| e.to_string())?;
-    let packages = index(array(&document, "packages")?)?;
+    let reached = reachable(&document)?;
+    let resolved = document
+        .get("tallyline_target_tree")
+        .map(|proof| {
+            if text(proof, "cargo")? != crate::target_graph::REVIEWED_CARGO
+                || text(proof, "target")? != target
+                || !matches!(
+                    text(proof, "host")?,
+                    "x86_64-pc-windows-msvc" | "x86_64-unknown-linux-gnu"
+                )
+            {
+                return Err("unreviewed Cargo target-tree provenance".to_owned());
+            }
+            reachable(proof.get("graph").ok_or("missing target-tree graph")?)
+        })
+        .transpose()?;
+    for (key, entry) in reviews {
+        let expected = entry["targets"]
+            .get(target)
+            .ok_or("missing reviewed target")?;
+        let matches = matches_activation(expected, reached.get(key).copied())?;
+        if !matches {
+            findings.push(format!(
+                "{target}: {} {} assembly activation/features changed",
+                key.0, key.1
+            ));
+        }
+        if let Some(expected) = entry.get("resolved_targets") {
+            let expected = expected
+                .get(target)
+                .ok_or("missing resolved target selector")?;
+            let resolved = resolved
+                .as_ref()
+                .ok_or("missing required Cargo target-tree evidence")?;
+            if !matches_activation(expected, resolved.get(key).copied())? {
+                findings.push(format!(
+                    "{target}: {} {} resolved assembly activation/features changed",
+                    key.0, key.1
+                ));
+            }
+        }
+    }
+    Ok(())
+}
+
+fn matches_activation(expected: &Value, node: Option<&Value>) -> Result<bool, String> {
+    Ok(match (expected, node) {
+        (Value::Null, None) => true,
+        (Value::Array(features), Some(node)) => {
+            strings(features)? == strings(array(node, "features")?)?
+        }
+        (Value::Null | Value::Array(_), _) => false,
+        _ => return Err("malformed target activation selector".to_owned()),
+    })
+}
+
+fn reachable(document: &Value) -> Result<BTreeMap<(&str, &str), &Value>, String> {
+    let packages = index(array(document, "packages")?)?;
     let nodes = index(array(
         document.get("resolve").ok_or("missing resolve graph")?,
         "nodes",
     )?)?;
-    let mut pending: Vec<_> = strings(array(&document, "workspace_members")?)?
+    let mut pending: Vec<_> = strings(array(document, "workspace_members")?)?
         .into_iter()
         .collect();
     if pending.is_empty() {
@@ -259,25 +316,7 @@ fn check_target(
             pending.push(text(dependency, "pkg")?);
         }
     }
-    for (key, entry) in reviews {
-        let expected = entry["targets"]
-            .get(target)
-            .ok_or("missing reviewed target")?;
-        let matches = match (expected, reached.get(key)) {
-            (Value::Null, None) => true,
-            (Value::Array(features), Some(node)) => {
-                strings(features)? == strings(array(node, "features")?)?
-            }
-            _ => false,
-        };
-        if !matches {
-            findings.push(format!(
-                "{target}: {} {} assembly activation/features changed",
-                key.0, key.1
-            ));
-        }
-    }
-    Ok(())
+    Ok(reached)
 }
 
 fn expiry(date: &str) -> Result<(), String> {

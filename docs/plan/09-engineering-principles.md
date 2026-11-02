@@ -1,6 +1,6 @@
 # Engineering Principles: Modularisation, Maintainability, Clean Code
 
-> **Doc type:** Living spec — binding. Last reviewed: 2026-11-01.
+> **Doc type:** Living spec — binding. Last reviewed: 2026-11-02.
 
 This document makes "best practices" **verifiable**: every rule states *how* it is enforced. Where possible this happens automatically (compiler, the Cargo crate graph, Clippy, `cargo-deny`, `xtask`, CI), otherwise via the review checklist and the Definition of Done.
 
@@ -61,10 +61,12 @@ The `unsafe` code of the platform adapter is registered here too. Corrected 2026
 
 | Location | Rule | Reason | Date | Revisit when |
 |---|---|---|---|---|
+| `crates/adapter-ocr/tests/assets.rs`, requirement-tagged public asset contracts | `non_snake_case` | The required traceability grammar contains a double underscore | 2026-11-02 | the tag grammar changes or rustc accepts consecutive underscores |
 | `xtask::build_code_workspace_tests`, requirement-tagged public guard contracts | `non_snake_case` | The required traceability grammar contains a double underscore | 2026-11-01 | the tag grammar changes or rustc accepts consecutive underscores |
 | `crates/adapter-platform/tests/ocr_startup.rs`, requirement-tagged tests | `non_snake_case` | The required traceability grammar contains a double underscore | 2026-11-01 | the tag grammar changes or rustc accepts consecutive underscores |
 | `crates/adapter-ocr/tests/{ctc,preprocessing}.rs`, requirement-tagged tests | `non_snake_case` | The required traceability grammar contains a double underscore | 2026-11-01 | the tag grammar changes or rustc accepts consecutive underscores |
 | `crates/adapter-files/tests/image_intake.rs`, requirement-tagged tests | `non_snake_case` | The required traceability grammar contains a double underscore | 2026-11-01 | the tag grammar changes or rustc accepts consecutive underscores |
+| `deny.toml` `libloading@=0.8.9` | `multiple-versions` | Accepted ort rc.14 requires ^0.9; existing ash0.38/wgpu-hal30 desktop parents require ^0.8, with disjoint ranges. Exact runtime graph only. | 2026-11-02 | 2027-04-13, or before parent updates |
 | `deny.toml` `moxcms@=0.8.1` | `multiple-versions` | image0.25.10 requires ^0.8; direct ICC intake uses latest eligible0.9.1, with disjoint ranges | 2026-11-01 | 2027-04-13 |
 | `crates/ui/tests/reference_browser/*.rs`, requirement-tagged tests | `non_snake_case` | The traceability grammar contains a double underscore | 2026-11-01 | the tag grammar changes or rustc accepts consecutive underscores |
 | `crates/reporting/tests/{manual,application,review}.rs`, `crates/adapter-storage/tests/manual_reports.rs`, `crates/app/tests/manual_worker.rs`, `crates/ui/tests/manual_reports.rs` and the manual search contract in `crates/reference-data/tests/cache.rs` | `non_snake_case`, local `#[expect]` per tagged test | The required traceability grammar contains a double underscore | 2026-11-01 | the tag grammar changes or rustc accepts consecutive underscores |
@@ -135,6 +137,16 @@ Corrected 2026-11-01 (narrow enforcement): the `native scope` step of `cargo xta
 
 Owner approval 2026-11-01 binds the 19 versions, 14 crates and 98 source-indicator files of `supply-chain/native-assembly.json`, including exact archive/source hashes, full-resolution features and supported-target reachability. It covers only x86_64 Windows MSVC and Linux GNU with the recorded selectors; custom cfg/RUSTFLAGS/backend overrides and activation of excluded branches require fresh review. The conservative lexical guard is not macro expansion, a full unsafe-code audit or proof of arbitrary native-code absence. The source review compared the published archives and read native effects, selectors, licences and alternatives. For omitted off-target objc2 licence texts, see NOTICE section 11.
 
+Target-activation evidence added 2026-11-02: an assembly entry may additionally
+bind `resolved_targets` with exact features or explicit absence for every
+supported target. The original conservative metadata selectors remain binding.
+The independent live Cargo tree evidence is source-bound to Cargo 1.99.0 commit
+`5f94df478`, records host and target, validates all workspace roots and every
+observed identity/edge/feature against full metadata, and fails on missing or
+malformed proof. Host build/procedural-macro and target occurrences are unioned;
+a Linux tree collected on Windows is not matching-host Linux build acceptance.
+No native scope is widened by this additional selector. See the exact collection
+and verification limits in [xtask](../../xtask/README.md#literal-inline-assembly-inventory).
 ## 4. Error handling, logging, observability
 
 - **Error categories:**
@@ -190,6 +202,10 @@ Further test rules:
 - **Coverage gate (`cargo-llvm-cov`):** initial value ≥ 85 % lines for the core crates. There is no quota for adapters; integration tests instead. The quota serves to find gaps, not as an end in itself.
 
 Corrected 2026-11-01: `cargo xtask check` enforces the 85% line-coverage floor over the exact present core packages from locked Cargo metadata, with a visible no-core skip. The first core, `tallyline-workflows`, measured 33/33 lines covered and a completed full Windows mutation score of 100% at integration commit `5b1895690ee8462359d9519d90ef27583ead0f95`: four caught and four unviable mutants, none missed or timed out. `cargo xtask mutation` now enforces that frozen 100% floor (11 §B3); changed PR lines and full nightly runs are wired in `.github/workflows/mutation.yml`. The workspace test timeout has a 120-second minimum because the pinned tool times its baseline using only mutated packages; timeouts remain rejected. Linux and hosted measurements of this core remain pending. The architecture allowlist permits `tallyline-ui` to depend on the adopted `tallyline-egui` design system, matching 02 §7 and O-112.
+
+Corrected 2026-11-02: the mutation workflow also needs a Git LFS checkout. Its core-only baseline can pass with pointer files while every full-workspace variant fails the adapter's asset hash/length guard. An isolated unchanged-source check failed with Cargo exit code 101 on the 132-byte detector pointer and passed with the exact 9,880,512-byte payload. The workflow now materialises all LFS fixtures/assets and retains run outcomes/build logs for seven days. The all-unviable guard and frozen 100% score floor stay binding; this reproduction is an infrastructure diagnosis, not a hosted mutation score.
+
+Corrected 2026-11-02: the real-process instance-election fixture previously created its final result file before writing its contents. A parent waiting only for existence could read an empty result, producing an unrelated failed test during mutation analysis. Results now become visible through a sibling-file rename after the complete write and close. A deterministic two-process regression pauses after three bytes and verifies that the final path is still absent, then checks the complete result. All 13 Windows process contracts passed after the fix. This changes the test fixture only; it does not change instance election, activation framing, deadlines or mutation scoring.
 
 ## 9. Dependencies and build
 

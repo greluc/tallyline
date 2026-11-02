@@ -1011,6 +1011,13 @@ user-id = 3204 # Ashley Mannix (KodrAus)
 start = "2019-07-10"
 end = "2027-10-14"
 
+[[trusted.matrixmultiply]]
+criteria = "safe-to-deploy"
+user-id = 356 # bluss (bluss)
+start = "2026-07-14"
+end = "2027-11-02"
+notes = "S-6 standing own-project maintainer-publisher policy, recorded 2026-11-02 by GPT-6.1 Sol (AI agent). Canonical bluss/matrixmultiply release commit 07f968c20e0df41e3fd694e9c47ef5368ec9eee1 is authored and committed by bluss with message 0.3.11; the packaged VCS revision and actual crates.io publisher match. The start includes the selected publication; expiry is one year after this record is written. Trust applies only to this named crate and publisher, not other projects. This is publisher trust, not a full source-soundness audit, completed human review or fresh owner decision. Exact binding/features/native limits and CODEOWNERS/PR review remain separate."
+
 [[trusted.memchr]]
 criteria = "safe-to-deploy"
 user-id = 189 # Andrew Gallant (BurntSushi)
@@ -1058,6 +1065,13 @@ start = "2026-08-22"
 end = "2027-11-01"
 notes = "S-6 direct project maintenance: live crates.io confirms naga-types 30.0.1 publisher cwfitzgerald/53780, published 2026-08-22. This crate is in gfx-rs/wgpu; current https://github.com/gfx-rs/wgpu/blob/trunk/GOVERNANCE.md explicitly lists Connor Fitzgerald (@cwfitzgerald) in community leadership. Verified 2026-11-01."
 
+[[trusted.ndarray]]
+criteria = "safe-to-deploy"
+user-id = 303992 #  (akern40)
+start = "2026-01-10"
+end = "2027-11-02"
+notes = "S-6 standing own-project maintainer-publisher policy, recorded 2026-11-02 by GPT-6.1 Sol (AI agent). Canonical rust-ndarray/ndarray release commit 2cf23d6abf5f7a8a5e638fa1c69779dc4d7219a0 is authored and committed by akern40 with message chore: Release; the packaged VCS revision and actual crates.io publisher match. The start includes the selected publication; expiry is one year after this record is written. Trust applies only to this named crate and publisher, not other projects. This is publisher trust, not a full source-soundness audit, completed human review or fresh owner decision. Exact binding/features/native limits and CODEOWNERS/PR review remain separate."
+
 [[trusted.ndk]]
 criteria = "safe-to-deploy"
 user-id = 110371 # Marijn Suijten (MarijnS95)
@@ -1078,6 +1092,20 @@ user-id = 959 # Geoffroy Couprie (Geal)
 start = "2025-01-26"
 end = "2027-11-01"
 notes = "S-6 own-project authority checked 2026-11-01. Exact nom 8.0.0 publisher Geal/959 verified at https://crates.io/api/v1/crates/nom/8.0.0. Same-project CODEOWNERS assigns all paths to Geal; https://github.com/rust-bakery/nom/blob/main/.github/CODEOWNERS This is publisher trust, not a fresh source audit. Includes future publications by this publisher for this crate within the stated dates; no native target, backend, feature or exemption approval."
+
+[[trusted.num-complex]]
+criteria = "safe-to-deploy"
+user-id = 539 # Josh Stone (cuviper)
+start = "2024-05-07"
+end = "2027-11-02"
+notes = "S-6 standing own-project maintainer-publisher policy, recorded 2026-11-02 by GPT-6.1 Sol (AI agent). Canonical rust-num/num-complex release PR128 is merged by cuviper into packaged revision 91fdc06356c0c868cb88b5a180859023c57e6e50 (Release 0.4.6); GitHub merged_by and actual crates.io publisher match. This is release authority, not generic contribution. The start includes the selected publication; expiry is one year after this record is written. Trust applies only to this named crate and publisher, not other projects. This is publisher trust, not a full source-soundness audit, completed human review or fresh owner decision. Exact binding/features/native limits and CODEOWNERS/PR review remain separate."
+
+[[trusted.num-integer]]
+criteria = "safe-to-deploy"
+user-id = 539 # Josh Stone (cuviper)
+start = "2026-08-12"
+end = "2027-11-02"
+notes = "S-6 standing own-project maintainer-publisher policy, recorded 2026-11-02 by GPT-6.1 Sol (AI agent). Canonical rust-num/num-integer packaged revision 765fd9b3eb9397471d41b9f613e530f6d9d6383f is authored and committed by cuviper and fixes the release date; actual crates.io publisher is the same account. The start includes the selected publication; expiry is one year after this record is written. Trust applies only to this named crate and publisher, not other projects. This is publisher trust, not a full source-soundness audit, completed human review or fresh owner decision. Exact binding/features/native limits and CODEOWNERS/PR review remain separate."
 
 [[trusted.num_cpus]]
 criteria = "safe-to-deploy"
@@ -1238,6 +1266,20 @@ start = "2026-08-21"
 end = "2027-11-01"
 notes = "S-6 direct own-project maintenance: reem/rust-ordered-float exact 5.5.1 release d0ff7fb1 authored/committed by mbrubeck; current 2026-10-25 other-contributor merge aa4c4f2d committed by mbrubeck. Exact live 5.5.0 publisher mbrubeck/2017 and publication 2026-08-21 verified after S-7 cooldown pin; extend existing trust start to cover this exact publication. Packaged source and upstream verified; direct release/merge authority, not cross-crate inference."
 
+[[trusted.ort]]
+criteria = "safe-to-deploy"
+user-id = 152041 # Carson M. (decahedron1)
+start = "2026-10-12"
+end = "2027-11-02"
+notes = "S-6 standing own-project maintainer-publisher policy, recorded 2026-11-02 by GPT-6.1 Sol (AI agent). Canonical pykeio/ort release commit 1ee1f842e8a381153ede7a506f01734e545854e0 is authored and committed by decahedron1 with message 2.0.0-rc.14; the packaged VCS revision matches. Current sole crates.io owner and actual publisher are the same account. The start includes the selected publication; expiry is one year after this record is written. Trust applies only to this named crate and publisher, not other projects. This is publisher trust, not a full source-soundness audit, completed human review or fresh owner decision. Exact binding/features/native limits and CODEOWNERS/PR review remain separate."
+
+[[trusted.ort-sys]]
+criteria = "safe-to-deploy"
+user-id = 152041 # Carson M. (decahedron1)
+start = "2026-10-12"
+end = "2027-11-02"
+notes = "S-6 standing own-project maintainer-publisher policy, recorded 2026-11-02 by GPT-6.1 Sol (AI agent). Canonical pykeio/ort release commit 1ee1f842e8a381153ede7a506f01734e545854e0 is authored and committed by decahedron1 with message 2.0.0-rc.14; the packaged VCS revision matches. Actual publisher is decahedron1, the binding project maintainer and ort sole owner. The start includes the selected publication; expiry is one year after this record is written. Trust applies only to this named crate and publisher, not other projects. This is publisher trust, not a full source-soundness audit, completed human review or fresh owner decision. Exact binding/features/native limits and CODEOWNERS/PR review remain separate."
+
 [[trusted.os_pipe]]
 criteria = "safe-to-deploy"
 user-id = 3589 # Jack O'Connor (oconnor663)
@@ -1388,6 +1430,13 @@ user-id = 53780 # Connor Fitzgerald (cwfitzgerald)
 start = "2026-02-27"
 end = "2027-11-01"
 notes = "S-6 direct own-project maintenance established separately from wgpu: gfx-rs/range-alloc exact packaged release commit34a5b93f04850e25315f87841d2555f2c0e0ed80 authored/committed by cwfitzgerald2026-02-27; current March2026 repository-procedure merge6f51102e and other-contributor no_std commit8ded7dba committed bycwfitzgerald. Live exact0.1.5 publishercwfitzgerald/53780 verified2026-11-01. No transfer based solely on wgpu leadership; this is not a source-audit certification or guarantee for invalid arithmetic/free/grow inputs."
+
+[[trusted.rawpointer]]
+criteria = "safe-to-deploy"
+user-id = 356 # bluss (bluss)
+start = "2019-09-12"
+end = "2027-11-02"
+notes = "S-6 standing own-project maintainer-publisher policy, recorded 2026-11-02 by GPT-6.1 Sol (AI agent). Canonical bluss/rawpointer release commit e4f5800e86acc8cb610430a3f361977480e2b0a6 is authored and committed by bluss with message 0.2.1; the packaged VCS revision and actual crates.io publisher match. The start includes the selected publication; expiry is one year after this record is written. Trust applies only to this named crate and publisher, not other projects. This is publisher trust, not a full source-soundness audit, completed human review or fresh owner decision. Exact binding/features/native limits and CODEOWNERS/PR review remain separate."
 
 [[trusted.rayon]]
 criteria = "safe-to-deploy"

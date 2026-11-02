@@ -53,7 +53,7 @@ Compiled transitive crates: `itoa` (`MIT OR Apache-2.0`), `memchr` (`Unlicense O
 
 `check` runs `cargo llvm-cov --locked --fail-under-lines 85` for the present core packages: `tallyline-shared-kernel`, `tallyline-game`, `tallyline-reference-data`, `tallyline-capture`, `tallyline-recognition`, `tallyline-reporting`, `tallyline-submission` and `tallyline-workflows`. This is the same exact membership as the architecture guard. Adapters, UI, design-system and tools have no coverage quota. Malformed Cargo metadata fails rather than becoming an empty selection.
 
-Install the exact quality-tool versions and verify the archive digests in `docs/dependency-pins.md`; `llvm-tools-preview` must belong to the repository's pinned Rust toolchain. CI checks the binary versions and archive hashes before use. No toolchain override is required. `cargo xtask mutation --in-diff <diff>` consumes a Git unified diff; without the option it evaluates the full core. The report stays under `target/core-mutation/` and is not committed.
+Install the exact quality-tool versions and verify the archive digests in `docs/dependency-pins.md`; `llvm-tools-preview` must belong to the repository's pinned Rust toolchain. CI checks the binary versions and archive hashes before use. No toolchain override is required. `cargo xtask mutation --in-diff <diff>` consumes a Git unified diff; without the option it evaluates the full core. The report stays under `target/core-mutation/` and is not committed. CI materialises Git LFS payloads before mutation: the tool's core-only baseline does not exercise the workspace adapters built for actual variants. JSON/text reports and build logs are retained as a seven-day run artifact even after failure; an all-unviable run remains a failed measurement, never a passing score.
 
 Corrected 2026-11-01: `tallyline-workflows` is the first present core crate. Its full Windows measurement at integration commit `5b1895690ee8462359d9519d90ef27583ead0f95` completed with eight mutants: four caught, four unviable, none missed or timed out. The score is 100% and the non-decreasing floor is frozen at that value. Core line coverage is 33/33 lines (100%). The initial run timed out while running the larger workspace suite; its result was rejected and is not the baseline. The successful repeat used a 120-second minimum test timeout, now passed explicitly by `xtask`; timeouts still fail the report gate. The pinned tool's baseline tests only mutated packages even when mutants run all workspace tests ([upstream source](https://github.com/sourcefrog/cargo-mutants/blob/v27.1.0/src/lab.rs)). Linux and hosted measurements of this core remain pending.
 
@@ -95,6 +95,35 @@ comments use this boundary; audit/trust notes retain the English rule. Unicode
 escapes in the TOML configuration encode the original names without adding a
 self-exemption for the allowlist file.
 
+Target evidence added 2026-11-02: existing `targets` selectors still bind the
+conservative target-filtered metadata, unchanged. An optional `resolved_targets`
+object adds a second, independent exact activation/feature selector for every
+supported target: `null` means absent and an array means present with exactly
+those features. It cannot waive the original metadata, archive, source or
+full-feature bindings. Missing evidence or malformed selectors fail closed.
+
+The CLI collects the complete workspace tree directly with locked/offline Cargo,
+normal/build/dev edges, depth prefixes and `{p}|{f}` formatting. The reviewed
+Cargo build is exactly `cargo 1.99.0 (5f94df478 2026-08-27)`; its source at
+[commit 5f94df478](https://github.com/rust-lang/cargo/tree/5f94df478/src/ops/cargo_tree)
+uses the target feature resolver, filters inactive platform/optional edges and
+includes host build/procedural-macro dependencies. Collection records that
+Cargo build, the observed Cargo host and the requested target. The parser checks
+every workspace root, package identity, edge, feature, depth and duplicate
+reference against full metadata; unknown or ambiguous identities fail closed.
+Missing/empty output is never evidence of exclusion. Host and target occurrences
+are conservatively unioned. A Linux target tree collected on Windows therefore
+includes Windows host units and is not evidence of a matching-host Linux build.
+
+This distinguishes inactive optional feature-union edges without silently
+redefining existing approvals. Baseline tree features differ from metadata for
+Windows getrandom 0.3.4 and for half 2.7.1 and zlib-rs 0.6.8 on both targets; their
+existing metadata selectors remain exact. Cargo documents the tree as an
+approximation of compilation, not a unit-plan or emitted-code proof. The
+source-bound collection is an additional activation guard; matching-host builds
+and practical native acceptance remain separate requirements. This prerequisite
+adds no credential dependency, native approval, trust or vet exemption.
+
 ## Approved SQLite source scope
 
 `cargo xtask sqlite-native` checks `supply-chain/sqlite-native.json`: exact
@@ -124,3 +153,4 @@ allowlist does not grant its optional database, JSON or other capabilities.
 Git child commands remove the repository-local environment names recognised across the supported Git versions, including the legacy `GIT_INTERNAL_SUPER_PREFIX`. The real Git contract compares this removal set with `git rev-parse --local-env-vars`; an additional name fails rather than inheriting another repository context.
 
 Workspace-script reviews remain source reviews, not archive trust or exemptions. The `workspace` object contains only `manifest_path` and `source_path`; the entrypoint must remain inside its own reviewed package. Ambiguous workspace/archive records, workspace procedural-macro records, renamed or foreign packages, missing/duplicate membership, path changes, missing or malformed hashes and malformed metadata fail closed. Source hashing requires absolute paths, a real owning workspace manifest, regular source files, canonical package containment, and no symlink/reparse point in file or ancestor paths. Registry scripts keep the existing crates.io/locked archive identity checks; the separate GL consumer restrictions remain in force. The public guard fixtures include actual changed/missing files and an observed Linux symlink-ancestor regression. No workspace build script is adopted merely by supporting this identity format, and no network, native compilation or publisher trust is authorised by it.
+The ONNX binding gate also enforces ADR-0007 before build/test work: reachable `ort` and `ort-sys` must be exactly2.0.0-rc.14 and have the complete reviewed `load-dynamic`/API-31 feature closure. Defaults, downloading, copying, alternate providers and unknown features fail closed. Only `tallyline-adapter-ocr` may depend on `ort`, and only `ort` may depend on `ort-sys`; dependency names are resolved through package IDs so aliases cannot bypass the private adapter boundary. This gate adopts no dependency or runtime by itself.

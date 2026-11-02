@@ -695,23 +695,65 @@ fn native_assembly_passes(root: &Path, review: &Path) -> io::Result<bool> {
         "literal assembly inventory: {} Rust source files",
         files.len()
     )?;
+    let cargo_version = cargo_stdout(root, &["--version", "--verbose"])?;
+    if cargo_version.lines().next() != Some(xtask::target_graph::REVIEWED_CARGO) {
+        return Err(io::Error::other(
+            "target-tree evidence requires reviewed Cargo 1.99.0 commit 5f94df478",
+        ));
+    }
+    let host = cargo_version
+        .lines()
+        .find_map(|line| line.strip_prefix("host: "))
+        .ok_or_else(|| io::Error::other("missing Cargo host provenance"))?;
     let mut targets = std::collections::BTreeMap::new();
     for target in SHIPPED_TARGETS {
-        targets.insert(
-            target.to_owned(),
-            cargo_stdout(
-                root,
-                &[
-                    "metadata",
-                    "--locked",
-                    "--offline",
-                    "--format-version",
-                    "1",
-                    "--filter-platform",
-                    target,
-                ],
-            )?,
-        );
+        let tree = cargo_stdout(
+            root,
+            &[
+                "tree",
+                "--locked",
+                "--offline",
+                "--workspace",
+                "--target",
+                target,
+                "--edges",
+                "normal,build,dev",
+                "--prefix",
+                "depth",
+                "--format",
+                "{p}|{f}",
+                "--color",
+                "never",
+            ],
+        )?;
+        let resolved =
+            xtask::target_graph::resolved_metadata(&metadata, &tree).map_err(io::Error::other)?;
+        let filtered = cargo_stdout(
+            root,
+            &[
+                "metadata",
+                "--locked",
+                "--offline",
+                "--format-version",
+                "1",
+                "--filter-platform",
+                target,
+            ],
+        )?;
+        let mut filtered: serde_json::Value = serde_json::from_str(&filtered)?;
+        filtered
+            .as_object_mut()
+            .ok_or_else(|| io::Error::other("invalid metadata document"))?
+            .insert(
+                "tallyline_target_tree".to_owned(),
+                serde_json::json!({
+                    "cargo": xtask::target_graph::REVIEWED_CARGO,
+                    "host": host,
+                    "target": target,
+                    "graph": serde_json::from_str::<serde_json::Value>(&resolved)?,
+                }),
+            );
+        targets.insert(target.to_owned(), serde_json::to_string(&filtered)?);
     }
     let findings = xtask::native_assembly::violations(
         &metadata,
