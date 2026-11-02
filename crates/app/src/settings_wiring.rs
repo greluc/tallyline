@@ -126,11 +126,12 @@ fn run(
     .map_err(io::Error::other)?;
     let manual_settings = ConfigFile::new(settings_path.clone());
     let manual_context = context.clone();
-    let manual_worker = tallyline_app::api::ManualWorker::start(
+    let manual_worker = tallyline_app::api::ManualWorker::start_with_attachments(
         manual_store,
         crate::update_wiring::SystemClock,
         manual_incoming,
         outgoing.clone(),
+        tallyline_app::api::ManualAttachmentStorage::new(layout.data().to_owned()),
         move || {
             manual_settings
                 .load_game_preferences()

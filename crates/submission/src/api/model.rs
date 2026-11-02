@@ -234,3 +234,22 @@ pub enum StorageFailure {
     /// The requested write could not be committed.
     WriteFailed,
 }
+
+/// Account evidence learned only from an actual documented submission answer.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum ScreenshotRequirement {
+    /// UEX answered `screenshot_required` for this validated account.
+    Required,
+}
+/// Current account-scoped knowledge; absence never invents a requirement.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub enum ScreenshotPolicy {
+    /// No verified requirement is known; a manual Report may omit its image.
+    #[default]
+    Unknown,
+    /// A documented actual response established this account's requirement.
+    Required {
+        /// Date of the newest observed `screenshot_required` answer.
+        observed_at: Timestamp,
+    },
+}

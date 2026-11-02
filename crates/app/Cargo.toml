@@ -41,3 +41,6 @@ workspace = true
 
 [dev-dependencies.png]
 workspace = true
+
+[dependencies.tallyline-submission]
+workspace = true

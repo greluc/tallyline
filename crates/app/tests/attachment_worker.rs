@@ -82,7 +82,6 @@ fn r_man_5_r_sub_7_r_nf_3__bounded_worker_prepares_and_encodes_durable_report_ev
     release.send(()).unwrap();
     let _preview = queued.recv().unwrap().unwrap();
     blocked.recv().unwrap();
-    release.send(()).unwrap();
     let database = directory.join("application.db");
     let mut app = ReportingApplication::new(SqliteReferenceCache::open(&database).unwrap(), Fixed);
     let report = app
@@ -121,16 +120,73 @@ fn r_man_5_r_sub_7_r_nf_3__bounded_worker_prepares_and_encodes_durable_report_ev
         .into_iter()
         .find(|r| r.id() == report.id())
         .unwrap();
-    let encoded = worker
-        .encode(report, preview, Default::default())
-        .unwrap()
-        .recv()
-        .unwrap()
+    let pending = worker
+        .encode(report.clone(), preview, Default::default())
         .unwrap();
+    let mut current = report.clone();
+    let mut changed = Vec::new();
+    for binding in [
+        tallyline_reporting::api::model::AttachmentBinding::new(
+            current.attachment().unwrap().binding().image(),
+            AttachmentRegion::new(0, 101, 2000, 1099).unwrap(),
+        ),
+        tallyline_reporting::api::model::AttachmentBinding::new(
+            tallyline_reporting::api::model::ImageHash::new([8; 32]),
+            region,
+        ),
+    ] {
+        current = app
+            .edit_attachment(
+                current.id(),
+                current.version(),
+                AttachmentEdit::Select(
+                    binding,
+                    tallyline_reporting::api::model::AttachmentTime::ImportedFile(
+                        Timestamp::from_seconds(950),
+                    ),
+                ),
+            )
+            .unwrap();
+        current = app
+            .edit_attachment(
+                current.id(),
+                current.version(),
+                AttachmentEdit::ConfirmPreview(binding),
+            )
+            .unwrap();
+        current = app
+            .edit_attachment(
+                current.id(),
+                current.version(),
+                AttachmentEdit::ConfirmTime(Timestamp::from_seconds(900)),
+            )
+            .unwrap();
+        assert!(current.attachment_gate().is_ok());
+        changed.push(current.clone());
+    }
+    current = app
+        .edit_attachment(current.id(), current.version(), AttachmentEdit::Remove)
+        .unwrap();
+    changed.push(current.clone());
+    release.send(()).unwrap();
+    let encoded = pending.recv().unwrap().unwrap();
+    for current in changed {
+        assert!(!encoded.is_current(&current));
+        assert!(encoded.png_for(&current).is_err());
+        assert!(encoded.base64_for(&current).is_err());
+    }
+    assert!(
+        encoded
+            .png_for(&app.draft(current.id()).unwrap().unwrap())
+            .is_err()
+    );
     blocked.recv().unwrap();
     release.send(()).unwrap();
     let tallyline_adapter_files::api::model::ImageIntake::Decoded(image) =
-        tallyline_adapter_files::api::read_image(encoded.png(), &ImageIntakeSettings::default())
+        tallyline_adapter_files::api::read_image(
+            encoded.png_for(&report).unwrap(),
+            &ImageIntakeSettings::default(),
+        )
     else {
         panic!("invalid PNG")
     };
@@ -142,7 +198,7 @@ fn r_man_5_r_sub_7_r_nf_3__bounded_worker_prepares_and_encodes_durable_report_ev
             .iter()
             .all(|pixel| *pixel == 0xff00_0000)
     );
-    assert!(encoded.base64().len() <= 10_000_000);
+    assert!(encoded.base64_for(&report).unwrap().len() <= 10_000_000);
     worker.finish().unwrap();
     drop(app);
     std::fs::remove_dir_all(directory).unwrap();

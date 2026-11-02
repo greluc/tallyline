@@ -151,3 +151,121 @@ fn r_man_2_r_ui_16__unavailable_mapping_returns_a_passive_failure_instead_of_lea
     worker.finish().unwrap();
     std::fs::remove_file(path).unwrap();
 }
+
+#[test]
+#[expect(
+    non_snake_case,
+    reason = "Requirement tags use a double underscore separator."
+)]
+fn r_man_5_r_sub_7__private_attachment_controls_use_the_bounded_worker_and_recover_after_restart() {
+    use tallyline_app::api::ManualAttachmentStorage;
+    use tallyline_reporting::api::ReportingApplication;
+    use tallyline_reporting::api::model::AttachmentRegion;
+    use tallyline_ui::api::model::{ManualAttachmentAction, ManualAttachmentCommand};
+    let directory = std::env::temp_dir().join(format!(
+        "tallyline-connected-attachment-{}",
+        std::process::id()
+    ));
+    std::fs::create_dir(&directory).unwrap();
+    let path = directory.join("tallyline.db");
+    let mut app = ReportingApplication::new(SqliteReferenceCache::open(&path).unwrap(), Fixed);
+    let report = app
+        .create(
+            ReportKey::new(TerminalId(11), TradeSide::Buy, GameEnvironment::Live).unwrap(),
+            Some("4.10.2"),
+        )
+        .unwrap();
+    drop(app);
+    let source = directory.join("source.png");
+    let mut image = Vec::new();
+    {
+        let mut encoder = png::Encoder::new(&mut image, 4, 4);
+        encoder.set_color(png::ColorType::Rgb);
+        let mut writer = encoder.write_header().unwrap();
+        writer.write_image_data(&[0; 48]).unwrap();
+    }
+    std::fs::write(&source, image).unwrap();
+    let (commands, incoming) = mpsc::sync_channel(1);
+    let (outgoing, events) = mpsc::sync_channel(8);
+    let worker = tallyline_app::api::ManualWorker::start_with_attachments(
+        SqliteReferenceCache::open(&path).unwrap(),
+        Fixed,
+        incoming,
+        outgoing,
+        ManualAttachmentStorage::new(directory.clone()),
+        || Ok(Default::default()),
+        || (),
+    )
+    .unwrap();
+    let _loaded = events.recv_timeout(Duration::from_secs(10)).unwrap();
+    commands
+        .send(ManualCommand::Attachment(ManualAttachmentCommand {
+            id: report.id(),
+            expected: report.version(),
+            action: ManualAttachmentAction::Prepare {
+                source: source.to_string_lossy().into_owned(),
+                region: AttachmentRegion::new(0, 1, 4, 3).unwrap(),
+            },
+        }))
+        .unwrap();
+    let BackgroundEvent::ReportsLoaded { reports, selected } =
+        events.recv_timeout(Duration::from_secs(10)).unwrap()
+    else {
+        panic!("no saved Report")
+    };
+    assert_eq!(selected, None);
+    let report = reports[0].clone();
+    let BackgroundEvent::AttachmentPreview { preview, .. } =
+        events.recv_timeout(Duration::from_secs(10)).unwrap()
+    else {
+        panic!("no source-scale preview")
+    };
+    commands
+        .send(ManualCommand::Attachment(ManualAttachmentCommand {
+            id: report.id(),
+            expected: report.version(),
+            action: ManualAttachmentAction::ConfirmPreview(preview),
+        }))
+        .unwrap();
+    let BackgroundEvent::ReportsLoaded { reports, selected } =
+        events.recv_timeout(Duration::from_secs(10)).unwrap()
+    else {
+        panic!("no confirmed Report")
+    };
+    assert_eq!(selected, None);
+    let report = reports[0].clone();
+    assert!(report.attachment().unwrap().working_copy().is_some());
+    worker.finish().unwrap();
+    std::fs::remove_file(source).unwrap();
+    let (commands, incoming) = mpsc::sync_channel(1);
+    let (outgoing, events) = mpsc::sync_channel(8);
+    let worker = tallyline_app::api::ManualWorker::start_with_attachments(
+        SqliteReferenceCache::open(&path).unwrap(),
+        Fixed,
+        incoming,
+        outgoing,
+        ManualAttachmentStorage::new(directory.clone()),
+        || Ok(Default::default()),
+        || (),
+    )
+    .unwrap();
+    let _loaded = events.recv_timeout(Duration::from_secs(10)).unwrap();
+    commands
+        .send(ManualCommand::Attachment(ManualAttachmentCommand {
+            id: report.id(),
+            expected: report.version(),
+            action: ManualAttachmentAction::View,
+        }))
+        .unwrap();
+    let BackgroundEvent::AttachmentPreview { preview, .. } =
+        events.recv_timeout(Duration::from_secs(10)).unwrap()
+    else {
+        panic!("no recovered preview")
+    };
+    assert_eq!(
+        (preview.raster().width(), preview.raster().height()),
+        (4, 3)
+    );
+    worker.finish().unwrap();
+    std::fs::remove_dir_all(directory).unwrap();
+}

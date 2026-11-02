@@ -23,6 +23,7 @@ impl Report {
                     binding,
                     time,
                     preview_confirmed: false,
+                    working_copy: None,
                 });
             }
             AttachmentEdit::ConfirmPreview(binding) => {
@@ -31,6 +32,13 @@ impl Report {
                     return Err(InvalidReport);
                 }
                 attachment.preview_confirmed = true;
+            }
+            AttachmentEdit::BindWorkingCopy(binding, digest) => {
+                let attachment = self.attachment.as_mut().ok_or(InvalidReport)?;
+                if attachment.binding != binding || !attachment.preview_confirmed {
+                    return Err(InvalidReport);
+                }
+                attachment.working_copy = Some(digest);
             }
             AttachmentEdit::ConfirmTime(at) => {
                 let attachment = self.attachment.as_mut().ok_or(InvalidReport)?;

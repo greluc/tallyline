@@ -312,6 +312,7 @@ struct AttachmentDocument {
     observed_at: String,
     time_source: TimeSource,
     preview_confirmed: bool,
+    working_copy: Option<[u8; 32]>,
 }
 #[derive(Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -331,6 +332,9 @@ impl From<tallyline_reporting::api::model::ManualAttachment> for AttachmentDocum
                 AttachmentTime::User(_) => TimeSource::User,
             },
             preview_confirmed: value.preview_confirmed(),
+            working_copy: value
+                .working_copy()
+                .map(tallyline_reporting::api::model::ImageHash::bytes),
         }
     }
 }
@@ -351,6 +355,7 @@ impl AttachmentDocument {
                 TimeSource::User => AttachmentTime::User(at),
             },
             preview_confirmed: self.preview_confirmed,
+            working_copy: self.working_copy.map(ImageHash::new),
         })
     }
 }

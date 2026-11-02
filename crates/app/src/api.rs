@@ -11,3 +11,5 @@ pub use crate::attachment_worker::{AttachmentWorker, AttachmentWorkerError};
 pub use crate::cpu_worker::CpuWorker;
 pub use crate::manual_worker::ManualWorker;
 pub use crate::reference_worker::ReferenceWorker;
+
+pub use crate::manual_attachments::ManualAttachmentStorage;

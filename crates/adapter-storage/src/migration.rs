@@ -109,3 +109,31 @@ pub(crate) fn schema_five(connection: &Connection) -> Result<(), StorageError> {
     connection.pragma_update(None, "user_version", 5)?;
     Ok(())
 }
+
+pub(crate) fn schema_six(connection: &Connection) -> Result<(), StorageError> {
+    let mut statement = connection.prepare("SELECT id,payload FROM reports")?;
+    let records = statement
+        .query_map([], |row| {
+            Ok((row.get::<_, i64>(0)?, row.get::<_, String>(1)?))
+        })?
+        .collect::<Result<Vec<_>, _>>()?;
+    for (id, payload) in records {
+        let mut document: serde_json::Value =
+            serde_json::from_str(&payload).map_err(|_| StorageError::InvalidCache)?;
+        let attachment = document
+            .get_mut("attachment")
+            .ok_or(StorageError::InvalidCache)?;
+        if !attachment.is_null() {
+            attachment
+                .as_object_mut()
+                .ok_or(StorageError::InvalidCache)?
+                .insert("working_copy".to_owned(), serde_json::Value::Null);
+        }
+        connection.execute(
+            "UPDATE reports SET payload=?1 WHERE id=?2",
+            (document.to_string(), id),
+        )?;
+    }
+    connection.execute_batch("CREATE TABLE screenshot_requirements(account_digest BLOB PRIMARY KEY CHECK(length(account_digest)=32),observed_at TEXT NOT NULL); PRAGMA user_version=6;")?;
+    Ok(())
+}

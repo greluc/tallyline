@@ -36,9 +36,9 @@ pub enum AttachmentImageError {
 /// A full-size selected-region preview with no retained original screenshot.
 #[derive(Clone, Debug)]
 pub struct AttachmentPreview {
-    binding: AttachmentBinding,
-    time: AttachmentTime,
-    raster: ImageRaster,
+    pub(crate) binding: AttachmentBinding,
+    pub(crate) time: AttachmentTime,
+    pub(crate) raster: ImageRaster,
 }
 impl AttachmentPreview {
     /// Returns the complete source hash and source-pixel rectangle.
@@ -85,19 +85,35 @@ impl Default for AttachmentEncodingSettings {
 
 /// A confirmation-gated PNG and its standard padded Base64 payload.
 pub struct EncodedAttachment {
+    request: tallyline_workflows::api::AttachmentRequest,
     png: Vec<u8>,
     base64: String,
 }
 impl EncodedAttachment {
-    /// Returns only the encoded selected region, never the source file.
+    /// Checks request identity against the current Report before exposing this result for use.
     #[must_use]
-    pub fn png(&self) -> &[u8] {
-        &self.png
+    pub fn is_current(&self, report: &Report) -> bool {
+        self.request.is_current(report) && report.attachment_gate().is_ok()
     }
-    /// Returns the Base64 payload without a data-URL prefix.
-    #[must_use]
-    pub fn base64(&self) -> &str {
-        &self.base64
+    /// Borrows only the selected PNG after rechecking the current durable Report state.
+    ///
+    /// # Errors
+    /// Refuses delayed results after any Report edit, changed binding or removed evidence.
+    pub fn png_for(&self, current: &Report) -> Result<&[u8], AttachmentImageError> {
+        if !self.is_current(current) {
+            return Err(AttachmentImageError::Unconfirmed);
+        }
+        Ok(&self.png)
+    }
+    /// Borrows Base64 without a data-URL prefix after rechecking the current durable Report.
+    ///
+    /// # Errors
+    /// Refuses delayed results after any Report edit, changed binding or removed evidence.
+    pub fn base64_for(&self, current: &Report) -> Result<&str, AttachmentImageError> {
+        if !self.is_current(current) {
+            return Err(AttachmentImageError::Unconfirmed);
+        }
+        Ok(&self.base64)
     }
 }
 impl std::fmt::Debug for EncodedAttachment {
@@ -251,6 +267,8 @@ pub fn encode_manual_attachment(
         return Err(AttachmentImageError::EncodingLimit);
     }
     Ok(EncodedAttachment {
+        request: tallyline_workflows::api::AttachmentRequest::new(report)
+            .ok_or(AttachmentImageError::Unconfirmed)?,
         png: output.bytes,
         base64,
     })

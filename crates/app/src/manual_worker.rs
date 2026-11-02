@@ -43,9 +43,62 @@ impl ManualWorker {
         R: ReportRepository + Send + 'static,
         C: Clock + Send + 'static,
     {
+        Self::start_configured(store, clock, incoming, outgoing, None, mapping, wake)
+    }
+    /// Starts local Draft and private attachment work on the bounded below-normal worker.
+    ///
+    /// # Errors
+    /// Returns thread creation failure; unavailable storage is delivered as passive state.
+    pub fn start_with_attachments<R, C>(
+        store: R,
+        clock: C,
+        incoming: Receiver<ManualCommand>,
+        outgoing: SyncSender<BackgroundEvent>,
+        storage: crate::api::ManualAttachmentStorage,
+        mapping: impl FnMut() -> io::Result<EnvironmentMapping> + Send + 'static,
+        wake: impl Fn() + Send + 'static,
+    ) -> io::Result<Self>
+    where
+        R: ReportRepository + Send + 'static,
+        C: Clock + Send + 'static,
+    {
+        Self::start_configured(
+            store,
+            clock,
+            incoming,
+            outgoing,
+            Some(storage),
+            mapping,
+            wake,
+        )
+    }
+    fn start_configured<R, C>(
+        store: R,
+        clock: C,
+        incoming: Receiver<ManualCommand>,
+        outgoing: SyncSender<BackgroundEvent>,
+        storage: Option<crate::api::ManualAttachmentStorage>,
+        mapping: impl FnMut() -> io::Result<EnvironmentMapping> + Send + 'static,
+        wake: impl Fn() + Send + 'static,
+    ) -> io::Result<Self>
+    where
+        R: ReportRepository + Send + 'static,
+        C: Clock + Send + 'static,
+    {
         let stop = Arc::new(AtomicBool::new(false));
         let stopping = Arc::clone(&stop);
         let worker = crate::executor::spawn("tallyline-manual", move || {
+            if let Err(error) = tallyline_adapter_platform::api::lower_worker_priority() {
+                deliver(
+                    &outgoing,
+                    BackgroundEvent::ReportFailed(
+                        tallyline_reporting::api::RepositoryError::Unavailable,
+                    ),
+                    &wake,
+                    &stopping,
+                )?;
+                return Err(error);
+            }
             run(
                 ReportingApplication::new(store, clock),
                 incoming,
@@ -53,6 +106,7 @@ impl ManualWorker {
                 mapping,
                 wake,
                 &stopping,
+                storage.as_ref(),
             )
         })?;
         Ok(Self {
@@ -91,6 +145,7 @@ fn run<R: ReportRepository, C: Clock>(
     mut mapping: impl FnMut() -> io::Result<EnvironmentMapping>,
     wake: impl Fn(),
     stop: &AtomicBool,
+    storage: Option<&crate::api::ManualAttachmentStorage>,
 ) -> io::Result<()> {
     let reports = match application.drafts() {
         Ok(reports) => reports,
@@ -114,6 +169,32 @@ fn run<R: ReportRepository, C: Clock>(
             Err(RecvTimeoutError::Timeout) => continue,
             Err(RecvTimeoutError::Disconnected) => break,
         };
+        let command = match command {
+            ManualCommand::Attachment(command) => {
+                let id = command.id;
+                let expected = command.expected;
+                let result = crate::manual_attachments::execute(&mut application, command, storage);
+                match result {
+                    Ok(events) => {
+                        for event in events {
+                            deliver(&outgoing, event, &wake, stop)?;
+                        }
+                    }
+                    Err(failure) => deliver(
+                        &outgoing,
+                        BackgroundEvent::AttachmentFailed {
+                            id,
+                            expected,
+                            failure,
+                        },
+                        &wake,
+                        stop,
+                    )?,
+                }
+                continue;
+            }
+            command @ (ManualCommand::Create { .. } | ManualCommand::Edit { .. }) => command,
+        };
         match mapping() {
             Ok(mapping) => application.set_mapping(mapping),
             Err(_) => {
@@ -129,6 +210,9 @@ fn run<R: ReportRepository, C: Clock>(
             }
         }
         let result = match command {
+            ManualCommand::Attachment(_) => {
+                return Err(io::Error::other("attachment command was not dispatched"));
+            }
             ManualCommand::Create { key, snapshot } => {
                 application.create_from_reference(key, &snapshot)
             }

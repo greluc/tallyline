@@ -441,3 +441,24 @@ impl UexReader {
         wire::report_access(&data)
     }
 }
+
+impl ReadError {
+    /// Maps only the documented actual submission answer to account screenshot evidence.
+    /// GET user data and all other failures establish no screenshot policy.
+    #[must_use]
+    pub fn screenshot_requirement(
+        &self,
+    ) -> Option<tallyline_submission::api::model::ScreenshotRequirement> {
+        match self {
+            Self::Rejected { code, .. } if code == "screenshot_required" => {
+                Some(tallyline_submission::api::model::ScreenshotRequirement::Required)
+            }
+            Self::Rejected { .. }
+            | Self::NotJson { .. }
+            | Self::Redirect { .. }
+            | Self::Malformed { .. }
+            | Self::BodyTooLarge { .. }
+            | Self::Transport(_) => None,
+        }
+    }
+}

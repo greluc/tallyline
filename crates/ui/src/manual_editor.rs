@@ -12,6 +12,8 @@ use tallyline_shared_kernel::api::model::{CommodityId, TerminalId, TradeSide};
 /// A manual Report operation handled by the app-owned storage worker.
 #[derive(Clone, Debug)]
 pub enum ManualCommand {
+    /// Explicit local attachment work, performed only by the bounded app worker.
+    Attachment(crate::attachment_editor::ManualAttachmentCommand),
     /// Create an empty Draft with explicit context.
     Create {
         /// User-selected context.
@@ -56,6 +58,7 @@ pub struct ManualEditor {
     pub(crate) busy: bool,
     pub(crate) notice: Option<String>,
     command: Option<ManualCommand>,
+    pub(crate) attachment: crate::attachment_editor::AttachmentEditor,
 }
 impl ManualEditor {
     /// Returns the selected durable Draft.
@@ -82,11 +85,12 @@ impl ManualEditor {
         }
     }
     pub(crate) fn loaded(&mut self, reports: Vec<Report>, selected: Option<ReportId>) {
+        self.attachment.readiness = None;
         self.reports = reports;
         self.ready = true;
         self.busy = false;
         self.notice = None;
-        if let Some(id) = selected {
+        if let Some(id) = selected.or(self.selected) {
             self.select(id);
         } else if self.selected.is_none() {
             self.environment = self
@@ -97,6 +101,18 @@ impl ManualEditor {
     }
     pub(crate) fn select(&mut self, id: ReportId) {
         if let Some(report) = self.reports.iter().find(|report| report.id() == id) {
+            if self.selected != Some(id) {
+                self.busy = false;
+            }
+            if self.selected != Some(id)
+                || self.attachment.preview.as_ref().is_some_and(|preview| {
+                    report
+                        .attachment()
+                        .is_none_or(|attachment| attachment.binding() != preview.binding())
+                })
+            {
+                self.attachment.clear_preview();
+            }
             self.selected = Some(id);
             self.environment = Some(report.key().environment());
             self.terminal = Some(report.key().terminal());
@@ -115,6 +131,7 @@ impl ManualEditor {
         }
     }
     pub(crate) fn new_draft(&mut self) {
+        self.attachment.clear_preview();
         self.selected = None;
         self.terminal = None;
         self.side = None;

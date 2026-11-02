@@ -180,7 +180,10 @@ fn next_snapshot(
                 observed_at,
             } => return Ok((live, ptu, observed_at)),
             BackgroundEvent::ReferenceRefreshStarted | BackgroundEvent::ReferenceDiagnostic(_) => {}
-            other @ (BackgroundEvent::ReportsLoaded { .. }
+            other @ (BackgroundEvent::AttachmentPreview { .. }
+            | BackgroundEvent::AttachmentStatus { .. }
+            | BackgroundEvent::AttachmentFailed { .. }
+            | BackgroundEvent::ReportsLoaded { .. }
             | BackgroundEvent::ReportFailed(_)
             | BackgroundEvent::UpdateChecked(_)
             | BackgroundEvent::GameWitnessLoaded(_)
@@ -570,7 +573,10 @@ fn r_api_3__non_json_metadata_uses_the_injected_observation_time_without_replaci
             }
             BackgroundEvent::ReferenceRefreshStarted | BackgroundEvent::ReferenceUpdated { .. } => {
             }
-            other @ (BackgroundEvent::ReportsLoaded { .. }
+            other @ (BackgroundEvent::AttachmentPreview { .. }
+            | BackgroundEvent::AttachmentStatus { .. }
+            | BackgroundEvent::AttachmentFailed { .. }
+            | BackgroundEvent::ReportsLoaded { .. }
             | BackgroundEvent::ReportFailed(_)
             | BackgroundEvent::UpdateChecked(_)
             | BackgroundEvent::GameWitnessLoaded(_)

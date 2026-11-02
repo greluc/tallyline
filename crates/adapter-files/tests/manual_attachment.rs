@@ -62,14 +62,15 @@ fn r_man_5_r_sub_7_r_cap_8__only_the_exact_confirmed_region_can_be_encoded() {
     let encoded =
         encode_manual_attachment(&report, &preview, &AttachmentEncodingSettings::default())
             .unwrap();
-    let ImageIntake::Decoded(decoded) =
-        tallyline_adapter_files::api::read_image(encoded.png(), &ImageIntakeSettings::default())
-    else {
+    let ImageIntake::Decoded(decoded) = tallyline_adapter_files::api::read_image(
+        encoded.png_for(&report).unwrap(),
+        &ImageIntakeSettings::default(),
+    ) else {
         panic!("encoded crop is not a PNG")
     };
     assert_eq!(decoded.raster, *preview.raster());
-    assert!(encoded.base64().len() <= 10_000_000);
-    assert!(!format!("{encoded:?}").contains(encoded.base64()));
+    assert!(encoded.base64_for(&report).unwrap().len() <= 10_000_000);
+    assert!(!format!("{encoded:?}").contains(encoded.base64_for(&report).unwrap()));
     assert!(
         encode_manual_attachment(
             &report,
@@ -200,13 +201,110 @@ fn r_man_5_r_sub_7_r_cap_8__jpeg_magic_and_imported_time_are_preserved_without_o
     let encoded =
         encode_manual_attachment(&report, &preview, &AttachmentEncodingSettings::default())
             .unwrap();
-    let ImageIntake::Decoded(decoded) =
-        tallyline_adapter_files::api::read_image(encoded.png(), &ImageIntakeSettings::default())
-    else {
+    let ImageIntake::Decoded(decoded) = tallyline_adapter_files::api::read_image(
+        encoded.png_for(&report).unwrap(),
+        &ImageIntakeSettings::default(),
+    ) else {
         panic!("encoded JPEG region is invalid")
     };
     assert_eq!(decoded.raster, *preview.raster());
     assert_eq!(std::fs::read_dir(&directory).unwrap().count(), 0);
     assert_eq!(report.observed_at(), Timestamp::from_seconds(899));
     std::fs::remove_dir(directory).unwrap();
+}
+
+#[test]
+#[expect(
+    non_snake_case,
+    reason = "Requirement tags use a double underscore separator."
+)]
+fn r_man_5_r_sub_7__confirmed_private_working_copy_survives_source_deletion_and_detects_changes() {
+    use tallyline_adapter_files::api::{ManualWorkingCopies, restore_manual_attachment};
+    use tallyline_workflows::api::WorkingCopyStore;
+    let directory =
+        std::env::temp_dir().join(format!("tallyline-durable-crop-{}", std::process::id()));
+    std::fs::create_dir(&directory).unwrap();
+    let source = directory.join("original.png");
+    let mut image = image::RgbImage::from_pixel(64, 48, image::Rgb([0, 200, 0]));
+    for y in 0..12 {
+        for x in 0..64 {
+            image.put_pixel(x, y, image::Rgb([255, 0, 255]));
+        }
+    }
+    image.save(&source).unwrap();
+    let preview = prepare_manual_attachment_file(
+        &source,
+        AttachmentRegion::new(0, 12, 64, 36).unwrap(),
+        &ImageIntakeSettings::default(),
+    )
+    .unwrap();
+    let mut report = Report::manual(
+        ReportId(91),
+        ReportKey::new(TerminalId(11), TradeSide::Buy, GameEnvironment::Live).unwrap(),
+        Timestamp::from_seconds(u64::MAX),
+        Some("4.10.2"),
+    )
+    .unwrap();
+    report
+        .edit_attachment(AttachmentEdit::Select(preview.binding(), preview.time()))
+        .unwrap();
+    let mut store = ManualWorkingCopies::new(directory.join("working-copies")).unwrap();
+    assert!(store.save(&report, preview.raster()).is_err());
+    report
+        .edit_attachment(AttachmentEdit::ConfirmPreview(preview.binding()))
+        .unwrap();
+    let digest = store.save(&report, preview.raster()).unwrap();
+    report
+        .edit_attachment(AttachmentEdit::BindWorkingCopy(preview.binding(), digest))
+        .unwrap();
+    report
+        .edit_attachment(AttachmentEdit::ConfirmTime(preview.time().at()))
+        .unwrap();
+    std::fs::remove_file(source).unwrap();
+    drop(store);
+    let mut store = ManualWorkingCopies::new(directory.join("working-copies")).unwrap();
+    let restored = restore_manual_attachment(&report, &mut store).unwrap();
+    assert_eq!(restored.raster(), preview.raster());
+    let encoded =
+        encode_manual_attachment(&report, &restored, &AttachmentEncodingSettings::default())
+            .unwrap();
+    assert!(encoded.is_current(&report));
+    let mut removed = report.clone();
+    removed.edit_attachment(AttachmentEdit::Remove).unwrap();
+    assert!(!encoded.is_current(&removed));
+    assert!(encoded.png_for(&removed).is_err());
+    assert!(encoded.base64_for(&removed).is_err());
+    let files: Vec<_> = std::fs::read_dir(directory.join("working-copies"))
+        .unwrap()
+        .map(|v| v.unwrap().path())
+        .collect();
+    assert_eq!(files.len(), 1);
+    let abandoned = files[0].with_extension("pending");
+    std::fs::rename(&files[0], &abandoned).unwrap();
+    assert!(restore_manual_attachment(&report, &mut store).is_err());
+    assert_eq!(store.save(&report, preview.raster()).unwrap(), digest);
+    assert_eq!(
+        restore_manual_attachment(&report, &mut store)
+            .unwrap()
+            .raster(),
+        preview.raster()
+    );
+    assert!(abandoned.exists());
+
+    let mut bytes = std::fs::read(&files[0]).unwrap();
+    assert!(!bytes.windows(4).any(|v| v == [255, 255, 0, 255]));
+    let last = bytes.last_mut().unwrap();
+    *last ^= 1;
+    std::fs::write(&files[0], bytes).unwrap();
+    assert!(restore_manual_attachment(&report, &mut store).is_err());
+    assert_eq!(store.save(&report, preview.raster()).unwrap(), digest);
+    assert_eq!(
+        restore_manual_attachment(&report, &mut store)
+            .unwrap()
+            .raster(),
+        preview.raster()
+    );
+    std::fs::remove_file(&files[0]).unwrap();
+    assert!(restore_manual_attachment(&report, &mut store).is_err());
+    std::fs::remove_dir_all(directory).unwrap();
 }

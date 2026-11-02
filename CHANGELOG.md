@@ -10,6 +10,8 @@ All notable changes are recorded here.
 
 ### Added
 
+- Confirmed private manual attachment regions now survive restart and deletion of the original; changed or missing working copies block attachment use. Dated screenshot requirements are remembered per validated account and can be explicitly cleared, with a headless-tested private-region editor and schema-six backup-gated migration (R-MAN-5, R-SUB-7, R-CAP-7, R-VAL-6).
+
 - Add a developer-only portable Small image/textline reader with DB boxes, original-raster crops, lazy session reuse and explicit idle cleanup. Desktop screenshot recognition and full installation-profile acceptance remain in progress (R-OCR-1, R-NF-3).
 
 - Run the headless OCR diagnostic through an owned worker that verifies below-normal OS priority before its task starts. Production OCR scheduling remains in progress (R-NF-3).
