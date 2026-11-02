@@ -25,10 +25,13 @@ mod ocr_native;
 mod windows_ocr;
 mod worker_priority;
 
-#[cfg(windows)]
+#[cfg(any(windows, target_os = "linux"))]
 mod credential_bundle;
 #[cfg(windows)]
 mod windows_credentials;
 
 #[cfg(target_os = "linux")]
 mod linux_credential_bus;
+
+#[cfg(target_os = "linux")]
+mod linux_credentials;
