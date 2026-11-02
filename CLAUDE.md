@@ -167,6 +167,8 @@ Valid from M0 once the build exists. They are the intended interface; `cargo xta
 ```bash
 cargo xtask check               # supply-chain guard, format check, Clippy, rustdoc lints, all tests, architecture rules, cargo-deny, coverage gate
 cargo xtask dco <base> <head>   # DCO check: every non-merge commit of <base>..<head> has a Signed-off-by line matching its author (CI: pull requests)
+cargo xtask mutation [--in-diff <diff>] [--shard <k/n>] # full workspace tests for exact core selection; zero-based round-robin shards
+cargo xtask mutation-aggregate <directory> <head> <run> <attempt> # require all eight exact artifacts and the global score
 cargo xtask guard               # the CI guard of 10 S-4 over Cargo.lock, manifests, Cargo config, toolchain pin and .github
 cargo xtask osv-gate <report>   # judge an osv-scanner JSON report (CI, 10 S-19; no network)
 cargo xtask vendor-hashes write # regenerate supply-chain/vendor-hashes.txt (network; run in the lockfile commit)

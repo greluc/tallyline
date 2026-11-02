@@ -58,11 +58,53 @@ pub fn core_packages(metadata: &str) -> Result<Vec<String>, String> {
     Ok(selected.into_iter().collect())
 }
 
+/// Completed mutation counts after validating baseline, totals and outcomes.
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+pub struct MutationCounts {
+    /// Mutants rejected by workspace tests.
+    pub caught: u64,
+    /// Mutants surviving workspace tests.
+    pub missed: u64,
+    /// Mutants that could not build.
+    pub unviable: u64,
+}
+
+impl MutationCounts {
+    /// Enforces the frozen whole-selection score and requires viable mutants.
+    ///
+    /// # Errors
+    /// Rejects overflow, all-unviable measurements and below-floor scores.
+    pub fn score(self) -> Result<f64, String> {
+        let viable = self
+            .caught
+            .checked_add(self.missed)
+            .ok_or("mutation counts overflow")?;
+        if viable == 0 {
+            return Err("mutation run has no viable mutants; no score measured".to_owned());
+        }
+        let score = self.caught as f64 / viable as f64 * 100.0;
+        if score < MUTATION_SCORE_FLOOR {
+            return Err(format!(
+                "mutation score {score:.2}% is below {MUTATION_SCORE_FLOOR:.0}%"
+            ));
+        }
+        Ok(score)
+    }
+}
+
 /// Validates a completed pinned-tool mutation report and enforces the frozen score floor.
 ///
 /// # Errors
 /// Returns an error for malformed, incomplete, failed or below-floor results.
 pub fn mutation_score(report: &str) -> Result<f64, String> {
+    completed_mutation(report)?.score()
+}
+
+/// Validates completed counts without treating unviable mutants as a score.
+///
+/// # Errors
+/// Rejects malformed, incomplete, timed-out or failed reports.
+pub fn completed_mutation(report: &str) -> Result<MutationCounts, String> {
     let document: Value = serde_json::from_str(report).map_err(|error| error.to_string())?;
     if document
         .get("cargo_mutants_version")
@@ -127,14 +169,9 @@ pub fn mutation_score(report: &str) -> Result<f64, String> {
     {
         return Err("mutation outcomes disagree with totals".to_owned());
     }
-    if caught + missed == 0 {
-        return Err("mutation run has no viable mutants; no score measured".to_owned());
-    }
-    let score = caught as f64 / (caught + missed) as f64 * 100.0;
-    if score < MUTATION_SCORE_FLOOR {
-        return Err(format!(
-            "mutation score {score:.2}% is below {MUTATION_SCORE_FLOOR:.0}%"
-        ));
-    }
-    Ok(score)
+    Ok(MutationCounts {
+        caught,
+        missed,
+        unviable,
+    })
 }
