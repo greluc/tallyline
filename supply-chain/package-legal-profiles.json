@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "source_inputs": {
-    "Cargo.lock": "1c6004e9592ab48cd1bf7ff1bdb760d8bb7823b245bcc839187bc58e3da42c25",
+    "Cargo.lock": "b68f255643b7a305edd7a74c8f945fca6c0a5cfbef569616c078b62233e9afd8",
     "NOTICE": "f1da83e717a3ccb48753deb68ac25c82945af3af499f6ba57f2fd87a1b954bc0",
     "supply-chain/notices.toml": "bd9ab530690cb560e3881ae9e91972dd16d528bbb2a1ebd0ea6e929351bfc496",
     "Cargo.toml": "a9beacc2cd53be333d7f70bbe4cf2f0b903ef799783fb85e42bd95ae7f40e2ea",
@@ -18,7 +18,7 @@
     "crates/shared-kernel/Cargo.toml": "191aed52719cb99e10366c9f8a497be0b56c6aeec823b01cf09ef5e38ce6596d",
     "crates/submission/Cargo.toml": "8a04bf0e4db0354f3707ac97be94c1f21f9deec6ad507c0ec1a3d6e6831905e0",
     "crates/ui/Cargo.toml": "190cf76e52446c5f89a4309b73a4f542f897b15b52dc41c23a64da4ad4775cf6",
-    "crates/workflows/Cargo.toml": "665d0d2e0ac260f0af46e9fc2fc9a08746f27c0b85bfce2fb1126db2cb0e6774",
+    "crates/workflows/Cargo.toml": "fea15ffeed1ac12298762860f48993bd28276cb69d1f7b38e69b71ea2967ef9c",
     "tools/ocr-eval/Cargo.toml": "b7966240b2a31b35f911314d25055714e636cedaf083ab3f2718026a7a04e1ff",
     "xtask/Cargo.toml": "de901941742c4fa7dd73512cd792d59dd892863c6a09cdac125d3cd53aee2811"
   },

@@ -3851,6 +3851,7 @@ dependencies = [
  "tallyline-adapter-platform",
  "tallyline-adapter-storage",
  "tallyline-game",
+ "tallyline-reference-data",
  "tallyline-reporting",
  "tallyline-shared-kernel",
  "tallyline-submission",
