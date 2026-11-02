@@ -257,7 +257,8 @@ fn r_nf_11_r_man_2__explicit_takeover_requires_a_matching_prior_and_preserves_it
     non_snake_case,
     reason = "Requirement tags use a double underscore separator."
 )]
-fn r_nf_11_r_man_2__corrupt_rows_are_refused_during_real_database_reconstitution() {
+fn r_nf_11_r_man_2_r_man_5_r_val_6_q_manual__corrupt_rows_and_attachment_times_are_refused_during_real_database_reconstitution()
+ {
     let path = std::env::temp_dir().join(format!(
         "tallyline-report-corrupt-{}.db",
         std::process::id()
@@ -385,6 +386,25 @@ fn r_nf_11_r_man_2__corrupt_rows_are_refused_during_real_database_reconstitution
         );
         assert_eq!(reopened.drafts(), Err(RepositoryError::Invalid));
     }
+    for source in ["imported_file", "user"] {
+        let mut invalid = document.clone();
+        invalid["attachment"] = serde_json::json!({
+            "image": vec![1; 32],
+            "rectangle": [10,20,30,40],
+            "observed_at": "90000",
+            "time_source": source,
+            "preview_confirmed": true
+        });
+        connection
+            .execute("UPDATE reports SET payload=?1", [invalid.to_string()])
+            .unwrap();
+        let mut reopened = SqliteReferenceCache::open(&path).unwrap();
+        assert_eq!(
+            reopened.load_draft(report.id()),
+            Err(RepositoryError::Invalid)
+        );
+        assert_eq!(reopened.drafts(), Err(RepositoryError::Invalid));
+    }
     connection
         .execute("UPDATE reports SET payload=?1", [payload])
         .unwrap();
@@ -453,11 +473,183 @@ fn r_nf_11_r_ui_12_q_manual__schema_three_requires_backup_and_preserves_legacy_u
         current
             .query_row("PRAGMA user_version", [], |row| row.get::<_, u32>(0))
             .unwrap(),
-        4
+        5
     );
     drop(current);
     drop(before);
     drop(store);
     std::fs::remove_file(path).unwrap();
     std::fs::remove_file(backup).unwrap();
+}
+
+#[test]
+#[expect(
+    non_snake_case,
+    reason = "Requirement tags use a double underscore separator."
+)]
+fn r_man_5_r_sub_7_r_val_6__attachment_confirmation_is_durable_and_bound_to_geometry_and_time() {
+    use tallyline_reporting::api::model::{
+        AttachmentBinding, AttachmentRegion, AttachmentTime, ImageHash,
+    };
+    use tallyline_reporting::api::{AttachmentEdit, ReportingApplication};
+    use tallyline_shared_kernel::api::Clock;
+    struct Fixed;
+    impl Clock for Fixed {
+        fn now(&self) -> Timestamp {
+            Timestamp::from_seconds(1000)
+        }
+    }
+    let path = std::env::temp_dir().join(format!("tallyline-attachment-{}.db", std::process::id()));
+    let mut app = ReportingApplication::new(SqliteReferenceCache::open(&path).unwrap(), Fixed);
+    let report = app
+        .create(
+            ReportKey::new(TerminalId(11), TradeSide::Buy, GameEnvironment::Live).unwrap(),
+            Some("4.10.2"),
+        )
+        .unwrap();
+    let binding = AttachmentBinding::new(
+        ImageHash::new([1; 32]),
+        AttachmentRegion::new(10, 20, 30, 40).unwrap(),
+    );
+    let report = app
+        .edit_attachment(
+            report.id(),
+            report.version(),
+            AttachmentEdit::Select(
+                binding,
+                AttachmentTime::ImportedFile(Timestamp::from_seconds(900)),
+            ),
+        )
+        .unwrap();
+    assert!(!report.attachment().unwrap().preview_confirmed());
+    assert!(report.attachment_gate().is_err());
+    let report = app
+        .edit_attachment(
+            report.id(),
+            report.version(),
+            AttachmentEdit::ConfirmPreview(binding),
+        )
+        .unwrap();
+    assert!(report.attachment().unwrap().preview_confirmed());
+    assert!(report.attachment_gate().is_err());
+    let report = app
+        .edit_attachment(
+            report.id(),
+            report.version(),
+            AttachmentEdit::ConfirmTime(Timestamp::from_seconds(899)),
+        )
+        .unwrap();
+    assert!(report.attachment_gate().is_ok());
+    assert_eq!(report.observed_at(), Timestamp::from_seconds(899));
+    drop(app);
+    let mut app = ReportingApplication::new(SqliteReferenceCache::open(&path).unwrap(), Fixed);
+    let report = app
+        .drafts()
+        .unwrap()
+        .into_iter()
+        .find(|r| r.id() == report.id())
+        .unwrap();
+    assert!(report.attachment_gate().is_ok());
+    let changed = AttachmentBinding::new(
+        ImageHash::new([1; 32]),
+        AttachmentRegion::new(10, 21, 30, 40).unwrap(),
+    );
+    let report = app
+        .edit_attachment(
+            report.id(),
+            report.version(),
+            AttachmentEdit::Select(
+                changed,
+                AttachmentTime::ImportedFile(Timestamp::from_seconds(950)),
+            ),
+        )
+        .unwrap();
+    assert!(!report.attachment().unwrap().preview_confirmed());
+    assert_eq!(report.observed_at(), Timestamp::from_seconds(899));
+    assert!(
+        app.edit_attachment(
+            report.id(),
+            report.version(),
+            AttachmentEdit::ConfirmPreview(binding)
+        )
+        .is_err()
+    );
+    assert!(
+        app.edit_attachment(
+            report.id(),
+            report.version(),
+            AttachmentEdit::ConfirmTime(Timestamp::from_seconds(951))
+        )
+        .is_err()
+    );
+    let report = app
+        .edit_attachment(report.id(), report.version(), AttachmentEdit::Remove)
+        .unwrap();
+    assert_eq!(report.observed_at(), Timestamp::from_seconds(899));
+    assert!(report.attachment().is_none());
+    drop(app);
+    std::fs::remove_file(path).unwrap();
+}
+
+#[test]
+#[expect(
+    non_snake_case,
+    reason = "Requirement tags use a double underscore separator."
+)]
+fn r_nf_11_r_man_5__schema_four_migrates_without_inventing_attachment_or_changing_report_decisions()
+{
+    use tallyline_adapter_storage::api::StorageError;
+    let directory = std::env::temp_dir().join(format!(
+        "tallyline-attachment-migration-{}",
+        std::process::id()
+    ));
+    std::fs::create_dir(&directory).unwrap();
+    let path = directory.join("application.db");
+    let backup = directory.join("before.db");
+    let connection = rusqlite::Connection::open(&path).unwrap();
+    connection.execute_batch("CREATE TABLE reports(id INTEGER PRIMARY KEY AUTOINCREMENT,version INTEGER NOT NULL,payload TEXT NOT NULL); CREATE TABLE report_recents(report_id INTEGER PRIMARY KEY,changed_order INTEGER NOT NULL); PRAGMA user_version=4;").unwrap();
+    let payload = r#"{"terminal":11,"side":"buy","environment":"live","observed_at":"100123","game_version":"4.10.2","rows":[{"id":1,"commodity":42,"price":"123.456","stock":"0","status":3,"status_confirmation":[3,"major","live"],"status_deviation":"major","status_unreviewed":false,"status_confirmation_revoked":false}]}"#;
+    connection
+        .execute("INSERT INTO reports VALUES(1,7,?1)", [payload])
+        .unwrap();
+    connection
+        .execute("INSERT INTO report_recents VALUES(1,1)", [])
+        .unwrap();
+    drop(connection);
+    assert!(matches!(
+        SqliteReferenceCache::open(&path),
+        Err(StorageError::MigrationBackupRequired)
+    ));
+    let mut store = SqliteReferenceCache::open_with_migration_backup(&path, |cache, from| {
+        assert_eq!(from, 4);
+        cache.backup_into(&backup, Timestamp::from_seconds(100), None)?;
+        Ok(())
+    })
+    .unwrap();
+    let report = store
+        .load_draft(tallyline_reporting::api::model::ReportId(1))
+        .unwrap()
+        .unwrap();
+    assert!(report.attachment().is_none());
+    assert_eq!(report.version(), 7);
+    assert_eq!(report.observed_at(), Timestamp::from_millis(100123));
+    assert!(
+        report
+            .rows()
+            .first()
+            .unwrap()
+            .status_confirmation()
+            .is_some()
+    );
+    let before = rusqlite::Connection::open(&backup).unwrap();
+    assert_eq!(
+        before
+            .query_row("SELECT payload FROM reports", [], |row| row
+                .get::<_, String>(0))
+            .unwrap(),
+        payload
+    );
+    drop(before);
+    drop(store);
+    std::fs::remove_dir_all(directory).unwrap();
 }
