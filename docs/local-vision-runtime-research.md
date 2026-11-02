@@ -32,6 +32,8 @@ Corrected 2026-11-02: later separately owned local experiments have now complete
 
 Added 2026-11-02: the [author-bound 2B experiments](local-vision-small-model-campaign.md) completed five CPU/five GPU original-prompt responses and five GPU responses under a separate corrected literal-field condition. Six prices become reference-concordant on the same 21 complete development cards, while stock, decimal-point and structural errors remain. This does not establish held-out accuracy, weak-PC requirements or independent-reader agreement.
 
+Added 2026-11-02: the [author-bound Ministral 3 3B development experiment](local-vision-ministral3b-experiment.md) completed five GPU responses using the new 2B condition's frozen user prompt, schema, crops and controls, with a separately bound model template. On 21 complete unverified reference cards, 12 prices, 18 stocks and 21 statuses are parser/reference-concordant; seven symbol-prefixed prices retain matching digits but fail the unchanged grammar. Geometry differs, yet both model families share the wrong Levski active-tab reading. This is development evidence, not general digit accuracy, independent correction, a weak-PC measurement or backend selection.
+
 The available machine has the class of a high-end 32 GiB NVIDIA GPU and roughly 96 GiB system RAM. That makes a later broad local comparison plausible, but supplies no weak-PC evidence. No usable running Ollama service inventory was available; this does not prove Ollama or its model files are absent.
 
 ## 3. What Basetool actually does
