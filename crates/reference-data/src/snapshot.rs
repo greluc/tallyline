@@ -215,3 +215,24 @@ impl ReferenceSnapshot {
         )
     }
 }
+
+impl ReferenceSnapshot {
+    /// Returns the shared source-bound price policy for this immutable snapshot.
+    #[must_use]
+    pub fn effective_price_tolerance(
+        &self,
+        override_percent: Option<tallyline_shared_kernel::api::model::Percent>,
+    ) -> crate::api::model::PriceTolerance {
+        let reference = self.entries.iter().find_map(|entry| match entry.data() {
+            EndpointData::Parameters(parameters) => {
+                Some((parameters.constraints(), entry.fetched_at()))
+            }
+            EndpointData::Commodities(_)
+            | EndpointData::Terminals(_)
+            | EndpointData::GameVersions(_)
+            | EndpointData::StatusLevels(_)
+            | EndpointData::TerminalPriors(_) => None,
+        });
+        crate::api::model::PriceTolerance::from_reference(reference, override_percent)
+    }
+}

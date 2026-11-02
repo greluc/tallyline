@@ -1,6 +1,6 @@
 # UEX API 2.0 – working notes
 
-> **Doc type:** Living spec — binding. Last reviewed: 2026-11-01.
+> **Doc type:** Living spec — binding. Last reviewed: 2026-11-02.
 
 > **Sources.** Corrected 2026-10-09: the earlier notes were written without access to the official documentation and rested on search snippets, third-party copies and open-source clients ([3P]). On 2026-10-09 the official documentation and the live API were checked. Tags:
 >
@@ -303,3 +303,7 @@ Credentialled technical expert origins require `with_expert_host_confirmation`, 
 The app-owned reference worker adds its injected `Clock` observation to this bounded metadata. The UI displays it literally as the last non-JSON response with UTC Unix milliseconds, independently of successful cache fetch times. The last incident is memory-only and remains visible after recovery, without changing view, keyboard focus, selected channel or records. Current cache state and age remain separate.
 
 Full R-API-3 system-proxy acceptance remains pending: the enabled upstream feature supports static Windows registry settings and environment proxies, but not PAC/autodiscovery or protocol-specific Windows registry lists. No additional native or unsafe activation is introduced by this slice.
+
+### Manual validation parameter recheck (2026-11-02)
+
+A credential-free read of the primary public [`GET /data_parameters`](https://api.uexcorp.uk/2.0/data_parameters) returned `status: ok`, commodity `price_variation: 25`, `scu_variation: 5000` and `ttl: 15`. This confirms the existing field shape and current values; the percentage/day semantics remain those documented above and confirmed by UEX. It supplies no corpus calibration: the SCU value remains diagnostics only under O-140, and neither an unverified transcription nor a geometry label calibrates a client SCU threshold.

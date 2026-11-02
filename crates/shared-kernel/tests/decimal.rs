@@ -69,3 +69,36 @@ fn r_api_5__negative_nonfinite_overprecision_and_rounding_inputs_are_rejected() 
         "value is not a supported non-negative exact decimal"
     );
 }
+
+#[test]
+#[expect(
+    non_snake_case,
+    reason = "Requirement tags use a double underscore separator."
+)]
+fn r_val_2_q_manual_r_ui_11_q_manual__zero_numeric_reference_has_no_percentage_and_precision_errors_are_explicit()
+ {
+    use tallyline_shared_kernel::api::model::{Percent, PrecisionUnavailable};
+    let zero = "0".parse::<PricePerScu>().unwrap();
+    for value in ["0", "5"] {
+        let difference = value
+            .parse::<PricePerScu>()
+            .unwrap()
+            .difference(zero)
+            .unwrap();
+        assert_eq!(difference.percentage_text(), Ok(None));
+    }
+    assert_eq!(
+        Percent::whole(u32::MAX).doubled(),
+        Err(PrecisionUnavailable)
+    );
+    let difference = "1000000000"
+        .parse::<PricePerScu>()
+        .unwrap()
+        .difference("1e-28".parse().unwrap())
+        .unwrap();
+    assert_eq!(difference.percentage_text(), Err(PrecisionUnavailable));
+    assert_eq!(
+        PrecisionUnavailable.to_string(),
+        "difference cannot be compared without losing precision"
+    );
+}
