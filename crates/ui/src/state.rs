@@ -84,6 +84,24 @@ pub enum BackgroundEvent {
         /// Draft explicitly created or edited by this user action.
         selected: Option<tallyline_reporting::api::model::ReportId>,
     },
+    /// Committed assessments for one request, without selecting a Draft or moving focus.
+    ReportReviewed {
+        /// Draft version used when this request was queued.
+        expected: u64,
+        /// The saved Report and exact assessments.
+        review: tallyline_reporting::api::model::ManualReview,
+        /// Reference snapshot used for these assessments.
+        snapshot: tallyline_reference_data::api::model::ReferenceSnapshot,
+    },
+    /// A request-bound numerical review failure.
+    ReviewFailed {
+        /// Requested Draft identity.
+        id: tallyline_reporting::api::model::ReportId,
+        /// Draft version used by the request.
+        expected: u64,
+        /// Actionable refusal without replacing input.
+        error: tallyline_reporting::api::RepositoryError,
+    },
     /// A manual Report operation failed without losing the displayed input.
     ReportFailed(tallyline_reporting::api::RepositoryError),
     /// A passive refresh starts without replacing cached records.
@@ -230,6 +248,16 @@ impl ShellState {
             BackgroundEvent::ReportsLoaded { reports, selected } => {
                 self.manual.loaded(reports, selected)
             }
+            BackgroundEvent::ReportReviewed {
+                expected,
+                review,
+                snapshot,
+            } => self.manual.reviewed(expected, review, snapshot),
+            BackgroundEvent::ReviewFailed {
+                id,
+                expected,
+                error,
+            } => self.manual.review_failed(id, expected, error),
             BackgroundEvent::ReportFailed(error) => self.manual.failed(error),
             BackgroundEvent::ReferenceRefreshStarted => self.references.started(),
             BackgroundEvent::ReferenceUpdated {
@@ -237,6 +265,18 @@ impl ShellState {
                 ptu,
                 observed_at,
             } => {
+                if let Some(report) = self.manual.selected() {
+                    let snapshot = match self
+                        .game_witness
+                        .settings
+                        .environment_mapping
+                        .environment(report.key().environment())
+                    {
+                        tallyline_shared_kernel::api::model::UexEnvironment::Live => &live,
+                        tallyline_shared_kernel::api::model::UexEnvironment::Ptu => &ptu,
+                    };
+                    self.manual.review_reference_changed(snapshot);
+                }
                 self.references.updated(live, ptu, observed_at);
                 self.reference_notice = None;
             }
@@ -424,3 +464,5 @@ impl ShellState {
         &self.credentials
     }
 }
+
+mod manual_review;

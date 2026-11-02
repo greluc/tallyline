@@ -193,25 +193,52 @@ fn run<R: ReportRepository, C: Clock>(
                 }
                 continue;
             }
-            command @ (ManualCommand::Create { .. } | ManualCommand::Edit { .. }) => command,
+            command @ (ManualCommand::Create { .. }
+            | ManualCommand::Edit { .. }
+            | ManualCommand::Review(_)) => command,
         };
         match mapping() {
             Ok(mapping) => application.set_mapping(mapping),
             Err(_) => {
                 deliver(
                     &outgoing,
-                    BackgroundEvent::ReportFailed(
-                        tallyline_reporting::api::RepositoryError::Unavailable,
-                    ),
+                    match &command {
+                        ManualCommand::Review(request) => BackgroundEvent::ReviewFailed {
+                            id: request.id,
+                            expected: request.expected,
+                            error: tallyline_reporting::api::RepositoryError::Unavailable,
+                        },
+                        ManualCommand::Create { .. }
+                        | ManualCommand::Edit { .. }
+                        | ManualCommand::Attachment(_) => BackgroundEvent::ReportFailed(
+                            tallyline_reporting::api::RepositoryError::Unavailable,
+                        ),
+                    },
                     &wake,
                     stop,
                 )?;
                 continue;
             }
         }
+        if let ManualCommand::Review(request) = command {
+            let id = request.id;
+            let expected = request.expected;
+            let event = match crate::manual_reviews::execute(&mut application, request) {
+                Ok(event) => event,
+                Err(error) => BackgroundEvent::ReviewFailed {
+                    id,
+                    expected,
+                    error,
+                },
+            };
+            deliver(&outgoing, event, &wake, stop)?;
+            continue;
+        }
         let result = match command {
-            ManualCommand::Attachment(_) => {
-                return Err(io::Error::other("attachment command was not dispatched"));
+            ManualCommand::Attachment(_) | ManualCommand::Review(_) => {
+                return Err(io::Error::other(
+                    "specialised manual command was not dispatched",
+                ));
             }
             ManualCommand::Create { key, snapshot } => {
                 application.create_from_reference(key, &snapshot)

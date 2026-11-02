@@ -14,6 +14,21 @@ use tallyline_shared_kernel::api::model::TradeSide;
 pub fn show_manual_editor(ui: &mut egui::Ui, state: &mut ShellState, catalogue: &Catalogue) {
     ui.heading(catalogue.text("manual.title"));
     ui.label(catalogue.text("manual.instructions"));
+    if let Some(review) = state.manual().review() {
+        let summary = review.summary();
+        ui.label(format!(
+            "{} {} {} · {} {} · {} {} · {} {}",
+            catalogue.text("review.summary_prefix"),
+            summary.major,
+            catalogue.text("review.major_count"),
+            summary.minor,
+            catalogue.text("review.minor_count"),
+            summary.needs_confirmation,
+            catalogue.text("review.required_count"),
+            summary.unreviewed,
+            catalogue.text("review.unreviewed_count")
+        ));
+    }
     if let Some(notice) = &state.manual().notice {
         ui.label(notice);
     }
@@ -71,6 +86,7 @@ pub fn show_manual_editor(ui: &mut egui::Ui, state: &mut ShellState, catalogue: 
             ui.label(catalogue.text("reference.no_data"));
         }
     });
+    state.show_review(ui, catalogue);
     let account = state.credentials().account().clone();
     crate::attachment_views::show_manual_attachment_editor(ui, state, catalogue, &account);
 }
