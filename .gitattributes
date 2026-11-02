@@ -42,3 +42,7 @@ crates/adapter-ocr/assets/runtime/**/*.dll filter=lfs diff=lfs merge=lfs -text
 crates/adapter-ocr/assets/runtime/**/*.so.* filter=lfs diff=lfs merge=lfs -text
 supply-chain/notices/onnxruntime-windows/* -text whitespace=-blank-at-eol,-blank-at-eof
 supply-chain/notices/onnxruntime-linux/* -text whitespace=-blank-at-eol,-blank-at-eof
+
+supply-chain/wix/tool-manifest.json -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+
+supply-chain/wix/wix7-self-compiled.patch whitespace=-blank-at-eol

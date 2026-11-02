@@ -26,3 +26,6 @@
 | [`cla-signatures.md`](cla-signatures.md) | The public roster of CLA signatures |
 
 Diagrams are Mermaid or plain-text trees, never binary files. Images in `docs/` are only redacted user-guide screenshots and the Fan Kit logo files.
+
+
+The [packaging spike](packaging-spike.md) records the source-independent helper foundation, exact tool verification and remaining protected/installed acceptance. [ADR-0011](adr/0011-source-compiled-wix-packaging.md) supersedes ADR-0005 D7 only; historical WiX 3 descriptions are superseded by its dated correction.

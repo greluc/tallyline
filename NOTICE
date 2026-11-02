@@ -907,3 +907,15 @@ PP-OCRv6 Tiny/Medium research catalogue and Tiny dictionary
                 exact dictionary bindings are recorded in
                 crates/adapter-ocr/assets/research/provenance.json.
   Modified      no; no dictionary reconstruction or model conversion.
+
+
+Packaging tool direction (corrected 2026-11-02): ADR-0011 supersedes
+ADR-0005 D7 for MSI. The selected tool is independently source-compiled
+WiX 7.0.1, commit 642f1a0f7c857ffa4fc9fa3f9d1433aab895dd29,
+under MS-RL. The source profile patch retains .NET Foundation and
+contributors notices; modified 2026-11-01 by Lucas Greuloch to select
+independent compilation and the MSI-only tool profile. Exact source,
+patch, output identities and build limits: supply-chain/wix/README.md.
+The tool is not an application payload. Final MSI streams still need
+an embedded-component inventory and matching MS-RL source delivery.
+No official binary maintenance-fee EULA has been accepted.
