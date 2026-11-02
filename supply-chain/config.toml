@@ -107,6 +107,11 @@ version = "0.3.106"
 criteria = "safe-to-deploy"
 notes = "not compiled for the shipped targets x86_64-pc-windows-msvc and x86_64-unknown-linux-gnu; locked only as a dependency of another platform"
 
+[[exemptions.memoffset]]
+version = "0.9.1"
+criteria = "safe-to-deploy"
+notes = "S-6 justified off-target exemption, not a source-soundness audit or bootstrap exemption: exact archive SHA-256 488016bfae457b036d996092f6cb448677611ce4449e970ceaf42695203f218a is locked only behind the Linux zbus dependency graph for other targets and is absent from both shipped target graphs: x86_64-pc-windows-msvc and x86_64-unknown-linux-gnu. The Windows credential dependency is independently target-specific and never activates zbus. The native-scope guard rejects every reachable version, including renamed edges. Revisit by 2027-04-13 or before any activation/version/source/feature/target change. No build script or native code was executed in this research."
+
 [[exemptions.schannel]]
 version = "0.1.30"
 criteria = "safe-to-deploy"
@@ -146,6 +151,11 @@ notes = "S-6 justified off-target exemption, not a fresh full FFI audit: absent 
 version = "1.20.1"
 criteria = "safe-to-deploy"
 notes = "initial adoption, not yet audited"
+
+[[exemptions.uds_windows]]
+version = "1.2.1"
+criteria = "safe-to-deploy"
+notes = "S-6 justified off-target exemption, not a source-soundness audit or bootstrap exemption: exact archive SHA-256 f2f6fb2847f6742cd76af783a2a2c49e9375d0a111c7bef6f71cd9e738c72d6e is locked only behind the Linux zbus dependency graph for other targets and is absent from both shipped target graphs: x86_64-pc-windows-msvc and x86_64-unknown-linux-gnu. The Windows credential dependency is independently target-specific and never activates zbus. The native-scope guard rejects every reachable version, including renamed edges. Revisit by 2027-04-13 or before any activation/version/source/feature/target change. No build script or native code was executed in this research."
 
 [[exemptions.wasm-bindgen]]
 version = "0.2.129"

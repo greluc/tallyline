@@ -12,6 +12,18 @@ use serde_json::Value;
 /// # Errors
 /// Returns an error when the metadata cannot establish a complete reachable graph.
 pub fn violations(metadata: &str) -> Result<Vec<String>, String> {
+    check(metadata, false)
+}
+
+/// Rejects credential-native scope changes in resolved host/target occurrences.
+///
+/// # Errors
+/// Returns malformed or incomplete graph evidence.
+pub fn resolved_credential_violations(metadata: &str) -> Result<Vec<String>, String> {
+    check(metadata, true)
+}
+
+fn check(metadata: &str, resolved: bool) -> Result<Vec<String>, String> {
     let document: Value = serde_json::from_str(metadata).map_err(|error| error.to_string())?;
     let packages = indexed(array(&document, "packages")?)?;
     let resolve = document
@@ -67,6 +79,26 @@ pub fn violations(metadata: &str) -> Result<Vec<String>, String> {
         if name == "wayland-backend" && features.contains(&"log") {
             findings.push(format!("{name} {version} feature log enables native C shims; new owner approval is required"));
         }
+        if let Some((reviewed_version, reviewed_features)) = credential_scope(name)
+            && (version != reviewed_version
+                || features.iter().copied().collect::<BTreeSet<_>>()
+                    != reviewed_features.iter().copied().collect())
+        {
+            findings.push(format!("{name} {version}: credential source version/features differ from the exact reviewed scope; fresh source/graph review is required before adoption"));
+        }
+        if resolved
+            && name == "windows-sys"
+            && features.iter().any(|feature| {
+                matches!(
+                    *feature,
+                    "Win32_NetworkManagement"
+                        | "Win32_NetworkManagement_IpHelper"
+                        | "Win32_Security_Authorization"
+                )
+            })
+        {
+            findings.push(format!("{name} {version}: off-target zbus Windows transport/NSS helper features must remain absent from resolved host/target occurrences"));
+        }
         for dependency in array(node, "deps")? {
             field(dependency, "name")?;
             let dependency_id = field(dependency, "pkg")?;
@@ -84,6 +116,22 @@ pub fn violations(metadata: &str) -> Result<Vec<String>, String> {
     Ok(findings)
 }
 
+fn credential_scope(name: &str) -> Option<(&'static str, &'static [&'static str])> {
+    Some(match name {
+        "keyring-core" => ("1.0.1", &[]),
+        "windows-native-keyring-store" => ("1.1.0", &[]),
+        "secret-service" => (
+            "5.2.0",
+            &["crypto-rust", "rt-tokio", "rt-tokio-crypto-rust"],
+        ),
+        "zbus" => ("5.19.0", &["blocking-api", "tokio"]),
+        "signal-hook-registry" => ("1.4.8", &[]),
+        "cmov" => ("0.5.4", &[]),
+        "event-listener" => ("5.4.2", &["default", "parking", "std"]),
+        "num-bigint" => ("0.4.8", &["std"]),
+        _ => return None,
+    })
+}
 fn indexed(values: &[Value]) -> Result<BTreeMap<&str, &Value>, String> {
     let mut indexed = BTreeMap::new();
     for value in values {

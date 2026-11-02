@@ -8,7 +8,12 @@ use serde_json::{Value, json};
 
 #[test]
 fn secret_service_other_target_dependencies_cannot_be_activated_even_when_renamed() {
-    for (name, version) in [("memoffset", "0.9.1"), ("uds_windows", "1.2.1")] {
+    for (name, version) in [
+        ("memoffset", "0.9.1"),
+        ("uds_windows", "1.2.1"),
+        ("memoffset", "99.0.0"),
+        ("uds_windows", "99.0.0"),
+    ] {
         let input = metadata(name, version, &[], true);
         assert!(
             violations(&input.to_string())
@@ -276,6 +281,58 @@ fn send_wrapper_activation_is_rejected_for_every_version_and_workspace_root() {
                 .unwrap()
                 .iter()
                 .any(|finding| { finding.contains("send_wrapper") && finding.contains(version) })
+        );
+    }
+}
+
+#[test]
+fn credential_dependencies_reject_unreviewed_versions_and_optional_features() {
+    for (name, version, features) in [
+        ("keyring-core", "1.0.1", vec![]),
+        ("windows-native-keyring-store", "1.1.0", vec![]),
+        (
+            "secret-service",
+            "5.2.0",
+            vec!["crypto-rust", "rt-tokio", "rt-tokio-crypto-rust"],
+        ),
+        ("zbus", "5.19.0", vec!["blocking-api", "tokio"]),
+        ("signal-hook-registry", "1.4.8", vec![]),
+        ("cmov", "0.5.4", vec![]),
+        ("event-listener", "5.4.2", vec!["default", "parking", "std"]),
+        ("num-bigint", "0.4.8", vec!["std"]),
+    ] {
+        assert!(
+            violations(&metadata(name, version, &features, true).to_string())
+                .unwrap()
+                .is_empty(),
+            "{name}"
+        );
+        for (version, features) in [("99.0.0", features.clone()), (version, vec!["unreviewed"])] {
+            assert!(
+                violations(&metadata(name, version, &features, true).to_string())
+                    .unwrap()
+                    .iter()
+                    .any(|finding| finding.contains(name)),
+                "{name} {version}"
+            );
+        }
+    }
+}
+
+#[test]
+fn off_target_zbus_windows_helpers_cannot_activate_in_resolved_target_units() {
+    for feature in [
+        "Win32_NetworkManagement",
+        "Win32_NetworkManagement_IpHelper",
+        "Win32_Security_Authorization",
+    ] {
+        let input = metadata("windows-sys", "0.61.2", &[feature], true).to_string();
+        assert!(violations(&input).unwrap().is_empty());
+        assert!(
+            !crate::native::resolved_credential_violations(&input)
+                .unwrap()
+                .is_empty(),
+            "{feature}"
         );
     }
 }
