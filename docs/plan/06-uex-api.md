@@ -17,6 +17,10 @@
 
 ## Basics
 
+### Public contract observation — 2026-11-02
+
+An actual credential-free run of the in-progress `contract-snapshot` spike read `game_versions`, `commodities_status`, `data_parameters`, `commodities` and `terminals?type=commodity` from the primary `.uk` host. All five returned HTTP 200. Their metadata-only projections contain respectively 7, 25, 34, 45 and 62 field paths (173 total); both status-code sets contain 1 through 7. The retained 11,788-byte metadata baseline has SHA-256 `4fa17a62405c63c97548b2a3963d2ffdba1e9adbc1c5c9f8ad03bbb4bd455eb1`. No raw responses or scalar data values were saved. These samples do not establish authenticated behaviour or every nullable shape. [The drift guide](../public-api-contract-drift.md) records source identity, comparison limits, local contracts and pending main-only hosted activation for #100. Technical error identifiers used in synthetic tests are not live observations.
+
 | Topic | Value | Source |
 |---|---|---|
 | Base URL | The documentation names `https://api.uexcorp.uk/2.0/` on every page. `https://api.uexcorp.space/2.0/` answers as well with identical data; both are behind Cloudflare. Answered 2026-10-25 [UEX]: **`api.uexcorp.uk` is the primary host**, because it is not behind Cloudflare's challenge, so non-browser clients such as desktop apps and CI runners are not challenged there. `api.uexcorp.space` serves the same API and accepts writes too, but sits behind the challenge, and UEX asks desktop clients **not to use it as a fallback**. The client uses `.uk` only and has no built-in fallback host (R-API-3, point 4). If a request gets an HTML page instead of JSON, UEX asks for the `cf-ray` response header and the time | DOC, LIVE, UEX |

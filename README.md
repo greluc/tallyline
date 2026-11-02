@@ -28,6 +28,8 @@ The shared image intake decodes SDR PNG (including full-precision 16-bit samples
 
 ## Plan
 
+Maintainers can check public UEX field/type/code changes without credentials through the existing API-spike CLI. The [contract drift guide](docs/public-api-contract-drift.md) explains the metadata-only baseline and the default-off, main-only weekly workflow; hosted activation remains pending.
+
 | Document | Contents |
 |---|---|
 | [01 – Requirements](docs/plan/01-requirements.md) | Functional and non-functional requirements, assumptions |

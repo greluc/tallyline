@@ -181,11 +181,15 @@ cargo test <name> --locked      # targeted tests
 cargo run                       # start the app (the binary crate's name is O-122)
 cargo run --release -p ocr-eval -- --corpus "$TALLYLINE_CORPUS_DIR"   # OCR evaluation (tools/ocr-eval)
 cargo run --locked -p tallyline-adapter-uex -- [--host uk|space] game-versions   # UEX API spike (GET; also status-levels, prices <id>, account, report-access, dry-run <terminal> <commodity> <price_buy> <status_buy> <scu_buy> <version> <date_added> [container_sizes|-] [invalid_commodity_id]); screenshot input uses TALLYLINE_UEX_SCREENSHOT_PATH
+cargo run --locked -p tallyline-adapter-uex --bin tallyline-uex-spike -- contract-check
+cargo run --locked -p tallyline-adapter-uex --bin tallyline-uex-spike -- contract-snapshot
 cargo update --dry-run          # available updates (adopt stable ones only)
 cargo xtask package help        # prebuilt packaging commands and pending backend limits
 ```
 
 `cargo xtask check` must be green before every commit. Definition of done and review checklist: `09-engineering-principles.md` §11.
+
+The public contract commands use only five fixed credential-free GET routes on the primary UEX host. They reject extra/account/alternate-host arguments and emit field/type/code metadata without response values. Read [the drift guide](docs/public-api-contract-drift.md) before baseline maintenance. Its weekly workflow is default off and main-only; changing the repository variable or dispatching it still needs approval under External writes.
 
 - Build and test only through Cargo and `cargo xtask`, never through an IDE or harness test runner, not even for one test: only Cargo runs the pinned toolchain, `--locked`, Clippy, the architecture rules and the corpus opt-in as CI does.
 - Every new or modified line is linted before the task is done: `cargo xtask check` runs `cargo fmt --check`, Clippy with `-D warnings` (including `missing_docs`, `unwrap_used`, `expect_used`, `panic`, `print_stdout`, `print_stderr`, `dbg_macro`, `disallowed_types`, `disallowed_methods`, and `clippy::pedantic` in the core crates, O-125), rustdoc with warnings denied, the `xtask` architecture test over `cargo metadata` and `cargo-deny`; CI adds `reuse lint`, gitleaks, `cargo-audit`/OSV, `cargo-vet` and the English check. Fix every finding your change introduces or touches and never relax a gate flag; pre-existing findings in untouched code are out of scope.

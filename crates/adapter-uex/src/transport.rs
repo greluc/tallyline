@@ -3,6 +3,8 @@
 
 //! The HTTP transport: one `reqwest` client with the explicit TLS stack and capped response bodies.
 
+mod public_contract;
+
 use std::sync::Arc;
 use std::time::Duration;
 
@@ -24,6 +26,12 @@ const REQUEST_TIMEOUT: Duration = Duration::from_secs(30);
 pub(crate) struct Transport {
     client: reqwest::Client,
     settings: ReaderSettings,
+}
+
+pub(crate) struct CappedResponse {
+    pub(crate) http_status: u16,
+    pub(crate) cf_ray: Option<String>,
+    pub(crate) body: Vec<u8>,
 }
 
 impl Transport {
@@ -133,9 +141,28 @@ impl Transport {
 
     async fn read_response(
         &self,
-        mut response: reqwest::Response,
+        response: reqwest::Response,
         credentials: &[(&str, &str)],
     ) -> Result<Value, ReadError> {
+        let response = self.read_capped_response(response, credentials).await?;
+        envelope::data(response.http_status, &response.body).map_err(|error| match error {
+            ReadError::NotJson { http_status, .. } => ReadError::NotJson {
+                http_status,
+                cf_ray: response.cf_ray,
+            },
+            other @ (ReadError::Rejected { .. }
+            | ReadError::Redirect { .. }
+            | ReadError::Malformed { .. }
+            | ReadError::BodyTooLarge { .. }
+            | ReadError::Transport(_)) => other,
+        })
+    }
+
+    async fn read_capped_response(
+        &self,
+        mut response: reqwest::Response,
+        credentials: &[(&str, &str)],
+    ) -> Result<CappedResponse, ReadError> {
         let http_status = response.status().as_u16();
         if response.status().is_redirection() {
             return Err(ReadError::Redirect { http_status });
@@ -160,16 +187,10 @@ impl Transport {
             }
             body.extend_from_slice(&chunk);
         }
-        envelope::data(http_status, &body).map_err(|error| match error {
-            ReadError::NotJson { http_status, .. } => ReadError::NotJson {
-                http_status,
-                cf_ray,
-            },
-            other @ (ReadError::Rejected { .. }
-            | ReadError::Redirect { .. }
-            | ReadError::Malformed { .. }
-            | ReadError::BodyTooLarge { .. }
-            | ReadError::Transport(_)) => other,
+        Ok(CappedResponse {
+            http_status,
+            cf_ray,
+            body,
         })
     }
 }
