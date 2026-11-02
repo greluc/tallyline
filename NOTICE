@@ -919,3 +919,9 @@ patch, output identities and build limits: supply-chain/wix/README.md.
 The tool is not an application payload. Final MSI streams still need
 an embedded-component inventory and matching MS-RL source delivery.
 No official binary maintenance-fee EULA has been accepted.
+
+
+Corrected 2026-11-02: the IBM Plex source-specific OFL file had been normalised to LF during adoption. Its original CRLF bytes have been restored from IBM/plex commit 71f558992315a12ca1f06a2215d57962a1992162, packages/plex-sans/LICENSE.txt, matching the existing declared SHA-256 7e6b2818edbd8f6a01ae80641cc8f16a51080d08fb4e532be3a0b6f74adb07da. Licence wording, font bytes, version and terms are unchanged; verbatim third-party text must retain its original encoding.
+
+
+Verified 2026-11-02 for corresponding-source duties: ONNX Runtime 1.31.0 commit 402979ac1bef89dcd55add41eaa7277c407599eb retains Eigen revision 1d8b82b0740839c0de7f1242a3585e3390ff5f33. The exact ORT-pinned source ZIP matches legacy SHA-1 05b19b49e6fbb91246be711d801160528c135e34; its newly computed SHA-256 is 6a60d76351f97132669daeeb721d6bf14b008101883ad2d687a3201c5c461eb0. All 1891 archive files match primary Git tree 3de9ea2629ae2b4833ef3fb3844cd7a2e32f7020, including the original COPYING files; no symlinks, missing or changed blobs. The source-duty record is supply-chain/source-archives.json. This is not a publisher SHA-256 signature or a new native version/activation.

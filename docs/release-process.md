@@ -107,3 +107,8 @@ Desktop credential setup introduces no config or SQLite schema migration. Window
 ## Packaging direction correction — 2026-11-02
 
 Corrected 2026-11-02: ADR-0011 supersedes historical WiX 3.11.2/candle/light and cargo-packager MSI descriptions above. The owner selected independently source-compiled WiX 7.0.1 through checked direct xtask invocation for MSI; cargo-packager 0.11.8 remains Debian-only. No official WiX binary OSMF EULA has been accepted. Preserve source/profile patches and matching embedded-component duties. Compilation and tool preparation are secret-free; an immutable verified prebuilt handoff precedes protected data-only token insertion, with no Cargo, project compilation, hooks or downloads afterwards. Separate publication/provenance remains #98. The current foundation and honest acceptance limits are recorded in [packaging-spike.md](packaging-spike.md). Rust 1.99.0 remains pinned; no held toolchain/dependency work is adopted. The Windows OCR CRT prerequisite and forbidden-DLL rule of ADR-0009 remain binding.
+
+
+### Prebuilt preparation status — 2026-11-02
+
+The source-independent preparation and legal-inventory commands now seal the exact native-platform app/resource/helper/tool bytes before protected token insertion. Exact native/model/dictionary/font identities and physical notice/catalogue/index correspondence fail closed. Retain the seal independently and use that same prebuilt helper later. Syntax validation does not authenticate a release tag. The final combined source/helper/app/legal freeze, source-duty map, protected installers and applicable installed acceptance remain open; see packaging-spike.md. The restored IBM licence retains its original upstream encoding and existing selected hash.

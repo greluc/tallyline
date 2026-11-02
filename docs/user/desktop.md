@@ -162,3 +162,6 @@ Open **Manual Report** and resume a Draft to use these controls, including offli
 ## Distribution verification status
 
 The packaging helper now writes plain archives from prebuilt directories and verifies approved tool bytes and harmless-fixture boundaries. See [the packaging record](../packaging-spike.md). These foundation commands do not establish a release, a complete application distribution or successful MSI/Debian installation. Windows OCR still requires the separately installed Visual C++ Redistributable described by ADR-0009; packages must not bundle the forbidden Microsoft runtime DLLs. Installed/upgrade/native-display and no-extra-prerequisite acceptance remain pending.
+
+
+Prebuilt staging now includes the approved native OCR library, Small model/dictionary and original font licences, and checks their exact identities alongside the legal catalogue. A restored original font-licence encoding corrects a prior packaging mismatch. These byte-level checks still do not establish installed or native-display acceptance.
