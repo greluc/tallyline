@@ -101,35 +101,46 @@ pub fn snapshot(
         short_name: "Med".to_owned(),
         abbreviation: "M".to_owned(),
     };
-    Ok(ReferenceApplication::load(
-        Cache(
-            vec![
-                EndpointData::Terminals(vec![terminal]),
-                EndpointData::Commodities(vec![Commodity::new(
-                    CommodityId(42),
-                    "Gold",
-                    "GOLD",
-                    true,
-                    CommodityAverages::new(None, None),
-                )]),
-                EndpointData::TerminalPriors(TerminalPriors::new(TerminalId(11), vec![prior])?),
-                EndpointData::GameVersions(GameVersions {
-                    live: "4.10.2".to_owned(),
-                    ptu: None,
-                }),
-                EndpointData::StatusLevels(StatusLevels {
-                    buy: vec![level],
-                    sell: vec![],
-                }),
-            ]
-            .into_iter()
-            .map(|data| CachedReference::new(Timestamp::from_seconds(950), data))
-            .collect(),
-        ),
-        Fixed,
-    )?
-    .snapshot(environment))
+    Ok(cached_snapshot(
+        environment,
+        vec![
+            EndpointData::Terminals(vec![terminal]),
+            EndpointData::Commodities(vec![Commodity::new(
+                CommodityId(42),
+                "Gold",
+                "GOLD",
+                true,
+                CommodityAverages::new(None, None),
+            )]),
+            EndpointData::TerminalPriors(TerminalPriors::new(TerminalId(11), vec![prior])?),
+            EndpointData::GameVersions(GameVersions {
+                live: "4.10.2".to_owned(),
+                ptu: None,
+            }),
+            EndpointData::StatusLevels(StatusLevels {
+                buy: vec![level],
+                sell: vec![],
+            }),
+        ],
+    ))
 }
 pub fn key() -> Result<ReportKey, tallyline_reporting::api::model::InvalidReport> {
     ReportKey::new(TerminalId(11), TradeSide::Buy, GameEnvironment::Live)
+}
+
+pub fn cached_snapshot(
+    environment: UexEnvironment,
+    entries: Vec<EndpointData>,
+) -> ReferenceSnapshot {
+    ReferenceApplication::load(
+        Cache(
+            entries
+                .into_iter()
+                .map(|data| CachedReference::new(Timestamp::from_seconds(950), data))
+                .collect(),
+        ),
+        Fixed,
+    )
+    .unwrap()
+    .snapshot(environment)
 }

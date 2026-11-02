@@ -126,3 +126,15 @@ path = "supply-chain/notices/paddleocr/LICENSE"
 precedence = "override"
 SPDX-FileCopyrightText = "2016 PaddlePaddle Authors"
 SPDX-License-Identifier = "Apache-2.0"
+
+[[annotations]]
+path = ["crates/adapter-ocr/assets/runtime/**/*.dll", "crates/adapter-ocr/assets/runtime/**/*.so.*", "supply-chain/notices/onnxruntime-windows/*", "supply-chain/notices/onnxruntime-linux/*"]
+precedence = "override"
+SPDX-FileCopyrightText = "Microsoft Corporation and the third-party authors named in the bundled notices"
+SPDX-License-Identifier = "MIT"
+
+[[annotations]]
+path = "crates/adapter-ocr/assets/runtime/provenance.json"
+precedence = "closest"
+SPDX-FileCopyrightText = "2026 Lucas Greuloch"
+SPDX-License-Identifier = "GPL-3.0-or-later"

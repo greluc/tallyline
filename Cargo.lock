@@ -3685,6 +3685,7 @@ dependencies = [
  "ort",
  "sha2",
  "tallyline-shared-kernel",
+ "tracing",
 ]
 
 [[package]]
@@ -3749,6 +3750,7 @@ dependencies = [
  "rusqlite",
  "serde_json",
  "tallyline-adapter-files",
+ "tallyline-adapter-ocr",
  "tallyline-adapter-platform",
  "tallyline-adapter-storage",
  "tallyline-adapter-uex",

@@ -1,0 +1,9 @@
+# Headless OCR native diagnostic
+
+`ocr_runtime_probe.rs` is an explicit composition-root example. It never opens the desktop shell, elects an instance, reads user storage or accepts screenshots. It prepares telemetry before creating one named, joined worker and owns a single non-clone native load token. It uses only the exact accepted library and fixed Small data.
+
+Build with `cargo build --locked -p tallyline-app --example ocr_runtime_probe`. Stage the built executable in an owned installation directory with the matching regular library next to it (`onnxruntime.dll` on Windows, or the versioned Linux file when Linux host verification is implemented). Put the three unchanged files from `crates/adapter-ocr/assets/small/` in `models/small/` under that directory. Do not use shared temporary extraction, CRT/provider files, unverified models or a runtime selected from the environment.
+
+Run the staged executable explicitly with `--load-only` to check private loading and mapped CRT prerequisites, or `--small-tensors` to run sequential normalised-zero detector64x64 and recogniser48x320 tensors. Output is numeric JSON, including requested session options, actual shapes, probabilities and CTC label count; it returns no decoded text. The probe also verifies that its app-owned token refuses a second native attempt. Root-owned Windows observations are recorded in07. Linux currently refuses before native loading until its host proof is implemented.
+
+A successful synthetic probe does not establish corpus accuracy, packaged telemetry controls, clean-OS/CRT delivery, thread counts, memory, OS priority or production lazy/reused/inactivity sessions. Those remain separate acceptance work; source/model identity provenance is not promoted to an accuracy claim. The matching native source inputs and all upstream notices are already local; no recognition program, download or conversion is launched.

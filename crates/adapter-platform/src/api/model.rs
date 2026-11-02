@@ -4,3 +4,5 @@
 //! Platform startup outcomes.
 
 pub use crate::ocr_startup::{OcrChildExit, OcrProcessStartup};
+
+pub use crate::ocr_native::{CrtModuleVersion, NativeOcrModule, OcrNativeError};

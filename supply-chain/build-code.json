@@ -1714,8 +1714,8 @@
         "manifest_path": "crates/adapter-ocr/Cargo.toml",
         "source_path": "crates/adapter-ocr/build.rs"
       },
-      "source_sha256": "66480f25bd98a890414c08b3bd0c9e36430cfeb604e762c1a23dc144bff082d2",
-      "behaviour": "Reads only the three committed fixed Small OCR data files, checks exact byte sizes and streaming SHA-256, and emits public compile-time file/hash/size identities plus Cargo rebuild directives. No network, subprocess, native compilation, runtime library or model execution.",
+      "source_sha256": "d62097b8cf7d6ee5fedf507b708070ffc67a3a883eb2d36b98ebf3174c634632",
+      "behaviour": "Reads only the three committed fixed Small OCR data files and both official pinned runtime library files, checks exact byte sizes and streaming SHA-256, and emits public compile-time file/hash/size identities plus Cargo rebuild directives. No network, subprocess, native compilation, runtime library or model execution.",
       "review_scope": "Complete self-contained script read. All expected hashes and own build logic are in this exact source; sha2 is the existing pinned reviewed build dependency. This is S-12 source/behaviour review, not a native runtime, model accuracy, packaging or clean-OS acceptance certificate.",
       "reviewed": "2026-11-02",
       "reviewer": "GPT-6.1 Sol (AI agent)"

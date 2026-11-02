@@ -178,11 +178,16 @@ Source code
                 also lists Intel MKL and a component under the JSON licence;
                 the 1.30.0 CPU natives contain neither (string scan); the
                 same scan is repeated for the pinned library.
-  Text          legal/onnxruntime/: the MIT licence text from the tag above,
-                and ThirdPartyNotices.txt and Privacy.md of the library,
-                unmodified; committed under supply-chain/notices/onnxruntime/
-                together with their reviewed-list entry (shipped with the
-                crate ort) in the change that makes the library ship
+  Text          legal/onnxruntime-windows/ and legal/onnxruntime-linux/:
+                each official1.31.0 archive's complete LICENSE,
+                ThirdPartyNotices.txt and Privacy.md, unmodified under
+                supply-chain/notices/onnxruntime-{windows,linux}/.
+                The offline catalogue supplies both distribution records;
+                packaging must ship only the matching native library.
+                Copied bytes were checked against their approved archives
+                on2026-11-02; the broad optional-component notices are not
+                a new claim that all listed options are linked. Source and
+                complete release/legal acceptance below remain open.
   Source        linked: the tag above; attached: Eigen from
                 eigen-mirror/eigen at the commit pinned in the tag's
                 cmake/deps.txt (MPL-2.0 section 3.2(a)); for 1.30.0 that was

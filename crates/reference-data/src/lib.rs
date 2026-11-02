@@ -10,3 +10,4 @@ mod averages;
 mod parameters;
 mod priors;
 mod snapshot;
+mod tolerance;

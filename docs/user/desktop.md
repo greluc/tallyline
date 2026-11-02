@@ -125,4 +125,4 @@ Known terminal commodities already loaded when the Draft is created appear immed
 
 SQLite schema 3 adds manual Draft records to the shared reference database. Existing schema-one/two databases require a coordinated exact database/config backup before their forward migration. New databases are created at schema 3; older binaries refuse this newer database. The local Draft worker starts only after the startup coordinator completes and is joined before the writer lease ends. Native GUI acceptance has not been performed for this slice.
 
-Recognition integration is being prepared with a fixed hash-bound Small baseline and its upstream Apache-2.0 text in the generated offline legal catalogue. Native OCR and complete installation-profile acceptance remain in progress (R-OCR-1, R-SEC-7).
+Recognition integration now has a fixed hash-bound Small baseline, private native-loading guards and complete upstream legal texts. A separate synthetic Windows diagnostic checks model output classes; the desktop does not yet perform recognition. Linux, the full pipeline and installation-profile acceptance remain in progress (R-OCR-1, R-SEC-7).

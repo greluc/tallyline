@@ -18,3 +18,8 @@ mod release_token;
 
 mod ocr_startup;
 mod releases;
+
+mod ocr_native;
+
+#[cfg(windows)]
+mod windows_ocr;

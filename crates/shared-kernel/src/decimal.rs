@@ -86,3 +86,16 @@ fn exact(text: &str) -> Result<Decimal, InvalidDecimal> {
         Ok(value.normalize())
     }
 }
+
+impl PricePerScu {
+    /// Calculates an exact signed difference while preserving both accepted input values.
+    ///
+    /// # Errors
+    /// Returns precision unavailable when the coefficients cannot be aligned exactly.
+    pub fn difference(
+        self,
+        reference: Self,
+    ) -> Result<crate::api::model::Delta, crate::api::model::PrecisionUnavailable> {
+        crate::api::model::Delta::calculate(self.0, reference.0)
+    }
+}

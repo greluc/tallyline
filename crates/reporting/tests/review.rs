@@ -190,5 +190,13 @@ fn r_val_4_q_manual__status_review_refuses_missing_drafts_and_mismatched_environ
         app.review_statuses(report.id(), &snapshot(UexEnvironment::Ptu).unwrap()),
         Err(RepositoryError::Invalid)
     );
+    assert_eq!(
+        app.review_prices(ReportId(2), &snapshot(UexEnvironment::Live).unwrap()),
+        Err(RepositoryError::Invalid)
+    );
+    assert_eq!(
+        app.review_prices(report.id(), &snapshot(UexEnvironment::Ptu).unwrap()),
+        Err(RepositoryError::Invalid)
+    );
     assert_eq!(app.drafts().unwrap(), vec![report]);
 }
