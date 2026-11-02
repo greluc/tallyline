@@ -114,9 +114,12 @@ fn file_mode(source: &Path, metadata: &fs::Metadata) -> u32 {
         if source
             .extension()
             .is_some_and(|extension| extension == "exe")
-            || source
-                .file_name()
-                .is_some_and(|filename| filename == "tallyline")
+            || source.file_name().is_some_and(|filename| {
+                matches!(
+                    filename.to_str(),
+                    Some("tallyline" | "libonnxruntime.so.1.31.0")
+                )
+            })
         {
             0o755
         } else {
@@ -327,4 +330,25 @@ pub(super) fn portable_name(name: &str) -> bool {
         && !name.ends_with(['.', ' '])
         && !name.chars().any(char::is_control)
         && !reserved_device(name)
+}
+
+pub(super) fn tree_gzip(source: &Path, file: File, link: Option<(&str, &str)>) -> io::Result<()> {
+    if link.is_some_and(|pair| pair != ("usr/bin/tallyline", "../lib/tallyline/tallyline")) {
+        return Err(io::Error::other("unapproved Debian archive link"));
+    }
+    let mut gzip = flate2::GzBuilder::new()
+        .mtime(0)
+        .operating_system(3)
+        .write(file, flate2::Compression::default());
+    for (child, name) in children(source)? {
+        append(&mut gzip, &child.path(), &name, false)?;
+    }
+    if let Some((name, target)) = link {
+        if source.join(name).try_exists()? {
+            return Err(io::Error::other("Debian launcher path already exists"));
+        }
+        gzip.write_all(&linked_header(name, 0o777, 0, b'2', target)?)?;
+    }
+    gzip.write_all(&[0; TAR_BLOCK * 2])?;
+    gzip.finish()?.sync_all()
 }
