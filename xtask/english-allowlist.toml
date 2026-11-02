@@ -24,3 +24,7 @@ reason = "Canonical cargo-vet generated publisher identity must remain verbatim;
 [[exception]]
 path = "crates/adapter-ocr/assets/small/ppocrv6_dict.txt"
 reason = "The byte-exact Apache-2.0 upstream OCR alphabet contains multilingual glyph labels and must not be translated or reordered."
+
+[[exception]]
+path = "crates/adapter-ocr/assets/research/ppocrv6_tiny_dict.txt"
+reason = "The byte-exact Apache-2.0 upstream Tiny OCR alphabet contains multilingual glyph labels and must not be translated or reordered."

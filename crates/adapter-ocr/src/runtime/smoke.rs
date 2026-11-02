@@ -170,12 +170,7 @@ fn validate_shape(
                 actual: shape.to_vec(),
             })
         }
-        (
-            OcrArtifact::SmallDetector
-            | OcrArtifact::SmallRecognizer
-            | OcrArtifact::SmallDictionary,
-            _,
-        ) => Err(NativeSmokeError::Shape {
+        _ => Err(NativeSmokeError::Shape {
             artifact,
             actual: shape.to_vec(),
         }),
@@ -226,6 +221,15 @@ pub(super) fn create_session(
     let model = assets
         .open_model(artifact)
         .map_err(NativeSmokeError::Asset)?;
+    create_verified_session(runtime, &model, intra_op_threads)
+}
+
+pub(super) fn create_verified_session(
+    runtime: &OcrRuntime,
+    model: &crate::assets::VerifiedOcrModel,
+    intra_op_threads: usize,
+) -> Result<Session, NativeSmokeError> {
+    let artifact = model.fingerprint().artifact;
     let builder = Session::builder(&runtime._environment)
         .map_err(|error| failure(artifact, "builder", error.code()))?;
     let mut builder = builder

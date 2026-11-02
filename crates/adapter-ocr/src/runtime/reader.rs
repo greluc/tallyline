@@ -5,14 +5,15 @@
 
 use std::time::Duration;
 mod detect;
+mod research;
 use super::{NativeSmokeError, OcrRuntime, OcrRuntimeSettings, RuntimeLoadError};
-use crate::assets::OcrArtifact;
 use crate::assets::SmallOcrAssets;
 use crate::ctc::CtcReading;
 use crate::detection::{DbError, DetectionBox};
 use crate::preprocessing::OcrTensorBuffer;
 use crate::preprocessing::TensorInputError;
 use ort::session::Session;
+use research::ReaderAssets;
 use tallyline_shared_kernel::api::model::ImageRaster;
 
 /// A frozen complete raw-reader arithmetic profile for independent evaluation.
@@ -72,7 +73,7 @@ pub struct SmallTextLine {
 /// One worker's lazy reusable sessions; runtime/environment ownership stays with the app.
 /// Construction and idle release never initialise or reload the native library.
 pub struct SmallOcrReader<'a> {
-    assets: &'a SmallOcrAssets,
+    assets: ReaderAssets<'a>,
     runtime: Option<OcrRuntime>,
     initialise: Option<Box<dyn FnOnce() -> Result<OcrRuntime, RuntimeLoadError> + 'a>>,
     settings: OcrRuntimeSettings,
@@ -92,7 +93,7 @@ impl<'a> SmallOcrReader<'a> {
         initialise: impl FnOnce() -> Result<OcrRuntime, RuntimeLoadError> + 'a,
     ) -> Self {
         Self {
-            assets,
+            assets: ReaderAssets::Small(assets),
             runtime: None,
             initialise: Some(Box::new(initialise)),
             settings,
@@ -127,13 +128,13 @@ impl<'a> SmallOcrReader<'a> {
                 .as_ref()
                 .ok_or(SmallReaderError::RuntimeInitialiserConsumed)?;
             self.recognizer = Some(
-                super::smoke::create_session(
-                    runtime,
-                    self.assets,
-                    OcrArtifact::SmallRecognizer,
-                    self.settings.intra_op_threads(),
-                )
-                .map_err(SmallReaderError::Native)?,
+                self.assets
+                    .create_session(
+                        runtime,
+                        self.assets.recognizer(),
+                        self.settings.intra_op_threads(),
+                    )
+                    .map_err(SmallReaderError::Native)?,
             );
         }
         self.last_used = Some((self.clock)());
@@ -144,7 +145,7 @@ impl<'a> SmallOcrReader<'a> {
         let tensor = ort::value::TensorRef::from_array_view((input.shape, input.values)).map_err(
             |error| {
                 SmallReaderError::Native(super::smoke::failure(
-                    OcrArtifact::SmallRecognizer,
+                    self.assets.recognizer(),
                     "input",
                     error.code(),
                 ))
@@ -156,7 +157,7 @@ impl<'a> SmallOcrReader<'a> {
             .ok_or(SmallReaderError::RuntimeInitialiserConsumed)?;
         let output = session.run([tensor.into()]).map_err(|error| {
             SmallReaderError::Native(super::smoke::failure(
-                OcrArtifact::SmallRecognizer,
+                self.assets.recognizer(),
                 "run",
                 error.code(),
             ))
@@ -166,11 +167,11 @@ impl<'a> SmallOcrReader<'a> {
                 .values()
                 .next()
                 .ok_or(SmallReaderError::Native(NativeSmokeError::Interface(
-                    OcrArtifact::SmallRecognizer,
+                    self.assets.recognizer(),
                 )))?;
         let (shape, probabilities) = value.try_extract_tensor::<f32>().map_err(|error| {
             SmallReaderError::Native(super::smoke::failure(
-                OcrArtifact::SmallRecognizer,
+                self.assets.recognizer(),
                 "output_type",
                 error.code(),
             ))
@@ -178,15 +179,15 @@ impl<'a> SmallOcrReader<'a> {
         let dimensions: Vec<_> = shape.iter().copied().collect();
         let [1, frames, classes] = dimensions.as_slice() else {
             return Err(SmallReaderError::Native(NativeSmokeError::Shape {
-                artifact: OcrArtifact::SmallRecognizer,
+                artifact: self.assets.recognizer(),
                 actual: dimensions,
             }));
         };
         let frames = usize::try_from(*frames).map_err(|_| {
-            SmallReaderError::Native(NativeSmokeError::Interface(OcrArtifact::SmallRecognizer))
+            SmallReaderError::Native(NativeSmokeError::Interface(self.assets.recognizer()))
         })?;
         let classes = usize::try_from(*classes).map_err(|_| {
-            SmallReaderError::Native(NativeSmokeError::Interface(OcrArtifact::SmallRecognizer))
+            SmallReaderError::Native(NativeSmokeError::Interface(self.assets.recognizer()))
         })?;
         let reading = self
             .assets
@@ -268,3 +269,4 @@ impl Drop for SmallOcrReader<'_> {
         self.close_sessions();
     }
 }
+pub use research::ResearchOcrReader;

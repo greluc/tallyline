@@ -139,3 +139,15 @@ path = "crates/adapter-ocr/assets/runtime/provenance.json"
 precedence = "closest"
 SPDX-FileCopyrightText = "2026 Lucas Greuloch"
 SPDX-License-Identifier = "GPL-3.0-or-later"
+
+[[annotations]]
+path = "crates/adapter-ocr/assets/research/ppocrv6_tiny_dict.txt"
+precedence = "override"
+SPDX-FileCopyrightText = "2016 PaddlePaddle Authors"
+SPDX-License-Identifier = "Apache-2.0"
+
+[[annotations]]
+path = "crates/adapter-ocr/assets/research/provenance.json"
+precedence = "closest"
+SPDX-FileCopyrightText = "2026 Lucas Greuloch"
+SPDX-License-Identifier = "GPL-3.0-or-later"

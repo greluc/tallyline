@@ -10,7 +10,6 @@ use geometry::{Point, Rectangle};
 const MAX_PIXELS: usize = 4_194_304;
 const MAX_CONTOURS: usize = 1000;
 const BINARISATION: f32 = 0.2;
-const BOX_THRESHOLD: f64 = 0.45;
 const UNCLIP_RATIO: f64 = 1.4;
 
 /// One expanded text quadrilateral in the original raster's coordinates.
@@ -51,6 +50,25 @@ impl DbPostprocessor {
         shape: [usize; 4],
         source: [u32; 2],
     ) -> Result<Vec<DetectionBox>, DbError> {
+        self.extract_for_detector(
+            crate::research::OcrDetector::Small,
+            probabilities,
+            shape,
+            source,
+        )
+    }
+
+    /// Extracts boxes with the selected detector's reviewed threshold and portable arithmetic.
+    ///
+    /// # Errors
+    /// Applies the same probability, geometry and complexity refusal as `extract`.
+    pub fn extract_for_detector(
+        &self,
+        detector: crate::research::OcrDetector,
+        probabilities: &[f32],
+        shape: [usize; 4],
+        source: [u32; 2],
+    ) -> Result<Vec<DetectionBox>, DbError> {
         let [batch, channels, height, width] = shape;
         if batch != 1
             || channels != 1
@@ -84,7 +102,7 @@ impl DbPostprocessor {
                 continue;
             }
             let probability = rectangle.score(probabilities, width, height);
-            if probability < BOX_THRESHOLD {
+            if probability < detector.box_threshold() {
                 continue;
             }
             let expanded = rectangle.expand(UNCLIP_RATIO);

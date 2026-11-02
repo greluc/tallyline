@@ -379,3 +379,77 @@ fn r_api_4_r_nf_4__installation_data_is_prepared_on_the_credential_worker_before
     drop(commands);
     worker.finish().unwrap();
 }
+
+struct RestoredStore {
+    saved: std::sync::Arc<std::sync::Mutex<SavedCredentials>>,
+}
+impl SecretStore for RestoredStore {
+    async fn load(&mut self) -> Result<Option<SavedCredentials>, StorageFailure> {
+        self.saved
+            .lock()
+            .map(|saved| Some(saved.clone()))
+            .map_err(|_| StorageFailure::Unavailable)
+    }
+    async fn save(&mut self, _: &SavedCredentials) -> Result<(), StorageFailure> {
+        Err(StorageFailure::WriteFailed)
+    }
+    async fn save_passive(&mut self, saved: &SavedCredentials) -> Result<(), StorageFailure> {
+        *self.saved.lock().map_err(|_| StorageFailure::Unavailable)? = saved.clone();
+        Ok(())
+    }
+    async fn remove(&mut self) -> Result<(), StorageFailure> {
+        Err(StorageFailure::WriteFailed)
+    }
+}
+struct ClosedValidator(CredentialFailure);
+impl CredentialValidator for ClosedValidator {
+    async fn validate(&self, _: &CredentialValues) -> Result<ValidatedAccount, CredentialFailure> {
+        Err(self.0)
+    }
+}
+#[test]
+#[expect(
+    non_snake_case,
+    reason = "Requirement tags use a double underscore separator."
+)]
+fn r_api_4_r_api_7_r_nf_4_r_ui_16__restored_account_is_revalidated_passively_and_refusal_survives_offline_restart()
+ {
+    let saved = std::sync::Arc::new(std::sync::Mutex::new(
+        SavedCredentials::from_storage(
+            CredentialValues::new(
+                "dummy-startup-key".to_owned(),
+                Some("dummy-startup-token".to_owned()),
+            )
+            .unwrap(),
+            ValidatedAccount::new("dummy-runner".to_owned()),
+            Timestamp::from_seconds(10),
+            None,
+        )
+        .unwrap(),
+    ));
+    for failure in [
+        CredentialFailure::InvalidKey,
+        CredentialFailure::Unavailable,
+    ] {
+        let saved = std::sync::Arc::clone(&saved);
+        let (commands, incoming) = mpsc::sync_channel(1);
+        let (outgoing, events) = mpsc::sync_channel(4);
+        let worker = tallyline_app::api::CredentialWorker::start(
+            move || async move { Ok(RestoredStore { saved }) },
+            ClosedValidator(failure),
+            Clock,
+            None,
+            incoming,
+            outgoing,
+            || (),
+        )
+        .unwrap();
+        assert!(
+            matches!(events.recv_timeout(Duration::from_secs(10)).unwrap(), BackgroundEvent::CredentialsUpdated {
+            account: AccountState::Rejected(CredentialFailure::InvalidKey), failure: Some(actual), ..
+        } if actual == failure)
+        );
+        drop(commands);
+        worker.finish().unwrap();
+    }
+}

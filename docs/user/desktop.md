@@ -143,6 +143,8 @@ The separate headless OCR diagnostic now verifies below-normal worker priority b
 
 A developer-only headless raw-reader checkpoint is now implemented with explicit per-model session reuse and idle cleanup. Its portable geometry/crop profile and raw-image/textline probe modes are described in [the example guide](../../crates/app/examples/README.md); it does not enable desktop screenshot recognition. Production scheduling, field interpretation, packaged Linux checks and installation-profile acceptance remain in progress (R-OCR-1, R-NF-3).
 
+Developer-only typed Tiny/Small/Medium OCR research pairs now retain exact model/dictionary identities and private raw experiment receipts. They reuse the existing verified native runtime; production model selection, hardware evidence and complete delivery remain open (R-OCR-1, R-SEC-7; ADR-0012).
+
 ## Manual attachment implementation checkpoint
 
 Corrected 2026-11-02: the headless Reporting application can select, confirm and remove manual screenshot evidence. Its full-size preview retains only the selected region; the confirmation belongs to the exact original content hash and source-pixel rectangle. A changed image or rectangle requires another privacy confirmation. Explicit file imports retain their modification time as uncertain until the user confirms the shown observation time or enters an earlier one. Replacement, repeated selection and removal never advance the Report's observation time.
