@@ -285,6 +285,9 @@ fn failure_key(failure: ManualAttachmentFailure) -> &'static str {
     match failure {
         ManualAttachmentFailure::Report(RepositoryError::Conflict) => "attachment.conflict",
         ManualAttachmentFailure::Report(RepositoryError::Invalid) => "attachment.invalid_region",
+        ManualAttachmentFailure::Report(RepositoryError::AssessmentUnavailable) => {
+            "review.precision_unavailable"
+        }
         ManualAttachmentFailure::Report(RepositoryError::Unavailable)
         | ManualAttachmentFailure::WorkingCopy(WorkingCopyFailure::Unavailable) => {
             "attachment.storage_unavailable"

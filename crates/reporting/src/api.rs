@@ -15,6 +15,8 @@ pub enum RepositoryError {
     Conflict,
     /// Persistent state violates the Report contract.
     Invalid,
+    /// An exact price comparison cannot be represented safely.
+    AssessmentUnavailable,
     /// Storage could not complete within its bounded operation.
     Unavailable,
 }
@@ -23,6 +25,9 @@ impl std::fmt::Display for RepositoryError {
         formatter.write_str(match self {
             Self::Conflict => "Draft changed; reopen it before editing",
             Self::Invalid => "Draft value, context or stored state is invalid",
+            Self::AssessmentUnavailable => {
+                "Exact price comparison unavailable; cross-check the entered value and reference"
+            }
             Self::Unavailable => "Draft storage is unavailable",
         })
     }

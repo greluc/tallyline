@@ -12,3 +12,6 @@ mod attachment;
 mod confirmation;
 mod price_assessment;
 mod report;
+
+mod manual_review;
+mod price_confirmation;

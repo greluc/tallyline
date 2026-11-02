@@ -20,7 +20,7 @@ impl<R: ReportRepository, C: Clock> ReportingApplication<R, C> {
         let report = self.draft_for_reference(id, snapshot)?;
         Ok(self.status_assessments(&report, snapshot))
     }
-    fn status_assessments(
+    pub(super) fn status_assessments(
         &self,
         report: &Report,
         snapshot: &ReferenceSnapshot,
