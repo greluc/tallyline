@@ -7,7 +7,7 @@ The workspace crates of Tallyline: the core (`shared-kernel`, the context crates
 | `adapter-uex/` | `tallyline-adapter-uex` | the read-only UEX client of the M0 API spike and its CLI `tallyline-uex-spike` (issue #24) |
 | `egui/` | `tallyline-egui` | Tallyline theme tokens and reusable widgets |
 | `workflows/` | `tallyline-workflows` | application preferences, save-before-apply workflows and restart-safe daily release policy |
-| `adapter-files/` | `tallyline-adapter-files` | versioned atomic settings, bounded read-only game witness parsing and installed/portable directory self-tests |
+| `adapter-files/` | `tallyline-adapter-files` | versioned atomic settings, bounded read-only game witness parsing and installed/portable directory self-tests and explicit private developer artifact writes |
 | `ui/` | `tallyline-ui` | owned shell/manual Draft state, keyboard entry, message catalogue, legal unit and user-driven dialogs |
 | `app/` | `tallyline-app` | native `tallyline` composition root and bounded settings/reference/manual/release workers |
 | `adapter-platform/` | `tallyline-adapter-platform` | two-lock writer election, bounded local activation, credential-free release metadata and bounded packaged-token reading; the three approved Windows FFI sites |
@@ -17,4 +17,4 @@ The workspace crates of Tallyline: the core (`shared-kernel`, the context crates
 | `game/` | `tallyline-game` | read-only witness port, typed facts and durable opt-in workflow |
 | `reporting/` | `tallyline-reporting` | manual Draft commands, exact user fields and the durable Report repository port; shared validation and release remain pending |
 | `submission/` | `tallyline-submission` | credential validation and secure-store ports, save-before-publish account state, revalidation and session lifetime; native stores and desktop integration pending |
-| `adapter-ocr/` | `tallyline-adapter-ocr` | bounded reusable tensors, class-indexed CTC evidence, fixed asset/native guards, private Windows loading and synthetic tensor diagnostics; production pool/pipeline and Linux acceptance pending |
+| `adapter-ocr/` | `tallyline-adapter-ocr` | bounded reusable tensors, class-indexed CTC evidence, fixed asset/native guards, private Windows loading, synthetic tensor diagnostics and a portable raw-image/textline reader with lazy reused sessions and explicit idle cleanup; production scheduling/pipeline and Linux acceptance pending |

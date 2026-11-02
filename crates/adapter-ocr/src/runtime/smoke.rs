@@ -99,34 +99,7 @@ fn run_tensor(
     artifact: OcrArtifact,
     input_shape: [usize; 4],
 ) -> Result<(SmokeTensor, usize), NativeSmokeError> {
-    let model = assets
-        .open_model(artifact)
-        .map_err(NativeSmokeError::Asset)?;
-    let builder = Session::builder(&runtime._environment)
-        .map_err(|error| failure(artifact, "builder", error.code()))?;
-    let mut builder = builder
-        .with_intra_threads(1)
-        .map_err(|error| failure(artifact, "intra_threads", error.code()))?
-        .with_inter_threads(1)
-        .map_err(|error| failure(artifact, "inter_threads", error.code()))?
-        .with_parallel_execution(false)
-        .map_err(|error| failure(artifact, "sequential", error.code()))?
-        .with_intra_op_spinning(false)
-        .map_err(|error| failure(artifact, "intra_spinning", error.code()))?
-        .with_inter_op_spinning(false)
-        .map_err(|error| failure(artifact, "inter_spinning", error.code()))?
-        .with_memory_pattern(false)
-        .map_err(|error| failure(artifact, "memory_pattern", error.code()))?
-        .with_optimization_level(GraphOptimizationLevel::Level3)
-        .map_err(|error| failure(artifact, "optimisation", error.code()))?
-        .with_execution_providers([ort::ep::CPU::default().with_arena_allocator(false).build()])
-        .map_err(|error| failure(artifact, "cpu_arena", error.code()))?;
-    let mut session = builder
-        .commit_from_memory(model.bytes())
-        .map_err(|error| failure(artifact, "model", error.code()))?;
-    if session.inputs().len() != 1 || session.outputs().len() != 1 {
-        return Err(NativeSmokeError::Interface(artifact));
-    }
+    let mut session = create_session(runtime, assets, artifact, 1)?;
     let input = vec![0.0_f32; input_shape.into_iter().product()];
     let tensor = TensorRef::from_array_view((input_shape, input.as_slice()))
         .map_err(|error| failure(artifact, "input", error.code()))?;
@@ -209,7 +182,11 @@ fn validate_shape(
     }
 }
 
-fn failure(artifact: OcrArtifact, stage: &'static str, code: ort::ErrorCode) -> NativeSmokeError {
+pub(super) fn failure(
+    artifact: OcrArtifact,
+    stage: &'static str,
+    code: ort::ErrorCode,
+) -> NativeSmokeError {
     let code = match code {
         ort::ErrorCode::Ok => "ok",
         ort::ErrorCode::GenericFailure => "failure",
@@ -239,3 +216,40 @@ impl std::fmt::Display for NativeSmokeError {
 }
 
 impl std::error::Error for NativeSmokeError {}
+
+pub(super) fn create_session(
+    runtime: &OcrRuntime,
+    assets: &SmallOcrAssets,
+    artifact: OcrArtifact,
+    intra_op_threads: usize,
+) -> Result<Session, NativeSmokeError> {
+    let model = assets
+        .open_model(artifact)
+        .map_err(NativeSmokeError::Asset)?;
+    let builder = Session::builder(&runtime._environment)
+        .map_err(|error| failure(artifact, "builder", error.code()))?;
+    let mut builder = builder
+        .with_intra_threads(intra_op_threads)
+        .map_err(|error| failure(artifact, "intra_threads", error.code()))?
+        .with_inter_threads(1)
+        .map_err(|error| failure(artifact, "inter_threads", error.code()))?
+        .with_parallel_execution(false)
+        .map_err(|error| failure(artifact, "sequential", error.code()))?
+        .with_intra_op_spinning(false)
+        .map_err(|error| failure(artifact, "intra_spinning", error.code()))?
+        .with_inter_op_spinning(false)
+        .map_err(|error| failure(artifact, "inter_spinning", error.code()))?
+        .with_memory_pattern(false)
+        .map_err(|error| failure(artifact, "memory_pattern", error.code()))?
+        .with_optimization_level(GraphOptimizationLevel::Level3)
+        .map_err(|error| failure(artifact, "optimisation", error.code()))?
+        .with_execution_providers([ort::ep::CPU::default().with_arena_allocator(false).build()])
+        .map_err(|error| failure(artifact, "cpu_arena", error.code()))?;
+    let session = builder
+        .commit_from_memory(model.bytes())
+        .map_err(|error| failure(artifact, "model", error.code()))?;
+    if session.inputs().len() != 1 || session.outputs().len() != 1 {
+        return Err(NativeSmokeError::Interface(artifact));
+    }
+    Ok(session)
+}

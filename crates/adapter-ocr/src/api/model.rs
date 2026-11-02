@@ -15,5 +15,10 @@ pub use crate::runtime::{
     OcrRuntime, OcrRuntimeLoadToken, RuntimeHostChecks, RuntimeHostError, RuntimeLoadError,
 };
 
+pub use crate::detection::{DbError, DbPostprocessor, DetectionBox};
+pub use crate::preprocessing::DetectionInputTensor;
 pub use crate::runtime::{InvalidOcrRuntimeSettings, OcrRuntimeSettings};
 pub use crate::runtime::{NativeSmokeError, SmallModelSmoke, SmokeTensor};
+pub use crate::runtime::{
+    SmallOcrReader, SmallReaderError, SmallReaderProfile, SmallSessionState, SmallTextLine,
+};

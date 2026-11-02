@@ -80,3 +80,20 @@ fn r_ocr_1__recognition_tensors_identify_the_frozen_preprocessing_profile() {
     let tensor = buffer.recognition(&image, 48).unwrap();
     assert_eq!(tensor.preprocessing.identifier(), "ppocr-bgr48-linear8u-v1");
 }
+
+#[test]
+fn r_ocr_1__detector_input_uses_bgr_imagenet_normalisation_and_stride_rounding() {
+    let image = ImageRaster::new(3, 2, vec![0xffff_8000; 6]).unwrap();
+    let mut buffer = OcrTensorBuffer::default();
+    let tensor = buffer.detection(&image, 2048).unwrap();
+    assert_eq!(tensor.shape, [1, 3, 736, 1088]);
+    assert!((tensor.values[0] - (-0.485 / 0.229)).abs() < 0.00001);
+    assert!((tensor.values[736 * 1088] - ((128.0 / 255.0 - 0.456) / 0.224)).abs() < 0.00001);
+    assert!((tensor.values[2 * 736 * 1088] - ((1.0 - 0.406) / 0.225)).abs() < 0.00001);
+}
+
+#[test]
+fn r_ocr_1__oversized_detector_input_is_refused_without_squeezing_the_image() {
+    let image = ImageRaster::new(3000, 736, vec![0; 3000 * 736]).unwrap();
+    assert!(OcrTensorBuffer::default().detection(&image, 2048).is_err());
+}
