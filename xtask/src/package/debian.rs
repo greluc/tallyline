@@ -20,6 +20,11 @@ pub(super) fn build(
     fs::create_dir(&work)?;
     let copyright = work.join("copyright");
     super::write_debian_copyright(&stage.join("payload"), &copyright)?;
+    let desktop = work.join("tallyline.desktop");
+    fs::write(
+        &desktop,
+        "[Desktop Entry]\nType=Application\nName=Tallyline\nComment=Star Citizen commodity terminal data client\nExec=tallyline\nTerminal=false\n",
+    )?;
     let packager = work.join("packager");
     fs::create_dir(&packager)?;
     let resources = [
@@ -42,10 +47,10 @@ pub(super) fn build(
         "homepage":"https://github.com/greluc/tallyline", "authors":["Tallyline contributors <lucas.greuloch@gmail.com>"],
         "licenseFile":stage.join("payload/LICENSE"), "resources":resources,
         "beforePackagingCommand":null,"beforeEachPackageCommand":null,
-        "linux":{"generateDesktopEntry":true},
+        "linux":{"generateDesktopEntry":false},
         "deb":{"packageName":"tallyline", "section":"utils", "priority":"optional",
             "depends":["libc6 (>= 2.36)","libgcc-s1","libstdc++6","libx11-6","libxcursor1","libxrandr2","libxi6","libxkbcommon0","libwayland-client0","libegl1","libgl1","libvulkan1"],
-            "files":{copyright.to_string_lossy().to_string():"usr/share/doc/tallyline/copyright"}}
+            "files":{copyright.to_string_lossy().to_string():"usr/share/doc/tallyline/copyright",desktop.to_string_lossy().to_string():"usr/share/applications/tallyline.desktop"}}
     });
     let config = work.join("packager.json");
     fs::write(&config, serde_json::to_vec_pretty(&configuration)?)?;

@@ -13,6 +13,8 @@ All notable changes are recorded here.
 
 ### Added
 
+- Correct unnecessary MSI file-language defaults and the Debian launcher's missing optional icon reference, with actual prebuilt artefact red/green and independent historical package inspections. Current-source freeze, Windows OS isolation and installed/release acceptance remain separate gates (R-NF-2:installers, R-DOC-3, R-SEC-8).
+
 - Serialise OCR test-executable preparation with all probe spawns and clean owned fixtures after setup/spawn errors. Model-free subprocess contracts retain their refusal checks; the historical Linux writable-handle cause and separate Windows linker failure remain unproved (R-SEC-7, R-SEC-8, R-NF-12).
 
 - Add guarded manual SCU review with provisional 20 % / 16 SCU bands, independent tighten-only Settings, durable value-bound confirmations and F8/Shift+F8 targets. Database schema 8 and settings schema 5 migrate after coordinated backups; complete release/submission and native visual acceptance remain pending (R-VAL-2, R-VAL-7, R-UI-10, R-UI-11, R-UI-12, R-NF-5, R-NF-11).
