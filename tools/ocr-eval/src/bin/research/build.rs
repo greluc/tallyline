@@ -207,38 +207,7 @@ pub(super) fn build(campaign: &Path, public_probe: &Path) -> Result<(), String> 
         if Instant::now() >= deadline {
             return Err("total research build deadline exceeded".to_owned());
         }
-        let mut argv = tokenise(plan::text(unit, "command")?)?;
-        let output = format!("/work/preprocessed-{index}.ii");
-        let mut found = false;
-        let mut i = 0;
-        while i < argv.len() {
-            if argv.get(i).is_some_and(|arg| arg == "-o") {
-                *argv.get_mut(i + 1).ok_or("missing compiler output")? = output.clone();
-                found = true;
-                i += 1;
-            } else if argv.get(i).is_some_and(|arg| arg == "-c") {
-                *argv.get_mut(i).ok_or("missing compiler mode")? = "-E".to_owned();
-            }
-            i += 1;
-        }
-        if !found {
-            return Err("compile command has no output".to_owned());
-        }
-        argv.push("-dD".to_owned());
-        let directory = plan::text(unit, "directory")?;
-        if !matches!(directory, "/work/build-lept" | "/work/build-tess")
-            || argv
-                .iter()
-                .any(|arg| arg.contains(['\t', '\r', '\n', '\0']))
-        {
-            return Err("invalid preprocessing directory or argument".to_owned());
-        }
-        batch.push_str(directory);
-        for argument in &argv {
-            batch.push('\t');
-            batch.push_str(argument);
-        }
-        batch.push('\n');
+        batch.push_str(&preprocess_record(unit, index)?);
     }
     files::write(&owned.join("work/preprocess.plan"), batch.as_bytes())?;
     plan::digest(
@@ -305,6 +274,42 @@ pub(super) fn build(campaign: &Path, public_probe: &Path) -> Result<(), String> 
         )?)
         .as_bytes(),
     )
+}
+
+fn preprocess_record(unit: &Value, index: usize) -> Result<String, String> {
+    let mut argv = tokenise(plan::text(unit, "command")?)?;
+    let output = format!("/work/preprocessed-{index}.ii");
+    let mut found = false;
+    let mut i = 0;
+    while i < argv.len() {
+        if argv.get(i).is_some_and(|arg| arg == "-o") {
+            *argv.get_mut(i + 1).ok_or("missing compiler output")? = output.clone();
+            found = true;
+            i += 1;
+        } else if argv.get(i).is_some_and(|arg| arg == "-c") {
+            *argv.get_mut(i).ok_or("missing compiler mode")? = "-E".to_owned();
+        }
+        i += 1;
+    }
+    if !found {
+        return Err("compile command has no output".to_owned());
+    }
+    argv.push("-dD".to_owned());
+    let directory = plan::text(unit, "directory")?;
+    if !matches!(directory, "/work/build-lept/src" | "/work/build-tess")
+        || argv
+            .iter()
+            .any(|arg| arg.contains(['\t', '\r', '\n', '\0']))
+    {
+        return Err("invalid preprocessing directory or argument".to_owned());
+    }
+    let mut record = directory.to_owned();
+    for argument in &argv {
+        record.push('\t');
+        record.push_str(argument);
+    }
+    record.push('\n');
+    Ok(record)
 }
 
 fn graph(campaign: &Path, owned: &Path, proposal: &Path) -> Result<Vec<Value>, String> {
@@ -597,4 +602,72 @@ fn generated_artifacts(owned: &Path) -> Result<Vec<Value>, String> {
             Ok(json!({"path":name,"sha256":files::hash(&bytes),"bytes":bytes.len()}))
         })
         .collect()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::preprocess_record;
+    use serde_json::Value;
+
+    #[test]
+    fn recorded_cmake_commands_generate_exact_preprocessing_records() {
+        let cases: Vec<Value> = serde_json::from_str(include_str!(
+            "../../../tests/fixtures/preprocessing-commands.json"
+        ))
+        .unwrap();
+        let mut index = 0;
+        for case in cases {
+            let directory = case["directory"].as_str().unwrap();
+            let arguments = case["preprocessed_arguments"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .map(|arg| arg.as_str().unwrap())
+                .collect::<Vec<_>>()
+                .join("\t");
+            for _ in 0..case["copies"].as_u64().unwrap() {
+                let expected =
+                    format!("{directory}\t{arguments}\n").replace("INDEX", &index.to_string());
+                assert_eq!(preprocess_record(&case, index).unwrap(), expected);
+                index += 1;
+            }
+        }
+        assert_eq!(index, 334);
+    }
+
+    #[test]
+    fn preprocessing_records_refuse_unapproved_directories_and_shell_evidence() {
+        let cases: Vec<Value> = serde_json::from_str(include_str!(
+            "../../../tests/fixtures/preprocessing-commands.json"
+        ))
+        .unwrap();
+        for mut case in cases {
+            let approved = case["directory"].as_str().unwrap().to_owned();
+            for directory in [
+                "/work/build-lept".to_owned(),
+                format!("{approved}/.."),
+                format!("{approved}/child"),
+                format!("{approved}-extra"),
+                "/tmp/build-lept/src".to_owned(),
+            ] {
+                case["directory"] = directory.into();
+                assert_eq!(
+                    preprocess_record(&case, 0).unwrap_err(),
+                    "invalid preprocessing directory or argument"
+                );
+            }
+            case["directory"] = approved.into();
+            let command = case["command"].as_str().unwrap().to_owned();
+            case["command"] = format!("{command}; touch /tmp/foreign").into();
+            assert_eq!(
+                preprocess_record(&case, 0).unwrap_err(),
+                "compiler evidence contains a shell operation"
+            );
+            case["command"] = format!("{command} 'embedded\targument'").into();
+            assert_eq!(
+                preprocess_record(&case, 0).unwrap_err(),
+                "invalid preprocessing directory or argument"
+            );
+        }
+    }
 }

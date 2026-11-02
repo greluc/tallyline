@@ -292,9 +292,28 @@ fn missing_and_tampered_models_are_refused_at_the_file_boundary() {
 fn preprocessing_plan_refuses_shells_plugins_and_foreign_outputs_without_execution() {
     let fixture = Fixture::new().unwrap();
     let mut plan = String::from("tallyline-preprocess-v1\n");
-    for index in 0..334 {
-        plan.push_str(&format!("/work/build-lept\t/usr/bin/x86_64-linux-gnu-gcc-12\t-E\t/src/leptonica-1.87.0/src/numabasic.c\t-o\t/work/preprocessed-{index}.ii\t-dD\n"));
+    let cases: Vec<serde_json::Value> =
+        serde_json::from_str(include_str!("fixtures/preprocessing-commands.json")).unwrap();
+    let mut index = 0;
+    for case in cases {
+        let directory = case["directory"].as_str().unwrap();
+        let arguments = case["preprocessed_arguments"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|arg| arg.as_str().unwrap())
+            .collect::<Vec<_>>()
+            .join("\t");
+        for _ in 0..case["copies"].as_u64().unwrap() {
+            plan.push_str(
+                &format!("{directory}\t{arguments}\n").replace("INDEX", &index.to_string()),
+            );
+            index += 1;
+        }
     }
+    assert_eq!(index, 334);
+    assert_eq!(plan.matches("\n/work/build-lept/src\t").count(), 182);
+    assert_eq!(plan.matches("\n/work/build-tess\t").count(), 152);
     fs::write(fixture.0.join("preprocess.plan"), &plan).unwrap();
     let run = || {
         Command::new(env!("CARGO_BIN_EXE_isolation-probe"))
@@ -303,15 +322,71 @@ fn preprocessing_plan_refuses_shells_plugins_and_foreign_outputs_without_executi
             .output()
             .unwrap()
     };
-    assert!(run().status.success());
+    let accepted = run();
+    assert!(
+        accepted.status.success(),
+        "{}",
+        String::from_utf8_lossy(&accepted.stderr)
+    );
+    assert_eq!(
+        String::from_utf8(accepted.stdout).unwrap(),
+        "approved preprocessing plan validated; no process started\n"
+    );
     for changed in [
         plan.replace("/usr/bin/x86_64-linux-gnu-gcc-12", "/bin/sh"),
         plan.replace("\t-E\t", "\t-fplugin=/work/foreign.so\t-E\t"),
         plan.replace("/work/preprocessed-0.ii", "/tmp/foreign.ii"),
+        plan.replace("\t-E\t", "\t-E;touch foreign\t"),
+        plan.replace("/src/leptonica-1.87.0/src/adaptmap.c", "/src/foreign.c"),
+        plan.replace(
+            "/src/leptonica-1.87.0/src/adaptmap.c",
+            "/src/leptonica-1.87.0/src/../foreign.c",
+        ),
+        plan.replace("\t-E\t", "\t-c\t"),
+        plan.replace("\t-dD\n", "\n"),
+        plan.replace("/work/preprocessed-0.ii", "/work/preprocessed-1.ii"),
+        plan.replacen("\t-E\t", &format!("\t{}\t-E\t", "x".repeat(4097)), 1),
+        plan.replacen("\t-E\t", &format!("\t{}-E\t", "-DTEST\t".repeat(128)), 1),
+        plan.lines().take(334).collect::<Vec<_>>().join("\n"),
+        format!(
+            "{plan}{}\n",
+            plan.lines()
+                .nth(1)
+                .unwrap()
+                .replace("preprocessed-0.ii", "preprocessed-334.ii")
+        ),
     ] {
         fs::write(fixture.0.join("preprocess.plan"), changed).unwrap();
         assert!(!run().status.success());
     }
+    for (approved, rejected) in [
+        ("/work/build-lept/src", "/work/build-lept"),
+        ("/work/build-lept/src", "/work/build-lept/src/.."),
+        ("/work/build-lept/src", "/work/build-lept/src/child"),
+        ("/work/build-lept/src", "/work/build-lept/src-extra"),
+        ("/work/build-lept/src", "/tmp/build-lept/src"),
+        ("/work/build-tess", "/work/build-tess/.."),
+        ("/work/build-tess", "/work/build-tess/child"),
+        ("/work/build-tess", "/work/build-tess-extra"),
+        ("/work/build-tess", "/tmp/build-tess"),
+    ] {
+        let changed = plan.replace(&format!("\n{approved}\t"), &format!("\n{rejected}\t"));
+        assert_ne!(changed, plan);
+        fs::write(fixture.0.join("preprocess.plan"), changed).unwrap();
+        assert!(!run().status.success(), "accepted directory {rejected}");
+    }
+    fs::write(
+        fixture.0.join("preprocess.plan"),
+        "x".repeat(8 * 1024 * 1024 + 1),
+    )
+    .unwrap();
+    let oversized = run();
+    assert!(!oversized.status.success());
+    assert_eq!(
+        String::from_utf8(oversized.stdout).unwrap(),
+        "isolation-probe: preprocessing plan exceeds bounds\n"
+    );
+    assert_eq!(fs::read_dir(&fixture.0).unwrap().count(), 1);
 }
 
 #[test]

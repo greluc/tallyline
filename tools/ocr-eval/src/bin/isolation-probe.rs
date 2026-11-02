@@ -197,7 +197,7 @@ fn preprocess_plan(path: &str) -> Result<Vec<PreprocessUnit>, String> {
         let fields = line.split('\t').collect::<Vec<_>>();
         let directory = *fields.first().ok_or("preprocessing directory missing")?;
         let arguments = fields.get(1..).ok_or("preprocessing arguments missing")?;
-        if !matches!(directory, "/work/build-lept" | "/work/build-tess")
+        if !matches!(directory, "/work/build-lept/src" | "/work/build-tess")
             || arguments.len() > 128
             || !matches!(
                 arguments.first().copied(),
