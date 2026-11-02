@@ -32,3 +32,5 @@ pub use crate::image_intake::model::{
 pub use crate::manual_attachment::{
     AttachmentEncodingSettings, AttachmentImageError, AttachmentPreview, EncodedAttachment,
 };
+
+pub use crate::private_artifact::PrivateArtifactError;

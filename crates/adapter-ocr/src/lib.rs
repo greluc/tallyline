@@ -9,4 +9,5 @@ mod assets;
 mod ctc;
 mod preprocessing;
 
+mod detection;
 mod runtime;

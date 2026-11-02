@@ -21,3 +21,5 @@ mod update_config;
 mod backup;
 mod image_intake;
 mod manual_attachment;
+
+mod private_artifact;
