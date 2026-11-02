@@ -18,7 +18,7 @@ const MAX_ADDRESS_BYTES: usize = 4096;
 /// Owns a local authenticated bus connection for a Linux credential adapter.
 /// Callers suppress credential-library logging targets before formatting or bridging.
 pub struct LinuxCredentialBus {
-    connection: zbus::Connection,
+    pub(crate) connection: zbus::Connection,
 }
 
 impl LinuxCredentialBus {
