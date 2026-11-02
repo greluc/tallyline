@@ -24,3 +24,8 @@ mod ocr_native;
 #[cfg(windows)]
 mod windows_ocr;
 mod worker_priority;
+
+#[cfg(windows)]
+mod credential_bundle;
+#[cfg(windows)]
+mod windows_credentials;

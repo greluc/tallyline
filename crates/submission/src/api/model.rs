@@ -130,6 +130,45 @@ pub struct SavedCredentials {
 }
 
 impl SavedCredentials {
+    /// Reconstructs a required account record at the secure storage boundary.
+    ///
+    /// # Errors
+    /// Returns corruption when a persisted refusal is not an account refusal.
+    pub fn from_storage(
+        values: CredentialValues,
+        account: ValidatedAccount,
+        validated_at: Timestamp,
+        refusal: Option<CredentialFailure>,
+    ) -> Result<Self, StorageFailure> {
+        if refusal.is_some_and(|failure| !super::known_refusal(failure)) {
+            return Err(StorageFailure::Corrupt);
+        }
+        Ok(Self {
+            values,
+            account,
+            validated_at,
+            refusal,
+        })
+    }
+
+    /// Borrows only the account identity for secure-store encoding.
+    #[must_use]
+    pub fn username(&self) -> &str {
+        &self.account.username
+    }
+
+    /// Returns the last successful account validation time.
+    #[must_use]
+    pub const fn validated_at(&self) -> Timestamp {
+        self.validated_at
+    }
+
+    /// Returns the persisted account refusal, if any.
+    #[must_use]
+    pub const fn refusal(&self) -> Option<CredentialFailure> {
+        self.refusal
+    }
+
     /// Borrows credential values only for secure-store encoding.
     #[must_use]
     pub const fn values(&self) -> &CredentialValues {

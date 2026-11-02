@@ -865,3 +865,28 @@ catalogue with the project source-port attribution. The Rust adaptation is under
 GPL-3.0-or-later with those retained BSD-3-Clause obligations. This source
 attribution does not select or bundle an OpenCV native library.
 Licence-header SHA-256: 3540f4621f2ea804dbc271ee623b324fde7fcb79eb2edff14c15a8c84d183499.
+
+15. Credential dependency foundation
+----------------------------------
+
+The credential dependency foundation selects keyring-core1.0.1 and
+windows-native-keyring-store1.1.0 for Windows, and secret-service5.2.0 with
+zbus5.19.0 and the Rust DH/HKDF/AES path for Linux. The exact dependency,
+archive, publisher and licence evidence is supply-chain/credential-adoption.json.
+Complete original licence/notice files from every shipped crate are retained
+in the generated offline legal catalogue. This foundation does not yet provide
+a working OS-store adapter or onboarding flow.
+
+The six bounded owner-approved native surfaces elect MIT: Windows Credential
+Manager FFI in windows-native-keyring-store1.1.0; Linux x86_64 cmov0.5.4,
+event-listener5.4.2 and num-bigint0.4.8 assembly; Linux zbus5.19.0 local Unix
+client/ancillary descriptor code; and signal-hook-registry1.4.8 compiled only
+through mandatory upstream Tokio features. Original MIT/Apache alternatives
+and copyright notices remain verbatim in the offline catalogue.
+
+The machine registry pins exact archive/source hashes, full metadata features
+and supported-target selectors. Independent resolved-target evidence keeps
+cmov absent on Windows. TCP, unixexec, bus autolaunch, NSS helper calls,
+application process launching, signal registration and server/p2p operation
+remain outside the credential scope. memoffset0.9.1 and uds_windows1.2.1 are
+locked only for other targets and prohibited from both supported graphs.

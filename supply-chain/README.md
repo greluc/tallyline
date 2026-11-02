@@ -5,6 +5,7 @@ Committed records of the supply-chain measures of `docs/plan/10-supply-chain-sec
 | File | What it is |
 |---|---|
 | `latest-stable-adoption.json` | Exact eligible-stable adoption identities, release-age/checksum verification, owner-record scope, upstream constraints and qualified provenance evidence |
+| `credential-adoption.json` | Exact credential dependency/source, qualified publisher, imported audit, feature and licence reconciliation, with explicit native and target limits |
 | `build-code.json` | Exact reviewed custom-build/proc-macro targets and contextual generator-consumer restrictions (10 S-12); validated by `cargo xtask build-code` and `check` |
 | `vendor-hashes.txt` | The per-package hash list of the vendored dependency tree (10 S-4, O-120). The tree itself is never committed; CI regenerates it and compares it with this list |
 | `config.toml` | The `cargo-vet` configuration: the audit sources we import from and the exemptions (10 S-6) |
@@ -208,7 +209,7 @@ The parent-range duplicate reconciliation retains only an exact `windows-sys@=0.
 
 ## Shared image intake adoption (2026-11-01, issue #103)
 
-[The exact adoption record](image-intake-adoption.json) covers moxcms 0.9.1 and the test-only jpeg-encoder 0.7.1. Both meet the restored seven-day cooldown. The ICC adapter uses the latest eligible direct release; image 0.25.10 retains its disjoint ^0.8 requirement, so the owner-approved exact moxcms@=0.8.1 duplicate skip and section3a revisit end on2027-04-13. This is a duplicate-version exception, not a source override or security-advisory exemption.
+[The exact adoption record](image-intake-adoption.json) covers moxcms 0.9.1 and the test-only jpeg-encoder 0.7.1. Both meet the restored seven-day cooldown. The ICC adapter uses the latest eligible direct release; image 0.25.10 retains its disjoint ^0.8 requirement, so the owner-approved exact moxcms@=0.8.1 duplicate skip and section 3a revisit end on 2027-04-13. This is a duplicate-version exception, not a source override or security-advisory exemption.
 
 The owner explicitly approved the two proposed records on2026-11-01 after automatic approval review rejected their first attempted write. jpeg-encoder publisher82913/vstroebel is the current sole owner and the actual merger of current same-project PR39/40. Its named-crate safe-to-run trust window runs from2026-07-27 until2027-11-01 and includes later releases by that publisher of this crate. This is publisher trust, not a full human or AI security audit. The selected dependency is exactly0.7.1, test-only, with std enabled and defaults/simd disabled; the exact test licence is already allowed by O-130. There are no new imported audit sources, exemptions, native components, assembly, models or runtimes.
 
@@ -216,6 +217,78 @@ moxcms0.9.1 is covered by the existing same-crate publisher266802 rule. imports.
 
 Workspace identity support (2026-11-01, issue #104) does not adopt a script or exempt it from review. Paths are normal relative paths beneath the declared workspace and reviewed package; metadata names, versions, membership and paths must agree with the review. Actual hashing rejects missing or nonregular files, links/reparse points at every ancestor, and canonical escapes. A workspace script review covers its exact entrypoint bytes; any helper/build dependency source remains a separate review obligation. Keep minimal asset-verification scripts self-contained and bind all expected hashes in reviewed code. Registry scripts, including future ort-sys adoption, retain registry/archive identity, and contextual generator reviews retain their independent consumer checks. The aggregate pre-build guard order is unchanged.
 Small OCR data (2026-11-02, issue #104) reuse the approved `sha2`0.11.1 source and feature set for normal and build-time hashing. No registry package/version/checksum or vendor tree changes; the lockfile adds only the adapter's existing-package dependency edge. The self-contained `adapter-ocr/build.rs` record uses the genuine workspace identity and hashes three fixed local data files, emitting public Cargo file/hash/size metadata. It starts no subprocess, compiler, converter or native runtime and opens no network connection. `NOTICE`2.4/2.5, the immutable source evidence and unmodified upstream licence accompany the assets; the dictionary's multilingual glyphs have one exact-path verbatim language exception. This is data-integrity evidence, not OCR accuracy, native runtime or package acceptance.
+
+## Credential dependency foundation (2026-11-02, issue #82)
+
+[The adoption ledger](credential-adoption.json) records 45 new registry identities,
+archive checksums, purposes/reverse consumers, official release age, declared
+licences and preserved legal files, actual publishers/project authorities and
+build-time targets. All 44 unchanged packet identities match the reviewed source
+packet (991 compared files, zero differences). ctutils0.4.6 became eligible at
+the current seven-day cutoff and replaces proposed0.4.5 after its safe-Rust
+borrow-mask delta review. ctutils0.4.7 and zcheapstr1.2.0 remain too young;
+zcheapstr1.1.0 is locked. num-bigint0.4.8 and zbus/zbus_macros5.19.0 remain
+constrained by current num/secret-service parent ranges; their exact native
+approvals are preserved. No source replacement or bootstrap exemption is added.
+
+The 40 one-year publisher rules follow the existing S-6 standing policy, with
+per-entry real publisher/own-project or imported authority, not blanket exact
+owner approval of a forty record packet. They expire exclusively on 2027-11-02
+and cover later releases of the same named crate by the same publisher during
+that window. Five team-owned cases use the publisher's exact same-project
+packaged release commit, rather than team membership alone. The six bounded
+native approvals are separate and do not make publisher trust a source,
+cryptographic or human audit.
+
+The extra fortieth rule covers already locked tempfile3.27.0. cargo-vet's
+all-platform graph now treats it as production through excluded uds_windows,
+so safe-to-run coverage alone is insufficient. Its shipped-target use remains
+test-only. Fresh official publisher/sole-owner evidence establishes
+Stebalien/280 of github.com/Stebalien/tempfile as its own-project maintainer;
+this is safe-to-deploy publisher trust, not an exemption or local source audit.
+
+The four existing named import authorities add five exact audit records:
+Google byteorder1.5.0, Bytecode Alliance parking2.2.1, Mozilla hex0.4.3 and
+num-rational0.4.1, and ISRG's num-rational0.4.1-to0.4.2 delta. Their immutable
+source commits and file hashes are in the ledger. byteorder's original Google
+record expressly asserts the built-in safe-to-deploy criterion alongside
+custom does-not-implement-crypto/ub-risk-2 criteria. The cache retains only that
+same built-in assertion; this is a strictly weaker projection, with the full
+original and provenance preserved in the ledger. No custom criterion is
+reinterpreted, and no imported audit is relabelled as a local audit. All six
+configured URLs and all prior cached records remain, including Zcash despite
+its unavailable upstream URL. No new audit source is introduced.
+
+memoffset0.9.1 and uds_windows1.2.1 receive separately justified other-target
+exemptions with section 3a rows ending 2027-04-13. Both stay absent from both
+supported graphs and forbidden at every version through renamed edges. These
+are off-target dispositions, not source-soundness certificates or activation
+permission. Native-scope pins exact versions/features of the credential entry
+points; the source inventory binds the six native surfaces with archive and
+source hashes, original metadata selectors and independent resolved selectors.
+In particular, conservative Windows metadata reaching cmov does not grant its
+activation: the resolved Windows selector is null. Runtime backends, storage
+fallback, provider behaviour and masked onboarding remain pending.
+
+The eight new S-12 entries bind seven procedural macros and the excluded
+memoffset script. The review records generated runtime capabilities honestly:
+tracing instrumentation may format arguments/errors, enumflags2_derive emits
+an unsafe RawBitFlags implementation, and zbus macros can generate blocking/
+server APIs whose use is not authorised by this client-only scope. The direct
+proc-macro-crate helper reads manifests and invokes Cargo locate-project;
+this discovers the workspace without building/resolving dependencies or using
+a shell. That build-time effect is not authority for app process launching.
+S-12 source/capability review and publisher trust remain separate obligations.
+
+The exact merged metadata also adds three windows-sys helper flags through zbus's excluded Windows branch: Win32_NetworkManagement, Win32_NetworkManagement_IpHelper and Win32_Security_Authorization. Complete target trees keep them inactive; the resolved native guard explicitly rejects their activation through renamed edges before workspace build/test work. This grants no Windows transport/NSS helper scope. endi1.1.1's published MIT grant names no copyright holder; the separately reviewed absence record preserves that fact without inventing attribution, and the complete original licence remains in the catalogue.
+
+The same complete-source/legal review also confirms that event-listener5.4.2, event-listener-strategy0.5.4 and ordered-stream0.2.0 supply no named holder. Their MIT grants byte-match the reviewed endi grant; Apache template text is not attribution. Exact version/VCS-bound absence rows preserve this fact, with every original text retained. futures-lite and parking preserve their actual third-party copyright notices instead.
+
+The exact normal dependency graph adds three Windows identities and 41 Linux identities without removing any. Eight Linux additions were already locked for other roles: errno, fastrand, futures-io, getrandom0.4.3, proc-macro2, quote, syn and winnow. Their versions/archive identities remain unchanged. The legal review also records genuine version/VCS-bound holder absences for fastrand2.5.0, proc-macro2 1.0.107, quote1.0.47, syn3.0.9 and winnow1.0.4, instead of inferring holder names from Cargo authors.
+
+The zvariant_utils 4.2.0 published MIT grant also supplies no named holder; its complete package marker search and exact VCS revision support a separate absence row. The full original grant remains bundled.
+
+The Windows inventory uses the actual src/cred.rs and src/store.rs paths and binds all five published Rust sources. Each byte-matches the unchanged approved archive; these additional wrapper/store hashes complete source coverage and grant no new native behaviour, API calls, target or feature scope. The packet's original utils.rs/tests.rs native bindings remain unchanged.
 
 ## Approved runtime binding adoption (2026-11-02, issue #104)
 
@@ -230,3 +303,5 @@ Seven named-crate publisher records follow the standing S-6 own-project-maintain
 The actual native boundary adds no registry identity, exemption or trust grant. `adapter-ocr/build.rs` now hashes five fixed local files, including both accepted1.31.0 native libraries, before compilation; its exact complete entrypoint hash is updated in the existing workspace record. Extraction checked each official archive before copying only its fixed regular library and full unchanged licence/notices; no symlink, provider/CRT file, installer, download or native build is added. Both libraries use LFS. The broad upstream third-party notice text is equal across platforms apart from original line endings and includes optional components; preserving it does not assert every option is linked or resolve existing corresponding-source/release obligations. Primary project licence metadata is MIT, with complete upstream terms supplied separately.
 
 Runtime verification is owned by the deep adapter, with explicitly injected app-owned host checks and a non-clone attempt token; no mutable global is introduced. Windows module references/resources have narrow registered contracts. Model snapshots retain exactly the bytes that were hashed and are passed directly to ORT from memory. The diagnostic sessions explicitly request bounded conservative options and expose only numeric evidence; no production pool/resource, Linux telemetry, corpus or clean-OS acceptance claim follows from compilation or a developer-host probe.
+
+Credential adapter use, 2026-11-02: `adapter-platform` directly uses the already-locked zeroize 1.9.1 with defaults off and alloc only for temporary credential bundle guards and erasure of bad-data byte payloads. No registry identity, source, checksum, selected version, native source or resolved feature is added. Its new shared-kernel edge supplies the existing precise timestamp type. Windows store use stays within the approved fixed-entry Local binary read/write/delete scope; source inventories and publisher/audit records remain unchanged. The new isolated-provider tests and selected wrapper compilation do not certify real OS-store behaviour or Linux transport acceptance.

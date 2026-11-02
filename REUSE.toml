@@ -15,6 +15,7 @@ path = [
   "Cargo.lock",
   "rust-toolchain.toml",
   "deny.toml",
+  "osv-scanner.toml",
   "clippy.toml",
   "rustfmt.toml",
   ".cargo/**",

@@ -35,7 +35,7 @@ Amended 2026-10-12: the mechanisms were converted from Java 27, JavaFX and Gradl
 
 ## 3. Clean Code
 
-Credential dependency exclusion guard, 2026-11-01: `cargo xtask native-scope` and `check` reject any reachable `memoffset` or `uds_windows` version on either supported target, including renamed transitive edges. These identities remain outside the approved credential scope; a lockfile-only disposition is not activation permission. Their credential dependency graph and S-6 records have not yet been adopted.
+Credential dependency exclusion guard, 2026-11-01: `cargo xtask native-scope` and `check` reject any reachable `memoffset` or `uds_windows` version on either supported target, including renamed transitive edges. These identities remain outside the approved credential scope; a lockfile-only disposition is not activation permission. Corrected 2026-11-02: the credential dependency foundation and qualified S-6 records are adopted below; these two identities remain lockfile-only and prohibited on supported targets.
 
 | Rule | Enforcement |
 |---|---|
@@ -61,6 +61,9 @@ The `unsafe` code of the platform adapter is registered here too. Corrected 2026
 
 | Location | Rule | Reason | Date | Revisit when |
 |---|---|---|---|---|
+| `osv-scanner.toml` `RUSTSEC-2026-0370` | OSV unscored maintenance notice | zvariant 5.15.1 was merged into zbus 6; the latest published secret-service 5.2.0 requires zbus ^5, so retain the exact approved client scope pending a maintained eligible parent release (10 S-19 triage note) | 2026-11-02 | 2026-11-16 |
+| `osv-scanner.toml` `RUSTSEC-2026-0371` | OSV unscored maintenance notice | zbus_names 4.3.5 was merged into zbus 6; the latest published secret-service 5.2.0 requires zbus ^5, so retain the exact approved client scope pending a maintained eligible parent release (10 S-19 triage note) | 2026-11-02 | 2026-11-16 |
+| `osv-scanner.toml` `RUSTSEC-2026-0372` | OSV unscored maintenance notice | zvariant_derive 5.15.1 was merged into zbus 6; the latest published secret-service 5.2.0 requires zbus ^5, so retain the exact approved client scope pending a maintained eligible parent release (10 S-19 triage note) | 2026-11-02 | 2026-11-16 |
 | `crates/adapter-ocr/tests/{assets,detection,reader,runtime,runtime_settings}.rs`, requirement-tagged public OCR contracts | `non_snake_case` | The required traceability grammar contains a double underscore | 2026-11-02 | the tag grammar changes or rustc accepts consecutive underscores |
 | `xtask::build_code_workspace_tests`, requirement-tagged public guard contracts | `non_snake_case` | The required traceability grammar contains a double underscore | 2026-11-01 | the tag grammar changes or rustc accepts consecutive underscores |
 | `crates/adapter-platform/tests/{ocr_startup,worker_priority}.rs`, requirement-tagged tests | `non_snake_case` | The required traceability grammar contains a double underscore | 2026-11-01 | the tag grammar changes or rustc accepts consecutive underscores |
@@ -104,6 +107,8 @@ The `unsafe` code of the platform adapter is registered here too. Corrected 2026
 | `xtask/english-allowlist.toml`, the exact canonical `user-id` comment lines for publisher IDs 91569, 6134 and 82913 in `supply-chain/audits.toml` | English check | cargo-vet canonical formatting restores the genuine publisher names; only these exact lines are exempt, while every audit/trust note remains checked | 2026-11-01 | 2027-04-13, or when cargo-vet changes/removes these canonical lines |
 | `supply-chain/config.toml` `[[exemptions.system-configuration]]` `system-configuration` 0.7.0 | `cargo-vet` `safe-to-deploy` | AI-reviewed S-6 off-target justification, not a full soundness audit: the selected callback builder erases an unconstrained borrowed context lifetime; absent on both supported target graphs and native-scope rejects every reachable version, including renamed dependencies | 2026-11-01 | 2027-04-13, or before any activation |
 | `supply-chain/config.toml` `[[exemptions.system-configuration-sys]]` `system-configuration-sys` 0.6.0 | `cargo-vet` `safe-to-deploy` | AI-reviewed S-6 off-target justification, not a full FFI audit: complete build script only emits an Apple framework link directive; absent on both supported target graphs and native-scope rejects every reachable version; no Apple target or new native activation granted | 2026-11-01 | 2027-04-13, or before any activation |
+| `supply-chain/config.toml` `[[exemptions.memoffset]]` `memoffset` 0.9.1 | `cargo-vet` `safe-to-deploy` | S-6 justified other-target-only dependency of Linux zbus; absent on both supported graphs, with every version and renamed edge rejected by native-scope; not a source-soundness audit or bootstrap addition | 2026-11-02 | 2027-04-13, or before any activation/version/source/feature/target change |
+| `supply-chain/config.toml` `[[exemptions.uds_windows]]` `uds_windows` 1.2.1 | `cargo-vet` `safe-to-deploy` | S-6 justified other-target-only dependency of Linux zbus; Windows uses its independent native store, and every reachable uds_windows version/renamed edge is rejected on both supported graphs; not a source audit or Windows native activation | 2026-11-02 | 2027-04-13, or before any activation/version/source/feature/target change |
 
 | Location | Rule | Reason | Date | Revisit when |
 |---|---|---|---|---|
@@ -163,6 +168,35 @@ malformed proof. Host build/procedural-macro and target occurrences are unioned;
 a Linux tree collected on Windows is not matching-host Linux build acceptance.
 No native scope is widened by this additional selector. See the exact collection
 and verification limits in [xtask](../../xtask/README.md#literal-inline-assembly-inventory).
+Windows credential store implementation 2026-11-02 (R-NF-4): the platform adapter calls only the approved owned-store build and binary set/get/delete surface with fixed identifiers and explicit Local persistence. The existing reviewed dependency wrappers retain native allocation erasure/free ownership; this adds no own unsafe block, native source, registry version or feature scope. The platform codec and injected-provider contract tests do not exercise the real OS store. Direct zeroize 1.9.1 with defaults off and alloc only supplies erasing buffer guards; it was already locked and active with these features. Application logging must suppress credential dependency targets before formatting/bridging when the adapter is composed; no native credential provider is invoked by desktop startup in this slice.
+
+Credential native foundation adopted 2026-11-02 under the exact previously
+owner-approved six-surface packet (SHA-256 recorded in
+`supply-chain/credential-adoption.json`). The exact archive/source/full-feature,
+metadata-target and independent resolved-target bounds live in
+`supply-chain/native-assembly.json`. All six elect MIT with original texts
+retained in NOTICE section 15 and the offline catalogue. Revisit by 2027-04-13 or before
+any source/version/feature/target/backend change. This is bounded native
+permission and AI source review, not a human or cryptographic audit.
+
+| Crate | Native part | Reason | Licence | Date | Revisit when |
+|---|---|---|---|---|---|
+| windows-native-keyring-store1.1.0 | Windows x86_64 MSVC CredReadW/CredWriteW/CredDeleteW/CredFree/GetLastError | Fixed ASCII application entry, ordered bounded binary bundle, forced Local persistence; owned store only, enumeration/search/global defaults excluded | MIT elected | Exact bounded owner approval; adopted 2026-11-02 | 2027-04-13 or before source/version/feature/target changes |
+| cmov0.5.4 | Linux x86_64 normal test/xor/cmov backend | Rust Secret Service crypto; AArch64/soft/ARM paths and fake Miri/cfg overrides excluded; resolved Windows activation must remain absent | MIT elected | Exact bounded owner approval; adopted 2026-11-02 | 2027-04-13 or before source/version/feature/target changes |
+| event-listener5.4.2 | Linux x86_64 !miri/!loom lock-not notification fence | Local UnsafeCell notification barrier; other architectures/pointer widths excluded | MIT elected | Exact bounded owner approval; adopted 2026-11-02 | 2027-04-13 or before source/version/feature/target changes |
+| num-bigint0.4.8 | Linux x86_64 !miri register div | Standard Secret Service DH arithmetic; exact upstream-constrained0.4 family | MIT elected | Exact bounded owner approval; adopted 2026-11-02 | 2027-04-13 or before source/version/feature/target changes |
+| zbus5.19.0 | Linux Tokio Unix client and rustix ancillary FD sendmsg/recvmsg; peer/NSS helpers compile but remain uncalled | Inject one validated filesystem Unix stream after same-UID peer check; force EXTERNAL and check supplied GUID; TCP/unixexec/autolaunch/server/p2p/NSS/blocking calls excluded | MIT | Exact bounded owner approval; adopted 2026-11-02 | 2027-04-13 or before source/version/feature/target changes |
+| signal-hook-registry1.4.8 | Linux libc signal-related code compiled through mandatory zbus/Tokio process feature | Upstream compiled-only surface; application process launching or signal registration excluded | MIT elected | Exact bounded owner approval; adopted 2026-11-02 | 2027-04-13 or before source/version/feature/target changes |
+
+The source inventory also binds the credential FFI/transport/selector files
+without requiring a literal assembly marker. Native-scope rejects unreviewed
+versions or optional features of these native crates and their keyring-core/
+secret-service entry points. memoffset and uds_windows remain prohibited at
+every version, including renamed edges. The original nineteen-version native
+approval remains independently binding. The approved Linux sha2 alloc/default/
+oid feature addition updates its conservative metadata union while resolved
+Windows sha2 features stay empty; this does not grant Windows cmov activation.
+No native runtime or provider acceptance is claimed by dependency compilation.
 ## 4. Error handling, logging, observability
 
 - **Error categories:**
@@ -276,7 +310,7 @@ Facts verified on 2026-10-12 (ADR-0005) are marked; everything else is chosen an
 | Rust toolchain (stable, edition 2024) | 1.99.0 (verified 2026-10-12) | The exact pin goes into `rust-toolchain.toml` in M0 (ADR-0005 D10); includes rustfmt and Clippy |
 | `egui` / `eframe` | 0.37.0 (latest eligible stable, verified 2026-11-01) | wgpu backend (O-113) |
 | `ort` | `=2.0.0-rc.14` (verified) | Release candidate, registered exception (§3b, O-108); `default-features = false` with `load-dynamic` and `api-31`, loading the official ONNX Runtime 1.31.0 library (M0 spike and ADR-0007, 2026-10-14; rc.14 was published on 2026-10-12, inside the S-7 cooldown, and adopted by the owner's decision) |
-| `keyring` | 4.2.0 (verified) | Secret storage |
+| `keyring-core` / Windows store / `secret-service` / `zbus` | 1.0.1 / 1.1.0 / 5.2.0 / 5.19.0 | Corrected 2026-11-02: exact dependency foundation replaces the historical unadopted keyring4.2.0 choice; the Windows Local adapter has isolated-provider contracts, while application composition, OS acceptance and the Linux adapter remain pending |
 | `cargo-packager` | 0.11.8 (verified) with pre-installed WiX 3.11.2 | WiX pinned by SHA-256 in `docs/dependency-pins.md` ([10](10-supply-chain-security.md) S-11) |
 | `cargo-deny`, `cargo-vet`, `cargo-audit`, `cargo-llvm-cov`, `cargo-mutants` | pinned in [dependency-pins](../dependency-pins.md), with verification dates and platforms there | Check, supply-chain and coverage tools; installed per 10 S-36. Corrected 2026-11-01: the tool pins are recorded; core coverage and mutation baselines remain separate measurements |
 | `proptest`, `wiremock` | to be verified in M0 | Test libraries |
@@ -286,5 +320,7 @@ Facts verified on 2026-10-12 (ADR-0005) are marked; everything else is chosen an
 | Others | see [CLAUDE.md](../../CLAUDE.md) | |
 
 SQLite source scope approved 2026-11-01: `supply-chain/sqlite-native.json` separately pins rusqlite 0.41.1, libsqlite3-sys 0.39.1, SQLite 3.54.1, both supported x86_64 graphs, the complete feature sets and build/C/header hashes. Its C hardware-timer assembly remains inactive: `VDBE_PROFILE`, `SQLITE_PERFORMANCE_TRACE` and `SQLITE_ENABLE_STMT_SCANSTATUS` are undefined. `cargo xtask sqlite-native` rejects native/compiler overrides, including CFLAGS, MSVC CL/_CL_ and forged Rust feature cfgs; the aggregate check stops before workspace build/test work on failure. This does not change the existing 98-file Rust assembly approval or authorise other SQLite source versions/features. No optional omission flags are enabled. The review expires on 2027-04-13; the registered SQLite C choice O-109 remains unchanged.
+
+**OCR loader fixture diagnostics (2026-11-02).** The native-free runtime contract labels temporary-root resolution, directory reservation, executable copy, verified-library copy, invalid-library setup, child start/wait, cleanup-path verification and removal separately. Errors retain their I/O kind and original OS diagnostic. Child status/stdout/stderr are captured as the primary result before cleanup; a secondary cleanup error is attached rather than replacing a failed child. A real deliberately failing subprocess contract rejects the original panic-only fixture and checks that its primary diagnostic is returned after cleanup. An initial100 and an extended300 exact Cargo-driven verified/refused fixture runs passed on the Windows developer host; the intermittent `PermissionDenied` reported by the separate mutation run was not reproduced. This instrumentation identifies future failures but does not claim that denial fixed, add retries, skip a contract or validate the interrupted mutation result. No native library/model is initialised by these tests and no product runtime behaviour changes.
 
 **Portable OCR verification boundary (2026-11-02, issue #104).** Public adapter contracts exercise the source-qualified DB/postprocessor and original-raster crop seams with independent synthetic geometry/pixels, detector preprocessing with literal BGR values, and reader construction/refusal/lazy-runtime behaviour without native initialisation. The complete reader profile separates portable analytic rectangle offsets, pixel-centre scoring and bilinear projective sampling from optional upstream native arithmetic; no bitwise parity is claimed. Actual native image/lifecycle acceptance belongs to the app-owned headless probe, separately from these passing tests. No dependency, native exception, unsafe site, asset hash or corpus verification state changes with this safe Rust slice.

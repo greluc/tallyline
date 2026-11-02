@@ -1721,6 +1721,190 @@
       "reviewer": "GPT-6.1 Sol (AI agent)"
     },
     {
+      "name": "async-recursion",
+      "version": "1.2.0",
+      "kind": "proc-macro",
+      "archive_sha256": "4f8abc12baad266b1c8cec146854c195b5864b4221d4b2ca7296a7ae82d9e451",
+      "source_sha256": "73ac44cefa101e58a18acb8ce31b58933a2adf89e520e48d06e3f3dc6b90fb31",
+      "behaviour": "Parses an async function and recursion arguments, rewrites lifetimes/bounds and returns Box::pin(async move). Pure token transformation; no build-time filesystem, environment, process, network, native compiler or FFI calls in its production modules.",
+      "review_scope": "S-12 source and build-time capability review by GPT-6.1 Sol AI, 2026-11-02; production entrypoint/modules inspected, with direct helper scope stated explicitly. Not cargo-vet certification, a human audit, full generated-code soundness proof or authority for native/runtime side effects.",
+      "sources_read_or_inspected": [
+        {
+          "path": "src/expand.rs",
+          "sha256": "630b6f170dbffb3d61199c67ea0522bb3e6b4d30e36507ad4dce132df970e779"
+        },
+        {
+          "path": "src/lib.rs",
+          "sha256": "73ac44cefa101e58a18acb8ce31b58933a2adf89e520e48d06e3f3dc6b90fb31"
+        },
+        {
+          "path": "src/parse.rs",
+          "sha256": "5cfe355f8efae36a510a6126b9cc807f0be7049e3f40f21c2e5e6d348581b20c"
+        }
+      ]
+    },
+    {
+      "name": "async-trait",
+      "version": "0.1.92",
+      "kind": "proc-macro",
+      "archive_sha256": "82f6aeea286b8eb4dd3431a1be1b59d290ace00f5bfd8e2a159bc2a05e2c1667",
+      "source_sha256": "0d35b5fc98d2a7bc2b3c771570c0930e90388bb09dba931c84a21d5ed8338600",
+      "behaviour": "Parses trait/impl async methods and rewrites receivers, explicit/elided lifetimes, Send/Sync bounds and boxed pinned futures. Pure token transformation; no build-time filesystem/environment/process/network/FFI in its production modules.",
+      "review_scope": "S-12 source and build-time capability review by GPT-6.1 Sol AI, 2026-11-02; production entrypoint/modules inspected, with direct helper scope stated explicitly. Not cargo-vet certification, a human audit, full generated-code soundness proof or authority for native/runtime side effects.",
+      "sources_read_or_inspected": [
+        {
+          "path": "src/args.rs",
+          "sha256": "6eed5497db91752b3aae597943c39e769f60406b37055304e69e4699f1f87b15"
+        },
+        {
+          "path": "src/bound.rs",
+          "sha256": "90e3075543faca8a88eedca185f0999cc7b5a57a015142fa0464df8023733c27"
+        },
+        {
+          "path": "src/expand.rs",
+          "sha256": "3982f195156217844ca78ed7d469d4434925eff6c4f234f9cfd1185f4cd221c5"
+        },
+        {
+          "path": "src/lib.rs",
+          "sha256": "0d35b5fc98d2a7bc2b3c771570c0930e90388bb09dba931c84a21d5ed8338600"
+        },
+        {
+          "path": "src/lifetime.rs",
+          "sha256": "b656ade6955c81310ecc8416606dbc6923960bc0d9113b6f006cc3aa884b5852"
+        },
+        {
+          "path": "src/parse.rs",
+          "sha256": "cd9032fe2c6dcf41050b3a59b9fb98eb9700a29bbe2fa011ee2854014c1666b7"
+        },
+        {
+          "path": "src/receiver.rs",
+          "sha256": "9d4c3decf31d3b8e33c5473e05e977cf0424920b47a9b636854c0e053a21306d"
+        },
+        {
+          "path": "src/verbatim.rs",
+          "sha256": "45d0b691fab21f20d3414733f00d82845442d23b6f2547f8d6880a709d0d3b2a"
+        }
+      ]
+    },
+    {
+      "name": "enumflags2_derive",
+      "version": "0.7.12",
+      "kind": "proc-macro",
+      "archive_sha256": "67c78a4d8fdf9953a5c9d458f9efe940fd97a0cab0941c075a813ac594733827",
+      "source_sha256": "0f9742bde84c178c82d52c243cae7cb7857bc541c7a12df69ee0ec8e998270df",
+      "behaviour": "Parses unsigned repr enum flags, assigns/checks one-bit values, emits delayed const assertions and operator/BitFlag implementations. Intentionally emits unsafe impl RawBitFlags; literal/range checks and runtime library contract remain relevant. No host I/O/process/network/FFI/assembly in the sole production file. Independent root AI S-12 review source hash bound.",
+      "review_scope": "S-12 source and build-time capability review by GPT-6.1 Sol AI, 2026-11-02; production entrypoint/modules inspected, with direct helper scope stated explicitly. Not cargo-vet certification, a human audit, full generated-code soundness proof or authority for native/runtime side effects.",
+      "sources_read_or_inspected": {
+        "path": "src/lib.rs",
+        "sha256": "0f9742bde84c178c82d52c243cae7cb7857bc541c7a12df69ee0ec8e998270df"
+      }
+    },
+    {
+      "name": "memoffset",
+      "version": "0.9.1",
+      "kind": "custom-build",
+      "archive_sha256": "488016bfae457b036d996092f6cb448677611ce4449e970ceaf42695203f218a",
+      "source_sha256": "0ddaae191a4091fe1318177d12244ff0dbabc17a18f25a54059f4badc9a20876",
+      "behaviour": "Off-target build script asks autocfg for Rust-version support and emits tuple/MaybeUninit/raw-reference/const/offset cfgs. No C compiler/download/link directive. The script remains unexecuted and memoffset is prohibited from both supported-target graphs at every version.",
+      "review_scope": "S-12 source and build-time capability review by GPT-6.1 Sol AI, 2026-11-02; production entrypoint/modules inspected, with direct helper scope stated explicitly. Not cargo-vet certification, a human audit, full generated-code soundness proof or authority for native/runtime side effects.",
+      "sources_read_or_inspected": {
+        "path": "build.rs",
+        "sha256": "0ddaae191a4091fe1318177d12244ff0dbabc17a18f25a54059f4badc9a20876"
+      }
+    },
+    {
+      "name": "serde_repr",
+      "version": "0.1.21",
+      "kind": "proc-macro",
+      "archive_sha256": "8d3b1629de253c70a0508c3899572da79ca359fdab27c7920ff00406df418906",
+      "source_sha256": "5e687c2b53270065cf6d68a54e97bbe54c832913a44001b3a5016f89a90e3476",
+      "behaviour": "Parses numeric repr unit enums and emits checked-match Serialize/Deserialize implementations, including explicit serde(other). Pure token transformation without host filesystem/environment/process/network/native calls.",
+      "review_scope": "S-12 source and build-time capability review by GPT-6.1 Sol AI, 2026-11-02; production entrypoint/modules inspected, with direct helper scope stated explicitly. Not cargo-vet certification, a human audit, full generated-code soundness proof or authority for native/runtime side effects.",
+      "sources_read_or_inspected": [
+        {
+          "path": "src/lib.rs",
+          "sha256": "5e687c2b53270065cf6d68a54e97bbe54c832913a44001b3a5016f89a90e3476"
+        },
+        {
+          "path": "src/parse.rs",
+          "sha256": "5b73af36e8efa3cc4143647d480ef1ca030ca1946bfe42c5786ce8c2e42c6e27"
+        }
+      ]
+    },
+    {
+      "name": "tracing-attributes",
+      "version": "0.1.31",
+      "kind": "proc-macro",
+      "archive_sha256": "7490cfa5ec963746568740651ac6781f701c9c5ea257c58e057f3ba8cf69e8da",
+      "source_sha256": "635bb0d42e3ca670ef6a2dda49c131db9c65e7229d82129600358991917b7efd",
+      "behaviour": "Parses instrument options and rewrites synchronous/asynchronous functions to emit tracing spans/events. Generated code records arguments by default and may format error/return values; credential dependency targets must be filtered before formatting and secret-bearing own types retain no Debug. No macro-host I/O/process/network/native calls.",
+      "review_scope": "S-12 source and build-time capability review by GPT-6.1 Sol AI, 2026-11-02; production entrypoint/modules inspected, with direct helper scope stated explicitly. Not cargo-vet certification, a human audit, full generated-code soundness proof or authority for native/runtime side effects.",
+      "sources_read_or_inspected": [
+        {
+          "path": "src/attr.rs",
+          "sha256": "1fd342b6de06da3c064a04ce952c55ee21d46ce17b254c1d053121db0c161f73"
+        },
+        {
+          "path": "src/expand.rs",
+          "sha256": "4541050b6a7397fef08f0dd32da36f5138263ef2497da83a3e2b5e1c43345c30"
+        },
+        {
+          "path": "src/lib.rs",
+          "sha256": "635bb0d42e3ca670ef6a2dda49c131db9c65e7229d82129600358991917b7efd"
+        }
+      ]
+    },
+    {
+      "name": "zbus_macros",
+      "version": "5.19.0",
+      "kind": "proc-macro",
+      "archive_sha256": "2990635d09ade6df1868f72f8cac69a876a90981e8bd3c40b1be413f8dc88f40",
+      "source_sha256": "3cb416f4d6d0c14a84d59549ea837bba87ad221f6daeced4c4a999e758c870e2",
+      "behaviour": "Parses proxy/interface/DBusError attributes and emits async/blocking client wrappers, object-server dispatch, signal/property helpers, introspection and error formatting. These generated runtime capabilities are not runtime authority: app calls remain limited to the reviewed async local client. proc-macro-crate helper reads manifests and runs the Cargo locate-project command, not dependency resolution/build or a shell; no macro network/native compilation found.",
+      "review_scope": "S-12 source and build-time capability review by GPT-6.1 Sol AI, 2026-11-02; production entrypoint/modules inspected, with direct helper scope stated explicitly. Not cargo-vet certification, a human audit, full generated-code soundness proof or authority for native/runtime side effects.",
+      "sources_read_or_inspected": [
+        {
+          "path": "src/error.rs",
+          "sha256": "0b198b88faca357f4475bbf97f9a1a124bf33fbd95ecedbec0247fbd83339705"
+        },
+        {
+          "path": "src/iface.rs",
+          "sha256": "0e0c777ae483ebd791bafa282b238d899b65afb640b79c9422b75aec8b5cb242"
+        },
+        {
+          "path": "src/lib.rs",
+          "sha256": "3cb416f4d6d0c14a84d59549ea837bba87ad221f6daeced4c4a999e758c870e2"
+        },
+        {
+          "path": "src/proxy.rs",
+          "sha256": "a8cc5e4981c103bef2c04f247220082045be044fe1539933c4ec373758fad792"
+        },
+        {
+          "path": "src/utils.rs",
+          "sha256": "26b9928a74a481b796f6048d8ad29113170d3191496cb82af6115ee477a55546"
+        }
+      ]
+    },
+    {
+      "name": "zvariant_derive",
+      "version": "5.15.1",
+      "kind": "proc-macro",
+      "archive_sha256": "ef2672456ba1cb54b5eaec136e63135b3c7495fb938e53b28a62e633496d486d",
+      "source_sha256": "b493b584763215021cf270be12e6200a4c1a94546d2909f7c09a4370e414ada3",
+      "behaviour": "Parses Type/Value/OwnedValue/dictionary derives and signatures through zvariant_utils token/attribute/signature helpers. proc-macro-crate resolves renamed crate paths by manifest reads and Cargo locate-project; no shell, network or native compiler. Emitted conversion/runtime code remains subject to its library contracts.",
+      "review_scope": "S-12 source and build-time capability review by GPT-6.1 Sol AI, 2026-11-02; production entrypoint/modules inspected, with direct helper scope stated explicitly. Not cargo-vet certification, a human audit, full generated-code soundness proof or authority for native/runtime side effects.",
+      "sources_read_or_inspected": [
+        {
+          "path": "src/lib.rs",
+          "sha256": "b493b584763215021cf270be12e6200a4c1a94546d2909f7c09a4370e414ada3"
+        },
+        {
+          "path": "src/utils.rs",
+          "sha256": "68aaccf2e88c5115044521e2e443c6e220d561c0f91d50007e6589b122fd1a76"
+        }
+      ]
+    },
+    {
       "name": "ort-sys",
       "version": "2.0.0-rc.14",
       "kind": "custom-build",

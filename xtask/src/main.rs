@@ -692,7 +692,7 @@ fn native_assembly_passes(root: &Path, review: &Path) -> io::Result<bool> {
     let files = xtask::native_assembly::source_files(&metadata).map_err(io::Error::other)?;
     writeln!(
         io::stderr(),
-        "literal assembly inventory: {} Rust source files",
+        "native source inventory: {} Rust source files",
         files.len()
     )?;
     let cargo_version = cargo_stdout(root, &["--version", "--verbose"])?;
@@ -728,6 +728,11 @@ fn native_assembly_passes(root: &Path, review: &Path) -> io::Result<bool> {
         )?;
         let resolved =
             xtask::target_graph::resolved_metadata(&metadata, &tree).map_err(io::Error::other)?;
+        let credential_findings =
+            xtask::native::resolved_credential_violations(&resolved).map_err(io::Error::other)?;
+        if !credential_findings.is_empty() {
+            return Err(io::Error::other(credential_findings.join("; ")));
+        }
         let filtered = cargo_stdout(
             root,
             &[
