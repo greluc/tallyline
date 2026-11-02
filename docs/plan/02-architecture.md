@@ -1025,3 +1025,7 @@ The package helper now validates and seals a native-platform prebuilt directory 
 ### Legal identity and source evidence preparation — 2026-11-02
 
 The helper binds target legal catalogues to compiled profiles in supply-chain/package-legal-profiles.json, with canonical project source-input hashes. Physical notice consistency and target identity are checked independently. The source-map command hashes a deterministic source archive as a stream and requires it to match the complete unpacked source tree before writing component file evidence. Its current registry scopes fail closed for other components until their exact source layouts are implemented. All source work precedes fixture creation; protected injection/assembly and complete native scopes remain open.
+
+## Parameterised SCU assessment checkpoint — 2026-11-02
+
+Reporting exposes `review_stock` as a read-only application operation with explicit percentage and absolute bands, carried by Reference Data's `ScuTolerance` without a shipping default. It uses only the matching prior's inventory and source time, preserves missing versus zero, and reports unavailable exact arithmetic. It never writes Report state or uses commodity average prices, forecast demand or status as a stock substitute. This adds no persistence or data flow. The [calibration evidence](../scu-policy-calibration.md) records the provisional 20 % / 16 SCU recommendation and the remaining settings/desktop adoption work.

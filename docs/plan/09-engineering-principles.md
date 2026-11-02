@@ -61,6 +61,7 @@ The `unsafe` code of the platform adapter is registered here too. Corrected 2026
 
 | Location | Rule | Reason | Date | Revisit when |
 |---|---|---|---|---|
+| `crates/reporting/tests/stock_review.rs` and its `stock_review/` modules | `non_snake_case`, local `#[expect]` per tagged test | The required traceability grammar contains a double underscore | 2026-11-02 | the tag grammar changes or rustc accepts consecutive underscores |
 | xtask/src/package_tests.rs | non_snake_case | Requirement traceability uses double underscores | 2026-11-02 | the tag grammar changes |
 | .gitattributes, supply-chain/wix/tool-manifest.json | Git cr-at-eol whitespace classification | The reviewed JSON digest binds original CRLF bytes, which are not trailing content | 2026-11-02 | the approved tool manifest changes |
 | .gitattributes, supply-chain/wix/wix7-self-compiled.patch | Git blank-at-eol whitespace classification | Verbatim unified-diff context lines contain their required single-space prefix | 2026-11-02 | the reviewed upstream profile patch changes |

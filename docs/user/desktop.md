@@ -175,3 +175,9 @@ The packaging helper now writes plain archives from prebuilt directories and ver
 Prebuilt staging now includes the approved native OCR library, Small model/dictionary and original font licences, and checks their exact identities alongside the legal catalogue. A restored original font-licence encoding corrects a prior packaging mismatch. These byte-level checks still do not establish installed or native-display acceptance.
 
 The distribution checks now reject a self-consistent legal catalogue that differs from the approved target inventory. Source evidence checks also reject changed source against a frozen archive. These preparation checks do not complete the protected package or installed-system acceptance gates.
+
+## SCU policy evidence
+
+The [calibration note](../scu-policy-calibration.md) separates the available screen-pair evidence and explicit application assessment from a calibrated shipping default. The desktop has no activated SCU threshold or quantity approval from this checkpoint; price/status review remains the composed review capability, and release/submission remains in progress (R-VAL-2).
+
+The developer-only SCU policy experiment recommends provisional 20 % / 16 SCU starting bands from the available corpus and clearly labelled synthetic digit comparisons. This does not activate a setting or desktop quantity approval; [the evidence note](../scu-policy-calibration.md) records the limits and remaining adoption work.

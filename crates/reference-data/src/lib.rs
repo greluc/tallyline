@@ -9,5 +9,6 @@ pub mod api;
 mod averages;
 mod parameters;
 mod priors;
+mod scu_tolerance;
 mod snapshot;
 mod tolerance;

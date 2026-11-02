@@ -15,3 +15,4 @@ mod report;
 
 mod manual_review;
 mod price_confirmation;
+mod stock_assessment;
