@@ -389,6 +389,14 @@ fn r_man_5_r_sub_7_q_manual_r_val_6_q_manual__preview_and_time_decisions_belong_
         app.edit_attachment(
             replaced.id(),
             replaced.version(),
+            AttachmentEdit::ConfirmTime(Timestamp::from_seconds(900))
+        ),
+        Err(RepositoryError::Invalid)
+    );
+    assert_eq!(
+        app.edit_attachment(
+            replaced.id(),
+            replaced.version(),
             AttachmentEdit::ConfirmPreview(binding)
         ),
         Err(RepositoryError::Invalid)

@@ -257,7 +257,8 @@ fn r_nf_11_r_man_2__explicit_takeover_requires_a_matching_prior_and_preserves_it
     non_snake_case,
     reason = "Requirement tags use a double underscore separator."
 )]
-fn r_nf_11_r_man_2__corrupt_rows_are_refused_during_real_database_reconstitution() {
+fn r_nf_11_r_man_2_r_man_5_r_val_6_q_manual__corrupt_rows_and_attachment_times_are_refused_during_real_database_reconstitution()
+ {
     let path = std::env::temp_dir().join(format!(
         "tallyline-report-corrupt-{}.db",
         std::process::id()
@@ -375,6 +376,25 @@ fn r_nf_11_r_man_2__corrupt_rows_are_refused_during_real_database_reconstitution
     for rows in invalid_rows {
         let mut invalid = document.clone();
         invalid["rows"] = serde_json::json!(rows);
+        connection
+            .execute("UPDATE reports SET payload=?1", [invalid.to_string()])
+            .unwrap();
+        let mut reopened = SqliteReferenceCache::open(&path).unwrap();
+        assert_eq!(
+            reopened.load_draft(report.id()),
+            Err(RepositoryError::Invalid)
+        );
+        assert_eq!(reopened.drafts(), Err(RepositoryError::Invalid));
+    }
+    for source in ["imported_file", "user"] {
+        let mut invalid = document.clone();
+        invalid["attachment"] = serde_json::json!({
+            "image": vec![1; 32],
+            "rectangle": [10,20,30,40],
+            "observed_at": "90000",
+            "time_source": source,
+            "preview_confirmed": true
+        });
         connection
             .execute("UPDATE reports SET payload=?1", [invalid.to_string()])
             .unwrap();

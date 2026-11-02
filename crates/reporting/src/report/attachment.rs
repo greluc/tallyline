@@ -34,7 +34,7 @@ impl Report {
             }
             AttachmentEdit::ConfirmTime(at) => {
                 let attachment = self.attachment.as_mut().ok_or(InvalidReport)?;
-                if at > self.observed_at || at > attachment.time.at() {
+                if at > self.observed_at {
                     return Err(InvalidReport);
                 }
                 self.observed_at = at;
