@@ -205,6 +205,8 @@ pub enum ManualAttachmentInputFailure {
     Hdr,
     /// The source's colour metadata or format is unsupported.
     Unsupported,
+    /// Header, file, pixel, profile or codec allocation exceeds the intake limits.
+    InputLimit,
     /// Intake reduced source dimensions, so source coordinates cannot safely be applied.
     SourceReduced,
     /// The rectangle lies outside the source or has empty dimensions.

@@ -4,7 +4,6 @@
 //! Sequential detector execution and original-raster text-line reading.
 
 use super::{SmallOcrReader, SmallReaderError, SmallTextLine};
-use crate::assets::OcrArtifact;
 use crate::detection::{DbPostprocessor, DetectionBox};
 use crate::runtime::NativeSmokeError;
 use tallyline_shared_kernel::api::model::ImageRaster;
@@ -31,13 +30,13 @@ impl SmallOcrReader<'_> {
                 .as_ref()
                 .ok_or(SmallReaderError::RuntimeInitialiserConsumed)?;
             self.detector = Some(
-                crate::runtime::smoke::create_session(
-                    runtime,
-                    self.assets,
-                    OcrArtifact::SmallDetector,
-                    self.settings.intra_op_threads(),
-                )
-                .map_err(SmallReaderError::Native)?,
+                self.assets
+                    .create_session(
+                        runtime,
+                        self.assets.detector(),
+                        self.settings.intra_op_threads(),
+                    )
+                    .map_err(SmallReaderError::Native)?,
             );
         }
         self.last_used = Some((self.clock)());
@@ -46,7 +45,7 @@ impl SmallOcrReader<'_> {
         let tensor = ort::value::TensorRef::from_array_view((input_shape, input.values)).map_err(
             |error| {
                 SmallReaderError::Native(crate::runtime::smoke::failure(
-                    OcrArtifact::SmallDetector,
+                    self.assets.detector(),
                     "input",
                     error.code(),
                 ))
@@ -58,7 +57,7 @@ impl SmallOcrReader<'_> {
             .ok_or(SmallReaderError::RuntimeInitialiserConsumed)?;
         let output = session.run([tensor.into()]).map_err(|error| {
             SmallReaderError::Native(crate::runtime::smoke::failure(
-                OcrArtifact::SmallDetector,
+                self.assets.detector(),
                 "run",
                 error.code(),
             ))
@@ -68,11 +67,11 @@ impl SmallOcrReader<'_> {
                 .values()
                 .next()
                 .ok_or(SmallReaderError::Native(NativeSmokeError::Interface(
-                    OcrArtifact::SmallDetector,
+                    self.assets.detector(),
                 )))?;
         let (shape, probabilities) = value.try_extract_tensor::<f32>().map_err(|error| {
             SmallReaderError::Native(crate::runtime::smoke::failure(
-                OcrArtifact::SmallDetector,
+                self.assets.detector(),
                 "output_type",
                 error.code(),
             ))
@@ -81,12 +80,17 @@ impl SmallOcrReader<'_> {
         let expected = [1, 1, height as i64, width as i64];
         if shape.iter().copied().ne(expected) {
             return Err(SmallReaderError::Native(NativeSmokeError::Shape {
-                artifact: OcrArtifact::SmallDetector,
+                artifact: self.assets.detector(),
                 actual: shape.iter().take(4).copied().collect(),
             }));
         }
         let boxes = DbPostprocessor
-            .extract(probabilities, [1, 1, height, width], source)
+            .extract_for_detector(
+                self.assets.detector_family(),
+                probabilities,
+                [1, 1, height, width],
+                source,
+            )
             .map_err(SmallReaderError::Detection)?;
         self.last_used = Some((self.clock)());
         Ok(boxes)

@@ -26,7 +26,7 @@ pub struct ManualAttachmentStorage {
     data: PathBuf,
 }
 impl ManualAttachmentStorage {
-    /// Uses the existing documented private application data directory without another destination.
+    /// Retains the documented application data directory; operations refuse a relative location.
     #[must_use]
     pub const fn new(data: PathBuf) -> Self {
         Self { data }
@@ -37,9 +37,9 @@ pub(crate) fn execute<R: ReportRepository, C: Clock>(
     command: ManualAttachmentCommand,
     storage: Option<&ManualAttachmentStorage>,
 ) -> Result<Vec<BackgroundEvent>, ManualAttachmentFailure> {
-    let storage = storage.ok_or(ManualAttachmentFailure::WorkingCopy(
-        WorkingCopyFailure::Unavailable,
-    ))?;
+    let storage = storage.filter(|storage| storage.data.is_absolute()).ok_or(
+        ManualAttachmentFailure::WorkingCopy(WorkingCopyFailure::Unavailable),
+    )?;
     let report = application
         .draft(command.id)
         .map_err(ManualAttachmentFailure::Report)?
@@ -182,15 +182,17 @@ fn input_failure(error: AttachmentImageError) -> ManualAttachmentFailure {
             | SetAsideReason::HdrOrUnsupportedEncoding(Encoding::CicpHdr { .. }) => {
                 ManualAttachmentInputFailure::Hdr
             }
-            SetAsideReason::HdrOrUnsupportedEncoding(_)
-            | SetAsideReason::UnsupportedFormat
-            | SetAsideReason::HeaderTooLarge
+            SetAsideReason::HeaderTooLarge
             | SetAsideReason::MemoryLimit
             | SetAsideReason::TooManyPixels
             | SetAsideReason::ProfileTooLarge
-            | SetAsideReason::FileTooLarge
-            | SetAsideReason::DecodeFailed(_)
-            | SetAsideReason::FileUnreadable(_) => ManualAttachmentInputFailure::Unsupported,
+            | SetAsideReason::FileTooLarge => ManualAttachmentInputFailure::InputLimit,
+            SetAsideReason::HdrOrUnsupportedEncoding(_) | SetAsideReason::UnsupportedFormat => {
+                ManualAttachmentInputFailure::Unsupported
+            }
+            SetAsideReason::DecodeFailed(_) | SetAsideReason::FileUnreadable(_) => {
+                ManualAttachmentInputFailure::Unavailable
+            }
         },
     };
     ManualAttachmentFailure::Input(failure)

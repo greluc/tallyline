@@ -14,3 +14,7 @@ mod reference_worker;
 mod storage_bootstrap;
 
 mod manual_attachments;
+
+mod credential_worker;
+
+mod credential_logs;

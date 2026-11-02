@@ -17,6 +17,8 @@ pub use crate::runtime::{
 
 pub use crate::detection::{DbError, DbPostprocessor, DetectionBox};
 pub use crate::preprocessing::DetectionInputTensor;
+pub use crate::research::{OcrDetector, OcrRecognizer, OcrResearchProfile, ResearchOcrAssets};
+pub use crate::runtime::ResearchOcrReader;
 pub use crate::runtime::{InvalidOcrRuntimeSettings, OcrRuntimeSettings};
 pub use crate::runtime::{NativeSmokeError, SmallModelSmoke, SmokeTensor};
 pub use crate::runtime::{

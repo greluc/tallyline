@@ -96,6 +96,11 @@ pub struct CredentialCandidate {
 }
 
 impl CredentialCandidate {
+    /// Returns the explicitly requested storage lifetime.
+    #[must_use]
+    pub const fn persistence(&self) -> Persistence {
+        self.persistence
+    }
     /// Creates a candidate with an explicit storage lifetime.
     #[must_use]
     pub const fn new(values: CredentialValues, persistence: Persistence) -> Self {

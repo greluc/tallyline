@@ -814,3 +814,41 @@ fn r_nf_11__backup_source_preserves_exact_known_bytes_and_refuses_unknown_schema
         assert_eq!(std::fs::read(&path).unwrap(), invalid);
     }
 }
+
+#[cfg(unix)]
+#[test]
+#[expect(
+    non_snake_case,
+    reason = "Requirement tags use a double underscore separator."
+)]
+fn r_nf_5__writable_shared_directories_warn_while_real_probe_failures_remain_fatal() {
+    use std::os::unix::fs::PermissionsExt;
+    use tallyline_adapter_files::api::model::DirectoryIssueKind;
+    let directory = TestDirectory::new().unwrap();
+    let layout = tallyline_adapter_files::api::StorageLayout::portable(&directory.0);
+    assert!(layout.self_test().is_empty());
+    std::fs::set_permissions(layout.config(), std::fs::Permissions::from_mode(0o755)).unwrap();
+    let issues = layout.self_test();
+    assert_eq!(issues.len(), 1);
+    assert_eq!(issues[0].kind, DirectoryIssueKind::PermissionsWarning);
+    assert_eq!(
+        std::fs::metadata(layout.config())
+            .unwrap()
+            .permissions()
+            .mode()
+            & 0o777,
+        0o755
+    );
+    std::fs::write(
+        layout.config().join(".tallyline-write-test"),
+        b"dummy-existing-probe",
+    )
+    .unwrap();
+    let failures = layout.self_test();
+    assert_eq!(failures.len(), 1);
+    assert_eq!(failures[0].kind, DirectoryIssueKind::IoFailure);
+    assert_eq!(
+        std::fs::read(layout.config().join(".tallyline-write-test")).unwrap(),
+        b"dummy-existing-probe"
+    );
+}

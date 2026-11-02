@@ -3753,6 +3753,7 @@ version = "0.1.0"
 dependencies = [
  "eframe",
  "egui",
+ "log",
  "png",
  "rusqlite",
  "serde_json",

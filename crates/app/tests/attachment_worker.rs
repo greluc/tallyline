@@ -60,9 +60,10 @@ fn r_man_5_r_sub_7_r_nf_3__bounded_worker_prepares_and_encodes_durable_report_ev
     let (release, continuing) = std::sync::mpsc::channel();
     let worker = AttachmentWorker::start(move || {
         started.send(()).unwrap();
-        continuing.recv().unwrap();
+        continuing.recv().unwrap_or(());
     })
     .unwrap();
+    let queue_release = release;
     let region = AttachmentRegion::new(0, 100, 2000, 1100).unwrap();
     let preview = worker
         .prepare(path.clone(), region, ImageIntakeSettings::default())
@@ -79,7 +80,7 @@ fn r_man_5_r_sub_7_r_nf_3__bounded_worker_prepares_and_encodes_durable_report_ev
             .prepare(path.clone(), region, ImageIntakeSettings::default())
             .is_err()
     );
-    release.send(()).unwrap();
+    queue_release.send(()).unwrap();
     let _preview = queued.recv().unwrap().unwrap();
     blocked.recv().unwrap();
     let database = directory.join("application.db");
@@ -168,7 +169,7 @@ fn r_man_5_r_sub_7_r_nf_3__bounded_worker_prepares_and_encodes_durable_report_ev
         .edit_attachment(current.id(), current.version(), AttachmentEdit::Remove)
         .unwrap();
     changed.push(current.clone());
-    release.send(()).unwrap();
+    queue_release.send(()).unwrap();
     let encoded = pending.recv().unwrap().unwrap();
     for current in changed {
         assert!(!encoded.is_current(&current));
@@ -181,7 +182,7 @@ fn r_man_5_r_sub_7_r_nf_3__bounded_worker_prepares_and_encodes_durable_report_ev
             .is_err()
     );
     blocked.recv().unwrap();
-    release.send(()).unwrap();
+    queue_release.send(()).unwrap();
     let tallyline_adapter_files::api::model::ImageIntake::Decoded(image) =
         tallyline_adapter_files::api::read_image(
             encoded.png_for(&report).unwrap(),

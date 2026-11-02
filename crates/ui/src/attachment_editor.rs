@@ -74,6 +74,7 @@ impl crate::manual_editor::ManualEditor {
         expected: u64,
         preview: ManualAttachmentPreview,
     ) {
+        self.finish_attachment_request(id, expected);
         if self.selected().is_some_and(|report| {
             report.id() == id
                 && report.version() == expected
@@ -89,7 +90,6 @@ impl crate::manual_editor::ManualEditor {
             self.attachment.preview_report = Some(id);
             self.attachment.texture = None;
             self.attachment.failure = None;
-            self.busy = false;
         }
     }
     pub(crate) fn attachment_status(
@@ -100,6 +100,7 @@ impl crate::manual_editor::ManualEditor {
         policy: Result<ScreenshotPolicy, StorageFailure>,
         readiness: Result<(), ManualAttachmentBlock>,
     ) {
+        self.finish_attachment_request(id, expected);
         if self
             .selected()
             .is_some_and(|report| report.id() == id && report.version() == expected)
@@ -107,7 +108,6 @@ impl crate::manual_editor::ManualEditor {
             self.attachment.policy = Some((account, policy));
             self.attachment.readiness = Some(readiness);
             self.attachment.failure = None;
-            self.busy = false;
         }
     }
     pub(crate) fn attachment_failed(
@@ -116,12 +116,12 @@ impl crate::manual_editor::ManualEditor {
         expected: u64,
         failure: ManualAttachmentFailure,
     ) {
+        let pending = self.finish_attachment_request(id, expected);
         if self
             .selected()
-            .is_some_and(|report| report.id() == id && report.version() == expected)
+            .is_some_and(|report| report.id() == id && (pending || report.version() == expected))
         {
             self.attachment.failure = Some(failure);
-            self.busy = false;
         }
     }
 }

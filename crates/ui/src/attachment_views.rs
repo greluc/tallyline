@@ -299,6 +299,9 @@ fn failure_key(failure: ManualAttachmentFailure) -> &'static str {
         ManualAttachmentFailure::Input(ManualAttachmentInputFailure::Unsupported) => {
             "attachment.unsupported"
         }
+        ManualAttachmentFailure::Input(ManualAttachmentInputFailure::InputLimit) => {
+            "attachment.input_limit"
+        }
         ManualAttachmentFailure::Input(ManualAttachmentInputFailure::SourceReduced) => {
             "attachment.reduced"
         }

@@ -61,6 +61,20 @@ pub enum BackgroundEvent {
         /// Closed actionable failure with no path or pixels.
         failure: tallyline_workflows::api::ManualAttachmentFailure,
     },
+
+    /// A persistent directory-access warning after successful read/write probing.
+    StorageWarning(String),
+    /// A passive credential result with no secret values.
+    CredentialsUpdated {
+        /// The last accepted account.
+        account: tallyline_submission::api::model::AccountState,
+        /// A closed failure that does not replace the accepted identity.
+        failure: Option<tallyline_submission::api::model::CredentialFailure>,
+        /// Whether read-only packaged installation data is usable.
+        available_token: bool,
+        /// Whether an independently checked Linux fallback can be offered after warning.
+        fallback_available: bool,
+    },
     /// Historical non-JSON metadata, without changing current cache or window state.
     ReferenceDiagnostic(crate::api::model::ReferenceDiagnostic),
     /// Durable Drafts loaded after storage commits, without changing focus or view.
@@ -100,10 +114,12 @@ pub enum BackgroundEvent {
 /// Owned shell state shared by drawn and windowless tests.
 #[derive(Default)]
 pub struct ShellState {
+    credentials: crate::credentials::CredentialSetup,
     view: View,
     manual: crate::manual_editor::ManualEditor,
     references: crate::reference_browser::ReferenceBrowser,
     notice: Option<String>,
+    storage_warning: Option<String>,
     reference_notice: Option<String>,
     dialogs: DialogPresenter,
     settings: AppSettings,
@@ -198,6 +214,16 @@ impl ShellState {
                 expected,
                 failure,
             } => self.manual.attachment_failed(id, expected, failure),
+
+            BackgroundEvent::StorageWarning(warning) => self.storage_warning = Some(warning),
+            BackgroundEvent::CredentialsUpdated {
+                account,
+                failure,
+                available_token,
+                fallback_available,
+            } => self
+                .credentials
+                .updated(account, failure, available_token, fallback_available),
             BackgroundEvent::ReferenceDiagnostic(diagnostic) => {
                 self.references.report_diagnostic(diagnostic)
             }
@@ -254,7 +280,10 @@ impl ShellState {
     /// Returns the persistent action notice.
     #[must_use]
     pub fn notice(&self) -> Option<&str> {
-        self.notice.as_deref().or(self.reference_notice.as_deref())
+        self.notice
+            .as_deref()
+            .or(self.storage_warning.as_deref())
+            .or(self.reference_notice.as_deref())
     }
 
     /// Returns the active primary view.
@@ -381,5 +410,17 @@ impl ShellState {
     /// Opens manual entry in direct response to a user action.
     pub fn show_manual(&mut self) {
         self.view = View::Manual;
+    }
+}
+
+impl ShellState {
+    /// Returns masked credential input and passive account feedback.
+    pub fn credentials_mut(&mut self) -> &mut crate::api::model::CredentialSetup {
+        &mut self.credentials
+    }
+    /// Returns safe credential setup state.
+    #[must_use]
+    pub const fn credentials(&self) -> &crate::api::model::CredentialSetup {
+        &self.credentials
     }
 }

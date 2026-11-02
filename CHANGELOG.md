@@ -4,13 +4,19 @@ All notable changes are recorded here.
 
 ## [Unreleased]
 
+- Add explicit developer-only Tiny/Small/Medium OCR research pairs with exact model/dictionary bindings and private experiment receipts; production profile selection and real hardware acceptance remain open (R-OCR-1, R-SEC-7; ADR-0012).
+
 - Add fixed Small OCR model/dictionary/native data, private Windows load and mapped CRT checks, immutable model snapshots and a bounded synthetic tensor diagnostic. Desktop OCR, Linux, production worker lifecycle and installation-profile acceptance remain in progress (R-OCR-1, R-SEC-7, R-SEC-8, R-NF-12, R-NF-13).
 
 - Prepare local OCR telemetry mitigation before startup through a bounded relaunch of the same executable, without requiring a separate launcher or mutating a running multithreaded environment (R-NF-12).
 
 ### Added
 
-- Confirmed private manual attachment regions now survive restart and deletion of the original; changed or missing working copies block attachment use. Dated screenshot requirements are remembered per validated account and can be explicitly cleared, with a headless-tested private-region editor and schema-six backup-gated migration (R-MAN-5, R-SUB-7, R-CAP-7, R-VAL-6).
+- Confirmed private manual attachment regions now survive restart and deletion of the original; changed or missing working copies block attachment use. Dated screenshot requirements are remembered per validated account and can be explicitly cleared, with controls in Manual Report and a schema-six backup-gated migration (R-MAN-5, R-SUB-7, R-CAP-7, R-VAL-6).
+
+- Keep a persistent warning for writable Linux data directories with broad permissions instead of treating the warning as a fatal storage error. Actual read/write failures still stop storage startup, and credential fallback remains strictly owner-only (R-NF-5, R-NF-4).
+
+- Add masked UEX account setup during onboarding and in Settings, with read-only validation before saving, a packaged-token/own-token choice and explicit session-only credentials. Linux offers a warning-confirmed private-file fallback only when Secret Service is unavailable; local browsing remains available, and real-provider/visual acceptance remains pending (R-API-4, R-API-7, R-NF-4, R-VLM-12).
 
 - Add a developer-only portable Small image/textline reader with DB boxes, original-raster crops, lazy session reuse and explicit idle cleanup. Desktop screenshot recognition and full installation-profile acceptance remain in progress (R-OCR-1, R-NF-3).
 

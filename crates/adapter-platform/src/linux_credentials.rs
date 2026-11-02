@@ -118,6 +118,34 @@ impl SecretStore for LinuxCredentialStore {
         .await
     }
 
+    async fn save_passive(&mut self, credentials: &SavedCredentials) -> Result<(), StorageFailure> {
+        let bytes = credential_bundle::encode(credentials)?;
+        let item = bounded(
+            async {
+                let collection = self.collection(StorageFailure::Unavailable).await?;
+                let path = record(&collection, StorageFailure::Unavailable)
+                    .await?
+                    .map(|item| item.item_path)
+                    .ok_or(StorageFailure::Corrupt)?;
+                self.service
+                    .get_item_by_path(path)
+                    .await
+                    .map_err(|error| failure(error, StorageFailure::Unavailable))
+            },
+            StorageFailure::Unavailable,
+        )
+        .await?;
+        bounded(
+            async {
+                item.set_secret(&bytes, CONTENT_TYPE)
+                    .await
+                    .map_err(mutation_failure)
+            },
+            StorageFailure::OutcomeUnknown,
+        )
+        .await
+    }
+
     async fn remove(&mut self) -> Result<(), StorageFailure> {
         let path = bounded(
             async {

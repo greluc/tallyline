@@ -39,8 +39,12 @@ serde_json.workspace = true
 [dependencies.tallyline-reporting]
 workspace = true
 
-[dev-dependencies.png]
+[dependencies.tallyline-submission]
 workspace = true
 
-[dependencies.tallyline-submission]
+[dependencies.log]
+version = "=0.4.34"
+default-features = false
+
+[dev-dependencies.png]
 workspace = true

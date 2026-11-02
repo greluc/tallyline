@@ -12,7 +12,7 @@ use crate::ctc::{CtcDecoder, CtcError};
 
 const HASH_BUFFER_BYTES: usize = 64 * 1024;
 
-/// One fixed data component of the Small recognition profile.
+/// One reviewed fixed OCR data component.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum OcrArtifact {
     /// The official Small detector ONNX file.
@@ -21,6 +21,16 @@ pub enum OcrArtifact {
     SmallRecognizer,
     /// The exact ordered canonical Small dictionary.
     SmallDictionary,
+    /// The official Tiny detector.
+    TinyDetector,
+    /// The official Tiny recogniser.
+    TinyRecognizer,
+    /// The canonical Tiny dictionary.
+    TinyDictionary,
+    /// The official Medium detector.
+    MediumDetector,
+    /// The official Medium recogniser.
+    MediumRecognizer,
 }
 
 /// The verified public identity of one local OCR data file.
@@ -37,7 +47,7 @@ pub struct AssetFingerprint {
 /// Why a fixed OCR data bundle could not be verified.
 #[derive(Debug)]
 pub enum AssetError {
-    /// The caller supplied a relative bundle directory.
+    /// The caller supplied a relative data path or bundle directory.
     NotAbsolute,
     /// The absolute bundle directory could not be resolved.
     Directory(std::io::Error),
@@ -68,26 +78,27 @@ pub struct SmallOcrAssets {
     decoder: CtcDecoder,
 }
 
-struct Pin {
-    artifact: OcrArtifact,
-    file: &'static str,
-    sha256: &'static str,
-    bytes: &'static str,
+#[derive(Clone, Copy)]
+pub(crate) struct Pin {
+    pub(crate) artifact: OcrArtifact,
+    pub(crate) file: &'static str,
+    pub(crate) sha256: &'static str,
+    pub(crate) bytes: &'static str,
 }
 
-const DETECTOR: Pin = Pin {
+pub(crate) const DETECTOR: Pin = Pin {
     artifact: OcrArtifact::SmallDetector,
     file: env!("TALLYLINE_SMALL_DETECTOR_FILE"),
     sha256: env!("TALLYLINE_SMALL_DETECTOR_SHA256"),
     bytes: env!("TALLYLINE_SMALL_DETECTOR_BYTES"),
 };
-const RECOGNIZER: Pin = Pin {
+pub(crate) const RECOGNIZER: Pin = Pin {
     artifact: OcrArtifact::SmallRecognizer,
     file: env!("TALLYLINE_SMALL_RECOGNIZER_FILE"),
     sha256: env!("TALLYLINE_SMALL_RECOGNIZER_SHA256"),
     bytes: env!("TALLYLINE_SMALL_RECOGNIZER_BYTES"),
 };
-const DICTIONARY: Pin = Pin {
+pub(crate) const DICTIONARY: Pin = Pin {
     artifact: OcrArtifact::SmallDictionary,
     file: env!("TALLYLINE_SMALL_DICTIONARY_FILE"),
     sha256: env!("TALLYLINE_SMALL_DICTIONARY_SHA256"),
@@ -141,7 +152,12 @@ impl SmallOcrAssets {
         let pin = match artifact {
             OcrArtifact::SmallDetector => DETECTOR,
             OcrArtifact::SmallRecognizer => RECOGNIZER,
-            OcrArtifact::SmallDictionary => return Err(AssetError::NotModel),
+            OcrArtifact::SmallDictionary
+            | OcrArtifact::TinyDetector
+            | OcrArtifact::TinyRecognizer
+            | OcrArtifact::TinyDictionary
+            | OcrArtifact::MediumDetector
+            | OcrArtifact::MediumRecognizer => return Err(AssetError::NotModel),
         };
         let verified = verify(&self.directory, pin, true)?;
         Ok(VerifiedOcrModel {
@@ -168,22 +184,25 @@ impl SmallOcrAssets {
     }
 }
 
-struct Verified {
-    fingerprint: AssetFingerprint,
-    contents: Option<Vec<u8>>,
+pub(crate) struct Verified {
+    pub(crate) fingerprint: AssetFingerprint,
+    pub(crate) contents: Option<Vec<u8>>,
 }
 
 fn verify(directory: &Path, pin: Pin, keep_bytes: bool) -> Result<Verified, AssetError> {
+    verify_path(&directory.join(pin.file), pin, keep_bytes)
+}
+
+pub(crate) fn verify_path(path: &Path, pin: Pin, keep_bytes: bool) -> Result<Verified, AssetError> {
     let bytes: u64 = pin
         .bytes
         .parse()
         .map_err(|_| AssetError::InvalidBuildPins)?;
     let limit = bytes.checked_add(1).ok_or(AssetError::InvalidBuildPins)?;
-    let file =
-        std::fs::File::open(directory.join(pin.file)).map_err(|source| AssetError::Read {
-            artifact: pin.artifact,
-            source,
-        })?;
+    let file = std::fs::File::open(path).map_err(|source| AssetError::Read {
+        artifact: pin.artifact,
+        source,
+    })?;
     let metadata = file.metadata().map_err(|source| AssetError::Read {
         artifact: pin.artifact,
         source,
@@ -276,8 +295,8 @@ impl std::error::Error for AssetError {
 
 /// An exact approved model snapshot; its immutable bytes are the native input.
 pub struct VerifiedOcrModel {
-    fingerprint: AssetFingerprint,
-    bytes: Vec<u8>,
+    pub(crate) fingerprint: AssetFingerprint,
+    pub(crate) bytes: Vec<u8>,
 }
 
 impl VerifiedOcrModel {

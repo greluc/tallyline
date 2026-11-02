@@ -15,15 +15,24 @@ type WorkerChannels = (
     SyncSender<SettingsCommand>,
     SyncSender<ReferenceCommand>,
     SyncSender<tallyline_ui::api::model::ManualCommand>,
+    SyncSender<tallyline_ui::api::model::CredentialCommand>,
     Receiver<BackgroundEvent>,
     std::thread::JoinHandle<()>,
+    tallyline_app::api::CredentialWorker,
 );
 
 pub(crate) fn start(context: egui::Context, layout: StorageLayout) -> io::Result<WorkerChannels> {
     let (commands, incoming) = mpsc::sync_channel(1);
     let (reference_commands, reference_incoming) = mpsc::sync_channel(1);
     let (manual_commands, manual_incoming) = mpsc::sync_channel(1);
+    let (credential_commands, credential_incoming) = mpsc::sync_channel(1);
     let (outgoing, events) = mpsc::sync_channel(16);
+    let credential_worker = crate::credential_wiring::start(
+        layout.data().join("credentials"),
+        credential_incoming,
+        outgoing.clone(),
+        context.clone(),
+    )?;
     let worker = crate::executor::spawn("tallyline-settings", move || {
         let result = run(
             &incoming,
@@ -42,8 +51,10 @@ pub(crate) fn start(context: egui::Context, layout: StorageLayout) -> io::Result
         commands,
         reference_commands,
         manual_commands,
+        credential_commands,
         events,
         worker,
+        credential_worker,
     ))
 }
 
@@ -77,7 +88,22 @@ fn run(
         Err(_) => BackgroundEvent::LicencesUnavailable,
     };
     deliver(outgoing, context, legal_event)?;
-    let issues = layout.self_test();
+    let (warnings, issues): (Vec<_>, Vec<_>) = layout.self_test().into_iter().partition(|issue| {
+        issue.kind == tallyline_adapter_files::api::model::DirectoryIssueKind::PermissionsWarning
+    });
+    if !warnings.is_empty() {
+        deliver(
+            outgoing,
+            context,
+            BackgroundEvent::StorageWarning(
+                warnings
+                    .iter()
+                    .map(|issue| format!("{}: {}", issue.path.display(), issue.error))
+                    .collect::<Vec<_>>()
+                    .join("\n"),
+            ),
+        )?;
+    }
     if !issues.is_empty() {
         return Err(io::Error::new(
             io::ErrorKind::PermissionDenied,

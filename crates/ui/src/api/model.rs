@@ -19,3 +19,5 @@ pub use crate::manual_editor::{ManualCommand, ManualEditor};
 pub use crate::reference_browser::{ReferenceBrowser, ReferenceCommand, ReferenceDiagnostic};
 
 pub use crate::attachment_editor::{ManualAttachmentAction, ManualAttachmentCommand};
+
+pub use crate::credentials::{CredentialCommand, CredentialSetup};
