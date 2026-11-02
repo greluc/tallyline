@@ -185,7 +185,70 @@ fn r_nf_11_r_man_2__explicit_takeover_requires_a_matching_prior_and_preserves_it
             )
             .is_err()
     );
+    report = application
+        .confirm_status(report.id(), report.version(), row, &snapshot)
+        .unwrap();
+    assert!(report.rows()[0].status_confirmation().is_some());
     drop(application);
+    let mut reopened = SqliteReferenceCache::open(&path).unwrap();
+    assert_eq!(
+        reopened.load_draft(report.id()).unwrap(),
+        Some(report.clone())
+    );
+    assert_eq!(
+        report.rows()[0]
+            .status_confirmation()
+            .unwrap()
+            .reference_environment(),
+        UexEnvironment::Live
+    );
+    let expected = report.version();
+    report.set_status(row, std::num::NonZeroU8::new(5)).unwrap();
+    reopened.save_draft(&report, expected).unwrap();
+    let mut application = ReportingApplication::new(reopened, Fixed);
+    report = application
+        .reassess_statuses(report.id(), report.version(), &snapshot)
+        .unwrap();
+    assert!(report.rows()[0].status_unreviewed());
+    assert!(report.rows()[0].status_needs_confirmation());
+    drop(application);
+    let mut reopened = SqliteReferenceCache::open(&path).unwrap();
+    assert_eq!(
+        reopened.load_draft(report.id()).unwrap(),
+        Some(report.clone())
+    );
+    let mut application = ReportingApplication::new(reopened, Fixed);
+    report = application
+        .confirm_status(report.id(), report.version(), row, &snapshot)
+        .unwrap();
+    application.set_mapping(
+        tallyline_game::api::model::EnvironmentMapping::default()
+            .with_environment(GameEnvironment::Live, UexEnvironment::Ptu),
+    );
+    report = application
+        .reassess_statuses(
+            report.id(),
+            report.version(),
+            &reference.snapshot(UexEnvironment::Ptu),
+        )
+        .unwrap();
+    assert!(report.rows()[0].status_confirmation_revoked());
+    drop(application);
+    let mut reopened = SqliteReferenceCache::open(&path).unwrap();
+    assert_eq!(
+        reopened.load_draft(report.id()).unwrap(),
+        Some(report.clone())
+    );
+    let mut application = ReportingApplication::new(reopened, Fixed);
+    report = application
+        .focus_status(report.id(), report.version(), row)
+        .unwrap();
+    assert!(!report.rows()[0].status_unreviewed());
+    assert!(report.rows()[0].status_needs_confirmation());
+    drop(application);
+    let mut reopened = SqliteReferenceCache::open(&path).unwrap();
+    assert_eq!(reopened.load_draft(report.id()).unwrap(), Some(report));
+    drop(reopened);
     std::fs::remove_file(path).unwrap();
 }
 
@@ -231,7 +294,84 @@ fn r_nf_11_r_man_2__corrupt_rows_are_refused_during_real_database_reconstitution
     invalid_rows.push(vec![row.clone(), duplicate_identity]);
     let mut duplicate_commodity = row.clone();
     duplicate_commodity["id"] = serde_json::json!(2);
-    invalid_rows.push(vec![row, duplicate_commodity]);
+    invalid_rows.push(vec![row.clone(), duplicate_commodity]);
+    let mut invalid = row.clone();
+    invalid["status_confirmation"] = serde_json::json!([3, "major", "live"]);
+    invalid_rows.push(vec![invalid]);
+    for (confirmation, deviation, unreviewed) in [
+        (
+            serde_json::json!([3, "major", "live"]),
+            serde_json::json!("major"),
+            false,
+        ),
+        (
+            serde_json::json!([4, "major", "live"]),
+            serde_json::json!("major"),
+            false,
+        ),
+        (
+            serde_json::json!([3, "major", "live"]),
+            serde_json::json!("major"),
+            true,
+        ),
+        (serde_json::Value::Null, serde_json::json!("major"), false),
+        (serde_json::Value::Null, serde_json::Value::Null, true),
+    ] {
+        let mut invalid = row.clone();
+        invalid["status_confirmation"] = confirmation;
+        invalid["status_deviation"] = deviation;
+        invalid["status_unreviewed"] = serde_json::json!(unreviewed);
+        invalid_rows.push(vec![invalid]);
+    }
+    for (confirmation, deviation, unreviewed) in [
+        (
+            serde_json::json!([3, "major", "live"]),
+            serde_json::Value::Null,
+            false,
+        ),
+        (
+            serde_json::json!([3, "minor", "live"]),
+            serde_json::json!("major"),
+            false,
+        ),
+        (serde_json::Value::Null, serde_json::Value::Null, true),
+    ] {
+        let mut invalid = row.clone();
+        invalid["status"] = serde_json::json!(3);
+        invalid["status_confirmation"] = confirmation;
+        invalid["status_deviation"] = deviation;
+        invalid["status_unreviewed"] = serde_json::json!(unreviewed);
+        invalid_rows.push(vec![invalid]);
+    }
+    for (status, confirmation, deviation) in [
+        (
+            serde_json::Value::Null,
+            serde_json::Value::Null,
+            serde_json::Value::Null,
+        ),
+        (
+            serde_json::json!(3),
+            serde_json::json!([3, "major", "live"]),
+            serde_json::json!("major"),
+        ),
+        (
+            serde_json::json!(3),
+            serde_json::Value::Null,
+            serde_json::Value::Null,
+        ),
+    ] {
+        let mut invalid = row.clone();
+        invalid["status"] = status;
+        invalid["status_confirmation"] = confirmation;
+        invalid["status_deviation"] = deviation;
+        invalid["status_confirmation_revoked"] = serde_json::json!(true);
+        invalid_rows.push(vec![invalid]);
+    }
+    let mut invalid = row.clone();
+    invalid["status"] = serde_json::json!(3);
+    invalid["status_deviation"] = serde_json::json!("minor");
+    invalid["status_unreviewed"] = serde_json::json!(true);
+    invalid_rows.push(vec![invalid]);
     for rows in invalid_rows {
         let mut invalid = document.clone();
         invalid["rows"] = serde_json::json!(rows);
@@ -253,4 +393,71 @@ fn r_nf_11_r_man_2__corrupt_rows_are_refused_during_real_database_reconstitution
     drop(reopened);
     drop(connection);
     std::fs::remove_file(path).unwrap();
+}
+
+#[test]
+#[expect(
+    non_snake_case,
+    reason = "Requirement tags use a double underscore separator."
+)]
+fn r_nf_11_r_ui_12_q_manual__schema_three_requires_backup_and_preserves_legacy_user_values() {
+    use tallyline_adapter_storage::api::StorageError;
+    let path = std::env::temp_dir().join(format!(
+        "tallyline-status-migration-{}.db",
+        std::process::id()
+    ));
+    let backup = path.with_extension("backup.db");
+    let connection = rusqlite::Connection::open(&path).unwrap();
+    connection.execute_batch("CREATE TABLE reports(id INTEGER PRIMARY KEY AUTOINCREMENT,version INTEGER NOT NULL,payload TEXT NOT NULL); CREATE TABLE report_recents(report_id INTEGER PRIMARY KEY,changed_order INTEGER NOT NULL); PRAGMA user_version=3;").unwrap();
+    let payload = r#"{"terminal":11,"side":"buy","environment":"live","observed_at":"100123","game_version":"4.10.2","rows":[{"id":1,"commodity":42,"price":"123.456","stock":"0","status":3}]}"#;
+    connection
+        .execute("INSERT INTO reports VALUES(1,4,?1)", [payload])
+        .unwrap();
+    connection
+        .execute("INSERT INTO report_recents VALUES(1,1)", [])
+        .unwrap();
+    drop(connection);
+    assert!(matches!(
+        SqliteReferenceCache::open(&path),
+        Err(StorageError::MigrationBackupRequired)
+    ));
+    let mut store = SqliteReferenceCache::open_with_migration_backup(&path, |cache, from| {
+        assert_eq!(from, 3);
+        cache.backup_into(&backup, Timestamp::from_seconds(100), None)?;
+        Ok(())
+    })
+    .unwrap();
+    let report = store.drafts().unwrap().remove(0);
+    assert_eq!(report.version(), 4);
+    assert_eq!(report.observed_at(), Timestamp::from_millis(100123));
+    assert_eq!(report.rows()[0].price().unwrap().to_string(), "123.456");
+    assert_eq!(report.rows()[0].status().unwrap().get(), 3);
+    assert!(report.rows()[0].status_confirmation().is_none());
+    assert!(!report.rows()[0].status_unreviewed());
+    let before = rusqlite::Connection::open(&backup).unwrap();
+    assert_eq!(
+        before
+            .query_row("PRAGMA user_version", [], |row| row.get::<_, u32>(0))
+            .unwrap(),
+        3
+    );
+    assert_eq!(
+        before
+            .query_row("SELECT payload FROM reports", [], |row| row
+                .get::<_, String>(0))
+            .unwrap(),
+        payload
+    );
+    let current = rusqlite::Connection::open(&path).unwrap();
+    assert_eq!(
+        current
+            .query_row("PRAGMA user_version", [], |row| row.get::<_, u32>(0))
+            .unwrap(),
+        4
+    );
+    drop(current);
+    drop(before);
+    drop(store);
+    std::fs::remove_file(path).unwrap();
+    std::fs::remove_file(backup).unwrap();
 }

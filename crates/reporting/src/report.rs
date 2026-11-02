@@ -3,9 +3,11 @@
 
 //! State-local manual Report invariants.
 
+use crate::api::model::{Deviation, StatusConfirmation};
 use tallyline_game::api::model::GameEnvironment;
 use tallyline_shared_kernel::api::model::{
     CommodityId, PricePerScu, ReportId, RowId, ScuQuantity, TerminalId, Timestamp, TradeSide,
+    UexEnvironment,
 };
 
 /// The source of an explicitly observed field.
@@ -76,6 +78,10 @@ pub struct ReportRow {
     price: Option<PricePerScu>,
     stock: Option<ScuQuantity>,
     status: Option<std::num::NonZeroU8>,
+    status_confirmation: Option<StatusConfirmation>,
+    status_deviation: Option<Deviation>,
+    status_unreviewed: bool,
+    status_confirmation_revoked: bool,
 }
 impl ReportRow {
     /// Returns USER only when a field was explicitly entered.
@@ -175,6 +181,10 @@ impl Report {
             price: None,
             stock: None,
             status: None,
+            status_confirmation: None,
+            status_deviation: None,
+            status_unreviewed: false,
+            status_confirmation_revoked: false,
         });
         self.version += 1;
         Ok(id)
@@ -184,6 +194,12 @@ impl Report {
         if self.key != key {
             if self.key.environment != key.environment {
                 self.game_version = None;
+            }
+            for row in &mut self.rows {
+                row.status_confirmation = None;
+                row.status_deviation = None;
+                row.status_unreviewed = false;
+                row.status_confirmation_revoked = false;
             }
             self.key = key;
             self.version += 1;
@@ -227,7 +243,14 @@ impl Report {
         row: RowId,
         value: Option<std::num::NonZeroU8>,
     ) -> Result<(), InvalidReport> {
-        self.row_mut(row)?.status = value;
+        let field = self.row_mut(row)?;
+        if field.status != value {
+            field.status_confirmation = None;
+            field.status_deviation = None;
+            field.status_unreviewed = false;
+            field.status_confirmation_revoked = false;
+        }
+        field.status = value;
         self.version += 1;
         Ok(())
     }
@@ -299,6 +322,14 @@ pub struct StoredRow {
     pub stock: Option<ScuQuantity>,
     /// Explicit status.
     pub status: Option<std::num::NonZeroU8>,
+    /// Value and unlowered deviation explicitly approved by the user.
+    pub status_confirmation: Option<(std::num::NonZeroU8, Deviation, UexEnvironment)>,
+    /// Last assessed unlowered status deviation.
+    pub status_deviation: Option<Deviation>,
+    /// An unresolved status decision that has not received keyboard focus.
+    pub status_unreviewed: bool,
+    /// A revoked approval that still needs a user decision.
+    pub status_confirmation_revoked: bool,
 }
 
 impl Report {
@@ -319,6 +350,7 @@ impl Report {
                 || !ids.insert(row.id.0)
                 || row.commodity.0 == 0
                 || row.price.is_some_and(PricePerScu::is_zero)
+                || !row.valid_status_decision()
                 || report.rows.iter().any(|old| old.commodity == row.commodity)
             {
                 return Err(InvalidReport);
@@ -329,9 +361,19 @@ impl Report {
                 price: row.price,
                 stock: row.stock,
                 status: row.status,
+                status_confirmation: row.status_confirmation.map(
+                    |(value, deviation, environment)| {
+                        StatusConfirmation::approve(value, deviation, environment)
+                    },
+                ),
+                status_deviation: row.status_deviation,
+                status_unreviewed: row.status_unreviewed,
+                status_confirmation_revoked: row.status_confirmation_revoked,
             });
         }
         report.version = stored.version;
         Ok(report)
     }
 }
+
+mod status;

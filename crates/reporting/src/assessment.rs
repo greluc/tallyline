@@ -86,3 +86,15 @@ impl StatusAssessment {
         }
     }
 }
+
+impl Deviation {
+    /// Reports whether this unlowered level invalidates approval at the previous level.
+    #[must_use]
+    pub const fn is_worse_than(self, previous: Self) -> bool {
+        matches!(
+            (previous, self),
+            (Self::Equal | Self::NoReference, Self::Minor | Self::Major)
+                | (Self::Minor, Self::Major)
+        )
+    }
+}

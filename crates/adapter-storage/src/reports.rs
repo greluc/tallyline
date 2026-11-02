@@ -6,9 +6,13 @@
 use crate::api::SqliteReferenceCache;
 use rusqlite::OptionalExtension;
 use serde::{Deserialize, Serialize};
-use tallyline_reporting::api::model::{Report, ReportId, ReportKey, RowId, StoredReport};
+use tallyline_reporting::api::model::{
+    Deviation, Report, ReportId, ReportKey, RowId, StoredReport,
+};
 use tallyline_reporting::api::{ReportRepository, RepositoryError};
-use tallyline_shared_kernel::api::model::{CommodityId, TerminalId, Timestamp, TradeSide};
+use tallyline_shared_kernel::api::model::{
+    CommodityId, TerminalId, Timestamp, TradeSide, UexEnvironment,
+};
 
 impl ReportRepository for SqliteReferenceCache {
     fn create_manual(
@@ -121,6 +125,10 @@ struct RowDocument {
     price: Option<String>,
     stock: Option<String>,
     status: Option<std::num::NonZeroU8>,
+    status_confirmation: Option<(std::num::NonZeroU8, StoredDeviation, StoredEnvironment)>,
+    status_deviation: Option<StoredDeviation>,
+    status_unreviewed: bool,
+    status_confirmation_revoked: bool,
 }
 fn encode(report: &Report) -> Result<String, RepositoryError> {
     let document = Document {
@@ -142,6 +150,16 @@ fn encode(report: &Report) -> Result<String, RepositoryError> {
                 price: row.price().map(|v| v.to_string()),
                 stock: row.stock().map(|v| v.to_string()),
                 status: row.status(),
+                status_confirmation: row.status_confirmation().map(|approval| {
+                    (
+                        approval.value(),
+                        approval.deviation().into(),
+                        StoredEnvironment::from(approval.reference_environment()),
+                    )
+                }),
+                status_deviation: row.status_deviation().map(Into::into),
+                status_unreviewed: row.status_unreviewed(),
+                status_confirmation_revoked: row.status_confirmation_revoked(),
             })
             .collect(),
     };
@@ -178,6 +196,12 @@ fn decode(id: ReportId, version: u64, payload: &str) -> Result<Report, Repositor
                     .transpose()
                     .map_err(|_| RepositoryError::Invalid)?,
                 status: row.status,
+                status_confirmation: row.status_confirmation.map(
+                    |(value, deviation, environment)| (value, deviation.into(), environment.into()),
+                ),
+                status_deviation: row.status_deviation.map(Into::into),
+                status_unreviewed: row.status_unreviewed,
+                status_confirmation_revoked: row.status_confirmation_revoked,
             })
         })
         .collect::<Result<Vec<_>, RepositoryError>>()?;
@@ -220,4 +244,56 @@ fn sql_integer(value: u64) -> Result<i64, RepositoryError> {
 }
 fn domain_integer(value: i64) -> Result<u64, RepositoryError> {
     u64::try_from(value).map_err(|_| RepositoryError::Invalid)
+}
+
+#[derive(Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+enum StoredDeviation {
+    Equal,
+    Minor,
+    Major,
+    NoReference,
+}
+impl From<Deviation> for StoredDeviation {
+    fn from(value: Deviation) -> Self {
+        match value {
+            Deviation::Equal => Self::Equal,
+            Deviation::Minor => Self::Minor,
+            Deviation::Major => Self::Major,
+            Deviation::NoReference => Self::NoReference,
+        }
+    }
+}
+impl From<StoredDeviation> for Deviation {
+    fn from(value: StoredDeviation) -> Self {
+        match value {
+            StoredDeviation::Equal => Self::Equal,
+            StoredDeviation::Minor => Self::Minor,
+            StoredDeviation::Major => Self::Major,
+            StoredDeviation::NoReference => Self::NoReference,
+        }
+    }
+}
+
+#[derive(Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+enum StoredEnvironment {
+    Live,
+    Ptu,
+}
+impl From<UexEnvironment> for StoredEnvironment {
+    fn from(value: UexEnvironment) -> Self {
+        match value {
+            UexEnvironment::Live => Self::Live,
+            UexEnvironment::Ptu => Self::Ptu,
+        }
+    }
+}
+impl From<StoredEnvironment> for UexEnvironment {
+    fn from(value: StoredEnvironment) -> Self {
+        match value {
+            StoredEnvironment::Live => Self::Live,
+            StoredEnvironment::Ptu => Self::Ptu,
+        }
+    }
 }
