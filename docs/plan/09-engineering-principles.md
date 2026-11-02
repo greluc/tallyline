@@ -257,6 +257,8 @@ Corrected 2026-11-02: the mutation workflow also needs a Git LFS checkout. Its c
 
 Corrected 2026-11-02: the real-process instance-election fixture previously created its final result file before writing its contents. A parent waiting only for existence could read an empty result, producing an unrelated failed test during mutation analysis. Results now become visible through a sibling-file rename after the complete write and close. A deterministic two-process regression pauses after three bytes and verifies that the final path is still absent, then checks the complete result. All 13 Windows process contracts passed after the fix. This changes the test fixture only; it does not change instance election, activation framing, deadlines or mutation scoring.
 
+Corrected 2026-11-02: core mutation runs keep their per-ref concurrency group with `cancel-in-progress: false`, so later pushes cannot interrupt a running measurement. GitHub Actions retains only the newest pending run under its default single-pending policy ([official concurrency documentation](https://docs.github.com/en/actions/how-tos/write-workflows/choose-when-workflows-run/control-workflow-concurrency)). This avoids repeated partial measurements without increasing parallelism or queue capacity; score, timeout and test-selection gates are unchanged.
+
 ## 9. Dependencies and build
 
 - Versions are declared once, in `[workspace.dependencies]` of the root `Cargo.toml`; member crates inherit them. Shared lint settings live in the workspace `[lints]` table. Repository checks and generators are the `xtask` crate (D12), run through `cargo xtask …`.
