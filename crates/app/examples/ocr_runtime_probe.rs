@@ -29,9 +29,11 @@ fn run_worker(
 ) -> Result<ExitCode, Box<dyn std::error::Error + Send + Sync>> {
     let mut arguments = std::env::args_os().skip(1);
     let mode = arguments.next();
+    let research = ResearchSelection::parse(mode.as_deref(), &mut arguments)?;
     let reader_mode = match mode.as_deref() {
         Some(value) if value == std::ffi::OsStr::new("--small-reader") => Some(false),
         Some(value) if value == std::ffi::OsStr::new("--small-textline") => Some(true),
+        _ if research.is_some() => research.as_ref().and_then(|selection| selection.line_mode),
         _ => None,
     };
     let reader_path = if reader_mode.is_some() {
@@ -39,7 +41,10 @@ fn run_worker(
     } else {
         None
     };
-    let reader_selftest = mode.as_deref() == Some(std::ffi::OsStr::new("--small-reader-selftest"));
+    let reader_selftest = mode.as_deref() == Some(std::ffi::OsStr::new("--small-reader-selftest"))
+        || research
+            .as_ref()
+            .is_some_and(|selection| selection.line_mode.is_none());
     let tensors = match mode.as_deref() {
         Some(value) if value == std::ffi::OsStr::new("--load-only") => false,
         Some(value) if value == std::ffi::OsStr::new("--small-tensors") => true,
@@ -111,6 +116,7 @@ fn run_worker(
             reader_mode,
             reader_selftest,
             raw_output,
+            research,
         );
     }
     let mut runtime = OcrRuntime::load(&mut token, checks);
@@ -177,11 +183,12 @@ fn run_reader(
     line_mode: Option<bool>,
     selftest: bool,
     raw_output: Option<std::ffi::OsString>,
+    research: Option<ResearchSelection>,
 ) -> Result<ExitCode, Box<dyn std::error::Error + Send + Sync>> {
     use std::time::{Duration, Instant};
     use tallyline_adapter_files::api::model::{ImageIntake, ImageIntakeSettings};
     use tallyline_adapter_ocr::api::model::{
-        OcrRuntimeSettings, SmallOcrReader, SmallSessionState,
+        OcrRuntimeSettings, ResearchOcrAssets, ResearchOcrReader, SmallOcrReader, SmallSessionState,
     };
     use tallyline_shared_kernel::api::model::ImageRaster;
     let executable = std::env::current_exe()?.canonicalize()?;
@@ -189,25 +196,52 @@ fn run_reader(
         .parent()
         .ok_or_else(|| std::io::Error::other("probe executable has no directory"))?
         .join("models/small");
-    let assets = SmallOcrAssets::load(&directory)?;
+    let research_assets = research
+        .as_ref()
+        .map(|selection| {
+            ResearchOcrAssets::load(
+                selection.profile,
+                &selection.detector,
+                &selection.recognizer,
+                &selection.dictionary,
+            )
+        })
+        .transpose()?;
+    let assets = if research_assets.is_none() {
+        Some(SmallOcrAssets::load(&directory)?)
+    } else {
+        None
+    };
+    let identities = research_assets.as_ref().map(|assets| assets.fingerprints().iter().map(|identity| serde_json::json!({"artifact":format!("{:?}", identity.artifact), "sha256":identity.sha256, "bytes":identity.bytes})).collect::<Vec<_>>());
     let synthetic_clock = std::cell::Cell::new(Duration::ZERO);
     let started = Instant::now();
-    let mut reader = SmallOcrReader::new(
-        &assets,
-        OcrRuntimeSettings::default(),
-        || {
-            if selftest {
-                synthetic_clock.get()
-            } else {
-                started.elapsed()
-            }
-        },
-        || OcrRuntime::load(&mut token, checks),
-    );
+    let clock = || {
+        if selftest {
+            synthetic_clock.get()
+        } else {
+            started.elapsed()
+        }
+    };
+    let initialise = || OcrRuntime::load(&mut token, checks);
+    let mut reader = match (&assets, &research_assets) {
+        (Some(assets), None) => ProbeReader::Small(SmallOcrReader::new(
+            assets,
+            OcrRuntimeSettings::default(),
+            clock,
+            initialise,
+        )),
+        (None, Some(assets)) => ProbeReader::Research(ResearchOcrReader::new(
+            assets,
+            OcrRuntimeSettings::default(),
+            clock,
+            initialise,
+        )),
+        _ => return Err(std::io::Error::other("invalid explicit reader selection").into()),
+    };
     if reader.session_state() != SmallSessionState::Empty {
         return Err(std::io::Error::other("reader did not start empty").into());
     }
-    let output = if selftest {
+    let mut output = if selftest {
         let image = ImageRaster::new(64, 64, vec![0xff80_8080; 64 * 64])
             .map_err(|_| std::io::Error::other("invalid synthetic raster"))?;
         let first = reader.read_line(&image)?;
@@ -242,7 +276,7 @@ fn run_reader(
             return Err(std::io::Error::other("recogniser changed after session reopening").into());
         }
         reader.close_sessions();
-        serde_json::json!({"profile":reader.profile().identifier(),"mode":"synthetic-reader-lifecycle","labels":first.characters.len(),"detected_boxes":boxes.len(),"recogniser_repeat_equal":true,"both_sessions_resident":true,"idle_before_boundary_retained":true,"idle_at_boundary_released":true,"reopened_read_equal":true,"monotonic_regression_refused":true,"explicit_shutdown_empty":reader.session_state()==SmallSessionState::Empty})
+        serde_json::json!({"profile":reader.profile(),"mode":"synthetic-reader-lifecycle","labels":first.characters.len(),"detected_boxes":boxes.len(),"recogniser_repeat_equal":true,"both_sessions_resident":true,"idle_before_boundary_retained":true,"idle_at_boundary_released":true,"reopened_read_equal":true,"monotonic_regression_refused":true,"explicit_shutdown_empty":reader.session_state()==SmallSessionState::Empty})
     } else {
         let path =
             path.ok_or_else(|| std::io::Error::other("reader mode requires one image path"))?;
@@ -295,15 +329,27 @@ fn run_reader(
             )
         };
         if let Some(path) = &raw_output {
-            let artifact = serde_json::json!({"schema_version":1,"profile":reader.profile().identifier(),"mode":if line_mode == Some(true) {"raw-textline"} else {"raw-image"},"dimensions":[image.raster.width(),image.raster.height()],"downscaled_at_intake":image.downscaled.is_some(),"lines":raw_lines});
+            let mut artifact = serde_json::json!({"schema_version":1,"profile":reader.profile(),"mode":if line_mode == Some(true) {"raw-textline"} else {"raw-image"},"dimensions":[image.raster.width(),image.raster.height()],"downscaled_at_intake":image.downscaled.is_some(),"lines":raw_lines});
+            if let Some(identities) = &identities {
+                artifact
+                    .as_object_mut()
+                    .ok_or_else(|| std::io::Error::other("raw receipt must be an object"))?
+                    .insert("model_identities".to_owned(), serde_json::json!(identities));
+            }
             let bytes = serde_json::to_vec_pretty(&artifact)?;
             tallyline_adapter_files::api::write_private_artifact(
                 std::path::Path::new(path),
                 &bytes,
             )?;
         }
-        serde_json::json!({"profile":reader.profile().identifier(),"mode":if line_mode == Some(true) { "raw-textline" } else { "raw-image" },"image_dimensions":[image.raster.width(),image.raster.height()],"downscaled_at_intake":image.downscaled.is_some(),"lines":lines,"labels":labels,"private_raw_artifact_written":raw_output.is_some(),"session_state":format!("{:?}",reader.session_state())})
+        serde_json::json!({"profile":reader.profile(),"mode":if line_mode == Some(true) { "raw-textline" } else { "raw-image" },"image_dimensions":[image.raster.width(),image.raster.height()],"downscaled_at_intake":image.downscaled.is_some(),"lines":lines,"labels":labels,"private_raw_artifact_written":raw_output.is_some(),"session_state":format!("{:?}",reader.session_state())})
     };
+    if let Some(identities) = &identities {
+        output
+            .as_object_mut()
+            .ok_or_else(|| std::io::Error::other("probe receipt must be an object"))?
+            .insert("model_identities".to_owned(), serde_json::json!(identities));
+    }
     drop(reader);
     if !token.native_load_attempted() {
         return Err(std::io::Error::other("reader did not initialise the native runtime").into());
@@ -329,4 +375,125 @@ fn raw_line(
 ) -> serde_json::Value {
     let characters: Vec<_> = reading.characters.iter().map(|character| serde_json::json!({"symbol":character.symbol,"probability":character.probability,"frames":[character.frames.start,character.frames.end]})).collect();
     serde_json::json!({"corners":corners,"detection_probability":detection_probability,"text":reading.text,"characters":characters})
+}
+
+struct ResearchSelection {
+    profile: tallyline_adapter_ocr::api::model::OcrResearchProfile,
+    detector: std::path::PathBuf,
+    recognizer: std::path::PathBuf,
+    dictionary: std::path::PathBuf,
+    line_mode: Option<bool>,
+}
+
+impl ResearchSelection {
+    fn parse(
+        mode: Option<&std::ffi::OsStr>,
+        arguments: &mut impl Iterator<Item = std::ffi::OsString>,
+    ) -> Result<Option<Self>, std::io::Error> {
+        use tallyline_adapter_ocr::api::model::{OcrDetector, OcrRecognizer, OcrResearchProfile};
+        let line_mode = match mode.and_then(std::ffi::OsStr::to_str) {
+            Some("--research-reader") => Some(false),
+            Some("--research-textline") => Some(true),
+            Some("--research-reader-selftest") => None,
+            _ => return Ok(None),
+        };
+        let mut next = || {
+            arguments.next().ok_or_else(|| std::io::Error::other("research mode requires detector family, recogniser family and three absolute data paths"))
+        };
+        let detector = match next()?.to_str() {
+            Some("tiny") => OcrDetector::Tiny,
+            Some("small") => OcrDetector::Small,
+            Some("medium") => OcrDetector::Medium,
+            _ => return Err(std::io::Error::other("unknown reviewed detector family")),
+        };
+        let recognizer = match next()?.to_str() {
+            Some("tiny") => OcrRecognizer::Tiny,
+            Some("small") => OcrRecognizer::Small,
+            Some("medium") => OcrRecognizer::Medium,
+            _ => return Err(std::io::Error::other("unknown reviewed recogniser family")),
+        };
+        Ok(Some(Self {
+            profile: OcrResearchProfile::new(detector, recognizer),
+            detector: next()?.into(),
+            recognizer: next()?.into(),
+            dictionary: next()?.into(),
+            line_mode,
+        }))
+    }
+}
+
+enum ProbeReader<'a> {
+    Small(tallyline_adapter_ocr::api::model::SmallOcrReader<'a>),
+    Research(tallyline_adapter_ocr::api::model::ResearchOcrReader<'a>),
+}
+
+impl ProbeReader<'_> {
+    fn profile(&self) -> &'static str {
+        match self {
+            Self::Small(reader) => reader.profile().identifier(),
+            Self::Research(reader) => reader.profile().identifier(),
+        }
+    }
+
+    fn session_state(&self) -> tallyline_adapter_ocr::api::model::SmallSessionState {
+        match self {
+            Self::Small(reader) => reader.session_state(),
+            Self::Research(reader) => reader.session_state(),
+        }
+    }
+
+    fn close_if_idle(
+        &mut self,
+    ) -> Result<bool, tallyline_adapter_ocr::api::model::SmallReaderError> {
+        match self {
+            Self::Small(reader) => reader.close_if_idle(),
+            Self::Research(reader) => reader.close_if_idle(),
+        }
+    }
+
+    fn close_sessions(&mut self) {
+        match self {
+            Self::Small(reader) => reader.close_sessions(),
+            Self::Research(reader) => reader.close_sessions(),
+        }
+    }
+
+    fn read_line(
+        &mut self,
+        image: &tallyline_shared_kernel::api::model::ImageRaster,
+    ) -> Result<
+        tallyline_adapter_ocr::api::model::CtcReading,
+        tallyline_adapter_ocr::api::model::SmallReaderError,
+    > {
+        match self {
+            Self::Small(reader) => reader.read_line(image),
+            Self::Research(reader) => reader.read_line(image),
+        }
+    }
+
+    fn detect(
+        &mut self,
+        image: &tallyline_shared_kernel::api::model::ImageRaster,
+    ) -> Result<
+        Vec<tallyline_adapter_ocr::api::model::DetectionBox>,
+        tallyline_adapter_ocr::api::model::SmallReaderError,
+    > {
+        match self {
+            Self::Small(reader) => reader.detect(image),
+            Self::Research(reader) => reader.detect(image),
+        }
+    }
+
+    fn read_image(
+        &mut self,
+        image: &tallyline_shared_kernel::api::model::ImageRaster,
+    ) -> Result<
+        Vec<tallyline_adapter_ocr::api::model::SmallTextLine>,
+        tallyline_adapter_ocr::api::model::SmallReaderError,
+    > {
+        match self {
+            Self::Small(reader) => reader.read_image(image),
+            Self::Research(reader) => reader.read_image(image),
+        }
+    }
 }

@@ -152,6 +152,7 @@ impl OcrRuntimeLoadToken {
 mod settings;
 pub use settings::{InvalidOcrRuntimeSettings, OcrRuntimeSettings};
 mod reader;
+pub use reader::ResearchOcrReader;
 pub use reader::{
     SmallOcrReader, SmallReaderError, SmallReaderProfile, SmallSessionState, SmallTextLine,
 };
