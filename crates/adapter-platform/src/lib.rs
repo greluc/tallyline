@@ -29,3 +29,6 @@ mod worker_priority;
 mod credential_bundle;
 #[cfg(windows)]
 mod windows_credentials;
+
+#[cfg(target_os = "linux")]
+mod linux_credential_bus;
