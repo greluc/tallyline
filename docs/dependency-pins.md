@@ -1,6 +1,6 @@
 # Dependency pins
 
-> **Doc type:** Living reference — current. Last reviewed: 2026-11-01.
+> **Doc type:** Living reference — current. Last reviewed: 2026-11-02.
 
 This file records what the pins in `.github/` cannot say themselves: the tag each pinned GitHub Action resolves to, the version and checksum of every CI tool that a workflow downloads or installs outside the crate dependency graph, and those of the native libraries that ship with the app without coming through Cargo. Rust crates are pinned elsewhere: in `Cargo.toml`, `Cargo.lock`, the `cargo vendor` directory and the `cargo-vet` records (S-3 to S-6). Amended 2026-10-12: the Gradle-based pins were replaced by the Cargo-based ones when the implementation language changed to Rust ([ADR-0005](adr/0005-rust-and-egui.md)).
 
@@ -20,6 +20,7 @@ This file records what the pins in `.github/` cannot say themselves: the tag eac
 | Action | Tag | Commit SHA | Checked on | Used in | Notes |
 |---|---|---|---|---|---|
 | `actions/checkout` | v7.0.1 | `3d3c42e5aac5ba805825da76410c181273ba90b1` | 2026-10-13 (`git ls-remote` shows a lightweight tag at this commit; the GitHub release is not a pre-release and dates from 2026-07-20) | `.github/workflows/ci.yml`, `.github/workflows/advisories.yml`, `.github/workflows/repository-gates.yml`, `.github/workflows/mutation.yml` | called with `persist-credentials: false` (S-14); no proprietary component |
+| `actions/upload-artifact` | v7.0.2 | `cf430e030ddbb5b0abf93d22962f4752f3646cd9` | 2026-11-02; official release published 2026-10-07, newest eligible stable after seven days; the official Git tag API resolves directly to this commit | `.github/workflows/mutation.yml` | MIT; Node24 action runtime. Retains only mutation JSON/text reports and build logs for seven days, including failed runs; no proprietary local component or extra token permission. Exact action metadata and licence inspected at the published tag. |
 | `github/codeql-action/init` and `github/codeql-action/analyze` | v4.39.1 | `9b3254085494b55a0f7c4c2b3d2d52cc712ce370` | Corrected 2026-11-01: latest stable action release, published 2026-10-21 and eligible under S-7; `git ls-remote` resolves the annotated tag to this peeled commit. The previous v4.39.0 selection was made inside that release's cooldown on 2026-10-26. | `.github/workflows/repository-gates.yml` (job `codeql`) | `languages: actions`, `build-mode: none`, `tools: linked` selects the action's fixed CodeQL bundle 2.27.3 (`src/defaults.json` at this commit). The only job with `security-events: write` (S-33); unchanged Node 24 action runtime. Upstream release notes and changed-file inventory reviewed; hosted execution remains to be checked after publication. |
 | `actions/dependency-review-action` | v5.0.0 | `a1d282b36b6f3519aa1f3fc636f609c47dddb294` | 2026-10-13 (`git ls-remote` shows a lightweight tag at this commit; the GitHub release is not a pre-release and dates from 2026-05-08) | `.github/workflows/repository-gates.yml` (job `dependency-review`, pull requests only) | `fail-on-severity: high`, `license-check: false` (the licence gate is `cargo-deny`, S-34), `comment-summary-in-pr: never`; read-only token |
 

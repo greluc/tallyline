@@ -4,6 +4,8 @@
 //! Real-process contracts for writer ownership and local activation.
 
 use crate::api::{Election, InstancePaths, elect};
+use std::fs::File;
+use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::process::{Child, Command, Stdio};
 use std::time::{Duration, Instant};
@@ -52,11 +54,35 @@ fn wait_for(path: &Path) {
     }
 }
 
+fn publish_probe_result(
+    path: &Path,
+    write: impl FnOnce(&mut File) -> std::io::Result<()>,
+) -> std::io::Result<()> {
+    let pending = path.with_extension("pending");
+    let mut file = File::options()
+        .write(true)
+        .create_new(true)
+        .open(&pending)?;
+    write(&mut file)?;
+    drop(file);
+    std::fs::rename(pending, path)
+}
+
 #[test]
 #[ignore = "Private subprocess entrypoint invoked by the Cargo-run acceptance tests."]
 fn subprocess_probe() {
     let root = PathBuf::from(std::env::var_os("TALLYLINE_TEST_INSTANCE_ROOT").unwrap());
     let mode = std::env::var("TALLYLINE_TEST_INSTANCE_MODE").unwrap();
+    if mode == "partial-result" {
+        publish_probe_result(&root.join("secondary"), |file| {
+            file.write_all(b"Act")?;
+            std::fs::write(root.join("partial-ready"), b"")?;
+            wait_for(&root.join("finish-write"));
+            file.write_all(b"ivated")
+        })
+        .unwrap();
+        return;
+    }
     if mode == "drip" {
         let client = crate::socket::LocalSocket::new().unwrap();
         client
@@ -91,9 +117,31 @@ fn subprocess_probe() {
             }
         }
         Election::Secondary(outcome) => {
-            std::fs::write(root.join("secondary"), format!("{outcome:?}")).unwrap();
+            publish_probe_result(&root.join("secondary"), |file| {
+                file.write_all(format!("{outcome:?}").as_bytes())
+            })
+            .unwrap();
         }
     }
+}
+
+#[test]
+#[expect(
+    non_snake_case,
+    reason = "Requirement tags use a double underscore separator."
+)]
+fn r_nf_10__subprocess_results_are_visible_only_after_complete_writes() {
+    let root = tempfile::tempdir().unwrap();
+    let mut child = start(root.path(), "partial-result");
+    wait_for(&root.path().join("partial-ready"));
+    assert!(!root.path().join("secondary").exists());
+    std::fs::write(root.path().join("finish-write"), b"").unwrap();
+    wait_for(&root.path().join("secondary"));
+    assert_eq!(
+        std::fs::read_to_string(root.path().join("secondary")).unwrap(),
+        "Activated"
+    );
+    assert!(child.0.wait().unwrap().success());
 }
 
 #[test]
