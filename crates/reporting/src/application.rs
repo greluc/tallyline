@@ -35,6 +35,7 @@ pub struct ReportingApplication<R, C> {
     clock: C,
     mapping: EnvironmentMapping,
     price_tolerance_override: Option<Percent>,
+    stock_settings: crate::api::model::StockSettings,
 }
 impl<R: ReportRepository, C: Clock> ReportingApplication<R, C> {
     /// Constructs the manual Draft application.
@@ -44,6 +45,7 @@ impl<R: ReportRepository, C: Clock> ReportingApplication<R, C> {
             clock,
             mapping: EnvironmentMapping::default(),
             price_tolerance_override: None,
+            stock_settings: crate::api::model::StockSettings::default(),
         }
     }
     /// Applies the currently persisted game-channel mapping.
@@ -245,3 +247,10 @@ mod attachments;
 mod review;
 mod statuses;
 mod stock;
+
+impl<R: ReportRepository, C: Clock> ReportingApplication<R, C> {
+    /// Applies validated shipping SCU bands at the next assessment.
+    pub fn set_stock_settings(&mut self, settings: crate::api::model::StockSettings) {
+        self.stock_settings = settings;
+    }
+}

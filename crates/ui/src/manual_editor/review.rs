@@ -43,7 +43,7 @@ impl ManualEditor {
         if !report
             .rows()
             .iter()
-            .any(|row| row.price().is_some() || row.status().is_some())
+            .any(|row| row.price().is_some() || row.stock().is_some() || row.status().is_some())
         {
             return;
         }
@@ -57,6 +57,7 @@ impl ManualEditor {
             return;
         }
         self.queue(ManualCommand::Review(ManualReviewCommand {
+            stock_settings: self.stock_settings,
             id: report.id(),
             expected: report.version(),
             action: ManualReviewAction::Reassess,
@@ -92,7 +93,7 @@ impl ManualEditor {
             return;
         };
         *stored = review.report().clone();
-        if self.selected == Some(id) {
+        if self.selected == Some(id) && review.stock_settings() == self.stock_settings {
             self.review_attempt = Some((id, review.report().version(), snapshot.clone()));
             self.review.received(review, snapshot);
             self.notice = None;

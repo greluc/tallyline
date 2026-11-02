@@ -63,7 +63,7 @@ impl ConfigFile {
             .get("schema_version")
             .and_then(serde_json::Value::as_u64)
         {
-            Some(schema @ 1..=4) => u32::try_from(schema).map_err(io::Error::other)?,
+            Some(schema @ 1..=5) => u32::try_from(schema).map_err(io::Error::other)?,
             _ => {
                 return Err(io::Error::new(
                     io::ErrorKind::InvalidData,
@@ -101,7 +101,7 @@ impl ConfigFile {
         if document
             .get("schema_version")
             .and_then(serde_json::Value::as_u64)
-            != Some(4)
+            != Some(5)
         {
             if document
                 .get("schema_version")
@@ -120,6 +120,7 @@ impl ConfigFile {
                     app.insert(key.to_owned(), serde_json::Value::Null);
                 }
             }
+            crate::stock_config::migrate(&mut document);
             self.write_document(document)?;
         }
         Ok(())
@@ -157,7 +158,7 @@ impl ConfigFile {
             document
                 .get("schema_version")
                 .and_then(serde_json::Value::as_u64),
-            Some(1..=4)
+            Some(1..=5)
         ) {
             return Err(io::Error::new(
                 io::ErrorKind::InvalidData,
@@ -209,7 +210,8 @@ impl ConfigFile {
         Ok(LoadedSettings {
             settings: AppSettings::from_persisted(theme, onboarding)
                 .with_update_state(checks, attempt)
-                .with_release_notice(available, dismissed),
+                .with_release_notice(available, dismissed)
+                .with_stock_settings(crate::stock_config::load(&document, &mut errors)?),
             errors,
         })
     }
@@ -237,7 +239,7 @@ impl AppSettingsStore for ConfigFile {
         let mut document = self.read_document()?;
         Self::object(&mut document)?.insert(
             "app".to_owned(),
-            serde_json::json!({"theme":theme,"onboarding_complete":settings.onboarding_complete(), "update_checks": settings.update_checks() == tallyline_workflows::api::model::UpdateChecks::Enabled, "last_update_attempt_ms": attempt, "available_release": settings.available_release().map(|version| version.to_string()), "dismissed_release": settings.dismissed_release().map(|version| version.to_string())}),
+            serde_json::json!({"stock_percent":settings.stock_settings().tolerance().percent().get(),"stock_minimum":settings.stock_settings().tolerance().minimum().to_string(),"theme":theme,"onboarding_complete":settings.onboarding_complete(), "update_checks": settings.update_checks() == tallyline_workflows::api::model::UpdateChecks::Enabled, "last_update_attempt_ms": attempt, "available_release": settings.available_release().map(|version| version.to_string()), "dismissed_release": settings.dismissed_release().map(|version| version.to_string())}),
         );
         self.write_document(document)
     }
@@ -259,7 +261,7 @@ impl ConfigFile {
             Ok(content) => serde_json::from_slice(&content)
                 .map_err(|_| io::Error::new(io::ErrorKind::InvalidData, "invalid settings JSON"))?,
             Err(error) if error.kind() == io::ErrorKind::NotFound => {
-                serde_json::json!({"schema_version":4})
+                serde_json::json!({"schema_version":5})
             }
             Err(error) => return Err(error),
         };
@@ -267,7 +269,7 @@ impl ConfigFile {
             document
                 .get("schema_version")
                 .and_then(serde_json::Value::as_u64),
-            Some(1..=4)
+            Some(1..=5)
         ) {
             return Err(io::Error::new(
                 io::ErrorKind::InvalidData,
@@ -278,7 +280,7 @@ impl ConfigFile {
     }
 
     pub(crate) fn write_document(&mut self, mut document: serde_json::Value) -> io::Result<()> {
-        if let Some(previous @ 1..=3) = document
+        if let Some(previous @ 1..=4) = document
             .get("schema_version")
             .and_then(serde_json::Value::as_u64)
         {
@@ -290,7 +292,7 @@ impl ConfigFile {
                 &fs::read(&self.path)?,
             )?;
         }
-        Self::object(&mut document)?.insert("schema_version".to_owned(), serde_json::json!(4));
+        Self::object(&mut document)?.insert("schema_version".to_owned(), serde_json::json!(5));
         let content = serde_json::to_vec_pretty(&document)?;
         let temporary = self.path.with_extension("json.pending");
         let mut file = OpenOptions::new()

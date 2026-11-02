@@ -265,7 +265,7 @@ fn r_ocr_20_r_nf_5__version_one_preferences_migrate_with_explicit_opt_in_and_pre
     );
     let document: serde_json::Value =
         serde_json::from_slice(&std::fs::read(&path).unwrap()).unwrap();
-    assert_eq!(document.get("schema_version"), Some(&serde_json::json!(4)));
+    assert_eq!(document.get("schema_version"), Some(&serde_json::json!(5)));
     store.change_game_channel("another-channel").unwrap();
     assert_eq!(
         store.load_game_preferences().unwrap().settings.witness,
@@ -361,7 +361,7 @@ fn r_nf_11_r_nf_7__migration_requires_backup_and_preserves_exact_old_bytes_on_fa
     assert_eq!(std::fs::read(backup).unwrap(), old);
     let current: serde_json::Value =
         serde_json::from_slice(&std::fs::read(&path).unwrap()).unwrap();
-    assert_eq!(current.get("schema_version"), Some(&serde_json::json!(4)));
+    assert_eq!(current.get("schema_version"), Some(&serde_json::json!(5)));
     assert_eq!(current.get("other"), Some(&serde_json::json!({"value":42})));
 }
 
@@ -708,7 +708,7 @@ fn r_cap_3a__schema_four_game_mapping_persists_independently_of_witness_preferen
     assert_eq!(reopened.load_game_preferences().unwrap().settings, changed);
     let document: serde_json::Value =
         serde_json::from_slice(&std::fs::read(path).unwrap()).unwrap();
-    assert_eq!(document["schema_version"], 4);
+    assert_eq!(document["schema_version"], 5);
     store.change_game_channel("another-channel").unwrap();
     let loaded = store.load_game_preferences().unwrap();
     assert_eq!(loaded.settings.witness, WitnessMode::Off);
@@ -808,7 +808,7 @@ fn r_nf_11__backup_source_preserves_exact_known_bytes_and_refuses_unknown_schema
     let source = store.backup_source().unwrap().unwrap();
     assert_eq!(source.schema, 3);
     assert_eq!(source.bytes, previous);
-    for invalid in [br#"{"schema_version":5}"#.as_slice(), br#"not JSON"#] {
+    for invalid in [br#"{"schema_version":6}"#.as_slice(), br#"not JSON"#] {
         std::fs::write(&path, invalid).unwrap();
         assert!(store.backup_source().is_err());
         assert_eq!(std::fs::read(&path).unwrap(), invalid);
@@ -851,4 +851,95 @@ fn r_nf_5__writable_shared_directories_warn_while_real_probe_failures_remain_fat
         std::fs::read(layout.config().join(".tallyline-write-test")).unwrap(),
         b"dummy-existing-probe"
     );
+}
+
+#[test]
+#[expect(
+    non_snake_case,
+    reason = "Requirement tags use a double underscore separator."
+)]
+fn r_nf_5_r_val_2_q_manual__stock_bands_persist_and_invalid_bands_default_independently() {
+    use tallyline_reporting::api::model::StockSettings;
+    use tallyline_shared_kernel::api::model::Percent;
+    let directory = TestDirectory::new().unwrap();
+    let path = directory.0.join("settings.json");
+    let mut store = ConfigFile::new(path.clone());
+    let settings = AppSettings::default()
+        .with_stock_settings(StockSettings::new(Percent::whole(10), "8".parse().unwrap()).unwrap());
+    store.save(&settings).unwrap();
+    assert_eq!(
+        ConfigFile::new(path.clone())
+            .load()
+            .unwrap()
+            .settings
+            .stock_settings(),
+        settings.stock_settings()
+    );
+    let mut document: serde_json::Value =
+        serde_json::from_slice(&std::fs::read(&path).unwrap()).unwrap();
+    document["app"]["stock_percent"] = serde_json::json!(5000);
+    document["app"]["stock_minimum"] = serde_json::json!("8");
+    std::fs::write(&path, serde_json::to_vec(&document).unwrap()).unwrap();
+    let loaded = ConfigFile::new(path.clone()).load().unwrap();
+    assert_eq!(
+        loaded.settings.stock_settings().tolerance().percent().get(),
+        20
+    );
+    assert_eq!(
+        loaded
+            .settings
+            .stock_settings()
+            .tolerance()
+            .minimum()
+            .to_string(),
+        "8"
+    );
+    assert_eq!(loaded.errors.len(), 1);
+    document["app"]["stock_percent"] = serde_json::json!(10);
+    document["app"]["stock_minimum"] = serde_json::json!("17");
+    std::fs::write(&path, serde_json::to_vec(&document).unwrap()).unwrap();
+    let loaded = ConfigFile::new(path).load().unwrap();
+    assert_eq!(
+        loaded.settings.stock_settings().tolerance().percent().get(),
+        10
+    );
+    assert_eq!(
+        loaded
+            .settings
+            .stock_settings()
+            .tolerance()
+            .minimum()
+            .to_string(),
+        "16"
+    );
+    assert_eq!(loaded.errors.len(), 1);
+}
+
+#[test]
+#[expect(
+    non_snake_case,
+    reason = "Requirement tags use a double underscore separator."
+)]
+fn r_nf_11_r_nf_5__schema_four_stock_defaults_follow_exact_config_backup() {
+    let directory = TestDirectory::new().unwrap();
+    let path = directory.0.join("settings.json");
+    let previous = br#"{ "schema_version":4,"app":{"theme":"light","onboarding_complete":true,"update_checks":false},"game":{"environment_mapping":{"hotfix":"ptu"}}}"#;
+    std::fs::write(&path, previous).unwrap();
+    assert!(ConfigFile::new(path.clone()).migrate().is_err());
+    assert_eq!(std::fs::read(&path).unwrap(), previous);
+    backed_store(path.clone()).migrate().unwrap();
+    assert_eq!(
+        std::fs::read(path.with_extension("backup.json")).unwrap(),
+        previous
+    );
+    let loaded = ConfigFile::new(path.clone()).load().unwrap();
+    assert!(loaded.errors.is_empty());
+    assert_eq!(
+        loaded.settings.stock_settings(),
+        tallyline_reporting::api::model::StockSettings::default()
+    );
+    let document: serde_json::Value =
+        serde_json::from_slice(&std::fs::read(&path).unwrap()).unwrap();
+    assert_eq!(document["schema_version"], 5);
+    assert_eq!(document["game"]["environment_mapping"]["hotfix"], "ptu");
 }

@@ -407,3 +407,43 @@ fn r_nf_7_r_ui_16__daily_setting_waits_for_save_and_disabled_results_remain_hidd
     );
     Ok(())
 }
+
+#[test]
+#[expect(
+    non_snake_case,
+    reason = "Requirement tags use a double underscore separator."
+)]
+fn r_nf_5_r_val_2_q_manual__drawn_stock_settings_reject_loose_input_and_save_explicit_valid_choice()
+-> Outcome {
+    let mut harness = harness()?;
+    harness.state_mut().shell.show_settings();
+    harness.run();
+    harness.get_by_label("SCU review tolerance").click();
+    harness.run();
+    harness
+        .get_by_role_and_label(egui::Role::TextInput, "SCU percentage (0 to 20)")
+        .focus();
+    harness.run();
+    harness
+        .get_by_role_and_label(egui::Role::TextInput, "SCU percentage (0 to 20)")
+        .type_text("5000");
+    harness.run();
+    harness.get_by_label("Save SCU tolerance").click();
+    harness.run();
+    assert!(harness.query_by_label("Enter a whole percentage from 0 to 20 and an exact SCU minimum from 0 to 16. Looser or invalid values are not applied.").is_some());
+    assert!(harness.state().commands.is_empty());
+    assert!(!harness.state().shell.busy());
+    harness
+        .state_mut()
+        .shell
+        .receive(BackgroundEvent::SettingsLoaded(AppSettings::default()));
+    harness.run();
+    harness.get_by_label("Save SCU tolerance").click();
+    harness.run();
+    assert_eq!(
+        harness.state().commands,
+        vec![SettingsCommand::ChangeStockSettings(Default::default())]
+    );
+    assert!(harness.state().shell.busy());
+    Ok(())
+}

@@ -52,6 +52,7 @@ impl<S: AppSettingsStore> SettingsApplication<S> {
                 self.settings.available_release(),
                 self.settings.dismissed_release(),
             );
+        let next = next.with_stock_settings(self.settings.stock_settings());
         self.store.save(&next)?;
         self.settings = next;
         Ok(())
@@ -71,6 +72,7 @@ impl<S: AppSettingsStore> SettingsApplication<S> {
                 self.settings.available_release(),
                 self.settings.dismissed_release(),
             );
+        let next = next.with_stock_settings(self.settings.stock_settings());
         self.store.save(&next)?;
         self.settings = next;
         Ok(())
@@ -203,3 +205,19 @@ pub use crate::attachments::{
 pub use crate::attachments::{ManualAttachmentFailure, confirm_manual_attachment};
 
 pub use crate::attachments::ManualAttachmentInputFailure;
+
+impl<S: AppSettingsStore> SettingsApplication<S> {
+    /// Saves SCU review bands before applying them.
+    ///
+    /// # Errors
+    /// Returns a storage failure without changing active preferences.
+    pub fn change_stock_settings(
+        &mut self,
+        settings: tallyline_reporting::api::model::StockSettings,
+    ) -> Result<(), S::Error> {
+        let next = self.settings.clone().with_stock_settings(settings);
+        self.store.save(&next)?;
+        self.settings = next;
+        Ok(())
+    }
+}

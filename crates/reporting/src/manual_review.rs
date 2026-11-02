@@ -3,26 +3,37 @@
 
 //! Exact manual review tied to one committed Draft version.
 
-use crate::api::model::{PriceAssessment, Report, StatusAssessment};
+use crate::api::model::{PriceAssessment, Report, StatusAssessment, StockAssessment};
 
-/// Price and status assessments of one committed manual Draft.
+/// Price, stock and status assessments of one committed manual Draft.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ManualReview {
     report: Report,
+    stock_settings: crate::api::model::StockSettings,
     prices: Vec<PriceAssessment>,
+    stocks: Vec<StockAssessment>,
     statuses: Vec<StatusAssessment>,
 }
 impl ManualReview {
     pub(crate) fn new(
         report: Report,
+        stock_settings: crate::api::model::StockSettings,
         prices: Vec<PriceAssessment>,
+        stocks: Vec<StockAssessment>,
         statuses: Vec<StatusAssessment>,
     ) -> Self {
         Self {
             report,
+            stock_settings,
             prices,
+            stocks,
             statuses,
         }
+    }
+    /// Returns the exact validated SCU policy used by this immutable review.
+    #[must_use]
+    pub const fn stock_settings(&self) -> crate::api::model::StockSettings {
+        self.stock_settings
     }
     /// Returns the committed Draft assessed by this review.
     #[must_use]
@@ -33,6 +44,11 @@ impl ManualReview {
     #[must_use]
     pub fn prices(&self) -> &[PriceAssessment] {
         &self.prices
+    }
+    /// Returns exact stock assessments using the effective shipping bands.
+    #[must_use]
+    pub fn stocks(&self) -> &[StockAssessment] {
+        &self.stocks
     }
     /// Returns status assessments without altering inventory quantities.
     #[must_use]
@@ -46,6 +62,8 @@ impl ManualReview {
 pub enum ReviewField {
     /// An explicitly entered price.
     Price(tallyline_shared_kernel::api::model::RowId),
+    /// An explicitly entered inventory quantity.
+    Stock(tallyline_shared_kernel::api::model::RowId),
     /// An explicitly selected status.
     Status(tallyline_shared_kernel::api::model::RowId),
 }
@@ -54,12 +72,12 @@ impl ReviewField {
     #[must_use]
     pub const fn row(self) -> tallyline_shared_kernel::api::model::RowId {
         match self {
-            Self::Price(row) | Self::Status(row) => row,
+            Self::Price(row) | Self::Stock(row) | Self::Status(row) => row,
         }
     }
 }
 
-/// Counts for assessed prices and statuses, without claiming complete release readiness.
+/// Counts for assessed prices, stocks and statuses, without claiming complete release readiness.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub struct ManualReviewSummary {
     /// Fields differing within tolerance before stale display lowering.
@@ -72,7 +90,7 @@ pub struct ManualReviewSummary {
     pub unreviewed: usize,
 }
 impl ManualReview {
-    /// Returns every price or status decision still requiring explicit approval in row order.
+    /// Returns every price, stock or status decision still requiring explicit approval in row order.
     #[must_use]
     pub fn confirmation_fields(&self) -> Vec<ReviewField> {
         self.report
@@ -82,6 +100,8 @@ impl ManualReview {
                 [
                     row.price_needs_confirmation()
                         .then_some(ReviewField::Price(row.id())),
+                    row.stock_needs_confirmation()
+                        .then_some(ReviewField::Stock(row.id())),
                     row.status_needs_confirmation()
                         .then_some(ReviewField::Status(row.id())),
                 ]
@@ -89,7 +109,7 @@ impl ManualReview {
             .flatten()
             .collect()
     }
-    /// Returns the price and status counters from Reporting-owned decision state.
+    /// Returns the price, stock and status counters from Reporting-owned decision state.
     #[must_use]
     pub fn summary(&self) -> ManualReviewSummary {
         use crate::api::model::Deviation;
@@ -97,6 +117,7 @@ impl ManualReview {
             .prices
             .iter()
             .filter_map(|price| price.deviation())
+            .chain(self.stocks.iter().filter_map(|stock| stock.deviation()))
             .chain(self.statuses.iter().map(|status| status.deviation()));
         let mut summary = ManualReviewSummary::default();
         for deviation in deviations {
@@ -111,7 +132,11 @@ impl ManualReview {
             .report
             .rows()
             .iter()
-            .map(|row| usize::from(row.price_unreviewed()) + usize::from(row.status_unreviewed()))
+            .map(|row| {
+                usize::from(row.price_unreviewed())
+                    + usize::from(row.stock_unreviewed())
+                    + usize::from(row.status_unreviewed())
+            })
             .sum();
         summary
     }

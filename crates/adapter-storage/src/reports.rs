@@ -127,6 +127,7 @@ struct RowDocument {
     stock: Option<String>,
     status: Option<std::num::NonZeroU8>,
     price_decision: PriceDecisionDocument,
+    stock_decision: PriceDecisionDocument,
     status_confirmation: Option<(std::num::NonZeroU8, StoredDeviation, StoredEnvironment)>,
     status_deviation: Option<StoredDeviation>,
     status_unreviewed: bool,
@@ -164,6 +165,18 @@ fn encode(report: &Report) -> Result<String, RepositoryError> {
                     deviation: row.price_deviation().map(Into::into),
                     unreviewed: row.price_unreviewed(),
                     revoked: row.price_confirmation_revoked(),
+                },
+                stock_decision: PriceDecisionDocument {
+                    confirmation: row.stock_confirmation().map(|approval| {
+                        (
+                            approval.value().to_string(),
+                            approval.deviation().into(),
+                            approval.reference_environment().into(),
+                        )
+                    }),
+                    deviation: row.stock_deviation().map(Into::into),
+                    unreviewed: row.stock_unreviewed(),
+                    revoked: row.stock_confirmation_revoked(),
                 },
                 status_confirmation: row.status_confirmation().map(|approval| {
                     (
@@ -226,6 +239,22 @@ fn decode(id: ReportId, version: u64, payload: &str) -> Result<Report, Repositor
                     deviation: row.price_decision.deviation.map(Into::into),
                     unreviewed: row.price_decision.unreviewed,
                     revoked: row.price_decision.revoked,
+                },
+                stock_decision: tallyline_reporting::api::model::StoredStockDecision {
+                    confirmation: row
+                        .stock_decision
+                        .confirmation
+                        .map(|(value, deviation, environment)| {
+                            Ok((
+                                value.parse().map_err(|_| RepositoryError::Invalid)?,
+                                deviation.into(),
+                                environment.into(),
+                            ))
+                        })
+                        .transpose()?,
+                    deviation: row.stock_decision.deviation.map(Into::into),
+                    unreviewed: row.stock_decision.unreviewed,
+                    revoked: row.stock_decision.revoked,
                 },
                 status_confirmation: row.status_confirmation.map(
                     |(value, deviation, environment)| (value, deviation.into(), environment.into()),

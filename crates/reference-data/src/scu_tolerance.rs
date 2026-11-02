@@ -58,3 +58,22 @@ impl ScuTolerance {
         self.override_ignored
     }
 }
+
+/// Provenance of the provisional corpus-informed shipping bands.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum ScuToleranceSource {
+    /// The documented public quantity sensitivity and observed trading movement.
+    ProvisionalPublicCorpus,
+}
+impl ScuTolerance {
+    /// Returns the provisional 20 percent and 16 SCU shipping baseline.
+    #[must_use]
+    pub const fn baseline() -> Self {
+        Self::new(Percent::whole(20), ScuQuantity::whole(16))
+    }
+    /// Returns the documented shipping baseline provenance.
+    #[must_use]
+    pub const fn baseline_source() -> ScuToleranceSource {
+        ScuToleranceSource::ProvisionalPublicCorpus
+    }
+}

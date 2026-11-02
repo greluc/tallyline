@@ -107,6 +107,39 @@ pub fn show_manual_review(
             });
         }
         if let Some(assessment) = review
+            .stocks()
+            .iter()
+            .find(|assessment| assessment.row() == row.id())
+        {
+            ui.push_id(("stock-review", row.id().0), |ui| {
+                ui.separator();
+                ui.label(format!(
+                    "{} {}: {} {}",
+                    catalogue.text("review.stock"),
+                    row.commodity().0,
+                    row.stock()
+                        .map(|stock| stock.to_string())
+                        .unwrap_or_default(),
+                    catalogue.text("review.scu")
+                ));
+                crate::manual_review_details::stock_details(ui, *assessment, catalogue, theme);
+                decision(
+                    ui,
+                    state,
+                    Decision {
+                        field: ReviewField::Stock(row.id()),
+                        commodity: row.commodity().0,
+                        approved: row.stock_confirmation().is_some(),
+                        revoked: row.stock_confirmation_revoked(),
+                        unreviewed: row.stock_unreviewed(),
+                    },
+                    focus,
+                    catalogue,
+                    &mut command,
+                );
+            });
+        }
+        if let Some(assessment) = review
             .statuses()
             .iter()
             .find(|assessment| assessment.row() == row.id())
@@ -186,6 +219,7 @@ fn decision(
         let key = match field {
             ReviewField::Price(_) => "review.confirm_price",
             ReviewField::Status(_) => "review.confirm_status",
+            ReviewField::Stock(_) => "review.confirm_stock",
         };
         let Some(report) = state.review().map(|review| review.report().id()) else {
             return;
@@ -193,6 +227,7 @@ fn decision(
         let kind = match field {
             ReviewField::Price(_) => "price",
             ReviewField::Status(_) => "status",
+            ReviewField::Stock(_) => "stock",
         };
         let response = ui
             .scope_builder(

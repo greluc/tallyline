@@ -89,7 +89,7 @@ pub enum BackgroundEvent {
         /// Draft version used when this request was queued.
         expected: u64,
         /// The saved Report and exact assessments.
-        review: tallyline_reporting::api::model::ManualReview,
+        review: Box<tallyline_reporting::api::model::ManualReview>,
         /// Reference snapshot used for these assessments.
         snapshot: tallyline_reference_data::api::model::ReferenceSnapshot,
     },
@@ -133,6 +133,7 @@ pub enum BackgroundEvent {
 #[derive(Default)]
 pub struct ShellState {
     credentials: crate::credentials::CredentialSetup,
+    pub(crate) stock_settings_editor: crate::stock_settings::StockSettingsEditor,
     view: View,
     manual: crate::manual_editor::ManualEditor,
     references: crate::reference_browser::ReferenceBrowser,
@@ -203,6 +204,9 @@ impl ShellState {
             }
             UserAction::DismissUpdate => SettingsCommand::DismissUpdate,
             UserAction::ChangeUpdateChecks(checks) => SettingsCommand::ChangeUpdateChecks(checks),
+            UserAction::ChangeStockSettings(settings) => {
+                SettingsCommand::ChangeStockSettings(settings)
+            }
             UserAction::ChooseTheme(theme) => SettingsCommand::ChangeTheme(theme),
             UserAction::ChooseGameChannel(channel) => SettingsCommand::ChangeGameChannel(channel),
             UserAction::RefreshWitness => SettingsCommand::RefreshWitness,
@@ -252,7 +256,7 @@ impl ShellState {
                 expected,
                 review,
                 snapshot,
-            } => self.manual.reviewed(expected, review, snapshot),
+            } => self.manual.reviewed(expected, *review, snapshot),
             BackgroundEvent::ReviewFailed {
                 id,
                 expected,
@@ -309,6 +313,8 @@ impl ShellState {
                 {
                     self.update_status = tallyline_workflows::api::model::UpdateStatus::NotChecked;
                 }
+                self.stock_settings_editor = settings.stock_settings().into();
+                self.manual.set_stock_settings(settings.stock_settings());
                 self.settings = settings;
                 self.ready = true;
                 self.notice = None;
@@ -355,6 +361,8 @@ impl ShellState {
 
 /// A direct user request that requires durable preferences.
 pub enum UserAction {
+    /// Persist independently tighten-only stock bands.
+    ChangeStockSettings(tallyline_reporting::api::model::StockSettings),
     /// Persist an independent UEX environment for one game channel.
     ChangeEnvironmentMapping(
         tallyline_game::api::model::GameEnvironment,
@@ -379,6 +387,8 @@ pub enum UserAction {
 /// A settings operation handled outside the UI thread.
 #[derive(Clone, PartialEq, Eq)]
 pub enum SettingsCommand {
+    /// Persist independently tighten-only stock bands.
+    ChangeStockSettings(tallyline_reporting::api::model::StockSettings),
     /// Persist an independent UEX environment for one game channel.
     ChangeEnvironmentMapping(
         tallyline_game::api::model::GameEnvironment,
@@ -407,6 +417,10 @@ impl std::fmt::Debug for SettingsCommand {
                 .debug_tuple("ChangeEnvironmentMapping")
                 .field(channel)
                 .field(environment)
+                .finish(),
+            Self::ChangeStockSettings(settings) => formatter
+                .debug_tuple("ChangeStockSettings")
+                .field(settings)
                 .finish(),
             Self::DismissUpdate => formatter.write_str("DismissUpdate"),
             Self::ChangeUpdateChecks(checks) => formatter

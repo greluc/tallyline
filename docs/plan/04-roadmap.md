@@ -262,3 +262,8 @@ Issue #84 now has desktop price/status assessment, value-bound approval, durable
 ## SCU policy evidence checkpoint — 2026-11-02
 
 [The parameterised assessment and candidate table](../scu-policy-calibration.md) narrow the remaining R-VAL-2 `:manual` work without selecting a shipping default. Exact read-only quantity assessment and independent tighten-only bands are tested; adoption of the provisional 20 % / 16 SCU start pair, durable quantity decisions and actual desktop/release composition remain open; broader empirical validation is separately visible. Requirement coverage assignments and #84 acceptance are unchanged.
+
+
+### Guarded SCU review checkpoint (2026-11-02)
+
+Issue #84 now composes the provisional baseline, independent tighten-only persisted bands, durable value/context-bound stock approval, exact class-based reassessment, counters and required-field navigation. Reporting supplies immutable numeric/decision readiness for the release/queue slice. Database 8/config 5 forward migrations retain coordinated backups. Native visual acceptance remains pending; broader calibration observations remain open without blocking the documented starting choice. Complete atomic release/send remains issue #86.

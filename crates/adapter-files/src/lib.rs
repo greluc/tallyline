@@ -25,3 +25,5 @@ mod manual_attachment;
 mod private_artifact;
 
 mod working_copies;
+
+mod stock_config;

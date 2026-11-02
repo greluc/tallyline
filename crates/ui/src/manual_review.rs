@@ -27,6 +27,8 @@ pub enum ManualReviewAction {
 /// A manual review request bound to the displayed Draft and references.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ManualReviewCommand {
+    /// Validated SCU policy bound to this request.
+    pub stock_settings: tallyline_reporting::api::model::StockSettings,
     /// Persistent Draft identity.
     pub id: ReportId,
     /// Version displayed when the user acted.
@@ -142,6 +144,7 @@ impl ManualReviewState {
             .is_some_and(|row| match field {
                 ReviewField::Price(_) => row.price_needs_confirmation(),
                 ReviewField::Status(_) => row.status_needs_confirmation(),
+                ReviewField::Stock(_) => row.stock_needs_confirmation(),
             })
     }
     pub(crate) fn mark_focus_pending(&mut self, field: ReviewField) {
@@ -167,7 +170,11 @@ impl ManualReviewState {
         }
         self.review.as_ref().is_some_and(|review| {
             review.report().id() == command.id && review.report().version() == command.expected
-        }) && self.snapshot.as_ref() == Some(&command.snapshot)
+        }) && self
+            .review
+            .as_ref()
+            .is_some_and(|review| review.stock_settings() == command.stock_settings)
+            && self.snapshot.as_ref() == Some(&command.snapshot)
     }
     /// Requests explicit approval only for a Reporting-owned required decision.
     #[must_use]
@@ -182,6 +189,7 @@ impl ManualReviewState {
     fn command(&self, action: ManualReviewAction) -> Option<ManualReviewCommand> {
         let review = self.review.as_ref()?;
         Some(ManualReviewCommand {
+            stock_settings: review.stock_settings(),
             id: review.report().id(),
             expected: review.report().version(),
             action,

@@ -65,6 +65,58 @@ pub(crate) fn price_details(
     }
     marking(ui, assessment.display_deviation(), catalogue, theme);
 }
+pub(crate) fn stock_details(
+    ui: &mut egui::Ui,
+    assessment: tallyline_reporting::api::model::StockAssessment,
+    catalogue: &Catalogue,
+    theme: tallyline_egui::Theme,
+) {
+    ui.label(format!(
+        "{}: {} · {}: {}",
+        catalogue.text("manual.reference"),
+        assessment.reference().map_or_else(
+            || catalogue.text("manual.no_reference").to_owned(),
+            |price| price.to_string()
+        ),
+        catalogue.text("review.age"),
+        age(assessment.reference_age_millis(), catalogue)
+    ));
+    if assessment.reference_outdated() {
+        ui.label(catalogue.text("review.outdated"));
+    }
+    let percent = match assessment.percentage_difference() {
+        Ok(Some(percent)) => format!("{percent} %"),
+        Ok(None) => catalogue.text("review.percentage_unavailable").to_owned(),
+        Err(_) => catalogue.text("review.precision_unavailable").to_owned(),
+    };
+    if let Some(difference) = assessment.difference() {
+        let text = difference.to_string();
+        let signed = if text.starts_with('-') || difference.is_zero() {
+            text
+        } else {
+            format!("+{text}")
+        };
+        ui.label(format!(
+            "{}: {} {} · {}",
+            catalogue.text("review.difference"),
+            signed,
+            catalogue.text("review.scu"),
+            percent
+        ));
+    } else {
+        ui.label(catalogue.text("review.no_difference"));
+    }
+    ui.label(format!(
+        "{}: {} % {} {} {}",
+        catalogue.text("review.stock_tolerance"),
+        assessment.tolerance().percent().get(),
+        catalogue.text("review.and"),
+        assessment.tolerance().minimum(),
+        catalogue.text("review.scu")
+    ));
+    ui.label(catalogue.text("review.policy_scu"));
+    marking(ui, assessment.display_deviation(), catalogue, theme);
+}
 pub(crate) fn status_details(
     ui: &mut egui::Ui,
     assessment: StatusAssessment,

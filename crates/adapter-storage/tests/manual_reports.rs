@@ -485,7 +485,7 @@ fn r_nf_11_r_ui_12_q_manual__schema_three_requires_backup_and_preserves_legacy_u
         current
             .query_row("PRAGMA user_version", [], |row| row.get::<_, u32>(0))
             .unwrap(),
-        7
+        8
     );
     drop(current);
     drop(before);

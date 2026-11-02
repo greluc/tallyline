@@ -55,12 +55,16 @@ fn r_ui_10_q_manual_r_ui_11_q_manual_r_ui_12_q_manual_r_ui_16__manual_editor_pas
         .state_mut()
         .receive(BackgroundEvent::ReportReviewed {
             expected: request.expected,
-            review: review.clone(),
+            review: (review.clone()).into(),
             snapshot: snapshot.clone(),
         });
     harness.run();
     assert!(!harness.state().dialogs().manual_confirmation_open());
-    assert!(harness.query_by_label("Price and status review").is_some());
+    assert!(
+        harness
+            .query_by_label("Price, stock and status review")
+            .is_some()
+    );
     harness.key_press(egui::Key::F8);
     harness.run();
     let Some(ManualCommand::Review(focus)) = harness.state_mut().manual_mut().take_command() else {
@@ -75,7 +79,7 @@ fn r_ui_10_q_manual_r_ui_11_q_manual_r_ui_12_q_manual_r_ui_16__manual_editor_pas
         .state_mut()
         .receive(BackgroundEvent::ReportReviewed {
             expected: focus.expected,
-            review: focused,
+            review: (focused).into(),
             snapshot: snapshot.clone(),
         });
     harness.run();
@@ -127,7 +131,7 @@ fn r_ui_12_q_manual_r_ui_16__rapid_keyboard_focus_is_saved_after_the_pending_req
         .state_mut()
         .receive(BackgroundEvent::ReportReviewed {
             expected: request.expected,
-            review: review.clone(),
+            review: (review.clone()).into(),
             snapshot: snapshot.clone(),
         });
     harness.run();
@@ -145,7 +149,7 @@ fn r_ui_12_q_manual_r_ui_16__rapid_keyboard_focus_is_saved_after_the_pending_req
         .state_mut()
         .receive(BackgroundEvent::ReportReviewed {
             expected: first.expected,
-            review: focused,
+            review: (focused).into(),
             snapshot,
         });
     harness.run();
@@ -188,7 +192,7 @@ fn r_val_7_q_manual_r_ui_16__passive_reference_reassessment_keeps_existing_keybo
         .state_mut()
         .receive(BackgroundEvent::ReportReviewed {
             expected: initial.expected,
-            review: review.clone(),
+            review: (review.clone()).into(),
             snapshot: snapshot.clone(),
         });
     harness.run();
@@ -202,7 +206,7 @@ fn r_val_7_q_manual_r_ui_16__passive_reference_reassessment_keeps_existing_keybo
         .state_mut()
         .receive(BackgroundEvent::ReportReviewed {
             expected: focus.expected,
-            review: focused,
+            review: (focused).into(),
             snapshot,
         });
     harness.run();
@@ -334,7 +338,7 @@ fn r_ui_11_q_manual_r_sub_7_q_manual__value_confirmation_shows_only_a_current_pr
             .state_mut()
             .receive(BackgroundEvent::ReportReviewed {
                 expected: request.expected,
-                review,
+                review: review.into(),
                 snapshot,
             });
         harness.run();
@@ -381,7 +385,7 @@ fn r_val_7_q_manual_r_ui_16__invalid_uncommitted_optional_input_delays_passive_r
         .state_mut()
         .receive(BackgroundEvent::ReportReviewed {
             expected: request.expected,
-            review,
+            review: review.into(),
             snapshot,
         });
     harness.run();
@@ -456,7 +460,7 @@ fn r_val_7_q_manual_r_ui_16__late_review_or_failure_never_replaces_newer_attachm
         .state_mut()
         .receive(BackgroundEvent::ReportReviewed {
             expected: old.expected,
-            review,
+            review: review.into(),
             snapshot,
         });
     assert_eq!(harness.state().manual().selected(), Some(&changed));
@@ -474,4 +478,53 @@ fn r_val_7_q_manual_r_ui_16__late_review_or_failure_never_replaces_newer_attachm
     assert_eq!(new.expected, changed.version());
     assert!(new.expected > old.expected);
     assert!(!harness.state().dialogs().manual_confirmation_open());
+}
+
+#[test]
+#[expect(
+    non_snake_case,
+    reason = "Requirement tags use a double underscore separator."
+)]
+fn r_nf_5_r_ui_16_r_val_7_q_manual__old_policy_result_never_reopens_or_replaces_current_review() {
+    use tallyline_reporting::api::model::StockSettings;
+    use tallyline_shared_kernel::api::model::Percent;
+    use tallyline_workflows::api::model::AppSettings;
+    let (review, snapshot) = support::stock_review().unwrap();
+    let report = review.report().clone();
+    let mut shell = ShellState::default();
+    shell.receive(BackgroundEvent::SettingsLoaded(AppSettings::default()));
+    shell.receive(BackgroundEvent::ReportsLoaded {
+        reports: vec![report.clone()],
+        selected: Some(report.id()),
+    });
+    shell.receive(BackgroundEvent::ReferenceUpdated {
+        live: snapshot.clone(),
+        ptu: support::empty_snapshot(UexEnvironment::Ptu).unwrap(),
+        observed_at: Timestamp::from_seconds(1000),
+    });
+    let mut harness = support::harness(shell).unwrap();
+    harness.run();
+    let Some(ManualCommand::Review(request)) = harness.state_mut().manual_mut().take_command()
+    else {
+        panic!("expected old policy request");
+    };
+    let tightened = StockSettings::new(Percent::whole(10), "8".parse().unwrap()).unwrap();
+    harness.state_mut().receive(BackgroundEvent::SettingsLoaded(
+        AppSettings::default().with_stock_settings(tightened),
+    ));
+    harness
+        .state_mut()
+        .receive(BackgroundEvent::ReportReviewed {
+            expected: request.expected,
+            review: review.into(),
+            snapshot,
+        });
+    assert!(harness.state().manual().review().is_none());
+    assert!(!harness.state().dialogs().manual_confirmation_open());
+    harness.run();
+    let Some(ManualCommand::Review(request)) = harness.state_mut().manual_mut().take_command()
+    else {
+        panic!("expected current policy request");
+    };
+    assert_eq!(request.stock_settings, tightened);
 }

@@ -6,6 +6,7 @@
 
 | Path | What belongs there |
 |---|---|
+| [`scu-review.md`](scu-review.md) | Guarded manual quantity review, provisional baseline/source, tighten-only settings, durable decisions, numeric readiness and schema-eight/schema-five acceptance boundary |
 | [`plan/`](plan/) | The plan, numbered 01–11: requirements (01), architecture (02), language decision ADR-0001 (03, superseded by ADR-0005), roadmap (04), bug analysis of the predecessor (05), UEX API notes (06), OCR concept (07), plan reviews (08), engineering principles (09), supply-chain security (10), DDD and TDD (11) |
 | [`adr/`](adr/) | `0000-open-points.md`, the single register of open owner decisions and open verifications, and the decision records `NNNN-kebab-title.md` (ADR-0001 lives in `plan/03-language-decision.md`; ADR-0005 `0005-rust-and-egui.md` is the current implementation-language, toolkit, supply-chain and packaging decision; ADR-0006 `0006-tls-provider-aws-lc-rs.md` chooses the `rustls` crypto provider; ADR-0007 `0007-ort-rc14-and-onnx-runtime-link-mode.md` fixes the `ort` version and how the ONNX Runtime library is shipped and loaded; ADR-0008 `0008-onnx-runtime-telemetry.md` records how ONNX Runtime's telemetry is switched off and what is accepted; ADR-0009 `0009-visual-cpp-runtime-as-prerequisite.md` makes the Visual C++ runtime of ONNX Runtime a prerequisite instead of shipping it; ADR-0010 `0010-release-token-delivery.md` records release token delivery and replacement) |
 | [`agents/`](agents/) | Per-repository configuration for the engineering agent skills: where issues are tracked (GitHub, writes need approval), the triage label vocabulary and how the domain documents are read |
@@ -32,6 +33,6 @@ The [packaging spike](packaging-spike.md) records the source-independent helper 
 
 - [Linux Tesseract research controller](tesseract-linux-research-controller.md): exact local research scope, safe Rust lifecycle, native/source/licence gates and honest measurement limits.
 
-The [SCU policy evidence](scu-policy-calibration.md) records exact explicit-band application assessment, the available corpus sensitivity and the remaining calibration/desktop acceptance boundary.
+The [SCU policy evidence](scu-policy-calibration.md) records exact explicit-band application assessment, the available corpus sensitivity and the broader calibration and native visual acceptance boundary.
 
 The explicit `scu-policy --public <directory>` developer command analyses complete whole-SCU transcriptions without images or recognition. Its synthetic counts remain separate from golden accuracy and verification flags; [the calibration note](scu-policy-calibration.md) records the provisional starting-pair recommendation and limits.

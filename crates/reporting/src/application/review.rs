@@ -8,7 +8,7 @@ use super::{
 };
 use crate::api::model::ManualReview;
 impl<R: ReportRepository, C: Clock> ReportingApplication<R, C> {
-    /// Reassesses prices and statuses atomically and returns the committed Draft with its assessments.
+    /// Reassesses prices, stocks and statuses atomically and returns the committed Draft with its assessments.
     ///
     /// # Errors
     /// Refuses stale versions, unavailable exact comparisons, mismatched references or storage failure.
@@ -29,14 +29,28 @@ impl<R: ReportRepository, C: Clock> ReportingApplication<R, C> {
         {
             return Err(RepositoryError::AssessmentUnavailable);
         }
+        let stocks = self.stock_assessments(&report, snapshot, self.stock_settings.tolerance());
+        if stocks
+            .iter()
+            .any(|assessment| assessment.unavailable().is_some())
+        {
+            return Err(RepositoryError::AssessmentUnavailable);
+        }
         let statuses = self.status_assessments(&report, snapshot);
         let next = report
             .reassess_prices(&prices, snapshot.environment())
+            .and_then(|report| report.reassess_stocks(&stocks, snapshot.environment()))
             .and_then(|report| report.reassess_status(&statuses, snapshot.environment()))
             .map_err(|_| RepositoryError::Invalid)?;
         if next.version() != expected {
             self.repository.save_draft(&next, expected)?;
         }
-        Ok(ManualReview::new(next, prices, statuses))
+        Ok(ManualReview::new(
+            next,
+            self.stock_settings,
+            prices,
+            stocks,
+            statuses,
+        ))
     }
 }

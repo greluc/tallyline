@@ -57,6 +57,11 @@ impl fmt::Display for ScuQuantity {
     }
 }
 impl ScuQuantity {
+    /// Constructs an exact non-negative whole quantity.
+    #[must_use]
+    pub const fn whole(value: u32) -> Self {
+        Self(Decimal::from_parts(value, 0, 0, false, 0))
+    }
     /// Reports zero without confusing it with a missing observation.
     #[must_use]
     pub fn is_zero(self) -> bool {

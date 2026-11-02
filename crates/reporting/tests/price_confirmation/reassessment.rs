@@ -18,6 +18,9 @@ fn entered(value: &str) -> Result<(Report, RowId), Box<dyn std::error::Error>> {
     report.set_price(row, Some(value.parse()?))?;
     report.set_stock(row, Some("17".parse()?))?;
     report.set_status(row, std::num::NonZeroU8::new(5))?;
+    let version = report.version();
+    let mut app = ReportingApplication::new(Repository(vec![report]), Fixed);
+    let report = app.reassess_stocks(ReportId(1), version, &reference(Some("100"))?)?;
     Ok((report, row))
 }
 #[test]

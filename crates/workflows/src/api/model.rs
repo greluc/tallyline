@@ -21,6 +21,7 @@ pub enum Theme {
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct AppSettings {
     theme: Theme,
+    stock_settings: tallyline_reporting::api::model::StockSettings,
     onboarding_complete: bool,
     update_checks: UpdateChecks,
     available_release: Option<ReleaseVersion>,
@@ -34,6 +35,7 @@ impl AppSettings {
     pub const fn from_persisted(theme: Theme, onboarding_complete: bool) -> Self {
         Self {
             theme,
+            stock_settings: tallyline_reporting::api::model::StockSettings::baseline(),
             onboarding_complete,
             update_checks: UpdateChecks::Disabled,
             available_release: None,
@@ -204,5 +206,22 @@ impl AppSettings {
             | UpdateStatus::Current
             | UpdateStatus::Unavailable) => cached,
         }
+    }
+}
+
+impl AppSettings {
+    /// Returns independently validated SCU review bands.
+    #[must_use]
+    pub const fn stock_settings(&self) -> tallyline_reporting::api::model::StockSettings {
+        self.stock_settings
+    }
+    /// Reconstructs preferences with validated SCU review bands.
+    #[must_use]
+    pub const fn with_stock_settings(
+        mut self,
+        settings: tallyline_reporting::api::model::StockSettings,
+    ) -> Self {
+        self.stock_settings = settings;
+        self
     }
 }

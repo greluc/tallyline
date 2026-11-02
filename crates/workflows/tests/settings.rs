@@ -114,3 +114,27 @@ fn r_nf_7__release_versions_follow_numeric_stable_tag_order() {
         assert!(ReleaseVersion::parse(tag).is_none(), "{tag}");
     }
 }
+
+#[test]
+#[expect(
+    non_snake_case,
+    reason = "Requirement tags use a double underscore separator."
+)]
+fn r_nf_5_r_val_2_q_manual__stock_settings_save_before_apply_and_survive_other_preferences() {
+    use tallyline_reporting::api::model::StockSettings;
+    use tallyline_shared_kernel::api::model::Percent;
+    let tightened = StockSettings::new(Percent::whole(10), "8".parse().unwrap()).unwrap();
+    let mut failed = SettingsApplication::new(AppSettings::default(), FailedSettings);
+    assert_eq!(
+        failed.change_stock_settings(tightened),
+        Err("directory is read-only")
+    );
+    assert_eq!(failed.settings().stock_settings(), StockSettings::default());
+    let mut app = SettingsApplication::new(AppSettings::default(), MemorySettings::default());
+    app.change_stock_settings(tightened).unwrap();
+    assert_eq!(app.settings().stock_settings(), tightened);
+    app.change_theme(Theme::Light).unwrap();
+    app.complete_onboarding().unwrap();
+    assert_eq!(app.settings().stock_settings(), tightened);
+    assert_eq!(app.into_store().0.unwrap().stock_settings(), tightened);
+}

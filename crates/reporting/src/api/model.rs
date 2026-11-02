@@ -32,3 +32,9 @@ pub use crate::price_assessment::{AssessmentUnavailable, PriceAssessment};
 pub use crate::price_confirmation::{PriceConfirmation, StoredPriceDecision};
 pub use crate::stock_assessment::StockAssessment;
 pub use tallyline_reference_data::api::model::PriceReferenceSource;
+
+pub use crate::stock_confirmation::{StockConfirmation, StoredStockDecision};
+
+pub use crate::stock_settings::{InvalidStockSettings, StockSettings};
+
+pub use crate::numeric_readiness::NumericBlock;

@@ -104,6 +104,7 @@ fn r_ui_12_q_manual_r_val_7_q_manual_r_nf_11__worker_publishes_saved_review_and_
     ));
     commands
         .send(ManualCommand::Review(ManualReviewCommand {
+            stock_settings: Default::default(),
             id: report.id(),
             expected: report.version(),
             action: ManualReviewAction::Reassess,
@@ -117,10 +118,11 @@ fn r_ui_12_q_manual_r_val_7_q_manual_r_nf_11__worker_publishes_saved_review_and_
         panic!("expected saved review");
     };
     assert_eq!(expected, report.version());
-    assert_eq!(review.summary().needs_confirmation, 2);
+    assert_eq!(review.summary().needs_confirmation, 3);
     let expected = review.report().version();
     commands
         .send(ManualCommand::Review(ManualReviewCommand {
+            stock_settings: Default::default(),
             id: report.id(),
             expected,
             action: ManualReviewAction::Confirm(ReviewField::Price(row)),
@@ -145,15 +147,47 @@ fn r_ui_12_q_manual_r_val_7_q_manual_r_nf_11__worker_publishes_saved_review_and_
     assert_eq!(review.report().observed_at(), Timestamp::from_seconds(900));
     commands
         .send(ManualCommand::Review(ManualReviewCommand {
+            stock_settings: Default::default(),
             id: report.id(),
             expected,
             action: ManualReviewAction::Confirm(ReviewField::Price(row)),
-            snapshot,
+            snapshot: snapshot.clone(),
         }))
         .unwrap();
     assert!(
         matches!(events.recv_timeout(Duration::from_secs(10)).unwrap(), BackgroundEvent::ReviewFailed { id, expected: failed, error: RepositoryError::Conflict } if id == report.id() && failed == expected)
     );
+    let mut review = review;
+    for action in [
+        ManualReviewAction::Focus(ReviewField::Stock(row)),
+        ManualReviewAction::Confirm(ReviewField::Stock(row)),
+    ] {
+        commands
+            .send(ManualCommand::Review(ManualReviewCommand {
+                stock_settings: Default::default(),
+                id: report.id(),
+                expected: review.report().version(),
+                action,
+                snapshot: snapshot.clone(),
+            }))
+            .unwrap();
+        let BackgroundEvent::ReportReviewed { review: next, .. } =
+            events.recv_timeout(Duration::from_secs(10)).unwrap()
+        else {
+            panic!("expected stock review");
+        };
+        review = next;
+    }
+    assert_eq!(
+        review.report().rows()[0]
+            .stock_confirmation()
+            .unwrap()
+            .value()
+            .to_string(),
+        "17"
+    );
+    assert!(!review.report().rows()[0].stock_needs_confirmation());
+    assert!(review.report().rows()[0].price_confirmation().is_some());
     let saved = review.report().clone();
     worker.finish().unwrap();
     let mut store = SqliteReferenceCache::open(&path).unwrap();

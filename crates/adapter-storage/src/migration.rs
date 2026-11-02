@@ -163,3 +163,32 @@ pub(crate) fn schema_seven(connection: &Connection) -> Result<(), StorageError> 
     connection.pragma_update(None, "user_version", 7)?;
     Ok(())
 }
+
+pub(crate) fn schema_eight(connection: &Connection) -> Result<(), StorageError> {
+    let mut statement = connection.prepare("SELECT id,payload FROM reports")?;
+    let records = statement
+        .query_map([], |row| {
+            Ok((row.get::<_, i64>(0)?, row.get::<_, String>(1)?))
+        })?
+        .collect::<Result<Vec<_>, _>>()?;
+    for (id, payload) in records {
+        let mut document: serde_json::Value =
+            serde_json::from_str(&payload).map_err(|_| StorageError::InvalidCache)?;
+        let rows = document
+            .get_mut("rows")
+            .and_then(serde_json::Value::as_array_mut)
+            .ok_or(StorageError::InvalidCache)?;
+        for row in rows {
+            row.as_object_mut().ok_or(StorageError::InvalidCache)?.insert(
+                "stock_decision".to_owned(),
+                serde_json::json!({"confirmation":null,"deviation":null,"unreviewed":false,"revoked":false}),
+            );
+        }
+        connection.execute(
+            "UPDATE reports SET payload=?1 WHERE id=?2",
+            (document.to_string(), id),
+        )?;
+    }
+    connection.pragma_update(None, "user_version", 8)?;
+    Ok(())
+}

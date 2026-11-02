@@ -338,3 +338,6 @@ mod boundaries;
 mod policy;
 #[path = "stock_review/references.rs"]
 mod references;
+
+#[path = "stock_review/decisions.rs"]
+mod decisions;

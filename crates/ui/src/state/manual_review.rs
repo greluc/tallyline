@@ -56,7 +56,7 @@ impl ShellState {
             report
                 .rows()
                 .iter()
-                .any(|row| row.price().is_some() || row.status().is_some())
+                .any(|row| row.price().is_some() || row.stock().is_some() || row.status().is_some())
         });
         if ui
             .add_enabled(

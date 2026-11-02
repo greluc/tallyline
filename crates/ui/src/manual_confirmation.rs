@@ -45,6 +45,7 @@ impl DialogPresenter {
             ReviewField::Price(_) => {
                 format!("{} {}", row.price()?, catalogue.text("review.per_scu"))
             }
+            ReviewField::Stock(_) => format!("{} {}", row.stock()?, catalogue.text("review.scu")),
             ReviewField::Status(_) => format!(
                 "{} {}",
                 catalogue.text("review.status_value"),
@@ -67,6 +68,20 @@ impl DialogPresenter {
                             .find(|assessment| assessment.row() == field.row())
                         {
                             crate::manual_review_details::price_details(
+                                ui,
+                                *assessment,
+                                catalogue,
+                                theme,
+                            );
+                        }
+                    }
+                    ReviewField::Stock(_) => {
+                        if let Some(assessment) = review
+                            .stocks()
+                            .iter()
+                            .find(|assessment| assessment.row() == field.row())
+                        {
+                            crate::manual_review_details::stock_details(
                                 ui,
                                 *assessment,
                                 catalogue,

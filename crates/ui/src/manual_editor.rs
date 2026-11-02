@@ -60,6 +60,7 @@ pub struct ManualEditor {
     pub(crate) busy: bool,
     pub(crate) notice: Option<String>,
     command: Option<ManualCommand>,
+    stock_settings: tallyline_reporting::api::model::StockSettings,
     pending_reviews: Vec<(ReportId, u64)>,
     review_attempt: Option<(ReportId, u64, ReferenceSnapshot)>,
     pub(crate) review: crate::manual_review::ManualReviewState,
@@ -67,6 +68,16 @@ pub struct ManualEditor {
     pub(crate) attachment: crate::attachment_editor::AttachmentEditor,
 }
 impl ManualEditor {
+    pub(crate) fn set_stock_settings(
+        &mut self,
+        settings: tallyline_reporting::api::model::StockSettings,
+    ) {
+        if self.stock_settings != settings {
+            self.stock_settings = settings;
+            self.review.invalidate();
+            self.review_attempt = None;
+        }
+    }
     /// Returns the selected durable Draft.
     #[must_use]
     pub fn selected(&self) -> Option<&Report> {

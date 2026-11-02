@@ -16,17 +16,25 @@ pub(crate) fn execute<R: ReportRepository, C: Clock>(
         expected,
         action,
         snapshot,
+        stock_settings,
     } = command;
+    application.set_stock_settings(stock_settings);
     let version = match action {
         ManualReviewAction::Reassess => expected,
         ManualReviewAction::Focus(ReviewField::Price(row)) => {
             application.focus_price(id, expected, row)?.version()
+        }
+        ManualReviewAction::Focus(ReviewField::Stock(row)) => {
+            application.focus_stock(id, expected, row)?.version()
         }
         ManualReviewAction::Focus(ReviewField::Status(row)) => {
             application.focus_status(id, expected, row)?.version()
         }
         ManualReviewAction::Confirm(ReviewField::Price(row)) => application
             .confirm_price(id, expected, row, &snapshot)?
+            .version(),
+        ManualReviewAction::Confirm(ReviewField::Stock(row)) => application
+            .confirm_stock(id, expected, row, &snapshot)?
             .version(),
         ManualReviewAction::Confirm(ReviewField::Status(row)) => application
             .confirm_status(id, expected, row, &snapshot)?
@@ -35,7 +43,7 @@ pub(crate) fn execute<R: ReportRepository, C: Clock>(
     let review = application.review_manual(id, version, &snapshot)?;
     Ok(BackgroundEvent::ReportReviewed {
         expected,
-        review,
+        review: Box::new(review),
         snapshot,
     })
 }

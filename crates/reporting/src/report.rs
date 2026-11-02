@@ -79,6 +79,7 @@ pub struct ReportRow {
     stock: Option<ScuQuantity>,
     status: Option<std::num::NonZeroU8>,
     price_decision: crate::price_confirmation::PriceDecision,
+    stock_decision: crate::stock_confirmation::StockDecision,
     status_confirmation: Option<StatusConfirmation>,
     status_deviation: Option<Deviation>,
     status_unreviewed: bool,
@@ -185,6 +186,7 @@ impl Report {
             stock: None,
             status: None,
             price_decision: crate::price_confirmation::PriceDecision::default(),
+            stock_decision: crate::stock_confirmation::StockDecision::default(),
             status_confirmation: None,
             status_deviation: None,
             status_unreviewed: false,
@@ -201,6 +203,7 @@ impl Report {
             }
             for row in &mut self.rows {
                 row.price_decision = crate::price_confirmation::PriceDecision::default();
+                row.stock_decision = crate::stock_confirmation::StockDecision::default();
                 row.status_confirmation = None;
                 row.status_deviation = None;
                 row.status_unreviewed = false;
@@ -239,7 +242,11 @@ impl Report {
         row: RowId,
         value: Option<ScuQuantity>,
     ) -> Result<(), InvalidReport> {
-        self.row_mut(row)?.stock = value;
+        let field = self.row_mut(row)?;
+        if field.stock != value {
+            field.stock_decision = crate::stock_confirmation::StockDecision::default();
+        }
+        field.stock = value;
         self.version += 1;
         Ok(())
     }
@@ -335,6 +342,8 @@ pub struct StoredRow {
     pub status: Option<std::num::NonZeroU8>,
     /// Persisted price review decision.
     pub price_decision: crate::api::model::StoredPriceDecision,
+    /// Persisted stock review decision.
+    pub stock_decision: crate::api::model::StoredStockDecision,
     /// Value and unlowered deviation explicitly approved by the user.
     pub status_confirmation: Option<(std::num::NonZeroU8, Deviation, UexEnvironment)>,
     /// Last assessed unlowered status deviation.
@@ -364,6 +373,7 @@ impl Report {
                 || row.commodity.0 == 0
                 || row.price.is_some_and(PricePerScu::is_zero)
                 || !row.valid_price_decision()
+                || !row.valid_stock_decision()
                 || !row.valid_status_decision()
                 || report.rows.iter().any(|old| old.commodity == row.commodity)
             {
@@ -388,6 +398,20 @@ impl Report {
                     deviation: row.price_decision.deviation,
                     unreviewed: row.price_decision.unreviewed,
                     revoked: row.price_decision.revoked,
+                },
+                stock_decision: crate::stock_confirmation::StockDecision {
+                    confirmation: row.stock_decision.confirmation.map(
+                        |(value, deviation, environment)| {
+                            crate::api::model::StockConfirmation::approve(
+                                value,
+                                deviation,
+                                environment,
+                            )
+                        },
+                    ),
+                    deviation: row.stock_decision.deviation,
+                    unreviewed: row.stock_decision.unreviewed,
+                    revoked: row.stock_decision.revoked,
                 },
                 status_confirmation: row.status_confirmation.map(
                     |(value, deviation, environment)| {
@@ -421,3 +445,5 @@ mod status;
 mod attachment;
 
 mod price;
+
+mod stock;

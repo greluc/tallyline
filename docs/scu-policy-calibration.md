@@ -40,11 +40,11 @@ Independent worked examples exercise the safety trade-off without claiming obser
 
 The last example exposes the intended absolute-floor trade-off: a floor large enough to suppress small trading movements can also suppress a small-stock digit error. No broad digit-error sensitivity metric follows from four constructed examples. The public Reporting application contracts reproduce this table with literal independently worked expectations, exact decimal boundaries and a bounded monotonic tightening matrix. Candidate values in tests supply no production settings.
 
-## Implemented interface and remaining acceptance
+## Explicit assessment checkpoint before guarded adoption
 
 `ScuTolerance::new` requires both explicit inputs and has no `Default`, no UEX relaxation and no calibration provenance claim. `tighten` clamps the two bands independently and reports a looser attempted override. `ReportingApplication::review_stock` compares an entered quantity against only the matching environment/terminal/commodity/side prior without writing Drafts or approvals. Known zero differs from missing; a nonzero change against zero exceeds the percentage band and is Major only above the absolute band. Missing priors have no average substitute. Future timestamps have unknown age; staleness affects display only; unrepresentable exact arithmetic produces an unavailable assessment. A sell-side status 1 does not alter stock.
 
-This is an application assessment capability for explicit policy evaluation, not complete guarded desktop quantity review. No shipping pair, config persistence, schema change, stock approval, release operation, submission eligibility or native visual acceptance is activated. Schema 7 remains current. Issue [#84](https://github.com/greluc/tallyline/issues/84) remains open.
+At this preceding checkpoint, the application assessment capability supported explicit policy evaluation without complete guarded desktop quantity review. No shipping pair, config persistence, schema change, stock approval, release operation, submission eligibility or native visual acceptance is activated. Schema 7 remains current. Issue [#84](https://github.com/greluc/tallyline/issues/84) remains open.
 
 Corrected 2026-11-02: R-VAL-2 and O-140 require corpus-informed starting values, not a unique mathematical optimum or a validated population error rate. The provisional recommendation below is a routine initial engineering choice under those requirements. Narrow sample support is recorded as a limitation rather than an additional implementation prerequisite. The settings/default source, durable value/context-bound decisions, desktop review and release reassessment remain the next implementation slice; broader empirical validation remains visibly open.
 
@@ -83,4 +83,9 @@ The 16 SCU floor is tied to the actual 16 SCU movement rather than a server perc
 
 The public CLI fixture independently works out deletion/insertion/swap totals for 0, 2, 70 and 86, repeats 86 to distinguish weightings, checks 20 % versus 25 %, and verifies that expected bytes and verification flags do not change. Unsupported fraction, negative and string quantities fail visibly. Neither the fixture nor the complete-corpus perturbation sweep upgrades annotation verification, measures golden accuracy or substitutes for future real trading and reader-error observations.
 
-The recommendation can proceed to typed settings adoption and guarded quantity decisions without a new owner approval merely for selecting routine initial values. The current code remains the explicit read-only interface described above; it activates no default, approval, schema migration or desktop release capability. Broader observations can inform later reviewed calibration work. Issue #84 remains open for its remaining composed quantity-review and release acceptance.
+The recommendation can proceed to typed settings adoption and guarded quantity decisions without a new owner approval merely for selecting routine initial values. At that preceding checkpoint the code remained the explicit read-only interface described above, without an activated default, approval, schema migration or desktop release capability. Broader observations can inform later reviewed calibration work. Issue #84 remains open for its remaining composed quantity-review and release acceptance.
+
+
+## Guarded review adoption (2026-11-02)
+
+Corrected 2026-11-02: the preceding explicit-assessment checkpoint has been extended by [guarded desktop review](scu-review.md). The provisional 20 % / 16 SCU pair is now the typed shipping baseline with independently tighten-only settings, durable decisions and numeric readiness. The evidence, limitations and all verification flags above remain unchanged. Broader empirical validation and required native visual acceptance remain open; complete atomic release/send belongs to its separate slice.

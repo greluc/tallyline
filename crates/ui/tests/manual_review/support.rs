@@ -141,11 +141,17 @@ pub fn execute(
         ManualReviewAction::Focus(ReviewField::Price(row)) => {
             app.focus_price(command.id, command.expected, row)?
         }
+        ManualReviewAction::Focus(ReviewField::Stock(row)) => {
+            app.focus_stock(command.id, command.expected, row)?
+        }
         ManualReviewAction::Focus(ReviewField::Status(row)) => {
             app.focus_status(command.id, command.expected, row)?
         }
         ManualReviewAction::Confirm(ReviewField::Price(row)) => {
             app.confirm_price(command.id, command.expected, row, &command.snapshot)?
+        }
+        ManualReviewAction::Confirm(ReviewField::Stock(row)) => {
+            app.confirm_stock(command.id, command.expected, row, &command.snapshot)?
         }
         ManualReviewAction::Confirm(ReviewField::Status(row)) => {
             app.confirm_status(command.id, command.expected, row, &command.snapshot)?
@@ -183,4 +189,21 @@ pub fn review_report(
         ReportingApplication::new(Repository(report), Fixed)
             .review_manual(id, version, snapshot)?,
     )
+}
+
+pub fn stock_review() -> Result<(ManualReview, ReferenceSnapshot), Box<dyn std::error::Error>> {
+    let (review, snapshot) = review()?;
+    let mut report = review.report().clone();
+    let row = report
+        .rows()
+        .first()
+        .ok_or("missing stock fixture row")?
+        .id();
+    report.set_stock(row, Some("100".parse()?))?;
+    let version = report.version();
+    let mut app = ReportingApplication::new(Repository(report), Fixed);
+    Ok((
+        app.review_manual(ReportId(1), version, &snapshot)?,
+        snapshot,
+    ))
 }

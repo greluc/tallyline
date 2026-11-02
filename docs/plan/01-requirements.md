@@ -293,3 +293,8 @@ The price/status portion of R-VAL-2, R-VAL-2a, R-VAL-7 and R-UI-10…12 `:manual
 ## SCU assessment evidence checkpoint — 2026-11-02
 
 The [SCU calibration evidence](../scu-policy-calibration.md) records explicit percentage/absolute candidate assessment under the existing R-VAL-2 and O-140 rule. Exact read-only application comparisons and independent tightening do not supply a calibrated shipping default or complete #84. No normative requirement changes here.
+
+
+### Guarded manual quantity checkpoint (2026-11-02)
+
+R-VAL-2/O-140 now use the provisional 20 % / 16 SCU engineering start pair documented in the calibration evidence. Independent tighten-only settings, exact stock decisions, class-based fresh-reference reassessment, counters and explicit desktop confirmation are composed. This records implementation of existing requirements without changing their normative rules. Broader empirical validation and native visual acceptance remain open; Reporting numeric readiness is separate from complete release/submission.

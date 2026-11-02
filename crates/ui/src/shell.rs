@@ -96,6 +96,9 @@ pub fn show_shell(
                     commands.extend(state.act(UserAction::ChooseTheme(theme)));
                 }
             }
+            let stock = egui::CollapsingHeader::new(catalogue.text("settings.stock_title"))
+                .show(ui, |ui| crate::stock_settings::show(ui, state, catalogue));
+            commands.extend(stock.body_returned.unwrap_or_default());
             commands.extend(crate::updates::settings(ui, state, catalogue));
             commands.extend(crate::reference_views::show_mapping(ui, state, catalogue));
             commands.extend(crate::game_witness::show(ui, state, catalogue));

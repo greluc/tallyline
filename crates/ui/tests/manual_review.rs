@@ -148,7 +148,11 @@ fn r_ui_11_q_manual_r_ui_12_q_manual__drawn_review_shows_exact_reference_deltas_
             (state, Vec::new()),
         );
     harness.run();
-    assert!(harness.query_by_label("Price and status review").is_some());
+    assert!(
+        harness
+            .query_by_label("Price, stock and status review")
+            .is_some()
+    );
     assert!(
         harness
             .query_by_label(
@@ -202,52 +206,78 @@ fn r_ui_11_q_manual_r_ui_12_q_manual__confirmation_dialog_requires_a_separate_ex
     use tallyline_reporting::api::model::ReviewField;
     use tallyline_ui::api::model::ManualReviewCommand;
     use tallyline_ui::api::{Catalogue, DialogPresenter};
-    let (review, snapshot) = support::review().unwrap();
-    let row = review.report().rows()[0].id();
-    let mut state = ManualReviewState::default();
-    state.received(review, snapshot);
-    let mut presenter = DialogPresenter::default();
-    assert!(!presenter.manual_confirmation_open());
-    presenter.open_manual_confirmation(&state, ReviewField::Price(row));
-    assert!(presenter.manual_confirmation_open());
-    let catalogue = Catalogue::english().unwrap();
-    let mut fonts = Some(support::fonts());
-    let mut harness = Harness::builder()
-        .with_size(egui::vec2(1000.0, 850.0))
-        .build_ui_state(
-        move |ui, state: &mut (ManualReviewState, DialogPresenter, Vec<ManualReviewCommand>)| {
-            if let Some(fonts) = fonts.take() {
-                tallyline_ui::api::configure_fonts(ui.ctx(), fonts);
-            }
-            if let Some(command) = state.1.show_manual_confirmation(
-                ui.ctx(),
-                &state.0,
-                &catalogue,
-                tallyline_egui::Theme::Dark,
-                |ui| {
-                    ui.label("No screenshot attached");
-                },
-            ) {
-                state.2.push(command);
-            }
-        },
-        (state, presenter, Vec::new()),
-    );
-    harness.run();
-    assert!(harness.query_by_label("Confirm this exact value").is_some());
-    assert!(harness.query_by_label("200 per SCU").is_some());
-    assert!(
-        harness
-            .query_by_label("Difference: 100 per SCU · +100.00 %")
-            .is_some()
-    );
-    assert!(harness.state().2.is_empty());
-    harness.get_by_label("Approve this exact value").focus();
-    harness.run();
-    harness.key_press(egui::Key::Enter);
-    harness.run();
-    assert_eq!(harness.state().2.len(), 1);
-    assert!(!harness.state().1.manual_confirmation_open());
+    for stock in [false, true] {
+        let (review, snapshot) = if stock {
+            support::stock_review().unwrap()
+        } else {
+            support::review().unwrap()
+        };
+        let row = review.report().rows()[0].id();
+        let mut state = ManualReviewState::default();
+        state.received(review, snapshot);
+        let mut presenter = DialogPresenter::default();
+        assert!(!presenter.manual_confirmation_open());
+        let field = if stock {
+            ReviewField::Stock(row)
+        } else {
+            ReviewField::Price(row)
+        };
+        presenter.open_manual_confirmation(&state, field);
+        assert!(presenter.manual_confirmation_open());
+        let catalogue = Catalogue::english().unwrap();
+        let mut fonts = Some(support::fonts());
+        let mut harness =
+            Harness::builder()
+                .with_size(egui::vec2(1000.0, 850.0))
+                .build_ui_state(
+                    move |ui,
+                          state: &mut (
+                        ManualReviewState,
+                        DialogPresenter,
+                        Vec<ManualReviewCommand>,
+                    )| {
+                        if let Some(fonts) = fonts.take() {
+                            tallyline_ui::api::configure_fonts(ui.ctx(), fonts);
+                        }
+                        if let Some(command) = state.1.show_manual_confirmation(
+                            ui.ctx(),
+                            &state.0,
+                            &catalogue,
+                            tallyline_egui::Theme::Dark,
+                            |ui| {
+                                ui.label("No screenshot attached");
+                            },
+                        ) {
+                            state.2.push(command);
+                        }
+                    },
+                    (state, presenter, Vec::new()),
+                );
+        harness.run();
+        assert!(harness.query_by_label("Confirm this exact value").is_some());
+        let value = if stock { "100 SCU" } else { "200 per SCU" };
+        assert!(harness.query_by_label(value).is_some());
+        assert!(
+            harness
+                .query_by_label(if stock {
+                    "Difference: +100 SCU · Percentage unavailable"
+                } else {
+                    "Difference: 100 per SCU · +100.00 %"
+                })
+                .is_some()
+        );
+        assert!(harness.state().2.is_empty());
+        harness.get_by_label("Approve this exact value").focus();
+        harness.run();
+        harness.key_press(egui::Key::Enter);
+        harness.run();
+        assert_eq!(harness.state().2.len(), 1);
+        assert!(!harness.state().1.manual_confirmation_open());
+        assert_eq!(
+            harness.state().2[0].action,
+            tallyline_ui::api::model::ManualReviewAction::Confirm(field)
+        );
+    }
 }
 
 #[test]
@@ -354,3 +384,56 @@ fn r_val_2a_q_manual_r_ui_11_q_manual__missing_prior_is_informational_and_never_
 }
 #[path = "manual_review/integration.rs"]
 mod integration;
+
+#[test]
+#[expect(
+    non_snake_case,
+    reason = "Requirement tags use a double underscore separator."
+)]
+fn r_ui_11_q_manual_r_ui_12_q_manual__drawn_stock_review_shows_bands_and_navigation_without_implicit_dialog()
+ {
+    use egui_kittest::{Harness, kittest::Queryable};
+    use tallyline_reporting::api::model::ReviewField;
+    use tallyline_ui::api::{Catalogue, show_manual_review};
+    let (review, snapshot) = support::stock_review().unwrap();
+    let row = review.report().rows()[0].id();
+    let mut state = ManualReviewState::default();
+    state.received(review, snapshot);
+    let catalogue = Catalogue::english().unwrap();
+    let mut fonts = Some(support::fonts());
+    let mut harness = Harness::builder()
+        .with_size(egui::vec2(1100.0, 1400.0))
+        .build_ui_state(
+            move |ui, state: &mut ManualReviewState| {
+                if let Some(fonts) = fonts.take() {
+                    tallyline_ui::api::configure_fonts(ui.ctx(), fonts);
+                }
+                let _intent =
+                    show_manual_review(ui, state, &catalogue, tallyline_egui::Theme::Dark);
+            },
+            state,
+        );
+    harness.run();
+    assert!(
+        harness
+            .query_by_label("Stock · commodity 42: 100 SCU")
+            .is_some()
+    );
+    assert!(
+        harness
+            .query_by_label("Effective tolerance: 20 % and 16 SCU")
+            .is_some()
+    );
+    assert!(
+        harness
+            .query_by_label("Difference: +100 SCU · Percentage unavailable")
+            .is_some()
+    );
+    assert!(harness.query_by_label("Confirm this value").is_none());
+    assert!(harness.state().focused().is_none());
+    harness.key_press(egui::Key::F8);
+    harness.run();
+    harness.key_press(egui::Key::F8);
+    harness.run();
+    assert_eq!(harness.state().focused(), Some(ReviewField::Stock(row)));
+}

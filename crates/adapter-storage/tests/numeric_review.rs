@@ -63,8 +63,7 @@ fn reference(
 )]
 fn r_nf_11_r_ui_12_q_manual_r_val_7_q_manual__price_approval_pending_revocation_and_focus_survive_reopening()
  {
-    let path =
-        std::env::temp_dir().join(format!("tallyline-price-review-{}.db", std::process::id()));
+    let path = test_path("tallyline-price-review").unwrap();
     let mut app = ReportingApplication::new(SqliteReferenceCache::open(&path).unwrap(), Fixed);
     let key = ReportKey::new(TerminalId(11), TradeSide::Buy, GameEnvironment::Live).unwrap();
     let report = app.create(key, Some("4.10.2")).unwrap();
@@ -139,10 +138,9 @@ fn r_nf_11_r_ui_12_q_manual_r_val_7_q_manual__price_approval_pending_revocation_
     non_snake_case,
     reason = "Requirement tags use a double underscore separator."
 )]
-fn r_nf_11_r_ui_12_q_manual__contradictory_persisted_price_decisions_are_refused() {
+fn r_nf_11_r_ui_12_q_manual__contradictory_persisted_numeric_decisions_are_refused() {
     use tallyline_reporting::api::RepositoryError;
-    let path =
-        std::env::temp_dir().join(format!("tallyline-price-corrupt-{}.db", std::process::id()));
+    let path = test_path("tallyline-price-corrupt").unwrap();
     let mut store = SqliteReferenceCache::open(&path).unwrap();
     let mut report = store
         .create_manual(
@@ -246,23 +244,26 @@ fn r_nf_11_r_ui_12_q_manual__contradictory_persisted_price_decisions_are_refused
             false,
         ),
     ] {
-        let mut document = original.clone();
-        let row = &mut document["rows"][0];
-        row["price"] = price;
-        row["price_decision"]["confirmation"] = approval;
-        row["price_decision"]["deviation"] = deviation;
-        row["price_decision"]["unreviewed"] = serde_json::json!(unreviewed);
-        row["price_decision"]["revoked"] = serde_json::json!(revoked);
-        connection
-            .execute("UPDATE reports SET payload=?1", [document.to_string()])
-            .unwrap();
-        let mut store = SqliteReferenceCache::open(&path).unwrap();
-        assert_eq!(
-            store.load_draft(report.id()),
-            Err(RepositoryError::Invalid),
-            "{document}"
-        );
-        assert_eq!(store.drafts(), Err(RepositoryError::Invalid));
+        for field in ["price", "stock"] {
+            let mut document = original.clone();
+            let row = &mut document["rows"][0];
+            row[field] = price.clone();
+            let decision = format!("{field}_decision");
+            row[decision.as_str()]["confirmation"] = approval.clone();
+            row[decision.as_str()]["deviation"] = deviation.clone();
+            row[decision.as_str()]["unreviewed"] = serde_json::json!(unreviewed);
+            row[decision.as_str()]["revoked"] = serde_json::json!(revoked);
+            connection
+                .execute("UPDATE reports SET payload=?1", [document.to_string()])
+                .unwrap();
+            let mut store = SqliteReferenceCache::open(&path).unwrap();
+            assert_eq!(
+                store.load_draft(report.id()),
+                Err(RepositoryError::Invalid),
+                "{document}"
+            );
+            assert_eq!(store.drafts(), Err(RepositoryError::Invalid));
+        }
     }
     drop(connection);
     std::fs::remove_file(path).unwrap();
@@ -276,14 +277,7 @@ fn r_nf_11_r_ui_12_q_manual__contradictory_persisted_price_decisions_are_refused
 fn r_nf_11_r_ui_12_q_manual__schema_six_requires_backup_and_preserves_legacy_price_and_status_state()
  {
     use tallyline_adapter_storage::api::StorageError;
-    let path = std::env::temp_dir().join(format!(
-        "tallyline-price-migrate-{}-{}.db",
-        std::process::id(),
-        std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .unwrap()
-            .as_nanos()
-    ));
+    let path = test_path("tallyline-price-migrate").unwrap();
     let backup = path.with_extension("backup.db");
     let connection = rusqlite::Connection::open(&path).unwrap();
     connection.execute_batch("CREATE TABLE reports(id INTEGER PRIMARY KEY AUTOINCREMENT,version INTEGER NOT NULL,payload TEXT NOT NULL); CREATE TABLE report_recents(report_id INTEGER PRIMARY KEY,changed_order INTEGER NOT NULL); CREATE TABLE screenshot_requirements(account_digest BLOB PRIMARY KEY NOT NULL CHECK(length(account_digest)=32),observed_at TEXT NOT NULL); PRAGMA user_version=6;").unwrap();
@@ -372,7 +366,7 @@ fn r_nf_11_r_ui_12_q_manual__schema_six_requires_backup_and_preserves_legacy_pri
         current
             .query_row("PRAGMA user_version", [], |row| row.get::<_, u32>(0))
             .unwrap(),
-        7
+        8
     );
     assert_eq!(
         current
@@ -386,4 +380,130 @@ fn r_nf_11_r_ui_12_q_manual__schema_six_requires_backup_and_preserves_legacy_pri
     drop(store);
     std::fs::remove_file(path).unwrap();
     std::fs::remove_file(backup).unwrap();
+}
+
+#[test]
+#[expect(
+    non_snake_case,
+    reason = "Requirement tags use a double underscore separator."
+)]
+fn r_nf_11_r_ui_12_q_manual__stock_approval_and_focus_survive_reopening() {
+    let path = test_path("tallyline-stock-review").unwrap();
+    let mut app = ReportingApplication::new(SqliteReferenceCache::open(&path).unwrap(), Fixed);
+    let key = ReportKey::new(TerminalId(11), TradeSide::Buy, GameEnvironment::Live).unwrap();
+    let report = app.create(key, Some("4.10.2")).unwrap();
+    let snapshot = reference("100").unwrap();
+    let report = app
+        .edit(
+            report.id(),
+            report.version(),
+            ManualEdit::AddCommodity(CommodityId(42)),
+            &snapshot,
+        )
+        .unwrap();
+    let row = report.rows()[0].id();
+    let report = app
+        .edit(
+            report.id(),
+            report.version(),
+            ManualEdit::Stock(row, Some("100".parse().unwrap())),
+            &snapshot,
+        )
+        .unwrap();
+    let review = app
+        .review_manual(report.id(), report.version(), &snapshot)
+        .unwrap();
+    assert!(review.report().rows()[0].stock_needs_confirmation());
+    let focused = app
+        .focus_stock(report.id(), review.report().version(), row)
+        .unwrap();
+    assert!(!focused.rows()[0].stock_unreviewed());
+    drop(app);
+    let mut store = SqliteReferenceCache::open(&path).unwrap();
+    assert_eq!(
+        store.load_draft(report.id()).unwrap(),
+        Some(focused.clone())
+    );
+    let mut app = ReportingApplication::new(store, Fixed);
+    let approved = app
+        .confirm_stock(report.id(), focused.version(), row, &snapshot)
+        .unwrap();
+    drop(app);
+    let mut store = SqliteReferenceCache::open(&path).unwrap();
+    assert_eq!(store.load_draft(report.id()).unwrap(), Some(approved));
+    drop(store);
+    std::fs::remove_file(path).unwrap();
+}
+
+#[test]
+#[expect(
+    non_snake_case,
+    reason = "Requirement tags use a double underscore separator."
+)]
+fn r_nf_11_r_ui_12_q_manual__schema_seven_stock_migration_requires_backup_and_preserves_values() {
+    let path = test_path("tallyline-stock-migration").unwrap();
+    let backup = path.with_extension("before.db");
+    let mut app = ReportingApplication::new(SqliteReferenceCache::open(&path).unwrap(), Fixed);
+    let key = ReportKey::new(TerminalId(11), TradeSide::Buy, GameEnvironment::Live).unwrap();
+    let report = app.create(key, Some("4.10.2")).unwrap();
+    let snapshot = reference("100").unwrap();
+    let report = app
+        .edit(
+            report.id(),
+            report.version(),
+            ManualEdit::AddCommodity(CommodityId(42)),
+            &snapshot,
+        )
+        .unwrap();
+    let row = report.rows()[0].id();
+    let report = app
+        .edit(
+            report.id(),
+            report.version(),
+            ManualEdit::Stock(row, Some("1744".parse().unwrap())),
+            &snapshot,
+        )
+        .unwrap();
+    drop(app);
+    let connection = rusqlite::Connection::open(&path).unwrap();
+    let payload: String = connection
+        .query_row("SELECT payload FROM reports", [], |row| row.get(0))
+        .unwrap();
+    let mut document: serde_json::Value = serde_json::from_str(&payload).unwrap();
+    document["rows"][0]
+        .as_object_mut()
+        .unwrap()
+        .remove("stock_decision");
+    connection
+        .execute("UPDATE reports SET payload=?1", [document.to_string()])
+        .unwrap();
+    connection.pragma_update(None, "user_version", 7).unwrap();
+    drop(connection);
+    assert!(matches!(
+        SqliteReferenceCache::open(&path),
+        Err(tallyline_adapter_storage::api::StorageError::MigrationBackupRequired)
+    ));
+    let mut reopened = SqliteReferenceCache::open_with_migration_backup(&path, |cache, from| {
+        assert_eq!(from, 7);
+        assert_eq!(
+            cache.backup_into(&backup, Timestamp::from_seconds(1000), Some(4))?,
+            7
+        );
+        Ok(())
+    })
+    .unwrap();
+    assert_eq!(reopened.load_draft(report.id()).unwrap(), Some(report));
+    drop(reopened);
+    std::fs::remove_file(path).unwrap();
+    std::fs::remove_file(backup).unwrap();
+}
+
+fn test_path(name: &str) -> Result<std::path::PathBuf, Box<dyn std::error::Error>> {
+    Ok(std::env::temp_dir().join(format!(
+        "{name}-{}-{}.db",
+        std::process::id(),
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)?
+            .as_nanos()
+    )))
 }

@@ -237,7 +237,8 @@ fn run(
                 Err(mpsc::RecvTimeoutError::Disconnected) => break,
             };
             let app_command = match &command {
-                SettingsCommand::ChangeTheme(_)
+                SettingsCommand::ChangeStockSettings(_)
+                | SettingsCommand::ChangeTheme(_)
                 | SettingsCommand::CompleteOnboarding
                 | SettingsCommand::ChangeUpdateChecks(_)
                 | SettingsCommand::DismissUpdate => true,
@@ -257,6 +258,9 @@ fn run(
                 SettingsCommand::DismissUpdate => settings.dismiss_update(),
                 SettingsCommand::ChangeUpdateChecks(checks) => {
                     settings.change_update_checks(checks)
+                }
+                SettingsCommand::ChangeStockSettings(value) => {
+                    settings.change_stock_settings(value)
                 }
                 SettingsCommand::ChangeTheme(theme) => settings.change_theme(theme),
                 SettingsCommand::CompleteOnboarding => settings.complete_onboarding(),
