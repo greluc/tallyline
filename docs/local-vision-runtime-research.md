@@ -38,6 +38,8 @@ The available machine has the class of a high-end 32 GiB NVIDIA GPU and roughly 
 
 Added 2026-11-02: the [PP-OCRv6 nine-pair experiment](local-ocr-nine-pair-experiment.md) completed all 60 Windows lifecycle/raw-reader phases on five fixed development crops. A separate post-hoc manual comparison retains 63 fields and 567 field/pair observations without numeric scoring. Shared O/zero errors and recogniser-specific currency-glyph errors prevent a universal accuracy winner; process samples are strong-host lower bounds. Small remains the default. Other OCR families, held-out field metrics, weak hardware and production/packaged acceptance remain open.
 
+Added 2026-11-02: the [joint OCR literal comparison](local-ocr-joint-reader-comparison.md) reconciles nine PP profiles and Tesseract best/fast across 63 existing development fields and all 55 pairs. It adds no inference or native activation, keeps identical 4-/8-GiB replicas to one profile per model and leaves all references unverified. Its 23 universally equal literals are agreement evidence only; production combinations, accuracy, weak-hardware support and complete installation remain open.
+
 ## 3. What Basetool actually does
 
 ### 3.1 Implemented behaviour
