@@ -17,4 +17,4 @@ The workspace crates of Tallyline: the core (`shared-kernel`, the context crates
 | `game/` | `tallyline-game` | read-only witness port, typed facts and durable opt-in workflow |
 | `reporting/` | `tallyline-reporting` | manual Draft commands, exact user fields and the durable Report repository port; shared validation and release remain pending |
 | `submission/` | `tallyline-submission` | credential validation and secure-store ports, save-before-publish account state, revalidation and session lifetime; native stores and desktop integration pending |
-| `adapter-ocr/` | `tallyline-adapter-ocr` | bounded reusable tensors, class-indexed CTC evidence and build/load hash checks for fixed Small model/dictionary data; native runtime integration pending |
+| `adapter-ocr/` | `tallyline-adapter-ocr` | bounded reusable tensors, class-indexed CTC evidence, fixed asset/native guards, private Windows loading and synthetic tensor diagnostics; production pool/pipeline and Linux acceptance pending |

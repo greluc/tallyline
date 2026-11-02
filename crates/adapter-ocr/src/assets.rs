@@ -50,6 +50,8 @@ pub enum AssetError {
     },
     /// A data file's size or digest differs from its reviewed identity.
     HashMismatch(OcrArtifact),
+    /// The selected artifact is a dictionary rather than a native model.
+    NotModel,
     /// The build did not supply valid fixed asset metadata.
     InvalidBuildPins,
     /// The dictionary bytes are not UTF-8 or have the wrong entry count.
@@ -105,9 +107,9 @@ impl SmallOcrAssets {
             return Err(AssetError::NotAbsolute);
         }
         let directory = directory.canonicalize().map_err(AssetError::Directory)?;
-        let detector = verify(&directory, DETECTOR)?;
-        let recognizer = verify(&directory, RECOGNIZER)?;
-        let dictionary = verify(&directory, DICTIONARY)?;
+        let detector = verify(&directory, DETECTOR, false)?;
+        let recognizer = verify(&directory, RECOGNIZER, false)?;
+        let dictionary = verify(&directory, DICTIONARY, true)?;
         let contents = dictionary.contents.ok_or(AssetError::InvalidBuildPins)?;
         let text = String::from_utf8(contents).map_err(|_| AssetError::InvalidDictionary)?;
         let mut alphabet: Vec<_> = text.lines().map(str::to_owned).collect();
@@ -130,6 +132,23 @@ impl SmallOcrAssets {
         })
     }
 
+    /// Opens and hashes a fixed model into immutable owned bytes for the native call.
+    /// No later model-path reopen is needed or permitted by the runtime.
+    ///
+    /// # Errors
+    /// Rejects the dictionary, changed/unreadable model files or invalid build metadata.
+    pub fn open_model(&self, artifact: OcrArtifact) -> Result<VerifiedOcrModel, AssetError> {
+        let pin = match artifact {
+            OcrArtifact::SmallDetector => DETECTOR,
+            OcrArtifact::SmallRecognizer => RECOGNIZER,
+            OcrArtifact::SmallDictionary => return Err(AssetError::NotModel),
+        };
+        let verified = verify(&self.directory, pin, true)?;
+        Ok(VerifiedOcrModel {
+            fingerprint: verified.fingerprint,
+            bytes: verified.contents.ok_or(AssetError::InvalidBuildPins)?,
+        })
+    }
     /// Returns the absolute directory checked during this load.
     #[must_use]
     pub fn directory(&self) -> &Path {
@@ -154,7 +173,7 @@ struct Verified {
     contents: Option<Vec<u8>>,
 }
 
-fn verify(directory: &Path, pin: Pin) -> Result<Verified, AssetError> {
+fn verify(directory: &Path, pin: Pin, keep_bytes: bool) -> Result<Verified, AssetError> {
     let bytes: u64 = pin
         .bytes
         .parse()
@@ -176,10 +195,7 @@ fn verify(directory: &Path, pin: Pin) -> Result<Verified, AssetError> {
     let mut digest = Sha256::new();
     let mut buffer = [0_u8; HASH_BUFFER_BYTES];
     let mut count = 0_u64;
-    let mut contents = match pin.artifact {
-        OcrArtifact::SmallDictionary => Some(Vec::new()),
-        OcrArtifact::SmallDetector | OcrArtifact::SmallRecognizer => None,
-    };
+    let mut contents = keep_bytes.then(Vec::new);
     loop {
         let read = source
             .read(&mut buffer)
@@ -229,6 +245,7 @@ impl std::fmt::Display for AssetError {
                 formatter,
                 "OCR data {artifact:?} does not match its reviewed identity"
             ),
+            Self::NotModel => formatter.write_str("the OCR dictionary is not a native model"),
             Self::InvalidBuildPins => {
                 formatter.write_str("the build did not provide valid OCR data identities")
             }
@@ -248,10 +265,31 @@ impl std::error::Error for AssetError {
         match self {
             Self::Directory(source) | Self::Read { source, .. } => Some(source),
             Self::NotAbsolute
+            | Self::NotModel
             | Self::HashMismatch(_)
             | Self::InvalidBuildPins
             | Self::InvalidDictionary
             | Self::Dictionary(_) => None,
         }
+    }
+}
+
+/// An exact approved model snapshot; its immutable bytes are the native input.
+pub struct VerifiedOcrModel {
+    fingerprint: AssetFingerprint,
+    bytes: Vec<u8>,
+}
+
+impl VerifiedOcrModel {
+    /// Returns the identity of the same bytes retained during hashing.
+    #[must_use]
+    pub const fn fingerprint(&self) -> AssetFingerprint {
+        self.fingerprint
+    }
+
+    /// Borrows the immutable verified ONNX bytes, independent of later path changes.
+    #[must_use]
+    pub fn bytes(&self) -> &[u8] {
+        &self.bytes
     }
 }

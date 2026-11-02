@@ -4,7 +4,7 @@ All notable changes are recorded here.
 
 ## [Unreleased]
 
-- Add fixed Small OCR model/dictionary data with build/load integrity checks and offline Apache-2.0 evidence. Native OCR execution and installation-profile acceptance remain in progress (R-OCR-1, R-SEC-7).
+- Add fixed Small OCR model/dictionary/native data, private Windows load and mapped CRT checks, immutable model snapshots and a bounded synthetic tensor diagnostic. Desktop OCR, Linux, worker lifecycle and installation-profile acceptance remain in progress (R-OCR-1, R-SEC-7, R-SEC-8, R-NF-12, R-NF-13).
 
 - Prepare local OCR telemetry mitigation before startup through a bounded relaunch of the same executable, without requiring a separate launcher or mutating a running multithreaded environment (R-NF-12).
 

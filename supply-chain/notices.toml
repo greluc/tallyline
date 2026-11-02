@@ -189,3 +189,25 @@ version = "Small det 28fe5895c24fd108c19eb3e8479f4ab385fbfc62; rec b8f84f0b80c52
 licence = "Apache-2.0"
 source = "https://huggingface.co/PaddlePaddle/PP-OCRv6_small_rec_onnx/tree/b8f84f0b80c529de40b4fbb3544b84fa7233a513"
 copyright = ["Copyright (c) 2016 PaddlePaddle Authors. All Rights Reserved. (upstream project licence notice)"]
+
+[[component]]
+directory = "onnxruntime-windows"
+name = "ONNX Runtime official Windows x64 distribution notices"
+shipped = "always"
+files = [{ repository = "supply-chain/notices/onnxruntime-windows/LICENSE" }, { repository = "supply-chain/notices/onnxruntime-windows/ThirdPartyNotices.txt" }, { repository = "supply-chain/notices/onnxruntime-windows/Privacy.md" }]
+[component.catalogue]
+version = "1.31.0"
+licence = "MIT project; upstream third-party terms in the complete notices"
+source = "https://github.com/microsoft/onnxruntime/releases/tag/v1.31.0"
+copyright = ["Microsoft Corporation; complete third-party authorship and terms in ThirdPartyNotices.txt"]
+
+[[component]]
+directory = "onnxruntime-linux"
+name = "ONNX Runtime official Linux x64 distribution notices"
+shipped = "always"
+files = [{ repository = "supply-chain/notices/onnxruntime-linux/LICENSE" }, { repository = "supply-chain/notices/onnxruntime-linux/ThirdPartyNotices.txt" }, { repository = "supply-chain/notices/onnxruntime-linux/Privacy.md" }]
+[component.catalogue]
+version = "1.31.0"
+licence = "MIT project; upstream third-party terms in the complete notices"
+source = "https://github.com/microsoft/onnxruntime/releases/tag/v1.31.0"
+copyright = ["Microsoft Corporation; complete third-party authorship and terms in ThirdPartyNotices.txt"]

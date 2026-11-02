@@ -143,3 +143,38 @@ fn remove_fixture(path: &std::path::Path) -> std::io::Result<()> {
     }
     std::fs::remove_dir_all(actual)
 }
+
+#[test]
+fn r_sec_7__verified_model_bytes_survive_a_later_path_change_without_an_unchecked_reopen()
+-> std::io::Result<()> {
+    use std::io::Write;
+    use tallyline_adapter_ocr::api::model::AssetError;
+    let bundled = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("assets/small");
+    let directory = fixture_directory("model-snapshot")?;
+    for file in [
+        "PP-OCRv6_small_det.onnx",
+        "PP-OCRv6_small_rec.onnx",
+        "ppocrv6_dict.txt",
+    ] {
+        std::fs::copy(bundled.join(file), directory.join(file))?;
+    }
+    let assets = SmallOcrAssets::load(&directory).unwrap();
+    let model = assets.open_model(OcrArtifact::SmallRecognizer).unwrap();
+    assert_eq!(model.bytes().first(), Some(&8));
+    assert_eq!(model.bytes().len(), 21_159_378);
+    assert_eq!(model.fingerprint().artifact, OcrArtifact::SmallRecognizer);
+    std::fs::OpenOptions::new()
+        .write(true)
+        .open(directory.join("PP-OCRv6_small_rec.onnx"))?
+        .write_all(&[0])?;
+    assert_eq!(model.bytes().first(), Some(&8));
+    assert!(matches!(
+        assets.open_model(OcrArtifact::SmallRecognizer),
+        Err(AssetError::HashMismatch(OcrArtifact::SmallRecognizer))
+    ));
+    assert!(matches!(
+        assets.open_model(OcrArtifact::SmallDictionary),
+        Err(AssetError::NotModel)
+    ));
+    remove_fixture(&directory)
+}

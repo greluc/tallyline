@@ -118,4 +118,4 @@ Reference status retains bounded Cloudflare Ray metadata and the injected UTC ob
 
 Tallyline prepares local OCR telemetry mitigation before startup work. If required, it relaunches its own executable once with a private child environment; no separate launcher is needed. Windows keeps a waiting bootstrap parent without opening a helper console. The native OCR and packaged network verification remain in progress (R-NF-12).
 
-Recognition integration now includes fixed Small model/dictionary data with build/load hash checks and the complete upstream Apache-2.0 notice. Native OCR execution and complete installation-profile acceptance remain in progress (R-OCR-1, R-SEC-7).
+Recognition integration now includes fixed Small model/dictionary/native data, verified private loading and an explicit headless Windows tensor diagnostic. Synthetic model outputs match the fixed dictionary classes; desktop capture/recognition, Linux and complete installation-profile acceptance remain in progress (R-OCR-1, R-SEC-7).

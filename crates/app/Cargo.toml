@@ -11,6 +11,7 @@ name = "tallyline"
 path = "src/main.rs"
 
 [dependencies]
+tallyline-adapter-ocr.workspace = true
 tallyline-reference-data.workspace = true
 tallyline-adapter-uex = { path = "../adapter-uex" }
 tallyline-adapter-storage.workspace = true
