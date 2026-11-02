@@ -149,3 +149,5 @@ impl OcrRuntimeLoadToken {
         self.attempted
     }
 }
+mod settings;
+pub use settings::{InvalidOcrRuntimeSettings, OcrRuntimeSettings};

@@ -131,9 +131,6 @@ fn run_worker(
 
 fn run() -> Result<ExitCode, Box<dyn std::error::Error + Send + Sync>> {
     let token = OcrRuntimeLoadToken::new();
-    std::thread::Builder::new()
-        .name("tallyline-ocr-probe".to_owned())
-        .spawn(move || run_worker(token))?
-        .join()
-        .map_err(|_| std::io::Error::other("native OCR probe worker failed"))?
+    tallyline_app::api::CpuWorker::start("tallyline-ocr-probe", move || run_worker(token))?
+        .finish()?
 }

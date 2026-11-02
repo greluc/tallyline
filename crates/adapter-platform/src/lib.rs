@@ -23,3 +23,4 @@ mod ocr_native;
 
 #[cfg(windows)]
 mod windows_ocr;
+mod worker_priority;

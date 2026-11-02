@@ -15,4 +15,5 @@ pub use crate::runtime::{
     OcrRuntime, OcrRuntimeLoadToken, RuntimeHostChecks, RuntimeHostError, RuntimeLoadError,
 };
 
+pub use crate::runtime::{InvalidOcrRuntimeSettings, OcrRuntimeSettings};
 pub use crate::runtime::{NativeSmokeError, SmallModelSmoke, SmokeTensor};

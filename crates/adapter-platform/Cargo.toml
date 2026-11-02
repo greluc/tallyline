@@ -18,7 +18,7 @@ socket2 = { version = "=0.6.5", default-features = false }
 tracing.workspace = true
 
 [target.'cfg(windows)'.dependencies]
-windows-sys = { version = "=0.61.2", default-features = false, features = ["Win32_Networking_WinSock", "Win32_System_LibraryLoader", "Win32_Storage_FileSystem"] }
+windows-sys = { version = "=0.61.2", default-features = false, features = ["Win32_Networking_WinSock", "Win32_System_LibraryLoader", "Win32_Storage_FileSystem", "Win32_System_Threading"] }
 
 [target.'cfg(target_os = "linux")'.dependencies]
 rustix = { version = "=1.1.6", default-features = false, features = ["std", "process"] }

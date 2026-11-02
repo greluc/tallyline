@@ -7,5 +7,6 @@ pub mod model;
 
 pub use crate::storage_bootstrap::initialise_storage;
 
+pub use crate::cpu_worker::CpuWorker;
 pub use crate::manual_worker::ManualWorker;
 pub use crate::reference_worker::ReferenceWorker;

@@ -16,3 +16,4 @@ pub mod model;
 pub use crate::ocr_startup::prepare_ocr_process;
 
 pub use crate::ocr_native::{restrict_ocr_dll_search, verify_ocr_native_modules};
+pub use crate::worker_priority::{WorkerPriority, lower_worker_priority, worker_priority};
