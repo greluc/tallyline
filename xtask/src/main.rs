@@ -51,6 +51,19 @@ const NOTICES_WORK_DIR: &str = "target/notices";
 
 fn main() -> ExitCode {
     let arguments: Vec<String> = std::env::args().skip(1).collect();
+    if arguments
+        .first()
+        .is_some_and(|argument| argument == "package")
+    {
+        return exit_code(
+            arguments
+                .get(1..)
+                .ok_or_else(|| io::Error::other("missing package arguments"))
+                .and_then(xtask::package::run)
+                .map(|()| ExitCode::SUCCESS),
+            &mut io::stderr(),
+        );
+    }
     let root = workspace_root();
     let outcome = match arguments
         .iter()

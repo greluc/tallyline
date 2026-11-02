@@ -167,3 +167,8 @@ entry points. This dependency foundation does not implement an OS-store adapter.
 The resolved credential scope also rejects the off-target zbus Windows SDK helper features Win32_NetworkManagement, Win32_NetworkManagement_IpHelper and Win32_Security_Authorization on every reached windows-sys version. Their appearance only in conservative metadata is recorded separately; no target activation is permitted.
 
 The ONNX binding gate also enforces ADR-0007 before build/test work: reachable `ort` and `ort-sys` must be exactly2.0.0-rc.14 and have the complete reviewed `load-dynamic`/API-31 feature closure. Defaults, downloading, copying, alternate providers and unknown features fail closed. Only `tallyline-adapter-ocr` may depend on `ort`, and only `ort` may depend on `ort-sys`; dependency names are resolved through package IDs so aliases cannot bypass the private adapter boundary. This gate adopts no dependency or runtime by itself.
+
+
+## Prebuilt packaging foundation
+
+The package subcommand provides version, archive, tools-verify and scan. Run package help for exact arguments. The same arguments work with the prebuilt helper outside a checkout and without Cargo on PATH; that route is required after token injection. Containers must be independently unpacked before scanning. No installer backend is enabled by these foundation commands. Full boundaries and pending evidence: [packaging spike](../docs/packaging-spike.md).

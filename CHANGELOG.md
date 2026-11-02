@@ -4,6 +4,10 @@ All notable changes are recorded here.
 
 ## [Unreleased]
 
+### Added
+
+- Prebuilt distribution helper foundations validate release-version syntax and approved packaging tools, write plain archives and detect harmless fixture leaks without echoing values. Complete protected installer and installed-system acceptance remain pending (R-NF-2:installers, R-NF-4, R-SEC-8).
+
 - Add explicit developer-only Tiny/Small/Medium OCR research pairs with exact model/dictionary bindings and private experiment receipts; production profile selection and real hardware acceptance remain open (R-OCR-1, R-SEC-7; ADR-0012).
 
 - Add fixed Small OCR model/dictionary/native data, private Windows load and mapped CRT checks, immutable model snapshots and a bounded synthetic tensor diagnostic. Desktop OCR, Linux, production worker lifecycle and installation-profile acceptance remain in progress (R-OCR-1, R-SEC-7, R-SEC-8, R-NF-12, R-NF-13).

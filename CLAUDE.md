@@ -341,3 +341,8 @@ The five default roles (`needs-triage`, `needs-info`, `ready-for-agent`, `ready-
 ### Domain docs
 
 Single-context: the ubiquitous language is `docs/plan/11-ddd-and-tdd.md` §A1 and the decisions are `docs/adr/`; there is no `CONTEXT.md` yet. See `docs/agents/domain.md`.
+
+
+## Packaging direction correction — 2026-11-02
+
+Corrected 2026-11-02: ADR-0011 supersedes historical WiX 3.11.2/candle/light and cargo-packager MSI descriptions above. The owner selected independently source-compiled WiX 7.0.1 through checked direct xtask invocation for MSI; cargo-packager 0.11.8 remains Debian-only. No official WiX binary OSMF EULA has been accepted. Preserve source/profile patches and matching embedded-component duties. Compilation and tool preparation are secret-free; an immutable verified prebuilt handoff precedes protected data-only token insertion, with no Cargo, project compilation, hooks or downloads afterwards. Separate publication/provenance remains #98. The current foundation and honest acceptance limits are recorded in [docs/packaging-spike.md](docs/packaging-spike.md). Rust 1.99.0 remains pinned; no held toolchain/dependency work is adopted. The Windows OCR CRT prerequisite and forbidden-DLL rule of ADR-0009 remain binding.

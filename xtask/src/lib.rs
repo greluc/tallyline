@@ -23,6 +23,7 @@ pub mod native;
 pub mod native_assembly;
 pub mod notices;
 pub mod osv;
+pub mod package;
 pub mod quality;
 pub mod register;
 pub mod registry;
@@ -71,3 +72,6 @@ mod target_graph_tests;
 mod mutation_tests;
 
 pub mod mutation;
+
+#[cfg(test)]
+mod package_tests;

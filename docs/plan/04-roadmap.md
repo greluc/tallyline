@@ -250,3 +250,8 @@ Issue #83 has the initial Reporting aggregate/application and shared SQLite sche
 ## Manual attachment implementation checkpoint (2026-11-02)
 
 Issue #85 now has Report-owned attachment selection/privacy/time decisions persisted in SQLite schema 5, real-directory PNG/JPEG region contracts, confirmation-gated bounded PNG/Base64 encoding and an owned serial below-normal image worker. Public application/SQLite contracts cover restart and stale binding rejection; a headless composition contract covers real file preparation, a capacity-one queue, source deletion and marker-free scaled output. Durable region files, account screenshot requirement memory and its dated clear action, attachment UI, complete release/age checks and native visual acceptance remain open. No M1 acceptance box or issue completion is claimed.
+
+
+## Packaging checkpoint — 2026-11-02 (#97)
+
+The prebuilt helper foundation now parses canonical stable release tags within MSI limits, verifies exact approved WiX/private-runtime and Debian tool bytes without executing them, writes plain ZIP/tar.gz and scans unpacked fixture bytes in UTF-8 and UTF-16 LE/BE. Independent-reader and negative CLI contracts have real red/green evidence. This does not complete R-NF-2:installers, R-DOC-3, R-DOC-4, R-SEC-8 or R-NF-4: protected real packages, complete native/model/dictionary/legal/source inventory, signed-tag authenticity and installed-system acceptance remain open. [ADR-0011](../adr/0011-source-compiled-wix-packaging.md) supersedes historical WiX 3.11.2 MSI wording; [spike record](../packaging-spike.md).

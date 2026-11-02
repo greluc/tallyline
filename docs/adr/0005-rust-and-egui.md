@@ -2,7 +2,7 @@
 
 > **Doc type:** Decision record — Accepted. Last reviewed: 2026-10-12.
 
-- **Status:** Accepted (2026-10-12). Amended by [ADR-0007](0007-ort-rc14-and-onnx-runtime-link-mode.md) (2026-10-14): the `ort` version in D2 is `2.0.0-rc.14`
+- **Status:** Accepted (2026-10-12); D7 superseded by [ADR-0011](0011-source-compiled-wix-packaging.md) (2026-11-01). Amended by [ADR-0007](0007-ort-rc14-and-onnx-runtime-link-mode.md) (2026-10-14): the `ort` version in D2 is `2.0.0-rc.14`
 - **Decider:** @greluc
 - **Supersedes:** [ADR-0001](../plan/03-language-decision.md) (Java 27 + JavaFX 27); the toolkit and build parts of [ADR-0004](0004-design-system.md) (§3, §4, §6, §7 and the JavaFX spikes)
 - **Amends:** the technology terms of [ADR-0002](0002-modules-by-bounded-context.md): "Gradle/JPMS module" reads as "Cargo workspace crate", `internal` package as `pub(crate)` module; the context cut itself is unchanged
