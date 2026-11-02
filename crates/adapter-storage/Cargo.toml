@@ -27,3 +27,6 @@ workspace = true
 
 [dependencies.sha2]
 workspace = true
+
+[dependencies.tallyline-workflows]
+path = "../workflows"

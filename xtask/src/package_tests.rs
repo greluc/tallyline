@@ -318,7 +318,8 @@ fn r_doc_3__source_inventory_maps_real_unpacked_registry_source() {
     directory.write("payload/legal/catalogue.json", r#"{"schema_version":1,"components":[{"name":"fixture","version":"1.0.0","declared_licence":"MIT","licence":"MIT","source":"https://example.invalid/fixture","copyright":{"status":"provided","notices":["Synthetic fixture author"]},"notices":[{"path":"crates/fixture-1.0.0/LICENSE","text":"Known original licence fixture\n"}]}]}"#);
     directory.write("source/vendor/fixture-1.0.0/src/lib.rs", "abc");
     let archive = directory.path().join("source.tar.gz");
-    crate::package::write_archive("tar.gz", &directory.path().join("source"), &archive).unwrap();
+    crate::package::write_archive("source.tar.gz", &directory.path().join("source"), &archive)
+        .unwrap();
     let map = directory.path().join("source-map.json");
     crate::package::run(&[
         "source-map".into(),
@@ -350,6 +351,47 @@ fn r_doc_3__source_inventory_maps_real_unpacked_registry_source() {
         String::from_utf8_lossy(&unpacked.stderr)
     );
     assert_eq!(unpacked.stdout, b"abc");
+    let map_bytes = std::fs::read(directory.path().join("source-map.json")).unwrap();
+    std::fs::write(
+        directory.path().join("payload/legal/source-map.json"),
+        &map_bytes,
+    )
+    .unwrap();
+    let verify_arguments = [
+        "source-verify".into(),
+        directory.path().join("payload").display().to_string(),
+        archive.display().to_string(),
+    ];
+    crate::package::run(&verify_arguments).unwrap();
+    let mut changed_map: serde_json::Value = serde_json::from_slice(&map_bytes).unwrap();
+    changed_map["archive"]["sha256"] = "0".repeat(64).into();
+    std::fs::write(
+        directory.path().join("payload/legal/source-map.json"),
+        serde_json::to_vec(&changed_map).unwrap(),
+    )
+    .unwrap();
+    assert!(crate::package::run(&verify_arguments).is_err());
+    for (field, value) in [
+        ("path", "vendor/fixture-1.0.0/src/missing.rs".to_owned()),
+        ("sha256", "0".repeat(64)),
+    ] {
+        let mut incorrect: serde_json::Value = serde_json::from_slice(&map_bytes).unwrap();
+        incorrect["components"][0]["files"][0][field] = value.into();
+        std::fs::write(
+            directory.path().join("payload/legal/source-map.json"),
+            serde_json::to_vec(&incorrect).unwrap(),
+        )
+        .unwrap();
+        assert!(
+            crate::package::run(&verify_arguments).is_err(),
+            "source map file evidence differs from actual archive"
+        );
+    }
+    std::fs::write(
+        directory.path().join("payload/legal/source-map.json"),
+        map_bytes,
+    )
+    .unwrap();
     directory.write(
         "source/vendor/fixture-1.0.0/src/lib.rs",
         "changed after archive freeze",
@@ -367,4 +409,348 @@ fn r_doc_3__source_inventory_maps_real_unpacked_registry_source() {
         "source archive and unpacked source mismatch was accepted"
     );
     assert!(!mismatched.exists());
+}
+
+#[test]
+fn r_doc_3_r_nf_2_q_installers__source_archives_have_data_only_file_permissions() {
+    let directory = crate::scratch::Scratch::new();
+    directory.write("source/source.exe", "abc");
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        std::fs::set_permissions(
+            directory.path().join("source/source.exe"),
+            std::fs::Permissions::from_mode(0o777),
+        )
+        .unwrap();
+    }
+    crate::package::write_archive(
+        "source.tar.gz",
+        &directory.path().join("source"),
+        &directory.path().join("source.tar.gz"),
+    )
+    .unwrap();
+    let listing = Command::new("tar")
+        .current_dir(directory.path())
+        .args(["-tvf", "source.tar.gz"])
+        .output()
+        .unwrap();
+    assert!(
+        listing.status.success(),
+        "{}",
+        String::from_utf8_lossy(&listing.stderr)
+    );
+    let listing = String::from_utf8(listing.stdout).unwrap();
+    let source = listing
+        .lines()
+        .find(|line| line.ends_with("tallyline/source.exe"))
+        .unwrap();
+    assert!(source.starts_with("-rw-r--r--"), "{source}");
+}
+
+#[test]
+fn r_doc_3__native_source_scopes_require_the_exact_reviewed_identity() {
+    let directory = crate::scratch::Scratch::new();
+    directory.write("payload/legal/sqlite/LICENSE", "Synthetic native notice\n");
+    directory.write(
+        "payload/legal/crates/index.tsv",
+        "crate\tversion\tdeclared\tdetected\n",
+    );
+    let catalogue = r#"{"schema_version":1,"components":[{"name":"SQLite","version":"3.54.1","licence":"blessing","source":"https://www.sqlite.org/2026/sqlite-amalgamation-3540100.zip","copyright":{"status":"provided","notices":["Synthetic fixture"]},"notices":[{"path":"sqlite/LICENSE","text":"Synthetic native notice\n"}]}]}"#;
+    directory.write("payload/legal/catalogue.json", catalogue);
+    directory.write(
+        "source/project/supply-chain/notices/sqlite/NOTICE",
+        "Synthetic native notice\n",
+    );
+    directory.write(
+        "source/vendor/libsqlite3-sys-0.39.1/sqlite3/sqlite3.c",
+        "abc",
+    );
+    let archive = directory.path().join("source.tar.gz");
+    crate::package::write_archive("source.tar.gz", &directory.path().join("source"), &archive)
+        .unwrap();
+    let map = directory.path().join("source-map.json");
+    let mut arguments = vec![
+        "source-map".into(),
+        directory.path().join("payload").display().to_string(),
+        directory.path().join("source").display().to_string(),
+        archive.display().to_string(),
+        map.display().to_string(),
+    ];
+    crate::package::run(&arguments).unwrap();
+    let value: serde_json::Value = serde_json::from_slice(&std::fs::read(map).unwrap()).unwrap();
+    assert_eq!(
+        value["components"][0]["patterns"][0],
+        "vendor/libsqlite3-sys-0.39.1/sqlite3/*"
+    );
+    directory.write(
+        "payload/legal/catalogue.json",
+        &catalogue.replace("3.54.1", "3.55.0"),
+    );
+    let unreviewed = directory.path().join("unreviewed-source-map.json");
+    *arguments.last_mut().unwrap() = unreviewed.display().to_string();
+    assert!(crate::package::run(&arguments).is_err());
+    assert!(!unreviewed.exists());
+}
+
+#[test]
+fn r_sec_8__protected_commands_reject_a_bad_seal_before_fixture_access() {
+    let directory = crate::scratch::Scratch::new();
+    directory.write("package-manifest.json", "{}");
+    let missing = directory.path().join("fixture-does-not-exist");
+    for command in ["inject", "verify-injected"] {
+        let error = crate::package::run(&[
+            command.into(),
+            directory.path().display().to_string(),
+            "0".repeat(64),
+            missing.display().to_string(),
+        ])
+        .unwrap_err();
+        assert!(error.to_string().contains("seal mismatch"), "{error}");
+    }
+    assert!(
+        !directory
+            .path()
+            .join("payload/tallyline-app-token")
+            .exists()
+    );
+}
+
+#[test]
+fn r_doc_3_r_sec_8__source_bindings_detect_graph_neutral_lockfile_byte_changes() {
+    let directory = crate::scratch::Scratch::new();
+    let root = copy_bound_source_inputs(&directory);
+    let arguments = [
+        "source-bindings".into(),
+        directory.path().display().to_string(),
+    ];
+    crate::package::run(&arguments).unwrap();
+    let lock = std::fs::read_to_string(root.join("Cargo.lock")).unwrap();
+    directory.write(
+        "Cargo.lock",
+        &(lock + "\n# Synthetic graph-neutral source-binding change\n"),
+    );
+    let error = crate::package::run(&arguments).unwrap_err();
+    assert!(
+        error
+            .to_string()
+            .contains("stale packaging legal source binding: Cargo.lock")
+    );
+}
+
+#[test]
+fn r_doc_3_r_sec_8__source_bindings_reject_manifest_only_feature_changes() {
+    let directory = crate::scratch::Scratch::new();
+    let root = copy_bound_source_inputs(&directory);
+    let arguments = [
+        "source-bindings".into(),
+        directory.path().display().to_string(),
+    ];
+    crate::package::run(&arguments).unwrap();
+    let original = std::fs::read_to_string(root.join("crates/app/Cargo.toml")).unwrap();
+    let changed = original.replace(", \"rt-multi-thread\"", "");
+    assert_ne!(original, changed);
+    directory.write("crates/app/Cargo.toml", &changed);
+    let error = crate::package::run(&arguments).unwrap_err();
+    assert!(
+        error
+            .to_string()
+            .contains("stale packaging legal source binding: crates/app/Cargo.toml"),
+        "{error}"
+    );
+    assert_eq!(
+        std::fs::read(root.join("Cargo.lock")).unwrap(),
+        std::fs::read(directory.path().join("Cargo.lock")).unwrap()
+    );
+}
+
+fn copy_bound_source_inputs(directory: &crate::scratch::Scratch) -> std::path::PathBuf {
+    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .parent()
+        .unwrap();
+    let profile: serde_json::Value = serde_json::from_str(
+        &std::fs::read_to_string(root.join("supply-chain/package-legal-profiles.json")).unwrap(),
+    )
+    .unwrap();
+    let mut names = profile["source_inputs"]
+        .as_object()
+        .unwrap()
+        .keys()
+        .map(String::as_str)
+        .collect::<std::collections::BTreeSet<_>>();
+    names.extend(["Cargo.toml", "crates/app/Cargo.toml"]);
+    for name in names {
+        directory.write(name, &std::fs::read_to_string(root.join(name)).unwrap());
+    }
+    root.to_path_buf()
+}
+
+#[test]
+fn r_sec_8_r_nf_4__tool_capture_discards_both_streams_before_persisting_a_fixture_leak() {
+    let directory = crate::scratch::Scratch::new();
+    directory.write("fixture", "capture-contract-harmless-value-918273645");
+    let logs = directory.path().join("logs");
+    std::fs::create_dir(&logs).unwrap();
+    let fixture = std::fs::read(directory.path().join("fixture")).unwrap();
+    let text = std::str::from_utf8(&fixture).unwrap();
+    let wide = text
+        .encode_utf16()
+        .flat_map(u16::to_le_bytes)
+        .collect::<Vec<_>>();
+    let error = crate::package::retain_tool_output(
+        &logs,
+        "tool",
+        &wide,
+        b"innocent stderr",
+        &directory.path().join("fixture"),
+    )
+    .unwrap_err();
+    assert!(error.to_string().contains("not retained"));
+    for name in ["tool.stdout", "tool.stderr"] {
+        let retained = std::fs::read(logs.join(name)).unwrap();
+        assert!(
+            !retained
+                .windows(fixture.len())
+                .any(|bytes| bytes == fixture)
+        );
+        assert!(!retained.windows(wide.len()).any(|bytes| bytes == wide));
+        assert!(
+            std::str::from_utf8(&retained)
+                .unwrap()
+                .contains("not retained")
+        );
+    }
+}
+
+#[test]
+fn r_doc_3__debian_copyright_preserves_terms_and_reviewed_source_scopes() {
+    let directory = crate::scratch::Scratch::new();
+    directory.write("payload/LICENSE", "Synthetic project terms\n");
+    directory.write(
+        "payload/legal/sqlite/LICENSE",
+        "Synthetic native terms\n\nFinal preserved line.\n",
+    );
+    directory.write(
+        "payload/legal/crates/index.tsv",
+        "crate\tversion\tdeclared\tdetected\n",
+    );
+    directory.write("payload/legal/catalogue.json", r#"{"schema_version":1,"components":[{"name":"SQLite","version":"3.54.1","licence":"blessing","source":"https://www.sqlite.org/2026/sqlite-amalgamation-3540100.zip","copyright":{"status":"provided","notices":["Synthetic fixture"]},"notices":[{"path":"sqlite/LICENSE","text":"Synthetic native terms\n\nFinal preserved line.\n"}]}]}"#);
+    let output = directory.path().join("copyright");
+    crate::package::run(&[
+        "copyright".into(),
+        directory.path().join("payload").display().to_string(),
+        output.display().to_string(),
+    ])
+    .unwrap();
+    let inspected = std::process::Command::new(if cfg!(windows) { "python" } else { "python3" }).args(["-c", "import sys,email.parser,json; text=open(sys.argv[1],encoding='utf-8').read(); rows=[dict(email.parser.Parser().parsestr(block).items()) for block in text.strip().split('\\n\\n')]; print(json.dumps(rows))"]).arg(&output).output().unwrap();
+    assert!(
+        inspected.status.success(),
+        "{}",
+        String::from_utf8_lossy(&inspected.stderr)
+    );
+    let rows: serde_json::Value = serde_json::from_slice(&inspected.stdout).unwrap();
+    let rows = rows.as_array().unwrap();
+    assert_eq!(
+        rows[0]["Format"],
+        "https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/"
+    );
+    let native = rows
+        .iter()
+        .find(|row| {
+            row["Files"]
+                .as_str()
+                .is_some_and(|paths| paths.contains("vendor/libsqlite3-sys-0.39.1/sqlite3/*"))
+        })
+        .unwrap();
+    assert!(
+        native["License"]
+            .as_str()
+            .unwrap()
+            .contains("Synthetic native terms\n .\n Final preserved line.")
+    );
+    assert!(
+        native["Copyright"]
+            .as_str()
+            .unwrap()
+            .contains("Synthetic fixture")
+    );
+}
+
+#[test]
+fn r_nf_2_q_installers__debian_archive_has_safe_layout_modes_and_no_maintainer_scripts() {
+    let directory = crate::scratch::Scratch::new();
+    directory.write(
+        "tree/control/control",
+        "Package: tallyline\nVersion: 1.2.3\nArchitecture: amd64\nInstalled-Size: 1\n",
+    );
+    directory.write("tree/control/md5sums", "900150983cd24fb0d6963f7d28e17f72  usr/bin/tallyline\n900150983cd24fb0d6963f7d28e17f72  usr/lib/tallyline/libonnxruntime.so.1.31.0\n");
+    directory.write("tree/data/usr/bin/tallyline", "abc");
+    directory.write(
+        "tree/data/usr/lib/tallyline/libonnxruntime.so.1.31.0",
+        "abc",
+    );
+    let output = directory.path().join("package.deb");
+    crate::package::run(&[
+        "repack-deb".into(),
+        directory.path().join("tree").display().to_string(),
+        output.display().to_string(),
+    ])
+    .unwrap();
+    let script = r#"import sys,io,tarfile,json,hashlib
+raw=open(sys.argv[1],'rb').read(); assert raw[:8]==b'!<arch>\n'; offset=8; parts={}
+while offset<len(raw):
+ h=raw[offset:offset+60]; assert len(h)==60 and h[58:]==b'`\n'; name=h[:16].decode().strip().rstrip('/'); size=int(h[48:58]); assert name not in parts; parts[name]=raw[offset+60:offset+60+size]; offset+=60+size+(size%2)
+assert list(parts)==['debian-binary','control.tar.gz','data.tar.gz'] and parts['debian-binary']==b'2.0\n'
+with tarfile.open(fileobj=io.BytesIO(parts['data.tar.gz']),mode='r:gz') as tar:
+ rows={item.name:item for item in tar}; binary=rows['usr/lib/tallyline/tallyline']; runtime=rows['usr/lib/tallyline/libonnxruntime.so.1.31.0']; link=rows['usr/bin/tallyline']; assert binary.mode==runtime.mode==0o755; assert link.issym() and link.linkname=='../lib/tallyline/tallyline'; assert tar.extractfile(binary).read()==b'abc'
+ for item in rows.values(): assert item.uid==item.gid==item.mtime==0
+with tarfile.open(fileobj=io.BytesIO(parts['control.tar.gz']),mode='r:gz') as tar:
+ assert {item.name for item in tar}=={'control','md5sums'}; sums=tar.extractfile('md5sums').read().decode(); assert 'usr/bin/tallyline' not in sums; assert '900150983cd24fb0d6963f7d28e17f72  usr/lib/tallyline/tallyline' in sums
+print('independent Debian archive inspection passed')"#;
+    let inspected = std::process::Command::new(if cfg!(windows) { "python" } else { "python3" })
+        .args(["-c", script])
+        .arg(output)
+        .output()
+        .unwrap();
+    assert!(
+        inspected.status.success(),
+        "{}",
+        String::from_utf8_lossy(&inspected.stderr)
+    );
+}
+
+#[test]
+fn r_sec_8__protected_build_rejects_a_bad_seal_before_fixture_or_output_access() {
+    let directory = crate::scratch::Scratch::new();
+    directory.write("stage/package-manifest.json", "{}");
+    let output = directory.path().join("output");
+    let error = crate::package::run(&[
+        "build".into(),
+        directory.path().join("stage").display().to_string(),
+        "0".repeat(64),
+        directory
+            .path()
+            .join("missing-fixture")
+            .display()
+            .to_string(),
+        output.display().to_string(),
+    ])
+    .unwrap_err();
+    assert!(error.to_string().contains("seal mismatch"), "{error}");
+    assert!(!output.exists());
+}
+
+#[test]
+fn r_nf_13__msi_prerequisite_refusal_names_the_runtime_floor_and_microsoft_download_page() {
+    let authoring = crate::package::msi_prerequisite_authoring().unwrap();
+    let launches = authoring.split("<Launch ").skip(1).collect::<Vec<_>>();
+    assert_eq!(launches.len(), 361);
+    for launch in launches {
+        assert!(launch.contains("Microsoft Visual C++ Redistributable x64 version 14.44 or newer"));
+        assert!(
+            launch.contains(
+                "https://learn.microsoft.com/en-us/cpp/windows/latest-supported-vc-redist/"
+            )
+        );
+    }
 }

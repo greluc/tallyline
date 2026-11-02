@@ -9,6 +9,7 @@ path = [
   ".gitleaks.toml",
   ".github/**",
   "corpus/public/**/expected.json",
+  "crates/adapter-uex/contracts/*.json",
   "crates/egui/design/tokens.json",
   "ui/design-tokens/*.json",
   "**/Cargo.toml",

@@ -14,14 +14,14 @@ const TAR_PREFIX: usize = 155;
 const TAR_CHECKSUM: std::ops::Range<usize> = 148..156;
 const DIRECTORY_MODE: u32 = 0o755;
 
-pub(super) fn tar_gzip(source: &Path, file: File) -> io::Result<()> {
-    tar_stream(source, &file)?;
+pub(super) fn tar_gzip(source: &Path, file: File, source_files: bool) -> io::Result<()> {
+    tar_stream(source, &file, source_files)?;
     file.sync_all()
 }
 
 pub(super) fn tar_gzip_digest(source: &Path) -> io::Result<String> {
     let mut writer = HashWriter(Sha256::new());
-    tar_stream(source, &mut writer)?;
+    tar_stream(source, &mut writer, true)?;
     Ok(writer
         .0
         .finalize()
@@ -43,18 +43,23 @@ impl Write for HashWriter {
     }
 }
 
-fn tar_stream(source: &Path, writer: impl Write) -> io::Result<()> {
+fn tar_stream(source: &Path, writer: impl Write, source_files: bool) -> io::Result<()> {
     let mut gzip = flate2::GzBuilder::new()
         .mtime(0)
         .operating_system(3)
         .write(writer, flate2::Compression::default());
-    append(&mut gzip, source, "tallyline")?;
+    append(&mut gzip, source, "tallyline", source_files)?;
     gzip.write_all(&[0; TAR_BLOCK * 2])?;
     gzip.finish()?;
     Ok(())
 }
 
-fn append(writer: &mut impl Write, source: &Path, name: &str) -> io::Result<()> {
+fn append(
+    writer: &mut impl Write,
+    source: &Path,
+    name: &str,
+    source_files: bool,
+) -> io::Result<()> {
     let metadata = fs::symlink_metadata(source)?;
     if metadata.file_type().is_symlink() {
         return Err(io::Error::other(
@@ -64,12 +69,21 @@ fn append(writer: &mut impl Write, source: &Path, name: &str) -> io::Result<()> 
     if metadata.is_dir() {
         writer.write_all(&header(&format!("{name}/"), DIRECTORY_MODE, 0, b'5')?)?;
         for (child, filename) in children(source)? {
-            append(writer, &child.path(), &format!("{name}/{filename}"))?;
+            append(
+                writer,
+                &child.path(),
+                &format!("{name}/{filename}"),
+                source_files,
+            )?;
         }
     } else if metadata.is_file() {
         writer.write_all(&header(
             name,
-            file_mode(source, &metadata),
+            if source_files {
+                0o644
+            } else {
+                file_mode(source, &metadata)
+            },
             metadata.len(),
             b'0',
         )?)?;
@@ -100,9 +114,12 @@ fn file_mode(source: &Path, metadata: &fs::Metadata) -> u32 {
         if source
             .extension()
             .is_some_and(|extension| extension == "exe")
-            || source
-                .file_name()
-                .is_some_and(|filename| filename == "tallyline")
+            || source.file_name().is_some_and(|filename| {
+                matches!(
+                    filename.to_str(),
+                    Some("tallyline" | "libonnxruntime.so.1.31.0")
+                )
+            })
         {
             0o755
         } else {
@@ -283,12 +300,7 @@ pub(super) fn children(source: &Path) -> io::Result<Vec<(fs::DirEntry, String)>>
                 .file_name()
                 .into_string()
                 .map_err(|_| io::Error::other("application archive path is not UTF-8"))?;
-            if name.contains(['\\', '/', ':', '*', '?', '"', '<', '>', '|'])
-                || name.ends_with(['.', ' '])
-                || name.chars().any(char::is_control)
-                || reserved_device(&name)
-                || !names.insert(name.to_uppercase())
-            {
+            if !portable_name(&name) || !names.insert(name.to_uppercase()) {
                 return Err(io::Error::other(
                     "application archive path is not portable or has a case alias",
                 ));
@@ -309,4 +321,34 @@ fn reserved_device(name: &str) -> bool {
                 )
             })
         })
+}
+
+pub(super) fn portable_name(name: &str) -> bool {
+    !name.is_empty()
+        && !matches!(name, "." | "..")
+        && !name.contains(['\\', '/', ':', '*', '?', '"', '<', '>', '|'])
+        && !name.ends_with(['.', ' '])
+        && !name.chars().any(char::is_control)
+        && !reserved_device(name)
+}
+
+pub(super) fn tree_gzip(source: &Path, file: File, link: Option<(&str, &str)>) -> io::Result<()> {
+    if link.is_some_and(|pair| pair != ("usr/bin/tallyline", "../lib/tallyline/tallyline")) {
+        return Err(io::Error::other("unapproved Debian archive link"));
+    }
+    let mut gzip = flate2::GzBuilder::new()
+        .mtime(0)
+        .operating_system(3)
+        .write(file, flate2::Compression::default());
+    for (child, name) in children(source)? {
+        append(&mut gzip, &child.path(), &name, false)?;
+    }
+    if let Some((name, target)) = link {
+        if source.join(name).try_exists()? {
+            return Err(io::Error::other("Debian launcher path already exists"));
+        }
+        gzip.write_all(&linked_header(name, 0o777, 0, b'2', target)?)?;
+    }
+    gzip.write_all(&[0; TAR_BLOCK * 2])?;
+    gzip.finish()?.sync_all()
 }

@@ -3729,6 +3729,7 @@ dependencies = [
  "tallyline-reporting",
  "tallyline-shared-kernel",
  "tallyline-submission",
+ "tallyline-workflows",
 ]
 
 [[package]]
@@ -3740,6 +3741,7 @@ dependencies = [
  "rustls-platform-verifier",
  "serde",
  "serde_json",
+ "sha2",
  "tallyline-reference-data",
  "tallyline-shared-kernel",
  "tallyline-submission",
@@ -3849,6 +3851,7 @@ dependencies = [
  "tallyline-adapter-platform",
  "tallyline-adapter-storage",
  "tallyline-game",
+ "tallyline-reference-data",
  "tallyline-reporting",
  "tallyline-shared-kernel",
  "tallyline-submission",

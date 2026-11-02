@@ -11,6 +11,7 @@ workspace = true
 
 [dependencies]
 tallyline-shared-kernel.workspace = true
+tallyline-reference-data.workspace = true
 tallyline-reporting.workspace = true
 tallyline-submission.workspace = true
 

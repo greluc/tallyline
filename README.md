@@ -28,6 +28,8 @@ The shared image intake decodes SDR PNG (including full-precision 16-bit samples
 
 ## Plan
 
+Maintainers can check public UEX field/type/code changes without credentials through the existing API-spike CLI. The [contract drift guide](docs/public-api-contract-drift.md) explains the metadata-only baseline and the default-off, main-only weekly workflow; hosted activation remains pending.
+
 | Document | Contents |
 |---|---|
 | [01 – Requirements](docs/plan/01-requirements.md) | Functional and non-functional requirements, assumptions |
@@ -79,7 +81,7 @@ Decisions and checks that are still open are tracked in [docs/adr/0000-open-poin
 - whether Cloud Imperium's terms allow the game screenshots in this public repository (O-28);
 - a legal review before the first release of the Windows app's dependency on the Microsoft Visual C++ Redistributable (x64), which ONNX Runtime needs; the packages do not ship it, so users install it as a prerequisite (O-12, ADR-0009);
 - the remaining egui dependency audits and icon review (O-112);
-- the M1 spike for the installers (`cargo-packager` with a pre-installed, pinned WiX 3.11.2, decided in O-116): offline build, `.deb` and archive formats.
+- the M1 installer spike: source-compiled WiX 7.0.1 through checked xtask for MSI, cargo-packager for Debian, offline prebuilt assembly and plain archives (corrected 2026-11-02; ADR-0011).
 
 ## Star Citizen fan content
 
@@ -134,3 +136,9 @@ Prebuilt preparation now seals the existing app, approved native/model/font reso
 Packaging verification now pins each target’s exact legal catalogue to reviewed source inputs. Secret-free source evidence also rejects a source archive that differs from its unpacked tree. Complete native source scopes and protected installer assembly remain in progress; see [the packaging record](docs/packaging-spike.md).
 
 Manual Report now includes [guarded SCU review](docs/scu-review.md), with provisional 20 % / 16 SCU bands, independent tighten-only Settings, durable exact-value approvals, counters and F8/Shift+F8 navigation. The [policy evidence](docs/scu-policy-calibration.md) records the empirical limits. Database schema 8 and settings schema 5 migrate after coordinated backups; complete release/submission and native visual acceptance remain in progress (R-VAL-2, R-VAL-7, R-UI-10..12).
+
+Source preparation now verifies actual archived component bytes and seals a source reference before harmless fixture insertion. The normal check rejects stale legal source bindings. Protected installer and installed-system acceptance remain pending; see [the packaging record](docs/packaging-spike.md).
+
+Distribution source checks also bind every workspace manifest, so feature-only changes invalidate stale legal source bindings even when Cargo.lock stays unchanged.
+
+The packaging helper now includes fixed native backend adapters and independently inspected Debian archive/CRT prerequisite contracts. Actual final protected distributions and clean-OS/native acceptance remain pending; the Windows Visual C++ runtime prerequisite remains unchanged.
