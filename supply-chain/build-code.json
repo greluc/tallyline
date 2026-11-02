@@ -1762,7 +1762,7 @@
       "archive_sha256": "3f607c237553f086e7043417a51df26b2eb899d3caff94e6a67592ff992fedc7",
       "source_sha256": "70108cb12936fdbe2123b2018c42899a531c7cb0007b3e402a8fdea7411e88a7",
       "behaviour": "Inactive weak-optional package in both actual supported-target build trees. If compiled, reads Cargo target/feature environment and uses existing autocfg to probe Rust 1.80/1.89 support and emit check-cfg/AVX512 cfg. No native compiler, downloader or runtime library. This record grants no activation approval.",
-      "review_scope": "Complete entrypoint and listed compiled helper modules read. ort-sys inactive download/pkg-config modules are feature-disabled and never reached under the exact accepted closure. This is S-12 behaviour review, not a full-crate cargo-vet source-soundness audit or a new native/feature approval.",
+      "review_scope": "Complete matrixmultiply build.rs read. It emits a rerun directive, reads target architecture and the AVX512 feature environment, creates an autocfg probe and checks Rust 1.80/1.89 support before emitting cfg directives. No additional source helper is included by this entrypoint. This is S-12 entrypoint behaviour review, not a full-crate source-soundness audit or an activation approval.",
       "sources_read_or_inspected": [
         {
           "path": "build.rs",
