@@ -320,3 +320,57 @@ async fn r_api_4_r_nf_4__validated_credentials_survive_application_reload() {
         }
     );
 }
+
+#[test]
+#[expect(
+    non_snake_case,
+    reason = "Requirement tags use a double underscore separator."
+)]
+fn r_api_7_r_nf_4__secure_record_reconstruction_refuses_non_account_failure_states() {
+    for refusal in [
+        CredentialFailure::InvalidInput,
+        CredentialFailure::MissingToken,
+        CredentialFailure::ClientVersionMissing,
+        CredentialFailure::Unavailable,
+        CredentialFailure::Superseded,
+        CredentialFailure::Storage(StorageFailure::Locked),
+    ] {
+        assert_eq!(
+            SavedCredentials::from_storage(
+                CredentialValues::new("dummy-key".to_owned(), None).unwrap(),
+                ValidatedAccount::new("dummy-runner".to_owned()),
+                Timestamp::from_seconds(1),
+                Some(refusal),
+            )
+            .err(),
+            Some(StorageFailure::Corrupt)
+        );
+    }
+}
+
+#[test]
+#[expect(
+    non_snake_case,
+    reason = "Requirement tags use a double underscore separator."
+)]
+fn r_api_7_r_nf_4__secure_record_reconstruction_retains_only_required_account_metadata() {
+    for refusal in [
+        None,
+        Some(CredentialFailure::InvalidKey),
+        Some(CredentialFailure::NotAllowed),
+        Some(CredentialFailure::InvalidToken),
+        Some(CredentialFailure::UpdateRequired),
+    ] {
+        let saved = SavedCredentials::from_storage(
+            CredentialValues::new("dummy-key".to_owned(), None).unwrap(),
+            ValidatedAccount::new("dummy-runner".to_owned()),
+            Timestamp::from_millis(12345),
+            refusal,
+        )
+        .unwrap();
+        assert_eq!(saved.username(), "dummy-runner");
+        assert_eq!(saved.validated_at(), Timestamp::from_millis(12345));
+        assert_eq!(saved.refusal(), refusal);
+        assert_eq!(saved.values().own_token(), None);
+    }
+}

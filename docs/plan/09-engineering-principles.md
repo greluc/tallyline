@@ -165,6 +165,8 @@ malformed proof. Host build/procedural-macro and target occurrences are unioned;
 a Linux tree collected on Windows is not matching-host Linux build acceptance.
 No native scope is widened by this additional selector. See the exact collection
 and verification limits in [xtask](../../xtask/README.md#literal-inline-assembly-inventory).
+Windows credential store implementation 2026-11-02 (R-NF-4): the platform adapter calls only the approved owned-store build and binary set/get/delete surface with fixed identifiers and explicit Local persistence. The existing reviewed dependency wrappers retain native allocation erasure/free ownership; this adds no own unsafe block, native source, registry version or feature scope. The platform codec and injected-provider contract tests do not exercise the real OS store. Direct zeroize 1.9.1 with defaults off and alloc only supplies erasing buffer guards; it was already locked and active with these features. Application logging must suppress credential dependency targets before formatting/bridging when the adapter is composed; no native credential provider is invoked by desktop startup in this slice.
+
 Credential native foundation adopted 2026-11-02 under the exact previously
 owner-approved six-surface packet (SHA-256 recorded in
 `supply-chain/credential-adoption.json`). The exact archive/source/full-feature,
@@ -305,7 +307,7 @@ Facts verified on 2026-10-12 (ADR-0005) are marked; everything else is chosen an
 | Rust toolchain (stable, edition 2024) | 1.99.0 (verified 2026-10-12) | The exact pin goes into `rust-toolchain.toml` in M0 (ADR-0005 D10); includes rustfmt and Clippy |
 | `egui` / `eframe` | 0.37.0 (latest eligible stable, verified 2026-11-01) | wgpu backend (O-113) |
 | `ort` | `=2.0.0-rc.14` (verified) | Release candidate, registered exception (§3b, O-108); `default-features = false` with `load-dynamic` and `api-31`, loading the official ONNX Runtime 1.31.0 library (M0 spike and ADR-0007, 2026-10-14; rc.14 was published on 2026-10-12, inside the S-7 cooldown, and adopted by the owner's decision) |
-| `keyring-core` / Windows store / `secret-service` / `zbus` | 1.0.1 / 1.1.0 / 5.2.0 / 5.19.0 | Corrected 2026-11-02: exact dependency foundation replaces the historical unadopted keyring4.2.0 choice; runtime adapters remain pending |
+| `keyring-core` / Windows store / `secret-service` / `zbus` | 1.0.1 / 1.1.0 / 5.2.0 / 5.19.0 | Corrected 2026-11-02: exact dependency foundation replaces the historical unadopted keyring4.2.0 choice; the Windows Local adapter has isolated-provider contracts, while application composition, OS acceptance and the Linux adapter remain pending |
 | `cargo-packager` | 0.11.8 (verified) with pre-installed WiX 3.11.2 | WiX pinned by SHA-256 in `docs/dependency-pins.md` ([10](10-supply-chain-security.md) S-11) |
 | `cargo-deny`, `cargo-vet`, `cargo-audit`, `cargo-llvm-cov`, `cargo-mutants` | pinned in [dependency-pins](../dependency-pins.md), with verification dates and platforms there | Check, supply-chain and coverage tools; installed per 10 S-36. Corrected 2026-11-01: the tool pins are recorded; core coverage and mutation baselines remain separate measurements |
 | `proptest`, `wiremock` | to be verified in M0 | Test libraries |

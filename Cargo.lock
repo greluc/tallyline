@@ -3701,6 +3701,7 @@ dependencies = [
  "serde",
  "serde_json",
  "socket2",
+ "tallyline-shared-kernel",
  "tallyline-submission",
  "tallyline-workflows",
  "tempfile",
@@ -3710,6 +3711,7 @@ dependencies = [
  "windows-sys 0.61.2",
  "wiremock",
  "zbus",
+ "zeroize",
 ]
 
 [[package]]
