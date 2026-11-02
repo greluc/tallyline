@@ -17,6 +17,7 @@ pub struct DesktopShell {
     commands: Option<SyncSender<SettingsCommand>>,
     reference_commands: Option<SyncSender<crate::api::model::ReferenceCommand>>,
     manual_commands: Option<SyncSender<crate::api::model::ManualCommand>>,
+    credential_commands: Option<SyncSender<crate::api::model::CredentialCommand>>,
     events: Receiver<BackgroundEvent>,
     theme: Option<UiTheme>,
     window_commands: Option<Receiver<crate::api::model::WindowCommand>>,
@@ -41,6 +42,7 @@ impl DesktopShell {
             commands: Some(commands),
             reference_commands: None,
             manual_commands: None,
+            credential_commands: None,
             events,
             theme: None,
             window_commands: None,
@@ -131,6 +133,15 @@ impl eframe::App for DesktopShell {
                     .failed(tallyline_reporting::api::RepositoryError::Unavailable);
             }
         }
+        if let Some(command) = self.state.credentials_mut().take_command() {
+            let sent = self
+                .credential_commands
+                .as_ref()
+                .is_some_and(|sender| sender.try_send(command).is_ok());
+            if !sent {
+                self.state.credentials_mut().failed_delivery();
+            }
+        }
         for command in commands {
             if let Some(sender) = &self.commands
                 && sender.try_send(command).is_err()
@@ -150,6 +161,7 @@ impl Drop for DesktopShell {
         drop(self.commands.take());
         drop(self.reference_commands.take());
         drop(self.manual_commands.take());
+        drop(self.credential_commands.take());
     }
 }
 
@@ -161,6 +173,18 @@ impl DesktopShell {
         commands: SyncSender<crate::api::model::ManualCommand>,
     ) -> Self {
         self.manual_commands = Some(commands);
+        self
+    }
+}
+
+impl DesktopShell {
+    /// Attaches the bounded credential validation channel.
+    #[must_use]
+    pub fn with_credential_commands(
+        mut self,
+        commands: SyncSender<crate::api::model::CredentialCommand>,
+    ) -> Self {
+        self.credential_commands = Some(commands);
         self
     }
 }

@@ -31,6 +31,11 @@ pub trait SecretStore {
         &mut self,
         credentials: &SavedCredentials,
     ) -> impl std::future::Future<Output = Result<(), StorageFailure>> + Send;
+    /// Saves revalidation metadata without unlocking or prompting.
+    fn save_passive(
+        &mut self,
+        credentials: &SavedCredentials,
+    ) -> impl std::future::Future<Output = Result<(), StorageFailure>> + Send;
     /// Removes only the application's credential record.
     fn remove(&mut self) -> impl std::future::Future<Output = Result<(), StorageFailure>> + Send;
 }
@@ -156,7 +161,7 @@ impl CredentialApplication {
                         saved.refusal = Some(failure);
                         if request.candidate.persistence == Persistence::Durable {
                             store
-                                .save(saved)
+                                .save_passive(saved)
                                 .await
                                 .map_err(CredentialFailure::Storage)?;
                         }
@@ -172,10 +177,12 @@ impl CredentialApplication {
             refusal: None,
         };
         if request.candidate.persistence == Persistence::Durable {
-            store
-                .save(&saved)
-                .await
-                .map_err(CredentialFailure::Storage)?;
+            let result = if request.revalidation {
+                store.save_passive(&saved).await
+            } else {
+                store.save(&saved).await
+            };
+            result.map_err(CredentialFailure::Storage)?;
         }
         self.state = account_state(&saved, request.candidate.persistence);
         self.persistence = Some(request.candidate.persistence);

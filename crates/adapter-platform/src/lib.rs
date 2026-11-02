@@ -35,3 +35,6 @@ mod linux_credential_bus;
 
 #[cfg(target_os = "linux")]
 mod linux_credentials;
+
+#[cfg(target_os = "linux")]
+mod linux_fallback;

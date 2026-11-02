@@ -295,3 +295,33 @@ fn r_ocr_20__channel_selection_commands_do_not_disclose_the_local_path_in_debug_
     );
     assert!(!format!("{command:?}").contains("SYNTHETIC_"));
 }
+
+#[test]
+#[expect(
+    non_snake_case,
+    reason = "Requirement tags use a double underscore separator."
+)]
+fn r_nf_5_r_ui_16__directory_permission_warning_survives_settings_load_and_save_feedback() {
+    let mut shell = ShellState::default();
+    shell.receive(BackgroundEvent::StorageWarning(
+        "A data directory is accessible to another user".to_owned(),
+    ));
+    shell.receive(BackgroundEvent::SettingsLoaded(
+        tallyline_workflows::api::model::AppSettings::default(),
+    ));
+    assert_eq!(
+        shell.notice(),
+        Some("A data directory is accessible to another user")
+    );
+    shell.show_settings();
+    shell.receive(BackgroundEvent::Failure("Settings save failed".to_owned()));
+    assert_eq!(shell.notice(), Some("Settings save failed"));
+    shell.receive(BackgroundEvent::SettingsLoaded(
+        tallyline_workflows::api::model::AppSettings::default(),
+    ));
+    assert_eq!(
+        shell.notice(),
+        Some("A data directory is accessible to another user")
+    );
+    assert!(!shell.dialogs().about_open());
+}

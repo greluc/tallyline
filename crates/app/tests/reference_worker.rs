@@ -187,6 +187,8 @@ fn next_snapshot(
             | BackgroundEvent::Failure(_)
             | BackgroundEvent::SettingsLoaded(_)
             | BackgroundEvent::LicencesLoaded(_)
+            | BackgroundEvent::StorageWarning(_)
+            | BackgroundEvent::CredentialsUpdated { .. }
             | BackgroundEvent::LicencesUnavailable) => {
                 return Err(std::io::Error::other(format!(
                     "unexpected worker event: {other:?}"
@@ -577,6 +579,8 @@ fn r_api_3__non_json_metadata_uses_the_injected_observation_time_without_replaci
             | BackgroundEvent::Failure(_)
             | BackgroundEvent::SettingsLoaded(_)
             | BackgroundEvent::LicencesLoaded(_)
+            | BackgroundEvent::StorageWarning(_)
+            | BackgroundEvent::CredentialsUpdated { .. }
             | BackgroundEvent::LicencesUnavailable) => panic!("unexpected event: {other:?}"),
         }
     }
