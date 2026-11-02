@@ -13,3 +13,5 @@ pub struct PreparedStorage {
     /// The SQLite connection to move to the owning reference worker.
     pub cache: SqliteReferenceCache,
 }
+
+pub use crate::build_info::{BuildInformation, BuildInformationError, BuildKind, BuildTarget};

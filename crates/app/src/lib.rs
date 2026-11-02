@@ -19,3 +19,7 @@ mod credential_worker;
 
 mod credential_logs;
 mod manual_reviews;
+
+mod build_info;
+
+mod build_entry;

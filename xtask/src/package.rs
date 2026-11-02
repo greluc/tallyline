@@ -4,7 +4,9 @@
 //! Source-independent commands for packaging prebuilt distributions.
 
 mod archive;
+mod build_identity;
 mod capture;
+mod cli;
 mod copyright;
 mod deb_archive;
 mod debian;
@@ -59,86 +61,7 @@ pub fn release_version(tag: &str) -> io::Result<&str> {
     Ok(version)
 }
 
-/// Dispatches packaging without discovering a source checkout or invoking Cargo.
-///
-/// # Errors
-/// Returns an invalid command, rejected release identity or output failure.
-pub fn run(arguments: &[String]) -> io::Result<()> {
-    let arguments = arguments.iter().map(String::as_str).collect::<Vec<_>>();
-    match arguments.as_slice() {
-        [] | ["help"] => writeln!(
-            io::stdout(),
-            "usage: xtask package version <vMAJOR.MINOR.PATCH> | tools-verify <windows|linux> <tools> | source-bindings <source-root> | source-verify <payload> <archive> | source-map <payload> <unpacked-source> <archive> <fresh-output> | msi-probe <approved-tools> <fresh-output> | build <stage> <seal> <fixture> <fresh-output> | repack-deb <prepared-tree> <fresh-output> | copyright <payload> <fresh-output> | legal-verify [windows|linux] <payload> | prepare <windows|linux> <vMAJOR.MINOR.PATCH> <payload> <tools> <fresh-stage> | inject <stage> <seal> <fixture> | verify-injected <stage> <seal> <fixture> | verify <stage> <seal> | archive <zip|tar.gz|source.tar.gz> <input> <fresh-output> | scan <unpacked-tree> <fixture-file> [allowed-relative-file]"
-        ),
-        ["archive", format, input, output] => {
-            write_archive(format, Path::new(input), Path::new(output))
-        }
-        ["prepare", target, tag, input, tools, stage] => {
-            let target = match *target {
-                "windows" => Target::Windows,
-                "linux" => Target::Linux,
-                _ => return Err(io::Error::other("unsupported packaging platform")),
-            };
-            let seal = prepare(
-                Path::new(input),
-                Path::new(tools),
-                Path::new(stage),
-                target,
-                tag,
-            )?;
-            writeln!(io::stdout(), "{seal}")
-        }
-        ["verify", stage, seal] => verify_stage(Path::new(stage), seal),
-        ["inject", stage, seal, fixture] => {
-            inject_fixture(Path::new(stage), seal, Path::new(fixture))
-        }
-        ["verify-injected", stage, seal, fixture] => {
-            verify_injected_stage(Path::new(stage), seal, Path::new(fixture))
-        }
-        ["source-map", payload, source, archive, output] => source_map::write(
-            Path::new(payload),
-            Path::new(source),
-            Path::new(archive),
-            Path::new(output),
-        ),
-        ["msi-probe", tools, output] => probe_msi_tools(Path::new(tools), Path::new(output)),
-        ["build", stage, seal, fixture, output] => build(
-            Path::new(stage),
-            seal,
-            Path::new(fixture),
-            Path::new(output),
-        ),
-        ["repack-deb", tree, output] => repack_debian(Path::new(tree), Path::new(output)),
-        ["copyright", payload, output] => {
-            write_debian_copyright(Path::new(payload), Path::new(output))
-        }
-        ["source-bindings", root] => verify_source_bindings(Path::new(root)),
-        ["source-verify", payload, archive] => {
-            source_map::validate(Path::new(payload), Path::new(archive)).map(|_| ())
-        }
-        ["legal-verify", target, root] => {
-            let target = match *target {
-                "windows" => Target::Windows,
-                "linux" => Target::Linux,
-                _ => return Err(io::Error::other("unsupported packaging platform")),
-            };
-            manifest::legal_catalogue(Path::new(root))?;
-            legal::verify_profile(Path::new(root), target)
-        }
-        ["legal-verify", root] => manifest::legal_catalogue(Path::new(root)).map(|_| ()),
-        ["tools-verify", target, root] => tools::verify(target, Path::new(root)),
-        ["scan", root, fixture] => scan_command(Path::new(root), Path::new(fixture), None),
-        ["scan", root, fixture, allowed] => scan_command(
-            Path::new(root),
-            Path::new(fixture),
-            Some(Path::new(allowed)),
-        ),
-        ["version", tag] => writeln!(io::stdout(), "{}", release_version(tag)?),
-        _ => Err(io::Error::other(
-            "usage: xtask package version <vMAJOR.MINOR.PATCH> | tools-verify <windows|linux> <tools> | source-bindings <source-root> | source-verify <payload> <archive> | source-map <payload> <unpacked-source> <archive> <fresh-output> | msi-probe <approved-tools> <fresh-output> | build <stage> <seal> <fixture> <fresh-output> | repack-deb <prepared-tree> <fresh-output> | copyright <payload> <fresh-output> | legal-verify [windows|linux] <payload> | prepare <windows|linux> <vMAJOR.MINOR.PATCH> <payload> <tools> <fresh-stage> | inject <stage> <seal> <fixture> | verify-injected <stage> <seal> <fixture> | verify <stage> <seal> | archive <zip|tar.gz|source.tar.gz> <input> <fresh-output> | scan <unpacked-tree> <fixture-file> [allowed-relative-file]",
-        )),
-    }
-}
+pub use cli::run;
 
 /// Writes a deterministic plain application archive without invoking build tools.
 ///
@@ -265,6 +188,17 @@ pub fn prepare(
     target: Target,
     tag: &str,
 ) -> io::Result<String> {
+    prepare_inner(input, tools, stage, target, tag, None)
+}
+
+fn prepare_inner(
+    input: &Path,
+    tools: &Path,
+    stage: &Path,
+    target: Target,
+    tag: &str,
+    identity: Option<serde_json::Value>,
+) -> io::Result<String> {
     let version = release_version(tag)?;
     if !target.is_native() {
         return Err(io::Error::other(
@@ -272,7 +206,7 @@ pub fn prepare(
         ));
     }
     self::tools::verify(target.name(), tools)?;
-    manifest::prepare(input, tools, stage, target, version)
+    manifest::prepare(input, tools, stage, target, version, identity)
 }
 
 /// Verifies every staged byte and mode against an independently retained seal and approved tools.
@@ -323,6 +257,11 @@ fn require_source(description: &manifest::Verified) -> io::Result<()> {
     if description.source_archive.is_none() {
         return Err(io::Error::other(
             "a verified source archive reference is required before fixture access",
+        ));
+    }
+    if description.build_identity.is_none() {
+        return Err(io::Error::other(
+            "a verified compiled build identity is required before fixture access",
         ));
     }
     Ok(())
@@ -430,4 +369,61 @@ pub fn probe_msi_tools(tools: &Path, output: &Path) -> io::Result<()> {
 /// Returns a prerequisite condition that exceeds the MSI table limit.
 pub fn msi_prerequisite_authoring() -> io::Result<String> {
     msi_crt::authoring()
+}
+
+/// Verifies a source-job receipt against its independently retained seal and prebuilt executable.
+///
+/// Supplied files are read only and never executed. Release metadata is not authenticated
+/// release provenance; signed-tag and CI authentication remain upstream responsibilities.
+///
+/// # Errors
+/// Returns malformed, changed, unbounded or inconsistent metadata/application bytes.
+pub fn verify_prebuilt_identity(
+    application: &Path,
+    receipt: &Path,
+    seal: &str,
+    target: Target,
+    tag: &str,
+) -> io::Result<()> {
+    build_identity::read(application, receipt, seal, target, tag).map(|_| ())
+}
+
+/// Writes a fresh canonical receipt from a source job's bounded headless app report.
+///
+/// This reads only data. The trusted source job must capture the report from its
+/// known compiled app before this step; this function executes no supplied binary
+/// and authenticates neither the report's origin nor signed release provenance.
+///
+/// # Errors
+/// Returns invalid/partial metadata, changed or unsafe inputs, or output failures.
+pub fn write_prebuilt_identity(
+    application: &Path,
+    report: &Path,
+    output: &Path,
+    target: Target,
+    tag: &str,
+) -> io::Result<String> {
+    build_identity::write(application, report, output, target, tag)
+}
+
+/// Seals a prebuilt handoff after validating an externally retained metadata receipt.
+///
+/// The receipt is admitted before tool access or output creation. Supplied binaries
+/// are never executed; receipt provenance remains the source builder's responsibility.
+///
+/// # Errors
+/// Returns mismatched metadata/executable bytes or any ordinary preparation failure.
+pub fn prepare_with_identity(
+    input: &Path,
+    tools: &Path,
+    stage: &Path,
+    target: Target,
+    tag: &str,
+    receipt: &Path,
+    seal: &str,
+) -> io::Result<String> {
+    let receipt =
+        build_identity::read(&input.join(target.executable()), receipt, seal, target, tag)?;
+    let identity = serde_json::json!({"receipt_sha256":seal,"receipt":receipt});
+    prepare_inner(input, tools, stage, target, tag, Some(identity))
 }

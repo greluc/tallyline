@@ -16,21 +16,62 @@ mod update_wiring;
 use tallyline_ui::api::{Catalogue, DesktopShell, configure_fonts};
 
 fn main() -> Result<std::process::ExitCode, Box<dyn std::error::Error>> {
-    tallyline_app::api::install_credential_log_bridge()?;
-    use tallyline_adapter_platform::api::model::{OcrChildExit, OcrProcessStartup};
-    match tallyline_adapter_platform::api::prepare_ocr_process()? {
-        OcrProcessStartup::Prepared => {
-            run()?;
-            Ok(std::process::ExitCode::SUCCESS)
-        }
-        OcrProcessStartup::Relaunched(status) => Ok(match OcrChildExit::from_status(&status) {
-            OcrChildExit::Code(code) => std::process::ExitCode::from(code),
-            OcrChildExit::Abnormal => std::process::ExitCode::FAILURE,
-        }),
-    }
+    let mut output = std::io::stdout();
+    tallyline_app::api::enter_application(
+        std::env::args_os().skip(1),
+        tallyline_app::api::compiled_build_information(),
+        &mut output,
+        |information| {
+            tallyline_app::api::install_credential_log_bridge()?;
+            tracing::info!(
+                version = information.version(),
+                build_kind = ?information.kind(),
+                target = information.target().triple(),
+                source_commit = ?information.source_commit(),
+                "application build information"
+            );
+            use tallyline_adapter_platform::api::model::{OcrChildExit, OcrProcessStartup};
+            match tallyline_adapter_platform::api::prepare_ocr_process()? {
+                OcrProcessStartup::Prepared => {
+                    run(information)?;
+                    Ok(std::process::ExitCode::SUCCESS)
+                }
+                OcrProcessStartup::Relaunched(status) => {
+                    Ok(match OcrChildExit::from_status(&status) {
+                        OcrChildExit::Code(code) => std::process::ExitCode::from(code),
+                        OcrChildExit::Abnormal => std::process::ExitCode::FAILURE,
+                    })
+                }
+            }
+        },
+    )
 }
 
-fn run() -> Result<(), Box<dyn std::error::Error>> {
+fn run(
+    information: tallyline_app::api::model::BuildInformation,
+) -> Result<(), Box<dyn std::error::Error>> {
+    let build = match information.kind() {
+        tallyline_app::api::model::BuildKind::Development => {
+            tallyline_ui::api::model::BuildPresentation::Development {
+                version: information.version().to_owned(),
+                platform: information.target().platform().to_owned(),
+            }
+        }
+        tallyline_app::api::model::BuildKind::Release => {
+            tallyline_ui::api::model::BuildPresentation::Release {
+                version: information.version().to_owned(),
+                platform: information.target().platform().to_owned(),
+                tag: information
+                    .release_tag()
+                    .ok_or("compiled release tag is missing")?
+                    .to_owned(),
+                commit: information
+                    .source_commit()
+                    .ok_or("compiled release commit is missing")?
+                    .to_owned(),
+            }
+        }
+    };
     let layout = settings_wiring::storage_layout()?;
     let primary = match tallyline_adapter_platform::api::elect(instance_wiring::paths(&layout)?)? {
         tallyline_adapter_platform::api::Election::Primary(primary) => primary,
@@ -94,6 +135,7 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
                     commands,
                     events,
                 )
+                .with_build_presentation(build)
                 .with_window_commands(activation_events)
                 .with_reference_commands(reference_commands)
                 .with_manual_commands(manual_commands)

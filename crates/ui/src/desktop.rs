@@ -188,3 +188,12 @@ impl DesktopShell {
         self
     }
 }
+
+impl DesktopShell {
+    /// Supplies immutable compiled build display data before the first native frame.
+    #[must_use]
+    pub fn with_build_presentation(mut self, build: crate::api::model::BuildPresentation) -> Self {
+        self.state.set_build_presentation(build);
+        self
+    }
+}

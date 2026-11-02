@@ -16,9 +16,11 @@ impl CredentialValidator for Validator {
         &self,
         values: &CredentialValues,
     ) -> Result<ValidatedAccount, CredentialFailure> {
+        let information = tallyline_app::api::compiled_build_information()
+            .map_err(|_| CredentialFailure::Unavailable)?;
         let settings = tallyline_adapter_uex::api::ReaderSettings::new(
             "https://api.uexcorp.uk/2.0/",
-            tallyline_adapter_uex::api::ClientIdentity::new("tallyline", env!("CARGO_PKG_VERSION")),
+            tallyline_adapter_uex::api::ClientIdentity::new("tallyline", information.version()),
         )
         .map_err(|_| CredentialFailure::Unavailable)?;
         let reader = tallyline_adapter_uex::api::UexReader::new(&settings)

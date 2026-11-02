@@ -4,6 +4,8 @@ All notable changes are recorded here.
 
 ## [Unreleased]
 
+- Added bounded headless `--build-info` before native bootstrap. About, logs, UEX identity and update comparison share fixed Development `0.0.0` or complete compile-time tag metadata; invalid or partial metadata refuses startup. Bounded source-job receipts bind compiled metadata and executable hashes into protected staging before fixture access; signed-tag/CI authentication and final package acceptance remain release gates (R-NF-11, R-API-7, R-UI-18, R-SEC-8).
+
 ### Added
 
 - Add sealed prebuilt MSI/Debian assembly adapters, original-term DEP-5 output, safe Debian layout and leak-safe tool-log retention. A core CRT probe passes actual WiX validation and read-only engine cases; final protected application packages and installation acceptance remain pending (R-NF-2:installers, R-DOC-3, R-SEC-8).

@@ -466,3 +466,10 @@ impl ShellState {
 }
 
 mod manual_review;
+
+impl ShellState {
+    /// Injects validated build display data without deriving a version from UI package metadata.
+    pub fn set_build_presentation(&mut self, build: crate::api::model::BuildPresentation) {
+        self.dialogs.set_build_presentation(build);
+    }
+}
