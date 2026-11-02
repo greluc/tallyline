@@ -29,3 +29,4 @@ pub use crate::image_intake::model::{
     DecodedImage, Downscaled, Encoding, HdrContainer, ImageFormat, ImageIntake,
     ImageIntakeSettings, InvalidImageIntakeSettings, SetAsideReason,
 };
+pub use crate::private_artifact::PrivateArtifactError;

@@ -127,4 +127,6 @@ SQLite schema 3 adds manual Draft records to the shared reference database. Exis
 
 Recognition integration now has a fixed hash-bound Small baseline, private native-loading guards and complete upstream legal texts. A separate synthetic Windows diagnostic checks model output classes; the desktop does not yet perform recognition. Linux, the full pipeline and installation-profile acceptance remain in progress (R-OCR-1, R-SEC-7).
 
-The separate headless OCR diagnostic now verifies below-normal worker priority before it runs. This is a developer diagnostic; desktop recognition, bounded OCR scheduling and idle session release remain in progress (R-NF-3).
+The separate headless OCR diagnostic now verifies below-normal worker priority before it runs. This is a developer diagnostic; desktop recognition and bounded OCR scheduling remain in progress; the developer reader provides explicit inactivity cleanup (R-NF-3).
+
+A developer-only headless raw-reader checkpoint is now implemented with explicit per-model session reuse and idle cleanup. Its portable geometry/crop profile and raw-image/textline probe modes are described in [the example guide](../../crates/app/examples/README.md); it does not enable desktop screenshot recognition. Production scheduling, field interpretation, packaged Linux checks and installation-profile acceptance remain in progress (R-OCR-1, R-NF-3).

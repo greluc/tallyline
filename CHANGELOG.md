@@ -4,13 +4,15 @@ All notable changes are recorded here.
 
 ## [Unreleased]
 
-- Add fixed Small OCR model/dictionary/native data, private Windows load and mapped CRT checks, immutable model snapshots and a bounded synthetic tensor diagnostic. Desktop OCR, Linux, worker lifecycle and installation-profile acceptance remain in progress (R-OCR-1, R-SEC-7, R-SEC-8, R-NF-12, R-NF-13).
+- Add fixed Small OCR model/dictionary/native data, private Windows load and mapped CRT checks, immutable model snapshots and a bounded synthetic tensor diagnostic. Desktop OCR, Linux, production worker lifecycle and installation-profile acceptance remain in progress (R-OCR-1, R-SEC-7, R-SEC-8, R-NF-12, R-NF-13).
 
 - Prepare local OCR telemetry mitigation before startup through a bounded relaunch of the same executable, without requiring a separate launcher or mutating a running multithreaded environment (R-NF-12).
 
 ### Added
 
-- Run the headless OCR diagnostic through an owned worker that verifies below-normal OS priority before its task starts. Production OCR scheduling and session lifetime remain in progress (R-NF-3).
+- Add a developer-only portable Small image/textline reader with DB boxes, original-raster crops, lazy session reuse and explicit idle cleanup. Desktop screenshot recognition and full installation-profile acceptance remain in progress (R-OCR-1, R-NF-3).
+
+- Run the headless OCR diagnostic through an owned worker that verifies below-normal OS priority before its task starts. Production OCR scheduling remains in progress (R-NF-3).
 
 - Added shared bounded PNG/JPEG/BMP intake with explicit colour conversion, full-precision 16-bit PNG handling, HDR/unsupported-colour advice and original-size findings after integer box reduction. The capture UI and recognition pipeline remain in progress (R-CAP-8, R-OCR-17).
 - Reference failures now show the last non-JSON HTTP status, validated Cloudflare Ray and UTC observation time without retaining HTML or changing cached data. HTTPS and same-origin checks precede every request; credentialled technical host overrides require explicit confirmation and disclosure (R-API-3, R-NF-4).
