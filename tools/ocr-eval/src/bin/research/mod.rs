@@ -17,6 +17,7 @@ use std::path::Path;
 
 pub(super) fn run(arguments: &[String]) -> Result<String, String> {
     match arguments.iter().map(String::as_str).collect::<Vec<_>>().as_slice() {
+        ["resource", recorded, profile, state]=>serde_json::to_string(&docker::recorded_resource_state(Path::new(recorded),profile,Path::new(state))?).map_err(|_|"resource output encoding failed".to_owned()),
         ["resource", recorded, profile]=>serde_json::to_string(&docker::recorded_resource(Path::new(recorded),profile)?).map_err(|_|"resource output encoding failed".to_owned()),
         ["verify-model", id, input]=>{plan::model_bytes(Path::new(input),id)?;Ok("Frozen model identity validated; no process started.".to_owned())},
         ["verify-evidence", owned]=>{native::verify_recorded(Path::new(owned))?;Ok("Recorded generated evidence validated; no process started.".to_owned())},

@@ -554,6 +554,7 @@ impl Docker {
                         if !matches!(
                             error.as_str(),
                             "local WSL metadata unavailable"
+                                | "owned container has not entered running state"
                                 | "owned cgroup has no live population"
                                 | "owned cgroup population changed during snapshot"
                         ) && let Err(admission_error) = decide_input(
@@ -675,7 +676,20 @@ impl Docker {
         )?;
         Ok(Attempt { output, receipt })
     }
+    fn inspect(&self, id: &str) -> Result<Value, String> {
+        let raw = self.control(&["inspect", id], 1024 * 1024)?;
+        let value: Value = serde_json::from_slice(&raw).map_err(|_| "owned inspection invalid")?;
+        value
+            .get(0)
+            .cloned()
+            .ok_or("owned container inspection missing".to_owned())
+    }
     fn sample(&self, id: &str, memory: u64, pids: u64, final_read: bool) -> Result<Value, String> {
+        let before = if final_read {
+            None
+        } else {
+            Some(running_state(&self.inspect(id)?)?)
+        };
         let base = format!("/sys/fs/cgroup/docker/{id}");
         let paths = [
             "cgroup.events",
@@ -691,7 +705,16 @@ impl Docker {
         .map(|name| format!("{base}/{name}"));
         let mut arguments = vec!["/bin/cat"];
         arguments.extend(paths.iter().map(String::as_str));
-        parse_cgroup(&self.wsl(&arguments)?, memory, pids, final_read)
+        let mut sample = parse_cgroup(&self.wsl(&arguments)?, memory, pids, final_read)?;
+        if let Some(before) = before {
+            let after = running_state(&self.inspect(id)?)?;
+            let evidence = sample
+                .as_object_mut()
+                .ok_or("owned cgroup evidence invalid")?;
+            evidence.insert("engine_running_before".to_owned(), before);
+            evidence.insert("engine_running_after".to_owned(), after);
+        }
+        Ok(sample)
     }
 }
 
@@ -1150,4 +1173,33 @@ fn decide_input(
     proof
         .send(evidence)
         .map_err(|_| "stdin admission proof receiver unavailable".to_owned())
+}
+
+fn running_state(value: &Value) -> Result<Value, String> {
+    let state = value.get("State").ok_or("owned container state missing")?;
+    match state.get("Status").and_then(Value::as_str) {
+        Some("created") => Err("owned container has not entered running state".to_owned()),
+        Some("running") => {
+            if state.get("Running") != Some(&json!(true))
+                || ["Paused", "Restarting", "Dead"]
+                    .iter()
+                    .any(|name| state.get(name) != Some(&json!(false)))
+            {
+                return Err("owned container running state is inconsistent".to_owned());
+            }
+            Ok(state.clone())
+        }
+        Some("exited" | "dead" | "removing" | "restarting" | "paused") => {
+            Err("owned container is not an active permitted worker".to_owned())
+        }
+        Some(_) | None => Err("owned container status is unknown".to_owned()),
+    }
+}
+pub(super) fn recorded_resource_state(
+    path: &Path,
+    profile: &str,
+    state: &Path,
+) -> Result<Value, String> {
+    running_state(&plan::json(state)?)?;
+    recorded_resource(path, profile)
 }

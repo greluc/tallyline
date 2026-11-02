@@ -319,3 +319,24 @@ fn unpopulated_starting_cgroup_cannot_be_misclassified_as_a_live_limit_refusal()
         String::from_utf8_lossy(&output.stderr).contains("owned cgroup has no live population")
     );
 }
+
+#[test]
+fn created_container_cannot_refuse_or_admit_using_pre_running_kernel_limits() {
+    let fixture = Fixture::new().unwrap();
+    fs::write(fixture.0.join("initial.txt"),b"populated 1\nfrozen 0\nmax 100000\nmax\nmax\nmax\n783780\n8187904\nlow 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0\npopulated 1\nfrozen 0\n").unwrap();
+    fs::write(fixture.0.join("state.json"),br#"{"State":{"Status":"created","Running":false,"Paused":false,"Restarting":false,"Dead":false}}"#).unwrap();
+    let output = fixture
+        .run(&["resource", "initial.txt", "8g", "state.json"])
+        .unwrap();
+    assert!(!output.status.success());
+    assert!(
+        String::from_utf8_lossy(&output.stderr)
+            .contains("owned container has not entered running state")
+    );
+    fs::write(fixture.0.join("state.json"),br#"{"State":{"Status":"running","Running":true,"Paused":false,"Restarting":false,"Dead":false}}"#).unwrap();
+    let output = fixture
+        .run(&["resource", "initial.txt", "8g", "state.json"])
+        .unwrap();
+    assert!(!output.status.success());
+    assert!(String::from_utf8_lossy(&output.stderr).contains("owned cgroup hard limits differ"));
+}
