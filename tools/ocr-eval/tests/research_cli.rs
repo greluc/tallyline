@@ -199,26 +199,49 @@ fn malformed_bmp_and_tsv_are_refused_without_creating_parsed_output() {
             .status
             .success()
     );
+    assert!(!fixture.0.join("invalid-utf8.json").exists());
+    fs::write(
+        fixture.0.join("valid.tsv"),
+        format!("{header}1\t1\t0\t0\t0\t0\t0\t0\t2\t2\t-1\t\n"),
+    )
+    .unwrap();
+    let control = fixture
+        .run(&["tsv", "input.bmp", "valid.tsv", "valid-control.json"])
+        .unwrap();
+    assert!(
+        control.status.success(),
+        "{}",
+        String::from_utf8_lossy(&control.stderr)
+    );
+    let parsed: serde_json::Value =
+        serde_json::from_slice(&fs::read(fixture.0.join("valid-control.json")).unwrap()).unwrap();
+    assert_eq!(parsed["width"], 2);
+    assert_eq!(parsed["height"], 2);
+    assert_eq!(parsed["words"], serde_json::json!([]));
     let original = fs::read(fixture.0.join("input.bmp")).unwrap();
-    for (index, (offset, value)) in [(18usize, 255u8), (28, 32), (30, 1), (60, 1)]
-        .iter()
-        .enumerate()
+    for (index, (offset, value, diagnostic)) in [
+        (18usize, 255u8, "bitmap length or palette is invalid"),
+        (28, 32, "only canonical 24bpp BI_RGB BMP is accepted"),
+        (30, 1, "only canonical 24bpp BI_RGB BMP is accepted"),
+        (60, 1, "bitmap padding must be zero"),
+    ]
+    .iter()
+    .enumerate()
     {
         let mut changed = original.clone();
         *changed.get_mut(*offset).unwrap() = *value;
         fs::write(fixture.0.join("bad.bmp"), changed).unwrap();
+        let destination = format!("bad-bmp-{index}.json");
+        let output = fixture
+            .run(&["tsv", "bad.bmp", "valid.tsv", &destination])
+            .unwrap();
+        assert!(!output.status.success(), "invalid BMP{index} accepted");
         assert!(
-            !fixture
-                .run(&[
-                    "tsv",
-                    "bad.bmp",
-                    "bad.tsv",
-                    &format!("bad-bmp-{index}.json")
-                ])
-                .unwrap()
-                .status
-                .success()
+            String::from_utf8_lossy(&output.stderr).contains(diagnostic),
+            "BMP{index}: {}",
+            String::from_utf8_lossy(&output.stderr)
         );
+        assert!(!fixture.0.join(destination).exists());
     }
 }
 
