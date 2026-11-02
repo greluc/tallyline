@@ -1239,3 +1239,112 @@ fn r_ui_11_q_manual_r_nf_5__effective_staleness_uses_fifteen_days_until_uex_and_
         tallyline_reference_data::api::model::StalenessSource::Uex
     );
 }
+
+#[test]
+#[expect(
+    non_snake_case,
+    reason = "Requirement tags use a double underscore separator."
+)]
+fn r_val_2_q_manual__effective_price_policy_has_a_sourced_documented_fallback_and_cached_uex_provenance()
+ {
+    use std::num::NonZeroU32;
+    use tallyline_reference_data::api::model::{
+        AcceptanceSwitch, CommodityConstraints, PriceToleranceSource, ReferenceParameters,
+        SubmissionAcceptance,
+    };
+    let mut app = ReferenceApplication::load(MemoryCache(vec![]), FixedClock).unwrap();
+    let policy = app
+        .snapshot(UexEnvironment::Live)
+        .effective_price_tolerance(None);
+    assert_eq!(policy.percent().get(), 25);
+    let PriceToleranceSource::SettingsFallback(source) = policy.source() else {
+        panic!("missing documented fallback provenance")
+    };
+    assert_eq!(source.percent().get(), 25);
+    assert_eq!(source.verified_on(), "2026-11-02");
+    assert_eq!(
+        source.source_url(),
+        "https://api.uexcorp.uk/2.0/data_parameters"
+    );
+    app.refreshed(EndpointData::Parameters(ReferenceParameters::new(
+        SubmissionAcceptance {
+            datacenter: AcceptanceSwitch::Enabled,
+            reports: AcceptanceSwitch::Enabled,
+            commodity: AcceptanceSwitch::Enabled,
+            ptu: AcceptanceSwitch::Disabled,
+        },
+        CommodityConstraints {
+            price_variation_percent: 10,
+            prior_ttl_days: NonZeroU32::new(15).unwrap(),
+            scu_variation_percent: 5000,
+        },
+        None,
+    )))
+    .unwrap();
+    let policy = app
+        .snapshot(UexEnvironment::Live)
+        .effective_price_tolerance(None);
+    assert_eq!(policy.percent().get(), 10);
+    assert_eq!(
+        policy.source(),
+        PriceToleranceSource::Uex(Timestamp::from_seconds(7200))
+    );
+}
+
+#[test]
+#[expect(
+    non_snake_case,
+    reason = "Requirement tags use a double underscore separator."
+)]
+fn r_val_2_q_manual_r_nf_5__price_override_only_tightens_and_reports_an_ignored_relaxation() {
+    use tallyline_shared_kernel::api::model::Percent;
+    let app = ReferenceApplication::load(MemoryCache(vec![]), FixedClock).unwrap();
+    let reference = app.snapshot(UexEnvironment::Live);
+    let tighter = reference.effective_price_tolerance(Some(Percent::whole(10)));
+    assert_eq!(tighter.percent().get(), 10);
+    assert!(!tighter.override_ignored());
+    let looser = reference.effective_price_tolerance(Some(Percent::whole(50)));
+    assert_eq!(looser.percent().get(), 25);
+    assert!(looser.override_ignored());
+    assert!(
+        !reference
+            .effective_price_tolerance(Some(Percent::whole(25)))
+            .override_ignored()
+    );
+}
+
+#[test]
+#[expect(
+    non_snake_case,
+    reason = "Requirement tags use a double underscore separator."
+)]
+fn r_val_2_q_manual_r_val_2a_q_manual__shared_price_policy_owns_both_reference_bands() {
+    use tallyline_reference_data::api::model::PriceReferenceSource;
+    use tallyline_shared_kernel::api::model::PricePerScu;
+    let app = ReferenceApplication::load(MemoryCache(vec![]), FixedClock).unwrap();
+    let policy = app
+        .snapshot(UexEnvironment::Live)
+        .effective_price_tolerance(None);
+    let boundary = "120"
+        .parse::<PricePerScu>()
+        .unwrap()
+        .difference("80".parse().unwrap())
+        .unwrap();
+    assert_eq!(
+        policy.exceeded_by(boundary, PriceReferenceSource::Terminal),
+        Ok(true)
+    );
+    assert_eq!(
+        policy.exceeded_by(boundary, PriceReferenceSource::CommodityAverage),
+        Ok(false)
+    );
+    let outside = "120.00000000000000000000000001"
+        .parse::<PricePerScu>()
+        .unwrap()
+        .difference("80".parse().unwrap())
+        .unwrap();
+    assert_eq!(
+        policy.exceeded_by(outside, PriceReferenceSource::CommodityAverage),
+        Ok(true)
+    );
+}

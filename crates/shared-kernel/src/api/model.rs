@@ -72,3 +72,4 @@ pub struct ReportId(pub u64);
 /// A stable row identity within a Report.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct RowId(pub u64);
+pub use crate::delta::{Delta, Percent, PrecisionUnavailable};

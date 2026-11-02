@@ -22,3 +22,5 @@ pub enum ReportType {
     VehicleRent,
 }
 pub use crate::assessment::{Deviation, StatusAssessment};
+pub use crate::price_assessment::{AssessmentUnavailable, PriceAssessment};
+pub use tallyline_reference_data::api::model::PriceReferenceSource;
