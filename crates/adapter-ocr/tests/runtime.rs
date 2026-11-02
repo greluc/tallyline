@@ -99,7 +99,10 @@ const LIBRARY: (&str, &str, u64) = ("windows", "onnxruntime.dll", 17_253_176);
 const LIBRARY: (&str, &str, u64) = ("linux", "libonnxruntime.so.1.31.0", 29_345_384);
 
 fn run_prepared_probe(mode: &str, verified: bool) -> std::io::Result<()> {
-    let base = std::env::temp_dir().canonicalize()?;
+    let base = fixture_stage(
+        "canonicalise temporary root",
+        std::env::temp_dir().canonicalize(),
+    )?;
     let mut directory = None;
     for attempt in 0..100 {
         let path = base.join(format!(
@@ -112,45 +115,96 @@ fn run_prepared_probe(mode: &str, verified: bool) -> std::io::Result<()> {
                 break;
             }
             Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists => {}
-            Err(error) => return Err(error),
+            Err(error) => return fixture_stage("reserve directory", Err(error)),
         }
     }
     let directory =
         directory.ok_or_else(|| std::io::Error::other("cannot reserve loader probe directory"))?;
     let executable = directory.join(if cfg!(windows) { "probe.exe" } else { "probe" });
-    std::fs::copy(std::env::current_exe()?, &executable)?;
+    fixture_stage(
+        "copy executable",
+        std::fs::copy(
+            fixture_stage("locate executable", std::env::current_exe())?,
+            &executable,
+        ),
+    )?;
     if verified {
         let source = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
             .join("assets/runtime")
             .join(LIBRARY.0)
             .join(LIBRARY.1);
-        std::fs::copy(source, directory.join(LIBRARY.1))?;
+        fixture_stage(
+            "copy verified library",
+            std::fs::copy(source, directory.join(LIBRARY.1)),
+        )?;
     } else if mode == "wrong-library" {
-        std::fs::File::create(directory.join(LIBRARY.1))?.set_len(LIBRARY.2)?;
+        fixture_stage(
+            "size invalid library",
+            fixture_stage(
+                "create invalid library",
+                std::fs::File::create(directory.join(LIBRARY.1)),
+            )?
+            .set_len(LIBRARY.2),
+        )?;
     }
-    let outcome = std::process::Command::new(executable)
-        .args(["--exact", "loader_probe", "--nocapture"])
-        .env("ORT_DISABLE_TELEMETRY", "1")
-        .env("TALLYLINE_LOADER_PROBE", mode)
-        .output()?;
-    let actual = directory.canonicalize()?;
-    let prefix = format!("tallyline-loader-{}-", std::process::id());
-    if !actual.starts_with(&base)
-        || !actual
-            .file_name()
-            .and_then(|name| name.to_str())
-            .is_some_and(|name| name.starts_with(&prefix))
-    {
-        return Err(std::io::Error::other(
-            "loader cleanup escaped owned directory",
-        ));
+    let outcome = fixture_stage(
+        "start/wait child",
+        std::process::Command::new(executable)
+            .args(["--exact", "loader_probe", "--nocapture"])
+            .env("ORT_DISABLE_TELEMETRY", "1")
+            .env("TALLYLINE_LOADER_PROBE", mode)
+            .output(),
+    )?;
+    let child = if outcome.status.success() {
+        Ok(())
+    } else {
+        Err(std::io::Error::other(format!(
+            "loader fixture child status {}: {} {}",
+            outcome.status,
+            String::from_utf8_lossy(&outcome.stdout),
+            String::from_utf8_lossy(&outcome.stderr)
+        )))
+    };
+    let cleanup = (|| {
+        let actual = fixture_stage("canonicalise cleanup directory", directory.canonicalize())?;
+        let prefix = format!("tallyline-loader-{}-", std::process::id());
+        if !actual.starts_with(&base)
+            || !actual
+                .file_name()
+                .and_then(|name| name.to_str())
+                .is_some_and(|name| name.starts_with(&prefix))
+        {
+            return Err(std::io::Error::other(
+                "loader cleanup escaped owned directory",
+            ));
+        }
+        fixture_stage("remove owned directory", std::fs::remove_dir_all(actual))
+    })();
+    match (child, cleanup) {
+        (Err(primary), Err(cleanup)) => Err(std::io::Error::other(format!(
+            "{primary}; additional cleanup failure: {cleanup}"
+        ))),
+        (Err(primary), Ok(())) => Err(primary),
+        (Ok(()), result) => result,
     }
-    std::fs::remove_dir_all(actual)?;
+}
+
+fn fixture_stage<T>(operation: &'static str, result: std::io::Result<T>) -> std::io::Result<T> {
+    result.map_err(|error| {
+        std::io::Error::new(
+            error.kind(),
+            format!("loader fixture {operation}: {error:?}"),
+        )
+    })
+}
+
+#[test]
+fn child_failure_is_returned_with_its_own_diagnostic_after_cleanup() {
+    let error = run_prepared_probe("invalid-child", true).unwrap_err();
+    let message = error.to_string();
+    assert!(message.contains("loader fixture child status"), "{message}");
     assert!(
-        outcome.status.success(),
-        "{mode}: {} {}",
-        String::from_utf8_lossy(&outcome.stdout),
-        String::from_utf8_lossy(&outcome.stderr)
+        message.contains("unexpected loader probe invalid-child"),
+        "{message}"
     );
-    Ok(())
 }
