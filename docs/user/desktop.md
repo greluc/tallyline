@@ -167,7 +167,9 @@ SQLite schema 6 stores private-copy integrity and account-scoped dates, with a c
 
 Open **Manual Report** and resume a Draft to use these controls, including offline reference state. The view uses the currently accepted credential account; another account never inherits its displayed requirement. Headless critical editor flows and real worker/storage restart paths are tested; no native visual acceptance is claimed. Attachment readiness checks do not complete the remaining Report release, calibrated SCU, observation-age, queue or sending rules.
 
-
 ## Distribution verification status
 
 The packaging helper now writes plain archives from prebuilt directories and verifies approved tool bytes and harmless-fixture boundaries. See [the packaging record](../packaging-spike.md). These foundation commands do not establish a release, a complete application distribution or successful MSI/Debian installation. Windows OCR still requires the separately installed Visual C++ Redistributable described by ADR-0009; packages must not bundle the forbidden Microsoft runtime DLLs. Installed/upgrade/native-display and no-extra-prerequisite acceptance remain pending.
+
+
+Prebuilt staging now includes the approved native OCR library, Small model/dictionary and original font licences, and checks their exact identities alongside the legal catalogue. A restored original font-licence encoding corrects a prior packaging mismatch. These byte-level checks still do not establish installed or native-display acceptance.

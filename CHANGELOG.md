@@ -6,6 +6,8 @@ All notable changes are recorded here.
 
 ### Added
 
+- Prebuilt staging now seals approved native/model/font resources and binds delivered legal text to its catalogue before token insertion. The IBM font licence retains its original upstream encoding; protected installer acceptance remains pending (R-DOC-3, R-SEC-8).
+
 - Prebuilt distribution helper foundations validate release-version syntax and approved packaging tools, write plain archives and detect harmless fixture leaks without echoing values. Complete protected installer and installed-system acceptance remain pending (R-NF-2:installers, R-NF-4, R-SEC-8).
 
 - Add explicit developer-only Tiny/Small/Medium OCR research pairs with exact model/dictionary bindings and private experiment receipts; production profile selection and real hardware acceptance remain open (R-OCR-1, R-SEC-7; ADR-0012).
