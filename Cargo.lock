@@ -3729,6 +3729,7 @@ dependencies = [
  "tallyline-reporting",
  "tallyline-shared-kernel",
  "tallyline-submission",
+ "tallyline-workflows",
 ]
 
 [[package]]

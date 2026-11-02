@@ -519,12 +519,7 @@ fn r_sec_8__protected_commands_reject_a_bad_seal_before_fixture_access() {
 #[test]
 fn r_doc_3_r_sec_8__source_bindings_detect_graph_neutral_lockfile_byte_changes() {
     let directory = crate::scratch::Scratch::new();
-    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
-        .parent()
-        .unwrap();
-    for name in ["Cargo.lock", "NOTICE", "supply-chain/notices.toml"] {
-        directory.write(name, &std::fs::read_to_string(root.join(name)).unwrap());
-    }
+    let root = copy_bound_source_inputs(&directory);
     let arguments = [
         "source-bindings".into(),
         directory.path().display().to_string(),
@@ -541,4 +536,51 @@ fn r_doc_3_r_sec_8__source_bindings_detect_graph_neutral_lockfile_byte_changes()
             .to_string()
             .contains("stale packaging legal source binding: Cargo.lock")
     );
+}
+
+#[test]
+fn r_doc_3_r_sec_8__source_bindings_reject_manifest_only_feature_changes() {
+    let directory = crate::scratch::Scratch::new();
+    let root = copy_bound_source_inputs(&directory);
+    let arguments = [
+        "source-bindings".into(),
+        directory.path().display().to_string(),
+    ];
+    crate::package::run(&arguments).unwrap();
+    let original = std::fs::read_to_string(root.join("crates/app/Cargo.toml")).unwrap();
+    let changed = original.replace(", \"rt-multi-thread\"", "");
+    assert_ne!(original, changed);
+    directory.write("crates/app/Cargo.toml", &changed);
+    let error = crate::package::run(&arguments).unwrap_err();
+    assert!(
+        error
+            .to_string()
+            .contains("stale packaging legal source binding: crates/app/Cargo.toml"),
+        "{error}"
+    );
+    assert_eq!(
+        std::fs::read(root.join("Cargo.lock")).unwrap(),
+        std::fs::read(directory.path().join("Cargo.lock")).unwrap()
+    );
+}
+
+fn copy_bound_source_inputs(directory: &crate::scratch::Scratch) -> std::path::PathBuf {
+    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .parent()
+        .unwrap();
+    let profile: serde_json::Value = serde_json::from_str(
+        &std::fs::read_to_string(root.join("supply-chain/package-legal-profiles.json")).unwrap(),
+    )
+    .unwrap();
+    let mut names = profile["source_inputs"]
+        .as_object()
+        .unwrap()
+        .keys()
+        .map(String::as_str)
+        .collect::<std::collections::BTreeSet<_>>();
+    names.extend(["Cargo.toml", "crates/app/Cargo.toml"]);
+    for name in names {
+        directory.write(name, &std::fs::read_to_string(root.join(name)).unwrap());
+    }
+    root.to_path_buf()
 }

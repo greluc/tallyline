@@ -136,3 +136,5 @@ Packaging verification now pins each target’s exact legal catalogue to reviewe
 The [SCU policy evidence](docs/scu-policy-calibration.md) documents explicit read-only quantity assessment and a bounded candidate comparison. It records a provisional 20 % / 16 SCU recommendation with explicit empirical limits; settings adoption, guarded desktop quantity review and complete release/submission remain in progress (R-VAL-2).
 
 Source preparation now verifies actual archived component bytes and seals a source reference before harmless fixture insertion. The normal check rejects stale legal source bindings. Protected installer and installed-system acceptance remain pending; see [the packaging record](docs/packaging-spike.md).
+
+Distribution source checks also bind every workspace manifest, so feature-only changes invalidate stale legal source bindings even when Cargo.lock stays unchanged.

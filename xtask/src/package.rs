@@ -9,6 +9,7 @@ mod manifest;
 mod payload;
 mod scan;
 mod source_archive;
+mod source_inputs;
 mod source_map;
 pub mod tools;
 mod verify;

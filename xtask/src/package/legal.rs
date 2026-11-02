@@ -193,24 +193,28 @@ pub(super) fn verify_source_inputs(root: Option<&Path>) -> io::Result<()> {
     let profiles: Value = serde_json::from_str(include_str!(
         "../../../supply-chain/package-legal-profiles.json"
     ))?;
+    let sources = super::source_inputs::compiled()?;
     let expected = profiles
         .get("source_inputs")
         .and_then(Value::as_object)
-        .filter(|inputs| inputs.len() == 3)
+        .filter(|inputs| inputs.len() == sources.len())
         .ok_or_else(|| io::Error::other("packaging legal source bindings are malformed"))?;
-    for (name, compiled) in [
-        (
-            "Cargo.lock",
-            include_bytes!("../../../Cargo.lock").as_slice(),
-        ),
-        ("NOTICE", include_bytes!("../../../NOTICE").as_slice()),
-        (
-            "supply-chain/notices.toml",
-            include_bytes!("../../../supply-chain/notices.toml").as_slice(),
-        ),
-    ] {
+    for (name, compiled) in sources {
         let material = if let Some(root) = root {
-            let path = root.join(name);
+            let mut path = root.to_path_buf();
+            if !fs::symlink_metadata(&path)?.file_type().is_dir() {
+                return Err(io::Error::other(
+                    "packaging source root must be a directory",
+                ));
+            }
+            for component in Path::new(name).components() {
+                path.push(component);
+                if fs::symlink_metadata(&path)?.file_type().is_symlink() {
+                    return Err(io::Error::other(
+                        "packaging legal source input must not be linked",
+                    ));
+                }
+            }
             let metadata = fs::symlink_metadata(&path)?;
             if !metadata.file_type().is_file() || metadata.len() > MAX_NOTICE_BYTES {
                 return Err(io::Error::other(

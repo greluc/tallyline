@@ -6,6 +6,8 @@ All notable changes are recorded here.
 
 ### Added
 
+- Bind every workspace manifest during legal source freshness checks, including feature-only changes with unchanged lockfile bytes; retain verified existing Rust/ORT source offers without helper binaries (R-DOC-3, R-SEC-8).
+
 - Verify actual source-archive file evidence and exact native source scopes before sealing fixture insertion; reject stale legal source bindings in the normal check. Protected installer and actual token-format acceptance remain pending (R-DOC-3, R-SEC-8).
 
 - Pin exact target legal catalogues during prebuilt verification and reject source archives that differ from their unpacked source; complete native source and protected installer acceptance remain open (R-DOC-3, R-SEC-8).

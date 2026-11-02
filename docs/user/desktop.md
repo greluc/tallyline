@@ -185,3 +185,5 @@ The developer-only SCU policy experiment recommends provisional 20 % / 16 SCU st
 Distribution preparation now validates mapped source files in the actual source archive and seals the source reference before harmless fixture insertion. Stale legal source bindings fail the normal check. This remains preparatory evidence: complete protected installers, actual UEX token-format confirmation and installed/native acceptance are pending.
 
 Distribution preparation now validates mapped source files in the actual source archive and seals the source reference before harmless fixture insertion. Stale legal source bindings fail the normal check. This remains preparatory evidence: complete protected installers, actual UEX token-format confirmation and installed/native acceptance are pending.
+
+The preparation check now also rejects changed workspace manifests, including feature-only changes that leave the dependency lockfile unchanged. Installer and installed-system acceptance remain pending.
