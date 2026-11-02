@@ -21,3 +21,5 @@ pub use crate::theme::resolve_theme;
 
 pub use crate::manual_views::show_manual_editor;
 pub use crate::reference_views::show_reference_browser;
+
+pub use crate::attachment_views::show_manual_attachment_editor;

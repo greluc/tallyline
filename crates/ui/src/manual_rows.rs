@@ -28,7 +28,7 @@ pub(crate) fn show(
     ui.label(format!(
         "{} {}",
         catalogue.text("manual.observed"),
-        report.observed_at().seconds()
+        crate::attachment_views::format_time(report.observed_at())
     ));
     let priors = snapshot.terminal_priors(report.key().terminal());
     let mut add = None;

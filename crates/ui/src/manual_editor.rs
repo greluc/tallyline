@@ -12,6 +12,8 @@ use tallyline_shared_kernel::api::model::{CommodityId, TerminalId, TradeSide};
 /// A manual Report operation handled by the app-owned storage worker.
 #[derive(Clone, Debug)]
 pub enum ManualCommand {
+    /// Explicit local attachment work, performed only by the bounded app worker.
+    Attachment(crate::attachment_editor::ManualAttachmentCommand),
     /// Create an empty Draft with explicit context.
     Create {
         /// User-selected context.
@@ -56,6 +58,8 @@ pub struct ManualEditor {
     pub(crate) busy: bool,
     pub(crate) notice: Option<String>,
     command: Option<ManualCommand>,
+    pending_attachments: Vec<(ReportId, u64)>,
+    pub(crate) attachment: crate::attachment_editor::AttachmentEditor,
 }
 impl ManualEditor {
     /// Returns the selected durable Draft.
@@ -72,31 +76,96 @@ impl ManualEditor {
     /// Clears a failed delivery while keeping the user's input visible.
     pub fn failed(&mut self, error: RepositoryError) {
         self.busy = false;
+        self.pending_attachments
+            .retain(|(id, _)| Some(*id) != self.selected);
         self.notice = Some(error.to_string());
     }
     pub(crate) fn queue(&mut self, command: ManualCommand) {
         if self.ready && !self.busy {
+            let pending = match &command {
+                ManualCommand::Attachment(request) => Some((request.id, request.expected)),
+                ManualCommand::Create { .. } | ManualCommand::Edit { .. } => None,
+            };
+            if let Some((id, expected)) = pending {
+                self.pending_attachments.retain(|(old, _)| *old != id);
+                self.pending_attachments.push((id, expected));
+            }
             self.command = Some(command);
             self.busy = true;
             self.notice = None;
         }
     }
     pub(crate) fn loaded(&mut self, reports: Vec<Report>, selected: Option<ReportId>) {
+        let before = self
+            .selected()
+            .map(|report| (report.id(), report.version()));
+        self.pending_attachments.retain(|(id, expected)| {
+            reports
+                .iter()
+                .any(|report| report.id() == *id && report.version() == *expected)
+        });
         self.reports = reports;
         self.ready = true;
-        self.busy = false;
-        self.notice = None;
+        let changed = before
+            != self
+                .selected()
+                .map(|report| (report.id(), report.version()));
         if let Some(id) = selected {
+            self.busy = false;
+            self.notice = None;
+            self.attachment.readiness = None;
             self.select(id);
-        } else if self.selected.is_none() {
+        } else if changed || self.selected.is_none() {
+            self.attachment.readiness = None;
+            self.busy = self
+                .pending_attachments
+                .iter()
+                .any(|(id, _)| Some(*id) == self.selected);
+        }
+        if self.selected.is_none() && self.environment.is_none() {
             self.environment = self
                 .reports
                 .first()
                 .map(|report| report.key().environment());
         }
+        if self.attachment.preview.as_ref().is_some_and(|preview| {
+            self.selected().is_none_or(|report| {
+                report
+                    .attachment()
+                    .is_none_or(|attachment| attachment.binding() != preview.binding())
+            })
+        }) {
+            self.attachment.clear_preview();
+        }
+    }
+    pub(crate) fn finish_attachment_request(&mut self, id: ReportId, expected: u64) -> bool {
+        let matched = self.pending_attachments.contains(&(id, expected));
+        if matched {
+            self.pending_attachments
+                .retain(|request| *request != (id, expected));
+            if self.selected == Some(id) {
+                self.busy = false;
+            }
+        }
+        matched
     }
     pub(crate) fn select(&mut self, id: ReportId) {
         if let Some(report) = self.reports.iter().find(|report| report.id() == id) {
+            if self.selected != Some(id) {
+                self.busy = self
+                    .pending_attachments
+                    .iter()
+                    .any(|(pending, _)| *pending == id);
+            }
+            if self.selected != Some(id)
+                || self.attachment.preview.as_ref().is_some_and(|preview| {
+                    report
+                        .attachment()
+                        .is_none_or(|attachment| attachment.binding() != preview.binding())
+                })
+            {
+                self.attachment.clear_preview();
+            }
             self.selected = Some(id);
             self.environment = Some(report.key().environment());
             self.terminal = Some(report.key().terminal());
@@ -115,6 +184,8 @@ impl ManualEditor {
         }
     }
     pub(crate) fn new_draft(&mut self) {
+        self.attachment.clear_preview();
+        self.busy = false;
         self.selected = None;
         self.terminal = None;
         self.side = None;

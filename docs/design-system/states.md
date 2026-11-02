@@ -1,6 +1,6 @@
 # States: from the domain to the screen
 
-> **Doc type:** Living spec — draft (JavaFX handoff stage 2; ADR-0004 partly superseded by ADR-0005). Last reviewed: 2026-11-01.
+> **Doc type:** Living spec — draft (JavaFX handoff stage 2; ADR-0004 partly superseded by ADR-0005). Last reviewed: 2026-11-02.
 
 > **Note 2026-10-12:** [ADR-0005](../adr/0005-rust-and-egui.md) replaces JavaFX with egui. The state ids, their meaning and their plan sources stand. The JavaFX column below (pseudo-classes such as `:confidence-confirm`, `:row-selected`, and the style classes `tl-state-<id>`) names a CSS mechanism that no longer exists: in the egui rendition each state is a variant or flag on the widget (for example `Confidence`, `Deviation`, `ChipTone` of the Tallyline crate), keyed by the same state id, and the "Selection and focus in the review table (SP-9)" paragraph is a JavaFX finding (egui has no CSS pseudo-classes; the review table is our own work, ADR-0005 D3). Open point O-112 decides what of the crate is adopted; see [README.md](README.md), "egui rendition (ADR-0005)".
 
@@ -124,3 +124,7 @@ The Game channel directory text input is associated with its visible catalogue l
 The reference browser uses normal token-backed labels and controls in every theme. Global text identifies the mapped UEX environment, an empty cache, usable cached data or offline retained records, with a separate static refresh label. Endpoint ages distinguish missing data from an unknown age after a reversed clock. Search fields have explicit accessible label associations and stable widget IDs so background status changes preserve keyboard focus. Terminal and commodity rows expose their UEX IDs alongside display text; selection never depends on colour alone. Channel mapping is independent of the optional witness and remains unchanged until persistence succeeds (R-CAP-3a, R-UI-8, R-UI-13, R-UI-16, R-UI-17).
 
 The shell shows one copy of reference status in every view, including the parameter endpoint age and at most 280 Unicode characters of literal UEX staff text. Markup and links have no active behaviour. A paused submission service leaves browser controls enabled; reference delivery recovery clears its own notice without suppressing a settings failure.
+
+## Manual attachment states (2026-11-02)
+
+The private-region editor component uses normal token-backed text and controls in every theme, with accessible labels on the source path, rectangle spin buttons and time input. A 100% source-scale scrollable preview uses nearest-neighbour texture sampling and an explicit contains-no-private-data action. Dated account-required/unknown/unavailable states, missing or changed files, uncertain time, unsupported HDR/colour, invalid geometry and storage failures have text plus an action; none relies on colour. Passive results never change focus, view or window state. Current Report ID/version/binding and account identity filter stale results. Manual Report composes the controls with accepted account state even offline. Passive updates preserve unfinished input and do not clear another Report's pending request. Native visual acceptance remains pending.

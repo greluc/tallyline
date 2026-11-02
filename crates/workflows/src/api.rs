@@ -193,3 +193,13 @@ impl<S: AppSettingsStore> SettingsApplication<S> {
         Ok(())
     }
 }
+
+pub use crate::attachments::{AttachmentRequest, WorkingCopyFailure, WorkingCopyStore};
+
+pub use crate::attachments::{
+    ManualAttachmentBlock, ManualAttachmentPreview, manual_attachment_readiness,
+};
+
+pub use crate::attachments::{ManualAttachmentFailure, confirm_manual_attachment};
+
+pub use crate::attachments::ManualAttachmentInputFailure;

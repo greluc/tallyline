@@ -23,3 +23,5 @@ mod image_intake;
 mod manual_attachment;
 
 mod private_artifact;
+
+mod working_copies;

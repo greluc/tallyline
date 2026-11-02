@@ -27,6 +27,41 @@ pub enum View {
 /// A worker result that never requests a dialog or window command.
 #[derive(Debug)]
 pub enum BackgroundEvent {
+    /// Source-scale selected region delivered only for the exact current Report version.
+    AttachmentPreview {
+        /// Stable Report identity.
+        id: tallyline_reporting::api::model::ReportId,
+        /// Version for which this result was prepared.
+        expected: u64,
+        /// Private region only, with its source binding and observation time.
+        preview: tallyline_workflows::api::ManualAttachmentPreview,
+    },
+    /// Current account evidence and the attachment-related part of release readiness.
+    AttachmentStatus {
+        /// Stable Report identity.
+        id: tallyline_reporting::api::model::ReportId,
+        /// Current version checked by the worker.
+        expected: u64,
+        /// Accepted account snapshot used for this policy lookup.
+        account: tallyline_submission::api::model::AccountState,
+        /// Dated account policy, or an actionable storage failure.
+        policy: Result<
+            tallyline_submission::api::model::ScreenshotPolicy,
+            tallyline_submission::api::model::StorageFailure,
+        >,
+        /// Attachment-only verdict, without claiming complete release readiness.
+        readiness: Result<(), tallyline_workflows::api::ManualAttachmentBlock>,
+    },
+    /// A private attachment operation failed without changing the view or focus.
+    AttachmentFailed {
+        /// Stable Report identity.
+        id: tallyline_reporting::api::model::ReportId,
+        /// Version requested by the user action.
+        expected: u64,
+        /// Closed actionable failure with no path or pixels.
+        failure: tallyline_workflows::api::ManualAttachmentFailure,
+    },
+
     /// A persistent directory-access warning after successful read/write probing.
     StorageWarning(String),
     /// A passive credential result with no secret values.
@@ -160,6 +195,26 @@ impl ShellState {
     /// Applies a worker result without changing the view or window state.
     pub fn receive(&mut self, event: BackgroundEvent) {
         match event {
+            BackgroundEvent::AttachmentPreview {
+                id,
+                expected,
+                preview,
+            } => self.manual.preview_received(id, expected, preview),
+            BackgroundEvent::AttachmentStatus {
+                id,
+                expected,
+                account,
+                policy,
+                readiness,
+            } => self
+                .manual
+                .attachment_status(id, expected, account, policy, readiness),
+            BackgroundEvent::AttachmentFailed {
+                id,
+                expected,
+                failure,
+            } => self.manual.attachment_failed(id, expected, failure),
+
             BackgroundEvent::StorageWarning(warning) => self.storage_warning = Some(warning),
             BackgroundEvent::CredentialsUpdated {
                 account,

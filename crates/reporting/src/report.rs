@@ -379,11 +379,12 @@ impl Report {
             binding: attachment.binding,
             time: attachment.time,
             preview_confirmed: attachment.preview_confirmed,
+            working_copy: attachment.working_copy,
         });
-        if report
-            .attachment
-            .is_some_and(|attachment| attachment.time.at() < report.observed_at)
-        {
+        if report.attachment.is_some_and(|attachment| {
+            attachment.time.at() < report.observed_at
+                || (attachment.working_copy.is_some() && !attachment.preview_confirmed)
+        }) {
             return Err(InvalidReport);
         }
         report.version = stored.version;

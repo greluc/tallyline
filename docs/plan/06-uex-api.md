@@ -311,3 +311,7 @@ A credential-free read of the primary public [`GET /data_parameters`](https://ap
 ### Manual attachment encoding checkpoint (2026-11-02)
 
 The official read-only [data_submit documentation](https://uexcorp.space/api/documentation/id/post_data_submit/) was checked again for screenshot input: PNG/JPG in Base64, documented 10.00 MB and evaluation-period requirement. This does not supersede the owner's stricter Base64 bound or the UEX team's stored-size guidance above. The manual attachment encoder emits only a user-confirmed selected region as PNG within 1920×1080 and at most 10,000,000 Base64 bytes, without a data-URL prefix. This headless slice has made no UEX write, including no dry run; account requirement learning and sending remain pending.
+
+### Account screenshot evidence implementation (2026-11-02)
+
+The adapter maps only an actual rejected response with the exact documented `screenshot_required` code into typed Submission evidence. The localmock contract supplies dummy credentials and performs no UEX write. `GET /user` still has no screenshot flag; neither a successful response nor an unrelated rejection invents a requirement. `ScreenshotPolicyApplication` records the newest answer date against the validated account used by that attempt, persists before publication, and clears only that account after the explicit try-without action. The desktop consumes this policy through the attachment workflow; the complete submission lifecycle and its feedback delivery remain separate pending work.

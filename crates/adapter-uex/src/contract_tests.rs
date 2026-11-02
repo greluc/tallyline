@@ -325,6 +325,13 @@ async fn data_submit__screenshot_check_keeps_its_error_code() -> Outcome {
         )
         .await;
 
+    assert_eq!(
+        result
+            .as_ref()
+            .err()
+            .and_then(ReadError::screenshot_requirement),
+        Some(tallyline_submission::api::model::ScreenshotRequirement::Required)
+    );
     assert!(
         matches!(result, Err(ReadError::Rejected { code, data: None, .. }) if code == "screenshot_required")
     );
