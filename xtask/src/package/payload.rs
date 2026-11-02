@@ -84,6 +84,7 @@ pub(super) fn verify(root: &Path, target: Target) -> io::Result<()> {
         ));
     }
     super::manifest::legal_catalogue(root)?;
+    super::legal::verify_profile(root, target)?;
     let project_licence: &[u8] = include_bytes!("../../../LICENSE");
     if fs::read(root.join("LICENSE"))?.as_slice() != project_licence
         || fs::read(root.join("NOTICE"))? != fs::read(root.join("legal/fan-kit/NOTICE"))?

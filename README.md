@@ -130,3 +130,5 @@ Prebuilt distribution helper foundations provide strict release-version syntax/M
 
 
 Prebuilt preparation now seals the existing app, approved native/model/font resources, complete legal material and exact packaging tools before token insertion. The retained seal detects changed bytes, unlisted files or a different helper; physical notice text must match the legal catalogue. The original IBM font licence encoding is restored to its selected upstream hash. Protected installer/source-duty acceptance remains in progress; see the packaging record.
+
+Packaging verification now pins each target’s exact legal catalogue to reviewed source inputs. Secret-free source evidence also rejects a source archive that differs from its unpacked tree. Complete native source scopes and protected installer assembly remain in progress; see [the packaging record](docs/packaging-spike.md).

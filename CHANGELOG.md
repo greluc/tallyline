@@ -6,6 +6,8 @@ All notable changes are recorded here.
 
 ### Added
 
+- Pin exact target legal catalogues during prebuilt verification and reject source archives that differ from their unpacked source; complete native source and protected installer acceptance remain open (R-DOC-3, R-SEC-8).
+
 - Prebuilt staging now seals approved native/model/font resources and binds delivered legal text to its catalogue before token insertion. The IBM font licence retains its original upstream encoding; protected installer acceptance remains pending (R-DOC-3, R-SEC-8).
 
 - Prebuilt distribution helper foundations validate release-version syntax and approved packaging tools, write plain archives and detect harmless fixture leaks without echoing values. Complete protected installer and installed-system acceptance remain pending (R-NF-2:installers, R-NF-4, R-SEC-8).

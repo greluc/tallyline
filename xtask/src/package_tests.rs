@@ -272,6 +272,17 @@ fn r_doc_3__legal_inventory_binds_notice_bytes_and_refuses_extra_files() {
         directory.path().display().to_string(),
     ];
     crate::package::run(&arguments).unwrap();
+    let profile_error = crate::package::run(&[
+        "legal-verify".into(),
+        "windows".into(),
+        directory.path().display().to_string(),
+    ])
+    .unwrap_err();
+    assert!(
+        profile_error
+            .to_string()
+            .contains("approved target legal catalogue")
+    );
     directory.write(
         "legal/crates/fixture-1.0.0/LICENSE",
         "Changed attribution text\n",
@@ -291,4 +302,69 @@ fn r_sec_8__a_wrong_seal_fails_before_any_tool_inventory_is_trusted() {
     directory.write("package-manifest.json", "{}");
     let error = crate::package::verify_stage(directory.path(), &"0".repeat(64)).unwrap_err();
     assert!(error.to_string().contains("seal mismatch"));
+}
+
+#[test]
+fn r_doc_3__source_inventory_maps_real_unpacked_registry_source() {
+    let directory = crate::scratch::Scratch::new();
+    directory.write(
+        "payload/legal/crates/fixture-1.0.0/LICENSE",
+        "Known original licence fixture\n",
+    );
+    directory.write(
+        "payload/legal/crates/index.tsv",
+        "crate\tversion\tdeclared\tdetected\nfixture\t1.0.0\tMIT\tMIT\n",
+    );
+    directory.write("payload/legal/catalogue.json", r#"{"schema_version":1,"components":[{"name":"fixture","version":"1.0.0","declared_licence":"MIT","licence":"MIT","source":"https://example.invalid/fixture","copyright":{"status":"provided","notices":["Synthetic fixture author"]},"notices":[{"path":"crates/fixture-1.0.0/LICENSE","text":"Known original licence fixture\n"}]}]}"#);
+    directory.write("source/vendor/fixture-1.0.0/src/lib.rs", "abc");
+    let archive = directory.path().join("source.tar.gz");
+    crate::package::write_archive("tar.gz", &directory.path().join("source"), &archive).unwrap();
+    let map = directory.path().join("source-map.json");
+    crate::package::run(&[
+        "source-map".into(),
+        directory.path().join("payload").display().to_string(),
+        directory.path().join("source").display().to_string(),
+        archive.display().to_string(),
+        map.display().to_string(),
+    ])
+    .unwrap();
+    let value: serde_json::Value = serde_json::from_slice(&std::fs::read(map).unwrap()).unwrap();
+    assert_eq!(
+        value["components"][0]["files"][0]["path"],
+        "vendor/fixture-1.0.0/src/lib.rs"
+    );
+    assert_eq!(
+        value["components"][0]["files"][0]["sha256"],
+        "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"
+    );
+    let unpacked = Command::new("tar")
+        .current_dir(directory.path())
+        .args(["-xOf"])
+        .arg("source.tar.gz")
+        .arg("tallyline/vendor/fixture-1.0.0/src/lib.rs")
+        .output()
+        .unwrap();
+    assert!(
+        unpacked.status.success(),
+        "{}",
+        String::from_utf8_lossy(&unpacked.stderr)
+    );
+    assert_eq!(unpacked.stdout, b"abc");
+    directory.write(
+        "source/vendor/fixture-1.0.0/src/lib.rs",
+        "changed after archive freeze",
+    );
+    let mismatched = directory.path().join("mismatched-source-map.json");
+    assert!(
+        crate::package::run(&[
+            "source-map".into(),
+            directory.path().join("payload").display().to_string(),
+            directory.path().join("source").display().to_string(),
+            archive.display().to_string(),
+            mismatched.display().to_string(),
+        ])
+        .is_err(),
+        "source archive and unpacked source mismatch was accepted"
+    );
+    assert!(!mismatched.exists());
 }

@@ -156,3 +156,45 @@ fn text<'a>(value: &'a Value, key: &str) -> io::Result<&'a str> {
 fn invalid() -> io::Error {
     io::Error::other("legal catalogue, index and physical notice inventory differ")
 }
+
+pub(super) fn verify_profile(root: &Path, target: super::Target) -> io::Result<()> {
+    let profiles: Value = serde_json::from_str(include_str!(
+        "../../../supply-chain/package-legal-profiles.json"
+    ))?;
+    for (name, bytes) in [
+        (
+            "Cargo.lock",
+            include_bytes!("../../../Cargo.lock").as_slice(),
+        ),
+        ("NOTICE", include_bytes!("../../../NOTICE").as_slice()),
+        (
+            "supply-chain/notices.toml",
+            include_bytes!("../../../supply-chain/notices.toml").as_slice(),
+        ),
+    ] {
+        let canonical = std::str::from_utf8(bytes)
+            .map_err(io::Error::other)?
+            .replace("\r\n", "\n");
+        if profiles
+            .get("source_inputs")
+            .and_then(|inputs| inputs.get(name))
+            .and_then(Value::as_str)
+            != Some(crate::hashlist::sha256_hex(canonical.as_bytes()).as_str())
+        {
+            return Err(io::Error::other(
+                "approved target legal catalogue source inputs have changed",
+            ));
+        }
+    }
+    let bytes = fs::read(root.join("legal/catalogue.json"))?;
+    if profiles
+        .get("targets")
+        .and_then(|targets| targets.get(target.name()))
+        .and_then(|profile| profile.get("catalogue_sha256"))
+        .and_then(Value::as_str)
+        != Some(crate::hashlist::sha256_hex(&bytes).as_str())
+    {
+        return Err(io::Error::other("approved target legal catalogue mismatch"));
+    }
+    Ok(())
+}

@@ -308,3 +308,5 @@ Credential adapter use, 2026-11-02: `adapter-platform` directly uses the already
 
 
 The source-only archive pins in source-archives.json support corresponding-source duties for already approved shipped components. Each record distinguishes a newly computed archive digest from publisher metadata and preserves the exact upstream revision/tree/licence evidence. These records authorise no new dependency version, feature, target or native build. Source preparation occurs before protected token insertion; no source archive is fetched or compiled afterwards.
+
+package-legal-profiles.json pins the exact current Windows/Linux legal catalogues to canonical project source inputs. Only project input line endings are canonicalised for these input identities; third-party notice text and its original encoding remain byte-bound by the target catalogue. Profiles are compiled into the prebuilt helper, so a supplied stage cannot approve its own different legal graph. Current217/271 component inventories are preparation evidence, with complete corresponding-source and protected package acceptance still open.

@@ -173,3 +173,5 @@ The packaging helper now writes plain archives from prebuilt directories and ver
 
 
 Prebuilt staging now includes the approved native OCR library, Small model/dictionary and original font licences, and checks their exact identities alongside the legal catalogue. A restored original font-licence encoding corrects a prior packaging mismatch. These byte-level checks still do not establish installed or native-display acceptance.
+
+The distribution checks now reject a self-consistent legal catalogue that differs from the approved target inventory. Source evidence checks also reject changed source against a frozen archive. These preparation checks do not complete the protected package or installed-system acceptance gates.

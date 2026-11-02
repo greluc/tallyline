@@ -3,6 +3,7 @@
 
 //! Deterministic application archive records.
 
+use sha2::{Digest, Sha256};
 use std::fs::{self, File};
 use std::io::{self, Write};
 use std::path::Path;
@@ -14,13 +15,43 @@ const TAR_CHECKSUM: std::ops::Range<usize> = 148..156;
 const DIRECTORY_MODE: u32 = 0o755;
 
 pub(super) fn tar_gzip(source: &Path, file: File) -> io::Result<()> {
+    tar_stream(source, &file)?;
+    file.sync_all()
+}
+
+pub(super) fn tar_gzip_digest(source: &Path) -> io::Result<String> {
+    let mut writer = HashWriter(Sha256::new());
+    tar_stream(source, &mut writer)?;
+    Ok(writer
+        .0
+        .finalize()
+        .iter()
+        .map(|byte| format!("{byte:02x}"))
+        .collect())
+}
+
+struct HashWriter(Sha256);
+
+impl Write for HashWriter {
+    fn write(&mut self, bytes: &[u8]) -> io::Result<usize> {
+        self.0.update(bytes);
+        Ok(bytes.len())
+    }
+
+    fn flush(&mut self) -> io::Result<()> {
+        Ok(())
+    }
+}
+
+fn tar_stream(source: &Path, writer: impl Write) -> io::Result<()> {
     let mut gzip = flate2::GzBuilder::new()
         .mtime(0)
         .operating_system(3)
-        .write(file, flate2::Compression::default());
+        .write(writer, flate2::Compression::default());
     append(&mut gzip, source, "tallyline")?;
     gzip.write_all(&[0; TAR_BLOCK * 2])?;
-    gzip.finish()?.sync_all()
+    gzip.finish()?;
+    Ok(())
 }
 
 fn append(writer: &mut impl Write, source: &Path, name: &str) -> io::Result<()> {
