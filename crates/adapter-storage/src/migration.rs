@@ -50,3 +50,39 @@ pub(crate) fn schema_three(connection: &Connection) -> Result<(), StorageError> 
     connection.execute_batch("CREATE TABLE reports(id INTEGER PRIMARY KEY AUTOINCREMENT,version INTEGER NOT NULL CHECK(version>=0),payload TEXT NOT NULL); CREATE TABLE report_recents(report_id INTEGER PRIMARY KEY REFERENCES reports(id),changed_order INTEGER NOT NULL); PRAGMA user_version=3;")?;
     Ok(())
 }
+
+pub(crate) fn schema_four(connection: &Connection) -> Result<(), StorageError> {
+    let mut statement = connection.prepare("SELECT id,payload FROM reports")?;
+    let records = statement
+        .query_map([], |row| {
+            Ok((row.get::<_, i64>(0)?, row.get::<_, String>(1)?))
+        })?
+        .collect::<Result<Vec<_>, _>>()?;
+    for (id, payload) in records {
+        let mut document: serde_json::Value =
+            serde_json::from_str(&payload).map_err(|_| StorageError::InvalidCache)?;
+        let rows = document
+            .get_mut("rows")
+            .and_then(serde_json::Value::as_array_mut)
+            .ok_or(StorageError::InvalidCache)?;
+        for row in rows {
+            let row = row.as_object_mut().ok_or(StorageError::InvalidCache)?;
+            row.insert("status_confirmation".to_owned(), serde_json::Value::Null);
+            row.insert("status_deviation".to_owned(), serde_json::Value::Null);
+            row.insert(
+                "status_confirmation_revoked".to_owned(),
+                serde_json::Value::Bool(false),
+            );
+            row.insert(
+                "status_unreviewed".to_owned(),
+                serde_json::Value::Bool(false),
+            );
+        }
+        connection.execute(
+            "UPDATE reports SET payload=?1 WHERE id=?2",
+            (document.to_string(), id),
+        )?;
+    }
+    connection.pragma_update(None, "user_version", 4)?;
+    Ok(())
+}
