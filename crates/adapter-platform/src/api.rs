@@ -20,3 +20,6 @@ pub use crate::worker_priority::{WorkerPriority, lower_worker_priority, worker_p
 
 #[cfg(windows)]
 pub use crate::windows_credentials::WindowsCredentialStore;
+
+#[cfg(target_os = "linux")]
+pub use crate::linux_credential_bus::LinuxCredentialBus;
