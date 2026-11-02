@@ -8,6 +8,7 @@ mod legal;
 mod manifest;
 mod payload;
 mod scan;
+mod source_map;
 pub mod tools;
 mod verify;
 
@@ -58,7 +59,7 @@ pub fn run(arguments: &[String]) -> io::Result<()> {
     match arguments.as_slice() {
         [] | ["help"] => writeln!(
             io::stdout(),
-            "usage: xtask package version <vMAJOR.MINOR.PATCH> | tools-verify <windows|linux> <tools> | legal-verify <payload> | prepare <windows|linux> <vMAJOR.MINOR.PATCH> <payload> <tools> <fresh-stage> | verify <stage> <seal> | archive <zip|tar.gz> <input> <fresh-output> | scan <unpacked-tree> <fixture-file> [allowed-relative-file]"
+            "usage: xtask package version <vMAJOR.MINOR.PATCH> | tools-verify <windows|linux> <tools> | source-map <payload> <unpacked-source> <archive> <fresh-output> | legal-verify [windows|linux] <payload> | prepare <windows|linux> <vMAJOR.MINOR.PATCH> <payload> <tools> <fresh-stage> | verify <stage> <seal> | archive <zip|tar.gz> <input> <fresh-output> | scan <unpacked-tree> <fixture-file> [allowed-relative-file]"
         ),
         ["archive", format, input, output] => {
             write_archive(format, Path::new(input), Path::new(output))
@@ -79,6 +80,21 @@ pub fn run(arguments: &[String]) -> io::Result<()> {
             writeln!(io::stdout(), "{seal}")
         }
         ["verify", stage, seal] => verify_stage(Path::new(stage), seal),
+        ["source-map", payload, source, archive, output] => source_map::write(
+            Path::new(payload),
+            Path::new(source),
+            Path::new(archive),
+            Path::new(output),
+        ),
+        ["legal-verify", target, root] => {
+            let target = match *target {
+                "windows" => Target::Windows,
+                "linux" => Target::Linux,
+                _ => return Err(io::Error::other("unsupported packaging platform")),
+            };
+            manifest::legal_catalogue(Path::new(root))?;
+            legal::verify_profile(Path::new(root), target)
+        }
         ["legal-verify", root] => manifest::legal_catalogue(Path::new(root)).map(|_| ()),
         ["tools-verify", target, root] => tools::verify(target, Path::new(root)),
         ["scan", root, fixture] => scan_command(Path::new(root), Path::new(fixture), None),
@@ -89,7 +105,7 @@ pub fn run(arguments: &[String]) -> io::Result<()> {
         ),
         ["version", tag] => writeln!(io::stdout(), "{}", release_version(tag)?),
         _ => Err(io::Error::other(
-            "usage: xtask package version <vMAJOR.MINOR.PATCH> | tools-verify <windows|linux> <tools> | legal-verify <payload> | prepare <windows|linux> <vMAJOR.MINOR.PATCH> <payload> <tools> <fresh-stage> | verify <stage> <seal> | archive <zip|tar.gz> <input> <fresh-output> | scan <unpacked-tree> <fixture-file> [allowed-relative-file]",
+            "usage: xtask package version <vMAJOR.MINOR.PATCH> | tools-verify <windows|linux> <tools> | source-map <payload> <unpacked-source> <archive> <fresh-output> | legal-verify [windows|linux] <payload> | prepare <windows|linux> <vMAJOR.MINOR.PATCH> <payload> <tools> <fresh-stage> | verify <stage> <seal> | archive <zip|tar.gz> <input> <fresh-output> | scan <unpacked-tree> <fixture-file> [allowed-relative-file]",
         )),
     }
 }

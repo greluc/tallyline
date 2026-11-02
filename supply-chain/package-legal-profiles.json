@@ -1,0 +1,20 @@
+{
+  "schema_version": 1,
+  "source_inputs": {
+    "Cargo.lock": "4cd78952670be3bb54b903bdcdd302ec429acd707131efafa80992305cad9f76",
+    "NOTICE": "f1da83e717a3ccb48753deb68ac25c82945af3af499f6ba57f2fd87a1b954bc0",
+    "supply-chain/notices.toml": "bd9ab530690cb560e3881ae9e91972dd16d528bbb2a1ebd0ea6e929351bfc496"
+  },
+  "targets": {
+    "windows": {
+      "target": "x86_64-pc-windows-msvc",
+      "catalogue_sha256": "62d886ee7350a0d5abcf0c749901512b2d78a3c470b0699a4c1114f58e071fb5",
+      "components": 217
+    },
+    "linux": {
+      "target": "x86_64-unknown-linux-gnu",
+      "catalogue_sha256": "1254db6de5be4d0291aaef437e87d0018af9fc2613d5c752aa8807894cff538b",
+      "components": 271
+    }
+  }
+}

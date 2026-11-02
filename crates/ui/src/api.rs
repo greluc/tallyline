@@ -19,6 +19,7 @@ pub use crate::legal_views::{show_about_view, show_onboarding_view};
 pub use crate::licences::parse_licence_catalogue;
 pub use crate::theme::resolve_theme;
 
+pub use crate::manual_review_views::show_manual_review;
 pub use crate::manual_views::show_manual_editor;
 pub use crate::reference_views::show_reference_browser;
 

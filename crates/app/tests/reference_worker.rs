@@ -183,6 +183,8 @@ fn next_snapshot(
             other @ (BackgroundEvent::AttachmentPreview { .. }
             | BackgroundEvent::AttachmentStatus { .. }
             | BackgroundEvent::AttachmentFailed { .. }
+            | BackgroundEvent::ReportReviewed { .. }
+            | BackgroundEvent::ReviewFailed { .. }
             | BackgroundEvent::ReportsLoaded { .. }
             | BackgroundEvent::ReportFailed(_)
             | BackgroundEvent::UpdateChecked(_)
@@ -578,6 +580,8 @@ fn r_api_3__non_json_metadata_uses_the_injected_observation_time_without_replaci
             other @ (BackgroundEvent::AttachmentPreview { .. }
             | BackgroundEvent::AttachmentStatus { .. }
             | BackgroundEvent::AttachmentFailed { .. }
+            | BackgroundEvent::ReportReviewed { .. }
+            | BackgroundEvent::ReviewFailed { .. }
             | BackgroundEvent::ReportsLoaded { .. }
             | BackgroundEvent::ReportFailed(_)
             | BackgroundEvent::UpdateChecked(_)

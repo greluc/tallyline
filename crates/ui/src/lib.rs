@@ -36,3 +36,7 @@ mod attachment_editor;
 mod attachment_views;
 
 mod credentials;
+mod manual_confirmation;
+mod manual_review;
+mod manual_review_details;
+mod manual_review_views;

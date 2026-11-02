@@ -21,3 +21,6 @@ pub use crate::reference_browser::{ReferenceBrowser, ReferenceCommand, Reference
 pub use crate::attachment_editor::{ManualAttachmentAction, ManualAttachmentCommand};
 
 pub use crate::credentials::{CredentialCommand, CredentialSetup};
+pub use crate::manual_review::{
+    ManualReviewAction, ManualReviewCommand, ManualReviewState, ReviewDirection,
+};

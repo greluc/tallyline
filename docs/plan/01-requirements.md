@@ -285,3 +285,7 @@ R-API-4, R-API-7 and R-NF-4 now have bounded desktop worker composition, masked 
 ## Manual attachment checkpoint (2026-11-02)
 
 Corrected 2026-11-02: R-MAN-5/R-SUB-7/R-VAL-6 now include integrity-bound durable confirmed private regions, restart/source-deletion recovery, per-account dated requirement memory and explicit clearing, attachment-only current-policy readiness, and a headless-tested source-scale editor component. Missing/changed files and delayed results fail closed. Original screenshots are never persisted as working copies; uncertain imported time and earlier-only observedAt remain unchanged. The bounded workers do not release or submit Reports. The Manual Report view consumes the accepted account and remains usable offline. Full age/release/queue rules and native visual acceptance remain pending; no normative requirement is changed.
+
+## Manual numeric review implementation checkpoint (2026-11-02)
+
+The price/status portion of R-VAL-2, R-VAL-2a, R-VAL-7 and R-UI-10…12 `:manual` now has durable value-bound approval, exact cross-check details, Reporting-owned counters/targets and composed desktop review. The normative worsening relation remains the unlowered-level rule of 07 §2.6: changing an amount within Major, tightening without a worse level, or ageing the prior alone does not introduce an additional revocation rule. This record changes no requirement. SCU calibration, complete shared validation/release/submission and native visual acceptance remain open; the evidence boundary is recorded in 11's manual price checkpoint.

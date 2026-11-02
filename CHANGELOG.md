@@ -6,6 +6,8 @@ All notable changes are recorded here.
 
 ### Added
 
+- Pin exact target legal catalogues during prebuilt verification and reject source archives that differ from their unpacked source; complete native source and protected installer acceptance remain open (R-DOC-3, R-SEC-8).
+
 - Prebuilt staging now seals approved native/model/font resources and binds delivered legal text to its catalogue before token insertion. The IBM font licence retains its original upstream encoding; protected installer acceptance remains pending (R-DOC-3, R-SEC-8).
 
 - Prebuilt distribution helper foundations validate release-version syntax and approved packaging tools, write plain archives and detect harmless fixture leaks without echoing values. Complete protected installer and installed-system acceptance remain pending (R-NF-2:installers, R-NF-4, R-SEC-8).
@@ -18,6 +20,8 @@ All notable changes are recorded here.
 
 ### Added
 
+- Review manual prices and statuses with exact reference prices, age, unit/percentage differences and counters; F8/Shift+F8 visits required decisions and a separate dialog approves the displayed value. Approvals and unreviewed/revoked state survive restart through backup-gated schema 7; passive reassessment preserves USER values and existing status decisions. SCU calibration and complete release/submission remain pending (R-VAL-2, R-VAL-2a, R-VAL-7, R-UI-10, R-UI-11, R-UI-12, R-NF-11).
+
 - Confirmed private manual attachment regions now survive restart and deletion of the original; changed or missing working copies block attachment use. Dated screenshot requirements are remembered per validated account and can be explicitly cleared, with controls in Manual Report and a schema-six backup-gated migration (R-MAN-5, R-SUB-7, R-CAP-7, R-VAL-6).
 
 - Keep a persistent warning for writable Linux data directories with broad permissions instead of treating the warning as a fatal storage error. Actual read/write failures still stop storage startup, and credential fallback remains strictly owner-only (R-NF-5, R-NF-4).
@@ -28,7 +32,7 @@ All notable changes are recorded here.
 
 - Run the headless OCR diagnostic through an owned worker that verifies below-normal OS priority before its task starts. Production OCR scheduling remains in progress (R-NF-3).
 
-- Preserve manual status approvals, revoked decisions and keyboard-review state across restart at the application boundary. Schema-four migration requires a coordinated backup; review controls and release remain in progress (R-UI-12, R-VAL-7, R-NF-11).
+- Preserve manual status approvals, revoked decisions and keyboard-review state across restart at the application boundary. Schema-four migration requires a coordinated backup; complete release remains in progress (R-UI-12, R-VAL-7, R-NF-11).
 
 - Added shared bounded PNG/JPEG/BMP intake with explicit colour conversion, full-precision 16-bit PNG handling, HDR/unsupported-colour advice and original-size findings after integer box reduction. The capture UI and recognition pipeline remain in progress (R-CAP-8, R-OCR-17).
 - Reference failures now show the last non-JSON HTTP status, validated Cloudflare Ray and UTC observation time without retaining HTML or changing cached data. HTTPS and same-origin checks precede every request; credentialled technical host overrides require explicit confirmation and disclosure (R-API-3, R-NF-4).
