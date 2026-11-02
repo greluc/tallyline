@@ -26,7 +26,7 @@ pub trait SecretStore {
     fn load(
         &mut self,
     ) -> impl std::future::Future<Output = Result<Option<SavedCredentials>, StorageFailure>> + Send;
-    /// Replaces the record, preserving the previous value on failure.
+    /// Replaces one complete record; an uncertain mutation requires load reconciliation before retry.
     fn save(
         &mut self,
         credentials: &SavedCredentials,

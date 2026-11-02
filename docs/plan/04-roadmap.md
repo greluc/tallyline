@@ -83,6 +83,8 @@ Implementation 2026-11-01 (R-NF-10): the app elects before writable startup; ada
 
 **Status checkpoint 2026-11-02 (#84):** status approval/reassessment and focus decisions are durable through the public Reporting application and schema-four SQLite migration. The sixteen worsening pairs, value/context invalidation, save failures and restart states have public-boundary contracts. The manual review UI, price approvals, SCU calibration (O-140) and complete release/submission gates remain open; no M1 acceptance criterion is marked complete by this checkpoint.
 
+**Status checkpoint 2026-11-02 (#82):** the Linux platform adapter now provides an injected authenticated DH Secret Service session and fixed-record load/save/remove, sharing the bounded Windows bundle codec. Isolated Unix protocol contracts cover the encrypted round trip and closed locked/ambiguous/corrupt/provider-write outcomes, explicit mutation uncertainty and load reconciliation without automatic retry; they do not claim actual OS-store, cross-session persistence, prompt or desktop acceptance. Secure fallback, onboarding and application logging/worker composition remain open, so issue #82 and the M1 credential acceptance criterion are not complete.
+
 ## M2 – OCR core and eval
 
 - [ ] `adapter-ocr`: ORT sessions through `ort`, DB postprocessing, CTC decode; ONNX Runtime telemetry switched off by our own code: `ORT_DISABLE_TELEMETRY=1` before the first ONNX Runtime call and `with_telemetry(false)` before the first session (R-NF-12, ADR-0008)
