@@ -35,3 +35,6 @@ harness = false
 
 [dependencies.tallyline-reporting]
 workspace = true
+
+[dependencies.tallyline-submission]
+workspace = true

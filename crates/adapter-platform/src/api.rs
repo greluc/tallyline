@@ -26,3 +26,6 @@ pub use crate::linux_credential_bus::LinuxCredentialBus;
 
 #[cfg(target_os = "linux")]
 pub use crate::linux_credentials::LinuxCredentialStore;
+
+#[cfg(target_os = "linux")]
+pub use crate::linux_fallback::LinuxFallbackStore;

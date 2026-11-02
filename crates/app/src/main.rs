@@ -5,6 +5,7 @@
 
 #![forbid(unsafe_code)]
 
+mod credential_wiring;
 mod executor;
 mod game_wiring;
 mod instance_wiring;
@@ -15,6 +16,7 @@ mod update_wiring;
 use tallyline_ui::api::{Catalogue, DesktopShell, configure_fonts};
 
 fn main() -> Result<std::process::ExitCode, Box<dyn std::error::Error>> {
+    tallyline_app::api::install_credential_log_bridge()?;
     use tallyline_adapter_platform::api::model::{OcrChildExit, OcrProcessStartup};
     match tallyline_adapter_platform::api::prepare_ocr_process()? {
         OcrProcessStartup::Prepared => {
@@ -73,9 +75,16 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
             let (activation_commands, activation_events) = std::sync::mpsc::sync_channel(1);
             let activation_worker =
                 instance_wiring::start(listener, activation_commands, creation.egui_ctx.clone())?;
-            let (commands, reference_commands, manual_commands, events, worker) =
-                settings_wiring::start(creation.egui_ctx.clone(), layout)?;
-            lifecycle_sender.send((worker, activation_worker))?;
+            let (
+                commands,
+                reference_commands,
+                manual_commands,
+                credential_commands,
+                events,
+                worker,
+                credential_worker,
+            ) = settings_wiring::start(creation.egui_ctx.clone(), layout)?;
+            lifecycle_sender.send((worker, activation_worker, credential_worker))?;
             Ok(Box::new(
                 DesktopShell::new(
                     &creation.egui_ctx,
@@ -87,14 +96,16 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
                 )
                 .with_window_commands(activation_events)
                 .with_reference_commands(reference_commands)
-                .with_manual_commands(manual_commands),
+                .with_manual_commands(manual_commands)
+                .with_credential_commands(credential_commands),
             ))
         }),
     );
-    for (worker, activation_worker) in lifecycle_receiver.try_iter() {
+    for (worker, activation_worker, credential_worker) in lifecycle_receiver.try_iter() {
         worker
             .join()
             .map_err(|_| std::io::Error::other("settings worker terminated unexpectedly"))?;
+        credential_worker.finish()?;
         activation_worker.finish()?;
     }
     result?;

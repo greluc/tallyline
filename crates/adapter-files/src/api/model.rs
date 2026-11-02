@@ -4,7 +4,7 @@
 //! Filesystem adapter results.
 
 pub use crate::config::{LoadedSettings, SettingsIssue};
-pub use crate::layout::DirectoryIssue;
+pub use crate::layout::{DirectoryIssue, DirectoryIssueKind};
 
 /// The RGBA pixels of immutable bundled legal artwork.
 pub struct LogoRaster {

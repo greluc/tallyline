@@ -1,6 +1,6 @@
 # Roadmap
 
-> **Doc type:** Living plan — active. Last reviewed: 2026-11-01.
+> **Doc type:** Living plan — active. Last reviewed: 2026-11-02.
 
 Amended 2026-10-12 ([ADR-0005](../adr/0005-rust-and-egui.md)): the milestones now build a Rust and egui application. "Module" reads as "Cargo workspace crate" (the context cut of ADR-0002 is unchanged), M0 is rewritten for the Rust toolchain, the supply chain and the new spikes, and the Java-specific items (JDK 27 toolchain check, jlink and ONNX Runtime merge, JavaFX screen-reader spike, JVM heap limits) are gone. The acceptance criteria keep their meaning.
 
@@ -83,7 +83,7 @@ Implementation 2026-11-01 (R-NF-10): the app elects before writable startup; ada
 
 **Status checkpoint 2026-11-02 (#84):** status approval/reassessment and focus decisions are durable through the public Reporting application and schema-four SQLite migration. The sixteen worsening pairs, value/context invalidation, save failures and restart states have public-boundary contracts. The manual review UI, price approvals, SCU calibration (O-140) and complete release/submission gates remain open; no M1 acceptance criterion is marked complete by this checkpoint.
 
-**Status checkpoint 2026-11-02 (#82):** the Linux platform adapter now provides an injected authenticated DH Secret Service session and fixed-record load/save/remove, sharing the bounded Windows bundle codec. Isolated Unix protocol contracts cover the encrypted round trip and closed locked/ambiguous/corrupt/provider-write outcomes, explicit mutation uncertainty and load reconciliation without automatic retry; they do not claim actual OS-store, cross-session persistence, prompt or desktop acceptance. Secure fallback, onboarding and application logging/worker composition remain open, so issue #82 and the M1 credential acceptance criterion are not complete.
+**Status checkpoint 2026-11-02 (#82):** the authenticated Linux DH store, Windows Local store, bounded credential codec, passive revalidation persistence, warning-confirmed owner-only Linux fallback and bounded desktop credential worker are implemented. Masked onboarding and the Settings account disclosure offer packaged/own-token and explicit session-only choices while preserving local browsing. Headless application/UI and isolated Linux protocol/temporary-file contracts cover failures and uncertain mutation reconciliation. Actual OS providers/prompts, cross-session provider persistence, FAT/exFAT media, installed clean-OS and native visual acceptance remain pending; issue #82 and its M1 acceptance criterion are not complete.
 
 ## M2 – OCR core and eval
 
