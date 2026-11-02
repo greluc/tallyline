@@ -8,6 +8,8 @@ Choose **Settings** to select Follow OS (the default), Dark, Light or High contr
 
 The minimum window size is 800 × 640 logical pixels. Both Fan Kit notices use 14 egui points, above the 10 pt floor (13.33 egui points at 100 % scale). Their stored strings have no inserted line break; the layout can flow them over several lines. The logo is not tinted or modified. The existing light/dark asset mapping follows the README; the owner's kit check remains O-27.
 
+For source builds with `CARGO_TARGET_DIR` set, find the executable under that chosen build directory instead of the default `target/`. The [source-build instructions](../../README.md#run-the-desktop-shell-from-source) link the corresponding check and scratch-output commands.
+
 ## UEX account setup
 
 Enter your secret key in the masked **UEX account** form during onboarding, or expand **Settings → UEX account**. **Continue** remains available for local browsing and Draft preparation without credentials. The packaged Tallyline app token is never displayed; if its file is absent, empty, malformed or unreadable, the form asks for your own token or a current release. **Expert: use my own app token** overrides a packaged token. A refused built-in token offers the same update/own-token actions.
