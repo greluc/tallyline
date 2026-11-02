@@ -1,6 +1,6 @@
 # Corpus capture and annotation
 
-> **Doc type:** Living reference — current. Last reviewed: 2026-11-01.
+> **Doc type:** Living reference — current. Last reviewed: 2026-11-02.
 
 The offline `ocr-eval` tool supports R-QA-1, R-QA-3 and R-DOC-1. It inspects metadata and sample readiness before recognition is implemented. No current class is claimed to meet recognition accuracy, confidence or runtime requirements.
 
@@ -35,3 +35,7 @@ Run `cargo run -p ocr-eval --locked -- annotate <expected.json> <anchors.json> <
 Reference inspection reads `reference/metadata.json` with `fetchedAt` (ISO 8601 with offset), `priorProvenance` (`pre-capture` or `post-capture`) and a `recordings` object mapping endpoint paths to local JSON response filenames, for example `{"/commodities_prices":"prices.json"}`. Keep response bodies in their recorded `data` envelope. Record the endpoints specified in [07 §4](../plan/07-ocr-concept.md#4-measurement-and-test-concept); incomplete metadata is not a replayable snapshot or a prior-dependent metric pass. The CLI never fetches data, reads the app cache or changes the frozen timestamp. Full DTO replay and the fixed evaluation clock belong to the recognition evaluation stage.
 
 O-50 permits small anonymised public fixtures, restricted to this entry's terminal and commodity IDs, and forbids full price dumps. The inspector checks the endpoint allowlist, rejects known personal/secret fields and rejects public terminal/commodity/price rows outside the entry's expected IDs. This is a structural guard; human review remains responsible for anonymisation, the small-fixture limit and location-record scope. There is no invented numeric size allowance. Keep larger snapshots and originals private, hash-pin private files, and never attach them to a public issue. A post-capture snapshot is labelled separately and cannot establish prior-dependent correctness. Re-freezing is an explicit corpus change requiring a reviewed diff.
+
+## MIC-L2 sample limits
+
+The public `mic-l2-long-forest-station-01` entry supplies four source-resolution captures with the balance irreversibly filled. Its JPEG originals were decoded once to PNG; the recorded outside-mask pixel hashes bind the unchanged decoded image regions. The transcriptions remain unverified smoke data. Unknown capture conditions, game version, capture times and UEX IDs remain null. Clipped cards retain their own edge and visible evidence and supply no complete row; a blank section records a header outside that capture. The on-screen Local Market Value tab uses the corpus's existing `SELL` side.
