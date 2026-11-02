@@ -37,17 +37,43 @@ pub fn show_about_view(
     catalogue: &Catalogue,
     unit: &FanKitUnit,
 ) -> Vec<AboutAction> {
+    show_about_view_with_build(
+        ui,
+        catalogue,
+        unit,
+        &crate::api::model::BuildPresentation::Unavailable,
+    )
+}
+
+pub(crate) fn show_about_view_with_build(
+    ui: &mut egui::Ui,
+    catalogue: &Catalogue,
+    unit: &FanKitUnit,
+    build: &crate::api::model::BuildPresentation,
+) -> Vec<AboutAction> {
     let mut actions = Vec::new();
     unit.show_placement(ui, LegalPlacement::About, catalogue);
     ui.label(catalogue.text("about.unofficial"));
     ui.label(catalogue.text("about.copyright"));
-    ui.label(format!(
-        "{} {} · {}/{}",
-        catalogue.text("about.development"),
-        env!("CARGO_PKG_VERSION"),
-        std::env::consts::OS,
-        std::env::consts::ARCH
-    ));
+    match build {
+        crate::api::model::BuildPresentation::Unavailable => {
+            ui.label(catalogue.text("about.build_unavailable"));
+        }
+        crate::api::model::BuildPresentation::Development { version, platform } => {
+            ui.label(format!(
+                "{} {version} · {platform}",
+                catalogue.text("about.development")
+            ));
+        }
+        crate::api::model::BuildPresentation::Release {
+            version, platform, ..
+        } => {
+            ui.label(format!(
+                "{} {version} · {platform}",
+                catalogue.text("about.build_version")
+            ));
+        }
+    }
     ui.label(catalogue.text("about.warranty"));
     if ui.button(catalogue.text("about.gpl")).clicked() {
         actions.push(AboutAction::ShowGpl);
@@ -55,13 +81,18 @@ pub fn show_about_view(
     if ui.button(catalogue.text("about.licences")).clicked() {
         actions.push(AboutAction::ShowLicences);
     }
-    ui.hyperlink_to(
-        catalogue.text("about.source"),
-        "https://github.com/greluc/tallyline",
-    );
-    ui.hyperlink_to(
-        catalogue.text("about.release"),
-        "https://github.com/greluc/tallyline/releases",
-    );
+    let (source, release) = match build {
+        crate::api::model::BuildPresentation::Release { tag, commit, .. } => (
+            format!("https://github.com/greluc/tallyline/tree/{commit}"),
+            format!("https://github.com/greluc/tallyline/releases/tag/{tag}"),
+        ),
+        crate::api::model::BuildPresentation::Development { .. }
+        | crate::api::model::BuildPresentation::Unavailable => (
+            "https://github.com/greluc/tallyline".to_owned(),
+            "https://github.com/greluc/tallyline/releases".to_owned(),
+        ),
+    };
+    ui.hyperlink_to(catalogue.text("about.source"), source);
+    ui.hyperlink_to(catalogue.text("about.release"), release);
     actions
 }

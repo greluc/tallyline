@@ -17,3 +17,7 @@ pub use crate::manual_attachments::ManualAttachmentStorage;
 pub use crate::credential_worker::{CredentialStores, CredentialWorker};
 
 pub use crate::credential_logs::{CredentialLogBridge, install_credential_log_bridge};
+
+pub use crate::build_info::compiled_build_information;
+
+pub use crate::build_entry::enter_application;

@@ -754,3 +754,250 @@ fn r_nf_13__msi_prerequisite_refusal_names_the_runtime_floor_and_microsoft_downl
         );
     }
 }
+
+#[test]
+fn r_nf_11_r_sec_8__prebuilt_identity_admits_only_the_sealed_executable_and_tag() {
+    let directory = crate::scratch::Scratch::new();
+    directory.write("app", "Harmless prebuilt fixture; never executed.\n");
+    let receipt = serde_json::json!({
+        "schema_version": 1,
+        "purpose": "release-metadata",
+        "application_sha256": "ff7109af899382a34b99be3608b5cc7aee084dac41033e7b59a48a4de2e1e3a7",
+        "build_info": {
+            "schema_version": 1,
+            "product": "tallyline",
+            "kind": "release",
+            "version": "9.8.7",
+            "release_tag": "v9.8.7",
+            "source_commit": "0123456789abcdef0123456789abcdef01234567",
+            "target": "x86_64-pc-windows-msvc"
+        }
+    });
+    let bytes = serde_json::to_vec_pretty(&receipt).unwrap();
+    std::fs::write(directory.path().join("receipt.json"), &bytes).unwrap();
+    let seal = crate::hashlist::sha256_hex(&bytes);
+    let check = |tag| {
+        crate::package::verify_prebuilt_identity(
+            &directory.path().join("app"),
+            &directory.path().join("receipt.json"),
+            &seal,
+            crate::package::Target::Windows,
+            tag,
+        )
+    };
+    check("v9.8.7").unwrap();
+    crate::package::run(&[
+        "identity-verify".into(),
+        "windows".into(),
+        "v9.8.7".into(),
+        directory.path().join("app").display().to_string(),
+        directory.path().join("receipt.json").display().to_string(),
+        seal.clone(),
+    ])
+    .unwrap();
+    assert!(check("v0.1.0").is_err());
+    directory.write("app", "Changed prebuilt executable bytes");
+    assert!(check("v9.8.7").is_err());
+}
+
+#[test]
+fn r_nf_11_r_sec_8__source_job_receipt_is_data_only_and_closes_before_invalid_output() {
+    let directory = crate::scratch::Scratch::new();
+    directory.write("app", "Harmless prebuilt fixture; never executed.\n");
+    directory.write("compiled.json", r#"{"schema_version":1,"product":"tallyline","kind":"release","version":"9.8.7","release_tag":"v9.8.7","source_commit":"0123456789abcdef0123456789abcdef01234567","target":"x86_64-pc-windows-msvc"}"#);
+    let app = directory.path().join("app");
+    let report = directory.path().join("compiled.json");
+    let receipt = directory.path().join("receipt.json");
+    let seal = crate::package::write_prebuilt_identity(
+        &app,
+        &report,
+        &receipt,
+        crate::package::Target::Windows,
+        "v9.8.7",
+    )
+    .unwrap();
+    crate::package::verify_prebuilt_identity(
+        &app,
+        &receipt,
+        &seal,
+        crate::package::Target::Windows,
+        "v9.8.7",
+    )
+    .unwrap();
+    let value: serde_json::Value =
+        serde_json::from_slice(&std::fs::read(&receipt).unwrap()).unwrap();
+    assert_eq!(
+        value["application_sha256"],
+        "ff7109af899382a34b99be3608b5cc7aee084dac41033e7b59a48a4de2e1e3a7"
+    );
+    assert_eq!(value["purpose"], "release-metadata");
+    crate::package::run(&[
+        "identity-receipt".into(),
+        "windows".into(),
+        "v9.8.7".into(),
+        app.display().to_string(),
+        report.display().to_string(),
+        directory
+            .path()
+            .join("cli-receipt.json")
+            .display()
+            .to_string(),
+    ])
+    .unwrap();
+    assert_eq!(
+        std::fs::read(directory.path().join("cli-receipt.json")).unwrap(),
+        std::fs::read(&receipt).unwrap()
+    );
+    directory.write("compiled.json", r#"{"schema_version":1,"product":"tallyline","kind":"release","version":"9.8.7","release_tag":"v9.8.7","source_commit":null,"target":"x86_64-pc-windows-msvc"}"#);
+    let refused = directory.path().join("refused.json");
+    assert!(
+        crate::package::write_prebuilt_identity(
+            &app,
+            &report,
+            &refused,
+            crate::package::Target::Windows,
+            "v9.8.7"
+        )
+        .is_err()
+    );
+    assert!(!refused.exists());
+}
+
+#[test]
+fn r_nf_11_r_sec_8__admitted_preparation_checks_app_identity_before_tools_or_output() {
+    let directory = crate::scratch::Scratch::new();
+    directory.write(
+        "payload/tallyline.exe",
+        "Harmless prebuilt fixture; never executed.\n",
+    );
+    directory.write("compiled.json", r#"{"schema_version":1,"product":"tallyline","kind":"release","version":"9.8.7","release_tag":"v9.8.7","source_commit":"0123456789abcdef0123456789abcdef01234567","target":"x86_64-pc-windows-msvc"}"#);
+    let app = directory.path().join("payload/tallyline.exe");
+    let receipt = directory.path().join("receipt.json");
+    let seal = crate::package::write_prebuilt_identity(
+        &app,
+        &directory.path().join("compiled.json"),
+        &receipt,
+        crate::package::Target::Windows,
+        "v9.8.7",
+    )
+    .unwrap();
+    directory.write(
+        "payload/tallyline.exe",
+        "Changed after source-job admission",
+    );
+    let stage = directory.path().join("stage");
+    let error = crate::package::run(&[
+        "prepare-admitted".into(),
+        "windows".into(),
+        "v9.8.7".into(),
+        directory.path().join("payload").display().to_string(),
+        directory.path().join("absent-tools").display().to_string(),
+        stage.display().to_string(),
+        receipt.display().to_string(),
+        seal,
+    ])
+    .unwrap_err();
+    assert!(
+        error.to_string().contains("prebuilt executable differs"),
+        "{error}"
+    );
+    assert!(!stage.exists());
+}
+
+#[test]
+fn r_nf_11_r_sec_8__resealed_malformed_receipts_do_not_bypass_intrinsic_admission() {
+    let directory = crate::scratch::Scratch::new();
+    directory.write("app", "Harmless prebuilt fixture; never executed.\n");
+    let valid = serde_json::json!({"schema_version":1,"purpose":"release-metadata","application_sha256":"ff7109af899382a34b99be3608b5cc7aee084dac41033e7b59a48a4de2e1e3a7","build_info":{"schema_version":1,"product":"tallyline","kind":"release","version":"9.8.7","release_tag":"v9.8.7","source_commit":"0123456789abcdef0123456789abcdef01234567","target":"x86_64-pc-windows-msvc"}});
+    for (path, wrong) in [
+        (vec!["purpose"], serde_json::json!("authenticated-release")),
+        (
+            vec!["application_sha256"],
+            serde_json::json!("FF7109AF899382A34B99BE3608B5CC7AEE084DAC41033E7B59A48A4DE2E1E3A7"),
+        ),
+        (vec!["extra"], serde_json::json!(true)),
+        (
+            vec!["build_info", "target"],
+            serde_json::json!("x86_64-unknown-linux-gnu"),
+        ),
+        (
+            vec!["build_info", "release_tag"],
+            serde_json::json!("v0.1.0"),
+        ),
+        (vec!["build_info", "source_commit"], serde_json::Value::Null),
+        (vec!["build_info", "kind"], serde_json::json!("development")),
+        (vec!["build_info", "schema_version"], serde_json::json!(2)),
+    ] {
+        let mut value = valid.clone();
+        let mut field = &mut value;
+        for part in path {
+            field = &mut field[part];
+        }
+        *field = wrong;
+        let bytes = serde_json::to_vec_pretty(&value).unwrap();
+        std::fs::write(directory.path().join("receipt.json"), &bytes).unwrap();
+        assert!(
+            crate::package::verify_prebuilt_identity(
+                &directory.path().join("app"),
+                &directory.path().join("receipt.json"),
+                &crate::hashlist::sha256_hex(&bytes),
+                crate::package::Target::Windows,
+                "v9.8.7"
+            )
+            .is_err()
+        );
+    }
+    let mut bytes = serde_json::to_vec_pretty(&valid).unwrap();
+    bytes.push(b'\n');
+    std::fs::write(directory.path().join("receipt.json"), &bytes).unwrap();
+    assert!(
+        crate::package::verify_prebuilt_identity(
+            &directory.path().join("app"),
+            &directory.path().join("receipt.json"),
+            &crate::hashlist::sha256_hex(&bytes),
+            crate::package::Target::Windows,
+            "v9.8.7"
+        )
+        .is_err()
+    );
+}
+
+#[test]
+fn r_nf_11__development_admission_is_explicit_and_cannot_claim_a_release_tag() {
+    let directory = crate::scratch::Scratch::new();
+    directory.write("app", "Harmless prebuilt fixture; never executed.\n");
+    directory.write("compiled.json", r#"{"schema_version":1,"product":"tallyline","kind":"development","version":"0.0.0","release_tag":null,"source_commit":null,"target":"x86_64-pc-windows-msvc"}"#);
+    let app = directory.path().join("app");
+    let report = directory.path().join("compiled.json");
+    let receipt = directory.path().join("receipt.json");
+    let seal = crate::package::write_prebuilt_identity(
+        &app,
+        &report,
+        &receipt,
+        crate::package::Target::Windows,
+        "v0.0.0",
+    )
+    .unwrap();
+    crate::package::verify_prebuilt_identity(
+        &app,
+        &receipt,
+        &seal,
+        crate::package::Target::Windows,
+        "v0.0.0",
+    )
+    .unwrap();
+    assert!(
+        crate::package::verify_prebuilt_identity(
+            &app,
+            &receipt,
+            &seal,
+            crate::package::Target::Windows,
+            "v0.1.0"
+        )
+        .is_err()
+    );
+    let value: serde_json::Value =
+        serde_json::from_slice(&std::fs::read(receipt).unwrap()).unwrap();
+    assert_eq!(value["purpose"], "development");
+    assert!(value["build_info"]["release_tag"].is_null());
+}

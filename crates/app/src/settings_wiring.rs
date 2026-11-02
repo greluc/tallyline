@@ -166,11 +166,9 @@ fn run(
         move || wake_up(&manual_context),
     )?;
     let mut settings = SettingsApplication::new(loaded.settings, store);
-    let installed = tallyline_workflows::api::model::ReleaseVersion::parse(concat!(
-        "v",
-        env!("CARGO_PKG_VERSION")
-    ))
-    .ok_or_else(|| io::Error::other("invalid development build identity"))?;
+    let installed = tallyline_app::api::compiled_build_information()
+        .map_err(|_| io::Error::other("compiled build information is invalid"))?
+        .update_baseline();
     deliver(
         outgoing,
         context,

@@ -252,4 +252,7 @@
   "review.no_difference": "Difference unavailable without a comparable reference.",
   "review.policy_uex": "Price policy: cached UEX parameters",
   "review.policy_fallback": "Price policy: documented fallback, verified",
-  "review.average_band": "Twice this tolerance applies to a commodity average."}
+  "review.average_band": "Twice this tolerance applies to a commodity average.",
+  "about.build_version": "Version",
+  "about.build_unavailable": "Build information unavailable"
+}

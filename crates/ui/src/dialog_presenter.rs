@@ -7,6 +7,7 @@
 #[derive(Default)]
 pub struct DialogPresenter {
     about: bool,
+    build: crate::api::model::BuildPresentation,
     gpl: bool,
     licences: bool,
     catalogue: Option<crate::api::model::LicenceCatalogue>,
@@ -14,6 +15,10 @@ pub struct DialogPresenter {
 }
 
 impl DialogPresenter {
+    pub(crate) fn set_build_presentation(&mut self, build: crate::api::model::BuildPresentation) {
+        self.build = build;
+    }
+
     /// Returns the validated offline component catalogue.
     #[must_use]
     pub const fn licences(&self) -> Option<&crate::api::model::LicenceCatalogue> {
@@ -41,7 +46,9 @@ impl DialogPresenter {
             .vscroll(true)
             .default_width(760.0)
             .show(context, |ui| {
-                for action in crate::api::show_about_view(ui, catalogue, unit) {
+                for action in
+                    crate::legal_views::show_about_view_with_build(ui, catalogue, unit, &self.build)
+                {
                     match action {
                         crate::api::model::AboutAction::ShowGpl => self.gpl = true,
                         crate::api::model::AboutAction::ShowLicences => self.licences = true,

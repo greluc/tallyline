@@ -29,19 +29,30 @@ fn inventory(stage: &Path, seal: &str, injected: bool) -> io::Result<Verified> {
         return Err(io::Error::other("packaging manifest seal mismatch"));
     }
     let value: Value = serde_json::from_slice(&bytes)?;
-    exact_fields(
-        &value,
-        &[
+    let schema = value.get("schema_version").and_then(Value::as_u64);
+    let fields: &[&str] = match schema {
+        Some(2) => &[
             "schema_version",
             "target",
             "version",
             "files",
             "source_archive",
         ],
-    )?;
-    if value.get("schema_version").and_then(Value::as_u64) != Some(2) {
-        return Err(io::Error::other("unsupported packaging manifest schema"));
-    }
+        Some(3) => &[
+            "schema_version",
+            "target",
+            "version",
+            "files",
+            "source_archive",
+            "build_identity",
+        ],
+        _ => return Err(io::Error::other("unsupported packaging manifest schema")),
+    };
+    exact_fields(&value, fields)?;
+    let build_identity = value
+        .get("build_identity")
+        .filter(|identity| schema == Some(3) && !identity.is_null())
+        .cloned();
     let target = match value.get("target").and_then(Value::as_str) {
         Some("x86_64-pc-windows-msvc") => Target::Windows,
         Some("x86_64-unknown-linux-gnu") => Target::Linux,
@@ -101,6 +112,7 @@ fn inventory(stage: &Path, seal: &str, injected: bool) -> io::Result<Verified> {
         version,
         files,
         source_archive,
+        build_identity,
     };
     super::release_version(&format!("v{}", description.version))?;
     super::tools::verify(description.target.name(), &stage.join("tools"))?;
@@ -161,6 +173,24 @@ fn inventory(stage: &Path, seal: &str, injected: bool) -> io::Result<Verified> {
         return Err(io::Error::other(
             "sealed source map has no verified source archive reference",
         ));
+    }
+    if let Some(identity) = &description.build_identity {
+        exact_fields(identity, &["receipt_sha256", "receipt"])?;
+        let seal = text(identity, "receipt_sha256")?;
+        let receipt = &identity["receipt"];
+        if !hash_is_valid(seal)
+            || crate::hashlist::sha256_hex(&serde_json::to_vec_pretty(receipt)?) != seal
+        {
+            return Err(io::Error::other(
+                "sealed build identity receipt differs from admission",
+            ));
+        }
+        super::build_identity::validate(
+            receipt,
+            &stage.join("payload").join(description.target.executable()),
+            description.target,
+            &format!("v{}", description.version),
+        )?;
     }
     let helper = description
         .files

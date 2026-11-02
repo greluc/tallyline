@@ -4,6 +4,8 @@ All notable changes are recorded here.
 
 ## [Unreleased]
 
+- Added bounded headless `--build-info` before native bootstrap. About, logs, UEX identity and update comparison share fixed Development `0.0.0` or complete compile-time tag metadata; invalid or partial metadata refuses startup. Bounded source-job receipts bind compiled metadata and executable hashes into protected staging before fixture access; signed-tag/CI authentication and final package acceptance remain release gates (R-NF-11, R-API-7, R-UI-18, R-SEC-8).
+
 ### Added
 
 - Add guarded manual SCU review with provisional 20 % / 16 SCU bands, independent tighten-only Settings, durable value-bound confirmations and F8/Shift+F8 targets. Database schema 8 and settings schema 5 migrate after coordinated backups; complete release/submission and native visual acceptance remain pending (R-VAL-2, R-VAL-7, R-UI-10, R-UI-11, R-UI-12, R-NF-5, R-NF-11).

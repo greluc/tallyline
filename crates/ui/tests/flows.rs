@@ -192,6 +192,12 @@ fn r_ui_8_r_ui_19_q_app__done_leaves_settings_and_preserves_unfinished_onboardin
 )]
 fn r_ui_18__about_identifies_the_fixed_development_version_and_platform() -> Outcome {
     let mut harness = harness()?;
+    harness.state_mut().shell.set_build_presentation(
+        tallyline_ui::api::model::BuildPresentation::Development {
+            version: "0.0.0".to_owned(),
+            platform: format!("{}/{}", std::env::consts::OS, std::env::consts::ARCH),
+        },
+    );
     harness.run();
     harness.get_by_label("Help").click();
     harness.run();
@@ -199,7 +205,7 @@ fn r_ui_18__about_identifies_the_fixed_development_version_and_platform() -> Out
     harness.run();
     let expected = format!(
         "Development build {} · {}/{}",
-        env!("CARGO_PKG_VERSION"),
+        "0.0.0",
         std::env::consts::OS,
         std::env::consts::ARCH
     );
@@ -445,5 +451,39 @@ fn r_nf_5_r_val_2_q_manual__drawn_stock_settings_reject_loose_input_and_save_exp
         vec![SettingsCommand::ChangeStockSettings(Default::default())]
     );
     assert!(harness.state().shell.busy());
+    Ok(())
+}
+
+#[test]
+#[expect(
+    non_snake_case,
+    reason = "Requirement tags use the prescribed separator."
+)]
+fn r_ui_18_r_nf_11__about_uses_the_injected_release_identity_instead_of_cargo_metadata() -> Outcome
+{
+    let mut harness = harness()?;
+    harness.state_mut().shell.set_build_presentation(
+        tallyline_ui::api::model::BuildPresentation::Release {
+            version: "9.8.7".to_owned(),
+            platform: "windows/x86_64".to_owned(),
+            tag: "v9.8.7".to_owned(),
+            commit: "0123456789abcdef0123456789abcdef01234567".to_owned(),
+        },
+    );
+    harness.run();
+    harness.get_by_label("Help").click();
+    harness.run();
+    harness.get_by_label("About").click();
+    harness.run();
+    assert!(
+        harness
+            .query_by_label("Version 9.8.7 · windows/x86_64")
+            .is_some()
+    );
+    assert!(
+        harness
+            .query_by_label("Development build 0.1.0 · windows/x86_64")
+            .is_none()
+    );
     Ok(())
 }

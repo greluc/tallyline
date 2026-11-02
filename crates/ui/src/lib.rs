@@ -41,4 +41,5 @@ mod manual_review;
 mod manual_review_details;
 mod manual_review_views;
 
+mod build_presentation;
 mod stock_settings;

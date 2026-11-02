@@ -18,6 +18,7 @@ pub(super) fn prepare(
     stage: &Path,
     target: Target,
     version: &str,
+    build_identity: Option<Value>,
 ) -> io::Result<String> {
     super::release_version(&format!("v{version}"))?;
     let input = input.canonicalize()?;
@@ -90,7 +91,15 @@ pub(super) fn prepare(
         &mut files,
     )?;
     files.sort_by(|left, right| left["path"].as_str().cmp(&right["path"].as_str()));
-    let manifest = json!({"schema_version":2,"target":target.triple(),"version":version,"files":files,"source_archive":source_archive.map(|source| json!({"file":source.file,"sha256":source.sha256}))});
+    if let Some(identity) = &build_identity {
+        super::build_identity::validate(
+            &identity["receipt"],
+            &stage.join("payload").join(target.executable()),
+            target,
+            &format!("v{version}"),
+        )?;
+    }
+    let manifest = json!({"schema_version":3,"target":target.triple(),"version":version,"files":files,"source_archive":source_archive.map(|source| json!({"file":source.file,"sha256":source.sha256})),"build_identity":build_identity});
     let bytes = serde_json::to_vec_pretty(&manifest)?;
     fs::write(stage.join(MANIFEST), &bytes)?;
     Ok(crate::hashlist::sha256_hex(&bytes))
@@ -236,4 +245,5 @@ pub(super) struct Verified {
     pub version: String,
     pub files: Vec<Entry>,
     pub source_archive: Option<SourceIdentity>,
+    pub build_identity: Option<Value>,
 }

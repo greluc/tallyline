@@ -27,9 +27,11 @@ pub(crate) fn start(
     )
 }
 fn reader() -> Result<UexReader, BuildError> {
+    let information = tallyline_app::api::compiled_build_information()
+        .map_err(|_| BuildError::Client("compiled build information is invalid".to_owned()))?;
     let settings = ReaderSettings::new(
         PRIMARY_API,
-        ClientIdentity::new("tallyline", env!("CARGO_PKG_VERSION")),
+        ClientIdentity::new("tallyline", information.version()),
     )
     .map_err(|_| BuildError::Client("primary UEX URL is invalid".to_owned()))?;
     UexReader::new(&settings)

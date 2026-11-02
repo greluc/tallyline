@@ -24,3 +24,5 @@ pub use crate::credentials::{CredentialCommand, CredentialSetup};
 pub use crate::manual_review::{
     ManualReviewAction, ManualReviewCommand, ManualReviewState, ReviewDirection,
 };
+
+pub use crate::build_presentation::BuildPresentation;
