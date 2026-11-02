@@ -196,7 +196,7 @@ fn directory(
         let source = source
             .to_str()
             .ok_or_else(|| io::Error::other("MSI source path is not UTF-8"))?;
-        authoring.push_str(&format!("<Component Id=\"{component}\" Guid=\"*\" Bitness=\"always64\"><File Id=\"{file}\" Name=\"{}\" Source=\"{}\" KeyPath=\"yes\" DefaultLanguage=\"0\">", escape(relative), escape(source)));
+        authoring.push_str(&format!("<Component Id=\"{component}\" Guid=\"*\" Bitness=\"always64\"><File Id=\"{file}\" Name=\"{}\" Source=\"{}\" KeyPath=\"yes\">", escape(relative), escape(source)));
         if path == "tallyline.exe" {
             authoring.push_str("<Shortcut Id=\"StartMenuShortcut\" Directory=\"ProgramMenuFolder\" Name=\"Tallyline\" Advertise=\"yes\" WorkingDirectory=\"INSTALLFOLDER\"/>");
         }
