@@ -555,6 +555,7 @@ impl Docker {
                             error.as_str(),
                             "local WSL metadata unavailable"
                                 | "owned cgroup has no live population"
+                                | "owned cgroup population changed during snapshot"
                         ) && let Err(admission_error) = decide_input(
                             &mut admission_sender,
                             &proof_tx,
@@ -677,14 +678,15 @@ impl Docker {
     fn sample(&self, id: &str, memory: u64, pids: u64, final_read: bool) -> Result<Value, String> {
         let base = format!("/sys/fs/cgroup/docker/{id}");
         let paths = [
+            "cgroup.events",
             "cpu.max",
             "memory.max",
             "memory.swap.max",
             "pids.max",
-            "cgroup.events",
             "cgroup.procs",
             "memory.peak",
             "memory.events",
+            "cgroup.events",
         ]
         .map(|name| format!("{base}/{name}"));
         let mut arguments = vec!["/bin/cat"];
@@ -695,14 +697,7 @@ impl Docker {
 
 fn parse_cgroup(text: &str, memory: u64, pids: u64, final_read: bool) -> Result<Value, String> {
     let lines = text.lines().collect::<Vec<_>>();
-    if lines.first() != Some(&"200000 100000")
-        || lines.get(1) != Some(&memory.to_string().as_str())
-        || lines.get(2) != Some(&"0")
-        || lines.get(3) != Some(&pids.to_string().as_str())
-    {
-        return Err("owned cgroup hard limits differ".to_owned());
-    }
-    let mut cursor = 4;
+    let mut cursor = 0;
     let mut populated = None;
     let mut frozen = false;
     while let Some(line) = lines.get(cursor) {
@@ -726,6 +721,8 @@ fn parse_cgroup(text: &str, memory: u64, pids: u64, final_read: bool) -> Result<
     if !final_read && !populated {
         return Err("owned cgroup has no live population".to_owned());
     }
+    let limit_cursor = cursor;
+    cursor += 4;
     let mut numeric = Vec::new();
     while let Some(line) = lines.get(cursor) {
         if line.bytes().all(|byte| byte.is_ascii_digit()) && !line.is_empty() {
@@ -749,6 +746,10 @@ fn parse_cgroup(text: &str, memory: u64, pids: u64, final_read: bool) -> Result<
     }
     let mut events = serde_json::Map::new();
     for line in lines.iter().skip(cursor) {
+        if line.starts_with("populated ") || line.starts_with("frozen ") {
+            break;
+        }
+        cursor += 1;
         let fields = line.split_whitespace().collect::<Vec<_>>();
         let [key, count] = fields.as_slice() else {
             return Err("invalid memory.events metadata".to_owned());
@@ -770,6 +771,43 @@ fn parse_cgroup(text: &str, memory: u64, pids: u64, final_read: bool) -> Result<
             return Err("unknown or repeated memory.events field".to_owned());
         }
     }
+    let second_populated = lines
+        .get(cursor)
+        .and_then(|line| line.strip_prefix("populated "))
+        .ok_or("owned cgroup population recheck missing")?;
+    if !matches!(second_populated, "0" | "1") {
+        return Err("owned cgroup population recheck invalid".to_owned());
+    }
+    if (second_populated == "1") != populated {
+        return Err("owned cgroup population changed during snapshot".to_owned());
+    }
+    cursor += 1;
+    if lines
+        .get(cursor)
+        .is_some_and(|line| line.starts_with("frozen "))
+    {
+        if lines.get(cursor) != Some(&"frozen 0") {
+            return Err("owned cgroup unexpectedly froze during snapshot".to_owned());
+        }
+        cursor += 1;
+    }
+    if cursor != lines.len() {
+        return Err("owned cgroup has unexpected trailing metadata".to_owned());
+    }
+    if lines.get(limit_cursor) != Some(&"200000 100000")
+        || lines.get(limit_cursor + 1) != Some(&memory.to_string().as_str())
+        || lines.get(limit_cursor + 2) != Some(&"0")
+        || lines.get(limit_cursor + 3) != Some(&pids.to_string().as_str())
+    {
+        return Err(format!(
+            "owned cgroup hard limits differ: cpu={:?}, memory={:?}, swap={:?}, pids={:?}",
+            lines.get(limit_cursor),
+            lines.get(limit_cursor + 1),
+            lines.get(limit_cursor + 2),
+            lines.get(limit_cursor + 3)
+        ));
+    }
+
     if ["low", "high", "max", "oom", "oom_kill", "oom_group_kill"]
         .iter()
         .any(|key| !events.contains_key(*key))

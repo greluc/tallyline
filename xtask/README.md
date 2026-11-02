@@ -172,3 +172,6 @@ The ONNX binding gate also enforces ADR-0007 before build/test work: reachable `
 ## Prebuilt packaging foundation
 
 The package subcommand provides version, archive, tools-verify and scan. Run package help for exact arguments. The same arguments work with the prebuilt helper outside a checkout and without Cargo on PATH; that route is required after token injection. Containers must be independently unpacked before scanning. No installer backend is enabled by these foundation commands. Full boundaries and pending evidence: [packaging spike](../docs/packaging-spike.md).
+
+
+The preparation commands are package prepare windows|linux vMAJOR.MINOR.PATCH PAYLOAD TOOLS FRESH-STAGE and package verify STAGE SEAL. Package legal-verify PAYLOAD independently checks physical notice bytes, registry index and catalogue correspondence. Prepare verifies the native x64 application header and fixed baseline resource identities without running supplied application code, excludes mutable data and existing token files, and seals the currently running helper. It reads no fixture. Protected injection/backends and complete source-duty verification remain #97 work.

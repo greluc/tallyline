@@ -78,6 +78,7 @@ pub struct ReportRow {
     price: Option<PricePerScu>,
     stock: Option<ScuQuantity>,
     status: Option<std::num::NonZeroU8>,
+    price_decision: crate::price_confirmation::PriceDecision,
     status_confirmation: Option<StatusConfirmation>,
     status_deviation: Option<Deviation>,
     status_unreviewed: bool,
@@ -183,6 +184,7 @@ impl Report {
             price: None,
             stock: None,
             status: None,
+            price_decision: crate::price_confirmation::PriceDecision::default(),
             status_confirmation: None,
             status_deviation: None,
             status_unreviewed: false,
@@ -198,6 +200,7 @@ impl Report {
                 self.game_version = None;
             }
             for row in &mut self.rows {
+                row.price_decision = crate::price_confirmation::PriceDecision::default();
                 row.status_confirmation = None;
                 row.status_deviation = None;
                 row.status_unreviewed = false;
@@ -219,7 +222,11 @@ impl Report {
         if value.is_some_and(PricePerScu::is_zero) {
             return Err(InvalidReport);
         }
-        self.row_mut(row)?.price = value;
+        let field = self.row_mut(row)?;
+        if field.price != value {
+            field.price_decision = crate::price_confirmation::PriceDecision::default();
+        }
+        field.price = value;
         self.version += 1;
         Ok(())
     }
@@ -326,6 +333,8 @@ pub struct StoredRow {
     pub stock: Option<ScuQuantity>,
     /// Explicit status.
     pub status: Option<std::num::NonZeroU8>,
+    /// Persisted price review decision.
+    pub price_decision: crate::api::model::StoredPriceDecision,
     /// Value and unlowered deviation explicitly approved by the user.
     pub status_confirmation: Option<(std::num::NonZeroU8, Deviation, UexEnvironment)>,
     /// Last assessed unlowered status deviation.
@@ -354,6 +363,7 @@ impl Report {
                 || !ids.insert(row.id.0)
                 || row.commodity.0 == 0
                 || row.price.is_some_and(PricePerScu::is_zero)
+                || !row.valid_price_decision()
                 || !row.valid_status_decision()
                 || report.rows.iter().any(|old| old.commodity == row.commodity)
             {
@@ -365,6 +375,20 @@ impl Report {
                 price: row.price,
                 stock: row.stock,
                 status: row.status,
+                price_decision: crate::price_confirmation::PriceDecision {
+                    confirmation: row.price_decision.confirmation.map(
+                        |(value, deviation, environment)| {
+                            crate::api::model::PriceConfirmation::approve(
+                                value,
+                                deviation,
+                                environment,
+                            )
+                        },
+                    ),
+                    deviation: row.price_decision.deviation,
+                    unreviewed: row.price_decision.unreviewed,
+                    revoked: row.price_decision.revoked,
+                },
                 status_confirmation: row.status_confirmation.map(
                     |(value, deviation, environment)| {
                         StatusConfirmation::approve(value, deviation, environment)
@@ -395,3 +419,5 @@ impl Report {
 mod status;
 
 mod attachment;
+
+mod price;

@@ -66,6 +66,7 @@ pub(super) fn run(mode: &str) -> Result<(), String> {
             | "runtime-stderr"
             | "admission-reject"
             | "admission-accept"
+            | "admission-limit-mismatch"
     ) {
         return Err("unknown recorded process contract".to_owned());
     }
@@ -73,7 +74,10 @@ pub(super) fn run(mode: &str) -> Result<(), String> {
     let mut command = Command::new(executable);
     command.env_clear().args([
         "fixture",
-        if matches!(mode, "admission-reject" | "admission-accept") {
+        if matches!(
+            mode,
+            "admission-reject" | "admission-accept" | "admission-limit-mismatch"
+        ) {
             "admission"
         } else if matches!(mode, "stderr" | "runtime-stderr") {
             "error"
@@ -93,14 +97,13 @@ pub(super) fn run(mode: &str) -> Result<(), String> {
     } else {
         Vec::new()
     };
-    let input = if matches!(mode, "admission-reject" | "admission-accept") {
+    let input = if matches!(
+        mode,
+        "admission-reject" | "admission-accept" | "admission-limit-mismatch"
+    ) {
         let (sender, receiver) = std::sync::mpsc::sync_channel(1);
         sender
-            .send(if mode == "admission-accept" {
-                docker::Admission::Permit
-            } else {
-                docker::Admission::Refuse
-            })
+            .send(recorded_admission(mode)?)
             .map_err(|_| "fixture admission unavailable")?;
         docker::Input::AfterLocalProof {
             bytes: b"RECORDED_PRIVATE_BYTES".to_vec(),
@@ -141,7 +144,7 @@ pub(super) fn run(mode: &str) -> Result<(), String> {
                 && output.failure.is_none()
                 && String::from_utf8_lossy(&output.stderr).contains("recorded process refusal")
         }
-        "admission-reject" => {
+        "admission-reject" | "admission-limit-mismatch" => {
             output.failure.as_deref() == Some("private stdin admission refused")
                 && output.input_bytes == Some(0)
                 && output.bytes == b"received=0;text=\n"
@@ -165,4 +168,24 @@ pub(super) fn run(mode: &str) -> Result<(), String> {
         return Err(format!("recorded lifecycle contract failed: {mode}"));
     }
     Ok(())
+}
+
+fn recorded_admission(mode: &str) -> Result<docker::Admission, String> {
+    if mode == "admission-accept" {
+        return Ok(docker::Admission::Permit);
+    }
+    if mode == "admission-limit-mismatch" {
+        let path = PathBuf::from(format!("research-contract-cgroup-{}", std::process::id()));
+        files::write(&path,b"populated 1\nfrozen 0\n200000 100000\n4294967296\n0\n1\n783780\n8187904\nlow 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0\npopulated 1\nfrozen 0\n")?;
+        let result = docker::recorded_resource(&path, "8g");
+        std::fs::remove_file(path).map_err(|_| "owned resource fixture cleanup failed")?;
+        match result {
+            Err(error) if error.starts_with("owned cgroup hard limits differ") => {
+                return Ok(docker::Admission::Refuse);
+            }
+            Err(error) => return Err(error),
+            Ok(_) => return Err("recorded alive limit mismatch was accepted".to_owned()),
+        }
+    }
+    Ok(docker::Admission::Refuse)
 }

@@ -94,6 +94,7 @@ fn bounded_recorded_process_contracts_reap_deadline_output_and_blocked_stdin() {
         "runtime-stderr",
         "admission-reject",
         "admission-accept",
+        "admission-limit-mismatch",
     ] {
         let output = fixture.run(&["contract", mode]).unwrap();
         assert!(
@@ -293,7 +294,7 @@ fn preprocessing_plan_refuses_shells_plugins_and_foreign_outputs_without_executi
 #[test]
 fn recorded_owned_cgroup_peak_is_a_lower_bound_with_exact_limits() {
     let fixture = Fixture::new().unwrap();
-    fs::write(fixture.0.join("cgroup.txt"),b"200000 100000\n4294967296\n0\n1\npopulated 1\nfrozen 0\n783780\n8187904\nlow 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0\n").unwrap();
+    fs::write(fixture.0.join("cgroup.txt"),b"populated 1\nfrozen 0\n200000 100000\n4294967296\n0\n1\n783780\n8187904\nlow 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0\npopulated 1\nfrozen 0\n").unwrap();
     let output = fixture.run(&["resource", "cgroup.txt", "4g"]).unwrap();
     assert!(output.status.success());
     let value: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
@@ -305,5 +306,16 @@ fn recorded_owned_cgroup_peak_is_a_lower_bound_with_exact_limits() {
             .unwrap()
             .status
             .success()
+    );
+}
+
+#[test]
+fn unpopulated_starting_cgroup_cannot_be_misclassified_as_a_live_limit_refusal() {
+    let fixture = Fixture::new().unwrap();
+    fs::write(fixture.0.join("starting.txt"),b"populated 0\nfrozen 0\nmax 100000\nmax\nmax\nmax\n0\nlow 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0\npopulated 0\nfrozen 0\n").unwrap();
+    let output = fixture.run(&["resource", "starting.txt", "8g"]).unwrap();
+    assert!(!output.status.success());
+    assert!(
+        String::from_utf8_lossy(&output.stderr).contains("owned cgroup has no live population")
     );
 }

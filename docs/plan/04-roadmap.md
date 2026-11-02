@@ -251,7 +251,10 @@ Issue #83 has the initial Reporting aggregate/application and shared SQLite sche
 
 Corrected 2026-11-02: issue #85 now includes confirmed source-scale private working copies with SHA-256 integrity binding, real filesystem/SQLite failure and restart contracts, account-scoped dated requirement memory/clear, attachment-only readiness and stale-result rejection. A critical headless egui flow covers full-size privacy confirmation and explicit account clearing. Manual Report consumes the accepted credential account even without cached references; delayed results preserve unfinished input and newer work. Complete release/age/submission and native visual acceptance remain open. No M1 acceptance box or issue completion is claimed.
 
-
 ## Packaging checkpoint — 2026-11-02 (#97)
 
 The prebuilt helper foundation now parses canonical stable release tags within MSI limits, verifies exact approved WiX/private-runtime and Debian tool bytes without executing them, writes plain ZIP/tar.gz and scans unpacked fixture bytes in UTF-8 and UTF-16 LE/BE. Independent-reader and negative CLI contracts have real red/green evidence. This does not complete R-NF-2:installers, R-DOC-3, R-DOC-4, R-SEC-8 or R-NF-4: protected real packages, complete native/model/dictionary/legal/source inventory, signed-tag authenticity and installed-system acceptance remain open. [ADR-0011](../adr/0011-source-compiled-wix-packaging.md) supersedes historical WiX 3.11.2 MSI wording; [spike record](../packaging-spike.md).
+
+## Manual numeric review implementation checkpoint — 2026-11-02
+
+Issue #84 now has desktop price/status assessment, value-bound approval, durable unreviewed/revoked state, keyboard navigation and passive reassessment under R-VAL-2, R-VAL-2a, R-VAL-7 and R-UI-10…12 `:manual`. This is a partial implementation record, not acceptance of the complete ticket or M1 release. SCU percentage/absolute-minimum calibration, complete shared validation/release/submission and native visual acceptance remain open. Existing requirement coverage assignments are unchanged.

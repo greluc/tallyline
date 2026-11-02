@@ -10,6 +10,7 @@ pub struct DialogPresenter {
     gpl: bool,
     licences: bool,
     catalogue: Option<crate::api::model::LicenceCatalogue>,
+    pub(crate) manual_confirmation: Option<crate::api::model::ManualReviewCommand>,
 }
 
 impl DialogPresenter {

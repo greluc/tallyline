@@ -241,7 +241,7 @@ fn dword(output: &mut Vec<u8>, value: u32) {
     output.extend_from_slice(&value.to_le_bytes());
 }
 
-fn children(source: &Path) -> io::Result<Vec<(fs::DirEntry, String)>> {
+pub(super) fn children(source: &Path) -> io::Result<Vec<(fs::DirEntry, String)>> {
     let mut children = fs::read_dir(source)?.collect::<io::Result<Vec<_>>>()?;
     children.sort_by_key(std::fs::DirEntry::file_name);
     let mut names = std::collections::BTreeSet::new();

@@ -126,6 +126,7 @@ struct RowDocument {
     price: Option<String>,
     stock: Option<String>,
     status: Option<std::num::NonZeroU8>,
+    price_decision: PriceDecisionDocument,
     status_confirmation: Option<(std::num::NonZeroU8, StoredDeviation, StoredEnvironment)>,
     status_deviation: Option<StoredDeviation>,
     status_unreviewed: bool,
@@ -152,6 +153,18 @@ fn encode(report: &Report) -> Result<String, RepositoryError> {
                 price: row.price().map(|v| v.to_string()),
                 stock: row.stock().map(|v| v.to_string()),
                 status: row.status(),
+                price_decision: PriceDecisionDocument {
+                    confirmation: row.price_confirmation().map(|approval| {
+                        (
+                            approval.value().to_string(),
+                            approval.deviation().into(),
+                            approval.reference_environment().into(),
+                        )
+                    }),
+                    deviation: row.price_deviation().map(Into::into),
+                    unreviewed: row.price_unreviewed(),
+                    revoked: row.price_confirmation_revoked(),
+                },
                 status_confirmation: row.status_confirmation().map(|approval| {
                     (
                         approval.value(),
@@ -198,6 +211,22 @@ fn decode(id: ReportId, version: u64, payload: &str) -> Result<Report, Repositor
                     .transpose()
                     .map_err(|_| RepositoryError::Invalid)?,
                 status: row.status,
+                price_decision: tallyline_reporting::api::model::StoredPriceDecision {
+                    confirmation: row
+                        .price_decision
+                        .confirmation
+                        .map(|(value, deviation, environment)| {
+                            Ok((
+                                value.parse().map_err(|_| RepositoryError::Invalid)?,
+                                deviation.into(),
+                                environment.into(),
+                            ))
+                        })
+                        .transpose()?,
+                    deviation: row.price_decision.deviation.map(Into::into),
+                    unreviewed: row.price_decision.unreviewed,
+                    revoked: row.price_decision.revoked,
+                },
                 status_confirmation: row.status_confirmation.map(
                     |(value, deviation, environment)| (value, deviation.into(), environment.into()),
                 ),
@@ -358,4 +387,13 @@ impl AttachmentDocument {
             working_copy: self.working_copy.map(ImageHash::new),
         })
     }
+}
+
+#[derive(Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct PriceDecisionDocument {
+    confirmation: Option<(String, StoredDeviation, StoredEnvironment)>,
+    deviation: Option<StoredDeviation>,
+    unreviewed: bool,
+    revoked: bool,
 }
