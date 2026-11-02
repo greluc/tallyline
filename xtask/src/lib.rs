@@ -35,6 +35,7 @@ pub mod target_graph;
 pub mod tracked;
 pub mod vendor;
 pub mod vet;
+pub mod work_paths;
 
 #[cfg(test)]
 mod denygate;
@@ -75,3 +76,6 @@ pub mod mutation;
 
 #[cfg(test)]
 mod package_tests;
+
+#[cfg(test)]
+mod work_paths_tests;

@@ -9,16 +9,14 @@ struct Fixture(PathBuf);
 
 impl Fixture {
     fn new() -> std::io::Result<Self> {
-        let path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-            .join("../../target")
-            .join(format!(
-                "research-contract-{}-{}",
-                std::process::id(),
-                std::time::SystemTime::now()
-                    .duration_since(std::time::UNIX_EPOCH)
-                    .unwrap_or_default()
-                    .as_nanos()
-            ));
+        let path = std::env::temp_dir().join(format!(
+            "research-contract-{}-{}",
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap_or_default()
+                .as_nanos()
+        ));
         fs::create_dir_all(&path)?;
         Ok(Self(path))
     }
@@ -46,6 +44,16 @@ impl Drop for Fixture {
     fn drop(&mut self) {
         assert!(fs::remove_dir_all(&self.0).is_ok());
     }
+}
+
+#[test]
+#[expect(
+    non_snake_case,
+    reason = "Requirement tags use the prescribed separator."
+)]
+fn r_sec_1__research_contract_files_follow_system_temporary_storage() {
+    let fixture = Fixture::new().unwrap();
+    assert!(fixture.0.starts_with(std::env::temp_dir()));
 }
 
 #[test]

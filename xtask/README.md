@@ -16,6 +16,28 @@ Repository checks and generators, run as `cargo xtask <task>` (ADR-0005 D12). No
 | `vendor-hashes verify` | The same vendor run, then compares the tree with the committed list and fails on a missing, unexpected or changed package. Needs the network; CI runs it on both systems |
 | `notices` | The notices directory of R-DOC-3 (10 S-34): selects the shipped crates with `cargo tree` (normal edges without procedural macros, all features, the Windows and the Linux target, the shipped workspace members of `osv-gate`), reads their licences from `cargo deny --locked list --format json --layout crate`, vendors the dependencies as `vendor-hashes write` does, and writes one directory per shipped target, `target/notices/<target>/legal/`, from the crates shipped for that target: every licence or notice file of a shipped crate (a name starting with `LICENSE`, `LICENCE`, `COPYING`, `COPYRIGHT`, `NOTICE`, `UNLICENSE`, `ThirdPartyNotices` or `PATENTS`, in any directory of the crate, or any file of a directory named `LICENSES`, `LICENCES`, `LICENSE` or `LICENCE`) unmodified under `crates/<name>-<version>/`, the index `crates/index.tsv` (crate, version, the SPDX expression of the vendored manifest's `license` field or `-`, the licences `cargo-deny` detected), the generated `legal/catalogue.json` for the offline About view (name, version, licence, source, copyright and full notice texts), and the files of every shipped entry of the reviewed list `supply-chain/notices.toml` under `<directory>/`. It fails, and removes `target/notices/` so no stale directory can be packaged, when a shipped crate is not vendored, has no such file in its vendor tree or a shipped reviewed-list entry supplies it, or has no licence in the report, an entry names a crate that `Cargo.lock` does not hold, or a shipped entry lacks a file. Needs the network and `cargo-deny`; CI runs it on both systems |
 
+## External workspace outputs
+
+Automatic `xtask-vendor`, `notices` and `core-mutation` trees follow `CARGO_TARGET_DIR`. Without that environment override, their existing `target/` locations remain the defaults. A relative override resolves against the original invocation directory, matching Cargo, and becomes absolute for nested workspace commands even when they run from the workspace root. Normal commands leave Cargo configuration unchanged when the override is absent. See [Cargo path semantics](https://doc.rust-lang.org/cargo/reference/config.html#config-relative-paths).
+
+Each generated tree carries a `.tallyline-xtask-owner` marker bound to its canonical workspace and directory. Replacement and cleanup refuse unmarked, mismatched, linked or obstructed trees; they preserve foreign content. Choose a fresh task-owned output root when an earlier unmarked directory exists. Reuse belongs to the same checkout with one active writer. Cleanup never removes the target root itself. A vendor run still uses a fresh empty Cargo home inside its owned scratch directory, and the committed `supply-chain/vendor-hashes.txt` remains the explicit output of `vendor-hashes write`.
+
+Mutation reports and selections use the resolved external `core-mutation` tree. The pinned mutation tool builds copied source roots below system temporary storage; its subprocess receives relative `CARGO_TARGET_DIR=target` and `CARGO_BUILD_BUILD_DIR=target`, so each copy owns its build and intermediate artefacts. `TEMP` and `TMP` select the external parent for these copies and filesystem tests, including the offline research CLI contracts. Existing mutation selection, locked workspace argv, timeout and score gates remain in force. Coverage follows the external Cargo target root through the pinned `cargo-llvm-cov` tool.
+
+For this Windows workspace, use a fresh task directory before the first Cargo invocation:
+
+```powershell
+$taskRoot = 'D:/Coding/Agents/Temp/codex/tallyline-check'
+New-Item -ItemType Directory -Force "$taskRoot/tmp" | Out-Null
+$env:CARGO_HOME = "$taskRoot/cargo-home"
+$env:CARGO_TARGET_DIR = "$taskRoot/build"
+$env:TEMP = "$taskRoot/tmp"
+$env:TMP = $env:TEMP
+cargo xtask check
+cargo xtask notices
+```
+
+Use a different task root for another checkout. Empty overrides, drive-relative Windows paths, filesystem roots, workspace ancestors, files, symlinks and Windows reparse points are refused by the automatic-output resolver. Packaging/archive/source-map commands retain their explicit caller-selected paths and source-independent entry point; they do not discover a Cargo workspace or acquire these automatic paths.
 The architecture check compares workspace dependency edges with the context map in `docs/plan/02-architecture.md` §2, rejects unknown crates, cycles, forbidden external dependencies in core crates, `submission` dependencies on `reporting` and adapter-to-adapter edges, and allows adapter dependencies on context crates only. The reviewed pure dependency allowlist and workspace edge map live in `src/architecture.rs`. Fixture tests cover each rejection. The check uses the existing `serde_json` dependency of `xtask` (MIT OR Apache-2.0 in its crates.io package manifest; source and licence pass the existing supply-chain gates); it adds no dependency.
 
 The requirement-tag check lists the tests with `cargo test --workspace --locked -- --list` and validates the tags in their names against the requirement table of `docs/plan/01-requirements.md` and the qualifiers of `docs/plan/04-roadmap.md`. The grammar is in `docs/plan/11-ddd-and-tdd.md` section B4.

@@ -10,7 +10,7 @@ use std::ffi::{OsStr, OsString};
 use std::fs;
 use std::io::{self, Write};
 use std::path::{Path, PathBuf};
-use std::process::{Command, ExitCode};
+use std::process::ExitCode;
 
 use xtask::architecture;
 use xtask::check::{Step, plan};
@@ -43,11 +43,9 @@ const VET_CONFIG: &str = "supply-chain/config.toml";
 const VET_BASELINE: &str = "supply-chain/bootstrap-exemptions.txt";
 const LOCKFILE: &str = "Cargo.lock";
 const HASH_LIST: &str = "supply-chain/vendor-hashes.txt";
-const VENDOR_WORK_DIR: &str = "target/xtask-vendor";
 const SHIPPED_TARGETS: [&str; 2] = ["x86_64-pc-windows-msvc", "x86_64-unknown-linux-gnu"];
 const OSV_EDGES: &str = "normal";
 const LINKED_EDGES: &str = "normal,no-proc-macro";
-const NOTICES_WORK_DIR: &str = "target/notices";
 
 fn main() -> ExitCode {
     let arguments: Vec<String> = std::env::args().skip(1).collect();
@@ -168,7 +166,8 @@ fn run_step(step: &Step, root: &Path) -> io::Result<bool> {
         Step::English => english_passes(root),
         Step::Architecture => architecture_passes(root),
         Step::CoreCoverage => coverage_passes(root),
-        Step::Cargo { args, env, .. } => Ok(Command::new(cargo_program())
+        Step::Cargo { args, env, .. } => Ok(work_paths(root)?
+            .command(&cargo_program())
             .args(args)
             .envs(env.iter().copied())
             .current_dir(root)
@@ -179,11 +178,15 @@ fn run_step(step: &Step, root: &Path) -> io::Result<bool> {
 }
 
 fn run_mutation(root: &Path, options: &xtask::mutation::Options) -> io::Result<ExitCode> {
-    let mut output = root.join("target/core-mutation");
-    if let Some(shard) = options.shard {
-        output = output.join(shard.report_directory());
-    }
-    fs::create_dir_all(&output)?;
+    let paths = work_paths(root)?;
+    let output = if let Some(shard) = options.shard {
+        paths.prepare_child(
+            xtask::work_paths::OutputKind::Mutation,
+            OsStr::new(&shard.report_directory()),
+        )?
+    } else {
+        paths.prepare(xtask::work_paths::OutputKind::Mutation)?
+    };
     let report = output.join("mutants.out/outcomes.json");
     if report.exists() {
         fs::remove_file(&report)?;
@@ -243,7 +246,8 @@ fn run_mutation(root: &Path, options: &xtask::mutation::Options) -> io::Result<E
         )?;
         return Ok(ExitCode::SUCCESS);
     }
-    let status = Command::new(cargo_program())
+    let status = work_paths(root)?
+        .mutation_command(&cargo_program())
         .args(args)
         .current_dir(root)
         .status()?;
@@ -264,7 +268,8 @@ fn run_mutation(root: &Path, options: &xtask::mutation::Options) -> io::Result<E
 }
 
 fn list_mutants(root: &Path, arguments: &[OsString]) -> io::Result<String> {
-    let output = Command::new(cargo_program())
+    let output = work_paths(root)?
+        .mutation_command(&cargo_program())
         .args(arguments)
         .args(["--list", "--json"])
         .current_dir(root)
@@ -333,7 +338,8 @@ fn coverage_passes(root: &Path) -> io::Result<bool> {
     for package in packages {
         args.extend(["--package".to_owned(), package]);
     }
-    Ok(Command::new(cargo_program())
+    Ok(work_paths(root)?
+        .command(&cargo_program())
         .args(args)
         .current_dir(root)
         .status()?
@@ -410,7 +416,8 @@ fn run_guard(root: &Path) -> io::Result<ExitCode> {
 }
 
 fn program_stdout(program: &OsStr, root: &Path, args: &[&str]) -> io::Result<String> {
-    let output = Command::new(program)
+    let output = work_paths(root)?
+        .command(program)
         .args(args)
         .current_dir(root)
         .output()?;
@@ -605,15 +612,18 @@ fn with_vendor_tree<T>(
     action: impl FnOnce(&str, &Path) -> io::Result<T>,
 ) -> io::Result<T> {
     let lock_text = fs::read_to_string(root.join(LOCKFILE))?;
-    let work_dir = root.join(VENDOR_WORK_DIR);
-    if work_dir.exists() {
-        fs::remove_dir_all(&work_dir)?;
-    }
-    fs::create_dir_all(&work_dir)?;
+    let paths = work_paths(root)?;
+    let work_dir = paths.reset(xtask::work_paths::OutputKind::Vendor)?;
     let outcome = regenerate(root, &cargo_program(), &work_dir)
         .and_then(|vendor_dir| action(&lock_text, &vendor_dir));
-    fs::remove_dir_all(&work_dir).ok();
-    outcome
+    let cleanup = paths.remove(xtask::work_paths::OutputKind::Vendor);
+    match (outcome, cleanup) {
+        (Ok(value), Ok(())) => Ok(value),
+        (Err(error), Ok(())) | (Ok(_), Err(error)) => Err(error),
+        (Err(error), Err(cleanup)) => Err(io::Error::other(format!(
+            "vendor work failed ({error}); cleanup failed ({cleanup})"
+        ))),
+    }
 }
 
 fn write_hash_list(root: &Path) -> io::Result<ExitCode> {
@@ -677,10 +687,8 @@ fn write_notices(root: &Path) -> io::Result<ExitCode> {
             .collect();
         graphs.push((target, shipped));
     }
-    let work_dir = root.join(NOTICES_WORK_DIR);
-    if work_dir.exists() {
-        fs::remove_dir_all(&work_dir)?;
-    }
+    let paths = work_paths(root)?;
+    let work_dir = paths.reset(xtask::work_paths::OutputKind::Notices)?;
     let passed = with_vendor_tree(root, |_, vendor_dir| {
         let mut passed = true;
         for (target, shipped) in &graphs {
@@ -726,7 +734,8 @@ fn write_notices(root: &Path) -> io::Result<ExitCode> {
                 }
                 writeln!(
                     io::stderr(),
-                    "wrote {NOTICES_WORK_DIR}/{target}/{NOTICES_DIRECTORY}: {} files for {} shipped crates and the reviewed list",
+                    "wrote {}/{target}/{NOTICES_DIRECTORY}: {} files for {} shipped crates and the reviewed list",
+                    work_dir.display(),
                     assembly.copies.len(),
                     shipped.len()
                 )?;
@@ -737,13 +746,14 @@ fn write_notices(root: &Path) -> io::Result<ExitCode> {
         Ok(passed)
     })?;
     if !passed && work_dir.exists() {
-        fs::remove_dir_all(&work_dir)?;
+        paths.remove(xtask::work_paths::OutputKind::Notices)?;
     }
     Ok(exit_status(passed))
 }
 
 fn check_requirement_tags(list: &[String], root: &Path) -> io::Result<bool> {
-    let listing = Command::new(cargo_program())
+    let listing = work_paths(root)?
+        .command(&cargo_program())
         .args(list)
         .current_dir(root)
         .output()?;
@@ -937,4 +947,12 @@ fn sqlite_native_passes(root: &Path) -> io::Result<bool> {
         writeln!(io::stderr(), "{finding}")?;
     }
     Ok(findings.is_empty())
+}
+
+fn work_paths(root: &Path) -> io::Result<xtask::work_paths::WorkPaths> {
+    xtask::work_paths::WorkPaths::resolve(
+        root,
+        &std::env::current_dir()?,
+        std::env::var_os("CARGO_TARGET_DIR").as_deref(),
+    )
 }
