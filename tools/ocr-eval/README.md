@@ -7,3 +7,7 @@ The `ocr-eval` workspace package inspects schema-version-two corpus entries, ima
 ## Explicit Game.log witness inspection
 
 `cargo run -p ocr-eval --locked -- witness --channel <directory>` explicitly opts into a local read-only inspection of the selected channel's manifest and Game.log. It prints sanitised facts separately from corpus accuracy output; it is not recognition, a Reader or a submission path. The output uses closed reasons for unavailable inputs and a finite build/mapping allowlist. It contains no raw lines, source path, player fields, prices, quantities or status values. See [the validation record](../../docs/game-log-validation.md) and [the desktop guide](../../docs/user/desktop.md).
+
+## Isolated Linux complementary OCR research
+
+The developer-only `tesseract-research` binary and public safe Rust `isolation-probe` belong to this package. They add no application backend or new dependency. See [the controller record](../../docs/tesseract-linux-research-controller.md) for exact approval hashes, CLI sequence, root-only native execution gates, private evidence, licence/native boundaries and resource limitations. `cargo run -p ocr-eval --bin tesseract-research --locked -- contract deadline` runs a recorded own-process contract without a model. Specifying `--bin ocr-eval` continues to select the existing corpus CLI when using `cargo run`.
