@@ -106,7 +106,7 @@ Game preferences now persist independent channel-to-UEX mappings in settings sch
 
 Startup config migration coordinates existing SQLite and exact settings bytes in one verified backup set, and refuses processing if the backup fails.
 
-The schema-three application database stores manual Drafts and preserves exact buy/sell averages and known terminal container limits; PTU snapshots contain no LIVE averages.
+Corrected 2026-11-02: the schema-four application database stores manual Drafts and status decisions while preserving exact buy/sell averages and known terminal container limits; PTU snapshots contain no LIVE averages. Existing databases require a coordinated backup before migration. Status approval/reassessment and keyboard-focus persistence are available at the application boundary; the drawn review UI and release remain in progress.
 
 Reference snapshots now retain UEX acceptance switches, commodity tolerances and capped literal staff information independently of browsing availability.
 

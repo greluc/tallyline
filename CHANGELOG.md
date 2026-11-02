@@ -14,6 +14,8 @@ All notable changes are recorded here.
 
 - Run the headless OCR diagnostic through an owned worker that verifies below-normal OS priority before its task starts. Production OCR scheduling remains in progress (R-NF-3).
 
+- Preserve manual status approvals, revoked decisions and keyboard-review state across restart at the application boundary. Schema-four migration requires a coordinated backup; review controls and release remain in progress (R-UI-12, R-VAL-7, R-NF-11).
+
 - Added shared bounded PNG/JPEG/BMP intake with explicit colour conversion, full-precision 16-bit PNG handling, HDR/unsupported-colour advice and original-size findings after integer box reduction. The capture UI and recognition pipeline remain in progress (R-CAP-8, R-OCR-17).
 - Reference failures now show the last non-JSON HTTP status, validated Cloudflare Ray and UTC observation time without retaining HTML or changing cached data. HTTPS and same-origin checks precede every request; credentialled technical host overrides require explicit confirmation and disclosure (R-API-3, R-NF-4).
 - Added persistent manual commodity Drafts with explicit terminal, side and environment choices, keyboard field entry, aged UEX references and explicit takeover. Draft edits survive restart without credentials; schema-three storage migrates after coordinated backups. Shared validation and submission remain in progress (R-MAN-1, R-MAN-2, R-MAN-3, R-MAN-6, R-NF-11).
