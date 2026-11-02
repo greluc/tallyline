@@ -12,3 +12,7 @@ mod executor;
 mod manual_worker;
 mod reference_worker;
 mod storage_bootstrap;
+
+mod credential_worker;
+
+mod credential_logs;

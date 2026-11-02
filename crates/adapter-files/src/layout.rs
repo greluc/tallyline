@@ -23,6 +23,17 @@ pub struct DirectoryIssue {
     pub path: PathBuf,
     /// The underlying filesystem or permissions failure.
     pub error: io::Error,
+    /// Whether the probe failed or only directory permissions need attention.
+    pub kind: DirectoryIssueKind,
+}
+
+/// The effect of a directory self-test finding on startup.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum DirectoryIssueKind {
+    /// Read/write probing succeeded but Unix permissions permit other users.
+    PermissionsWarning,
+    /// Creating, opening, writing, syncing or removing the probe failed.
+    IoFailure,
 }
 
 impl StorageLayout {
@@ -88,33 +99,42 @@ impl StorageLayout {
     pub fn self_test(&self) -> Vec<DirectoryIssue> {
         [&self.config, &self.data, &self.logs, &self.cache]
             .into_iter()
-            .filter_map(|path| {
-                probe_directory(path).err().map(|error| DirectoryIssue {
+            .filter_map(|path| match probe_directory(path) {
+                Ok(false) => None,
+                Ok(true) => Some(DirectoryIssue {
+                    path: path.clone(),
+                    error: io::Error::new(
+                        io::ErrorKind::PermissionDenied,
+                        "directory is accessible to another user",
+                    ),
+                    kind: DirectoryIssueKind::PermissionsWarning,
+                }),
+                Err(error) => Some(DirectoryIssue {
                     path: path.clone(),
                     error,
-                })
+                    kind: DirectoryIssueKind::IoFailure,
+                }),
             })
             .collect()
     }
 }
 
-fn probe_directory(path: &Path) -> io::Result<()> {
+fn probe_directory(path: &Path) -> io::Result<bool> {
     let mut builder = DirBuilder::new();
     builder.recursive(true);
+    let accessible_to_others;
     #[cfg(unix)]
     {
         use std::os::unix::fs::{DirBuilderExt, PermissionsExt};
         builder.mode(0o700);
         builder.create(path)?;
-        if fs::metadata(path)?.permissions().mode() & 0o077 != 0 {
-            return Err(io::Error::new(
-                io::ErrorKind::PermissionDenied,
-                "directory is accessible to another user",
-            ));
-        }
+        accessible_to_others = fs::metadata(path)?.permissions().mode() & 0o077 != 0;
     }
     #[cfg(not(unix))]
-    builder.create(path)?;
+    {
+        builder.create(path)?;
+        accessible_to_others = false;
+    }
     let probe = path.join(".tallyline-write-test");
     let mut file = OpenOptions::new()
         .create_new(true)
@@ -125,5 +145,5 @@ fn probe_directory(path: &Path) -> io::Result<()> {
         .and_then(|()| file.sync_all());
     drop(file);
     fs::remove_file(probe)?;
-    result
+    result.map(|()| accessible_to_others)
 }

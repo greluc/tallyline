@@ -38,7 +38,7 @@ enum Task {
         Reply<AttachmentPreview>,
     ),
     Encode(
-        Report,
+        Box<Report>,
         AttachmentPreview,
         AttachmentEncodingSettings,
         Reply<EncodedAttachment>,
@@ -116,7 +116,7 @@ impl AttachmentWorker {
     ) -> Result<Receiver<Result<EncodedAttachment, AttachmentImageError>>, AttachmentWorkerError>
     {
         let (reply, receive) = mpsc::channel();
-        self.submit(Task::Encode(report, preview, settings, reply))?;
+        self.submit(Task::Encode(Box::new(report), preview, settings, reply))?;
         Ok(receive)
     }
     /// Stops admission and joins the current image task before returning.

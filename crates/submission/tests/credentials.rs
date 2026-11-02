@@ -33,6 +33,9 @@ impl SecretStore for MemoryStore {
         self.credentials = Some(credentials.clone());
         Ok(())
     }
+    async fn save_passive(&mut self, saved: &SavedCredentials) -> Result<(), StorageFailure> {
+        self.save(saved).await
+    }
     async fn remove(&mut self) -> Result<(), StorageFailure> {
         self.credentials = None;
         Ok(())
@@ -373,4 +376,75 @@ fn r_api_7_r_nf_4__secure_record_reconstruction_retains_only_required_account_me
         assert_eq!(saved.refusal(), refusal);
         assert_eq!(saved.values().own_token(), None);
     }
+}
+
+struct PassiveOnly {
+    credentials: Option<SavedCredentials>,
+}
+impl SecretStore for PassiveOnly {
+    async fn load(&mut self) -> Result<Option<SavedCredentials>, StorageFailure> {
+        Ok(self.credentials.clone())
+    }
+    async fn save(&mut self, _: &SavedCredentials) -> Result<(), StorageFailure> {
+        Err(StorageFailure::Locked)
+    }
+    async fn save_passive(&mut self, saved: &SavedCredentials) -> Result<(), StorageFailure> {
+        self.credentials = Some(saved.clone());
+        Ok(())
+    }
+    async fn remove(&mut self) -> Result<(), StorageFailure> {
+        Ok(())
+    }
+}
+#[tokio::test]
+#[expect(
+    non_snake_case,
+    reason = "Requirement tags use a double underscore separator."
+)]
+async fn r_api_7_r_ui_16__startup_revalidation_persists_only_without_interaction() {
+    let values =
+        CredentialValues::new("dummy-key".to_owned(), Some("dummy-token".to_owned())).unwrap();
+    let saved = SavedCredentials::from_storage(
+        values,
+        ValidatedAccount::new("dummy-runner".to_owned()),
+        Timestamp::from_seconds(10),
+        None,
+    )
+    .unwrap();
+    let mut store = PassiveOnly {
+        credentials: Some(saved),
+    };
+    let mut application = CredentialApplication::load(&mut store).await.unwrap();
+    let request = application.begin_revalidation().unwrap();
+    application
+        .accept(
+            request,
+            Ok(ValidatedAccount::new("dummy-runner".to_owned())),
+            Timestamp::from_seconds(20),
+            &mut store,
+        )
+        .await
+        .unwrap();
+    assert!(
+        matches!(CredentialApplication::load(&mut store).await.unwrap().state(), AccountState::Validated { validated_at, .. } if *validated_at == Timestamp::from_seconds(20))
+    );
+    let request = application.begin_revalidation().unwrap();
+    assert_eq!(
+        application
+            .accept(
+                request,
+                Err(CredentialFailure::InvalidKey),
+                Timestamp::from_seconds(30),
+                &mut store
+            )
+            .await,
+        Err(CredentialFailure::InvalidKey)
+    );
+    assert_eq!(
+        CredentialApplication::load(&mut store)
+            .await
+            .unwrap()
+            .state(),
+        &AccountState::Rejected(CredentialFailure::InvalidKey)
+    );
 }

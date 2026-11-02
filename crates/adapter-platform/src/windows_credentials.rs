@@ -59,6 +59,9 @@ impl SecretStore for WindowsCredentialStore {
             .map_err(|error| failure(error, StorageFailure::WriteFailed))
     }
 
+    async fn save_passive(&mut self, saved: &SavedCredentials) -> Result<(), StorageFailure> {
+        self.save(saved).await
+    }
     async fn remove(&mut self) -> Result<(), StorageFailure> {
         match self.entry.delete_credential() {
             Ok(()) | Err(Error::NoEntry) => Ok(()),

@@ -3751,6 +3751,7 @@ version = "0.1.0"
 dependencies = [
  "eframe",
  "egui",
+ "log",
  "png",
  "rusqlite",
  "serde_json",
@@ -3763,6 +3764,7 @@ dependencies = [
  "tallyline-reference-data",
  "tallyline-reporting",
  "tallyline-shared-kernel",
+ "tallyline-submission",
  "tallyline-ui",
  "tallyline-workflows",
  "tokio",
@@ -3832,6 +3834,7 @@ dependencies = [
  "tallyline-reference-data",
  "tallyline-reporting",
  "tallyline-shared-kernel",
+ "tallyline-submission",
  "tallyline-workflows",
 ]
 

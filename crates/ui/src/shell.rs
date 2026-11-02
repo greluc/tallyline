@@ -66,6 +66,7 @@ pub fn show_shell(
             if let Some(action) = crate::api::show_onboarding_view(ui, state, catalogue, unit) {
                 commands.extend(state.act(action));
             }
+            crate::credentials::show(ui, state.credentials_mut(), catalogue);
         }
         View::Manual => crate::manual_views::show_manual_editor(ui, state, catalogue),
         View::Reference => crate::reference_views::show_browser_contents(ui, state, catalogue),
@@ -101,6 +102,9 @@ pub fn show_shell(
             if ui.button(catalogue.text("action.done")).clicked() {
                 state.leave_settings();
             }
+            egui::CollapsingHeader::new(catalogue.text("credentials.title")).show(ui, |ui| {
+                crate::credentials::show(ui, state.credentials_mut(), catalogue);
+            });
         }
     });
     state.show_dialogs(ui.ctx(), catalogue, unit);

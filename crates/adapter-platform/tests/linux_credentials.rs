@@ -242,6 +242,19 @@ fn serve(
                         ),
                     )?;
                 }
+                "SetSecret" => {
+                    let (secret,): (Secret,) = call.body()?;
+                    assert!(stored.is_some());
+                    assert_eq!(secret.0.as_str(), SESSION);
+                    assert!(!secret.2.windows(9).any(|part| part == b"dummy-key"));
+                    stored = Some(secret);
+                    if matches!(fault, Fault::CommitWithoutReply) {
+                        assert!(!lost_save);
+                        lost_save = true;
+                        continue;
+                    }
+                    call.reply(stream.get_mut(), &())?;
+                }
                 "GetSecret" => {
                     let mut secret = stored.clone().ok_or("no record")?;
                     if matches!(fault, Fault::Corrupt) {
@@ -488,6 +501,103 @@ async fn r_nf_4__committed_mutations_without_replies_are_uncertain_and_reconcile
     assert_eq!(store.remove().await, Err(StorageFailure::OutcomeUnknown));
     *fault.lock().unwrap() = Fault::None;
     assert!(store.load().await.unwrap().is_none());
+    drop(store);
+    server.join().unwrap().unwrap();
+}
+
+#[tokio::test]
+#[expect(
+    non_snake_case,
+    reason = "Requirement tags use a double underscore separator."
+)]
+async fn r_api_7_r_nf_4_r_ui_16__startup_revalidation_updates_existing_encrypted_record_without_prompt_or_creation()
+ {
+    let directory = tempfile::tempdir().unwrap();
+    fs::set_permissions(directory.path(), fs::Permissions::from_mode(0o700)).unwrap();
+    let path = directory.path().join("bus");
+    let fault = Arc::new(Mutex::new(Fault::None));
+    let server = serve(UnixListener::bind(&path).unwrap(), fault.clone());
+    let bus = LinuxCredentialBus::connect(&format!("unix:path={}", path.display()))
+        .await
+        .unwrap();
+    let mut store = LinuxCredentialStore::connect(bus).await.unwrap();
+    let mut application = CredentialApplication::default();
+    let request = application.begin(CredentialCandidate::new(
+        CredentialValues::new("dummy-key".to_owned(), Some("dummy-token".to_owned())).unwrap(),
+        Persistence::Durable,
+    ));
+    application
+        .accept(
+            request,
+            Ok(ValidatedAccount::new("dummy-runner".to_owned())),
+            Timestamp::from_seconds(1),
+            &mut store,
+        )
+        .await
+        .unwrap();
+    *fault.lock().unwrap() = Fault::Write;
+    let request = application.begin_revalidation().unwrap();
+    application
+        .accept(
+            request,
+            Ok(ValidatedAccount::new("dummy-runner".to_owned())),
+            Timestamp::from_seconds(2),
+            &mut store,
+        )
+        .await
+        .unwrap();
+    assert_eq!(
+        store.load().await.unwrap().unwrap().validated_at(),
+        Timestamp::from_seconds(2)
+    );
+    let request = application.begin_revalidation().unwrap();
+    assert_eq!(
+        application
+            .accept(
+                request,
+                Err(tallyline_submission::api::model::CredentialFailure::InvalidKey),
+                Timestamp::from_seconds(3),
+                &mut store
+            )
+            .await,
+        Err(tallyline_submission::api::model::CredentialFailure::InvalidKey)
+    );
+    assert_eq!(
+        CredentialApplication::load(&mut store)
+            .await
+            .unwrap()
+            .state(),
+        &tallyline_submission::api::model::AccountState::Rejected(
+            tallyline_submission::api::model::CredentialFailure::InvalidKey
+        )
+    );
+    *fault.lock().unwrap() = Fault::CommitWithoutReply;
+    let request = application.begin_revalidation().unwrap();
+    assert_eq!(
+        application
+            .accept(
+                request,
+                Ok(ValidatedAccount::new("dummy-runner".to_owned())),
+                Timestamp::from_seconds(4),
+                &mut store
+            )
+            .await,
+        Err(
+            tallyline_submission::api::model::CredentialFailure::Storage(
+                StorageFailure::OutcomeUnknown
+            )
+        )
+    );
+    assert_eq!(
+        application.state(),
+        &tallyline_submission::api::model::AccountState::Rejected(
+            tallyline_submission::api::model::CredentialFailure::InvalidKey
+        )
+    );
+    *fault.lock().unwrap() = Fault::None;
+    let reconciled = store.load().await.unwrap().unwrap();
+    assert_eq!(reconciled.validated_at(), Timestamp::from_seconds(4));
+    assert_eq!(reconciled.refusal(), None);
     drop(store);
     server.join().unwrap().unwrap();
 }

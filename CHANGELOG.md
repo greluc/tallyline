@@ -12,6 +12,10 @@ All notable changes are recorded here.
 
 ### Added
 
+- Keep a persistent warning for writable Linux data directories with broad permissions instead of treating the warning as a fatal storage error. Actual read/write failures still stop storage startup, and credential fallback remains strictly owner-only (R-NF-5, R-NF-4).
+
+- Add masked UEX account setup during onboarding and in Settings, with read-only validation before saving, a packaged-token/own-token choice and explicit session-only credentials. Linux offers a warning-confirmed private-file fallback only when Secret Service is unavailable; local browsing remains available, and real-provider/visual acceptance remains pending (R-API-4, R-API-7, R-NF-4, R-VLM-12).
+
 - Add a developer-only portable Small image/textline reader with DB boxes, original-raster crops, lazy session reuse and explicit idle cleanup. Desktop screenshot recognition and full installation-profile acceptance remain in progress (R-OCR-1, R-NF-3).
 
 - Run the headless OCR diagnostic through an owned worker that verifies below-normal OS priority before its task starts. Production OCR scheduling remains in progress (R-NF-3).
