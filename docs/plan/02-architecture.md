@@ -1034,3 +1034,7 @@ Data-flow inventory addition, research only: already balance-free operator-stage
 ## Parameterised SCU assessment checkpoint — 2026-11-02
 
 Reporting exposes `review_stock` as a read-only application operation with explicit percentage and absolute bands, carried by Reference Data's `ScuTolerance` without a shipping default. It uses only the matching prior's inventory and source time, preserves missing versus zero, and reports unavailable exact arithmetic. It never writes Report state or uses commodity average prices, forecast demand or status as a stock substitute. This adds no persistence or data flow. The [calibration evidence](../scu-policy-calibration.md) records the provisional 20 % / 16 SCU recommendation and the remaining settings/desktop adoption work.
+
+## Submission payload digest dependency — 2026-11-02
+
+The UEX adapter inherits the existing workspace `sha2` 0.11.1 pin with default features disabled for the submission payload digest boundary. The locked package identities and activated package-feature sets of the Windows and Linux application targets are unchanged; the dependency is already present through the file and platform adapters. This dependency-edge preparation adds no submission operation, destination, stored data category, native backend or new package version.
