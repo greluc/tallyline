@@ -10,10 +10,10 @@ use std::fs;
 use std::io;
 use std::path::Path;
 pub(super) fn read(stage: &Path, seal: &str) -> io::Result<Verified> {
-    inventory(stage, seal)
+    inventory(stage, seal, false)
 }
 
-fn inventory(stage: &Path, seal: &str) -> io::Result<Verified> {
+fn inventory(stage: &Path, seal: &str, injected: bool) -> io::Result<Verified> {
     use std::collections::{BTreeMap, BTreeSet};
     if !fs::symlink_metadata(stage)?.file_type().is_dir()
         || !fs::symlink_metadata(stage.join(MANIFEST))?
@@ -29,8 +29,17 @@ fn inventory(stage: &Path, seal: &str) -> io::Result<Verified> {
         return Err(io::Error::other("packaging manifest seal mismatch"));
     }
     let value: Value = serde_json::from_slice(&bytes)?;
-    exact_fields(&value, &["schema_version", "target", "version", "files"])?;
-    if value.get("schema_version").and_then(Value::as_u64) != Some(1) {
+    exact_fields(
+        &value,
+        &[
+            "schema_version",
+            "target",
+            "version",
+            "files",
+            "source_archive",
+        ],
+    )?;
+    if value.get("schema_version").and_then(Value::as_u64) != Some(2) {
         return Err(io::Error::other("unsupported packaging manifest schema"));
     }
     let target = match value.get("target").and_then(Value::as_str) {
@@ -79,10 +88,19 @@ fn inventory(stage: &Path, seal: &str) -> io::Result<Verified> {
             role,
         });
     }
+    let source_value = value
+        .get("source_archive")
+        .ok_or_else(|| io::Error::other("source archive reference missing"))?;
+    let source_archive = if source_value.is_null() {
+        None
+    } else {
+        Some(super::source_map::archive_identity(source_value)?)
+    };
     let description = Verified {
         target,
         version,
         files,
+        source_archive,
     };
     super::release_version(&format!("v{}", description.version))?;
     super::tools::verify(description.target.name(), &stage.join("tools"))?;
@@ -112,6 +130,9 @@ fn inventory(stage: &Path, seal: &str) -> io::Result<Verified> {
             ));
         }
     }
+    if injected {
+        expected.insert("payload/tallyline-app-token".into(), String::new());
+    }
     expected.insert(MANIFEST.into(), seal.into());
     check_tree(stage, stage, &expected, &directories)?;
     for file in &description.files {
@@ -128,6 +149,19 @@ fn inventory(stage: &Path, seal: &str) -> io::Result<Verified> {
         }
     }
     super::payload::verify(&stage.join("payload"), description.target)?;
+    if let Some(identity) = &description.source_archive {
+        if identity.file != super::manifest::SOURCE_ARCHIVE
+            || *identity != super::source_map::sealed_identity(&stage.join("payload"))?
+        {
+            return Err(io::Error::other(
+                "sealed source archive reference differs from its legal source map",
+            ));
+        }
+    } else if stage.join("payload/legal/source-map.json").try_exists()? {
+        return Err(io::Error::other(
+            "sealed source map has no verified source archive reference",
+        ));
+    }
     let helper = description
         .files
         .iter()
@@ -250,4 +284,37 @@ fn hash_is_valid(value: &str) -> bool {
         && value
             .bytes()
             .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
+}
+
+pub(super) fn injected(stage: &Path, seal: &str, fixture: &Path) -> io::Result<Verified> {
+    let description = inventory(stage, seal, true)?;
+    super::require_source(&description)?;
+    let path = stage.join("payload/tallyline-app-token");
+    let metadata = fs::symlink_metadata(&path)?;
+    if !metadata.file_type().is_file() || metadata.len() == 0 || metadata.len() > 1024 {
+        return Err(io::Error::other(
+            "injected data file is not a bounded regular token file",
+        ));
+    }
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        if metadata.permissions().mode() & 0o777 != 0o644 {
+            return Err(io::Error::other(
+                "injected data file has incorrect permissions",
+            ));
+        }
+    }
+    let token = super::read_fixture(fixture)?;
+    if fs::read(path)? != token {
+        return Err(io::Error::other(
+            "injected data file differs from the fixture",
+        ));
+    }
+    super::scan_command(
+        stage,
+        fixture,
+        Some(Path::new("payload/tallyline-app-token")),
+    )?;
+    Ok(description)
 }

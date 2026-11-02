@@ -3740,6 +3740,7 @@ dependencies = [
  "rustls-platform-verifier",
  "serde",
  "serde_json",
+ "sha2",
  "tallyline-reference-data",
  "tallyline-shared-kernel",
  "tallyline-submission",

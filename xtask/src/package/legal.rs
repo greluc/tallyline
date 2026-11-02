@@ -58,6 +58,20 @@ pub(super) fn verify(root: &Path, catalogue: &Value, original: &[u8]) -> io::Res
         crate::hashlist::sha256_hex(original),
     );
     expected.insert("crates/index.tsv".into(), String::new());
+    let map_path = root.join("source-map.json");
+    if map_path.try_exists()? {
+        let metadata = fs::symlink_metadata(&map_path)?;
+        if !metadata.file_type().is_file() || metadata.len() > MAX_NOTICE_BYTES {
+            return Err(invalid());
+        }
+        let bytes = fs::read(map_path)?;
+        super::source_map::validate_metadata(catalogue, &bytes)?;
+        expected.insert(
+            "source-map.json".into(),
+            crate::hashlist::sha256_hex(&bytes),
+        );
+    }
+
     let mut directories = BTreeSet::new();
     for name in expected.keys() {
         for ancestor in Path::new(name).ancestors().skip(1) {
@@ -158,10 +172,33 @@ fn invalid() -> io::Error {
 }
 
 pub(super) fn verify_profile(root: &Path, target: super::Target) -> io::Result<()> {
+    verify_source_inputs(None)?;
     let profiles: Value = serde_json::from_str(include_str!(
         "../../../supply-chain/package-legal-profiles.json"
     ))?;
-    for (name, bytes) in [
+    let bytes = fs::read(root.join("legal/catalogue.json"))?;
+    if profiles
+        .get("targets")
+        .and_then(|targets| targets.get(target.name()))
+        .and_then(|profile| profile.get("catalogue_sha256"))
+        .and_then(Value::as_str)
+        != Some(crate::hashlist::sha256_hex(&bytes).as_str())
+    {
+        return Err(io::Error::other("approved target legal catalogue mismatch"));
+    }
+    Ok(())
+}
+
+pub(super) fn verify_source_inputs(root: Option<&Path>) -> io::Result<()> {
+    let profiles: Value = serde_json::from_str(include_str!(
+        "../../../supply-chain/package-legal-profiles.json"
+    ))?;
+    let expected = profiles
+        .get("source_inputs")
+        .and_then(Value::as_object)
+        .filter(|inputs| inputs.len() == 3)
+        .ok_or_else(|| io::Error::other("packaging legal source bindings are malformed"))?;
+    for (name, compiled) in [
         (
             "Cargo.lock",
             include_bytes!("../../../Cargo.lock").as_slice(),
@@ -172,29 +209,28 @@ pub(super) fn verify_profile(root: &Path, target: super::Target) -> io::Result<(
             include_bytes!("../../../supply-chain/notices.toml").as_slice(),
         ),
     ] {
-        let canonical = std::str::from_utf8(bytes)
+        let material = if let Some(root) = root {
+            let path = root.join(name);
+            let metadata = fs::symlink_metadata(&path)?;
+            if !metadata.file_type().is_file() || metadata.len() > MAX_NOTICE_BYTES {
+                return Err(io::Error::other(
+                    "packaging legal source input is not a bounded regular file",
+                ));
+            }
+            fs::read(path)?
+        } else {
+            compiled.to_vec()
+        };
+        let canonical = std::str::from_utf8(&material)
             .map_err(io::Error::other)?
             .replace("\r\n", "\n");
-        if profiles
-            .get("source_inputs")
-            .and_then(|inputs| inputs.get(name))
-            .and_then(Value::as_str)
+        if expected.get(name).and_then(Value::as_str)
             != Some(crate::hashlist::sha256_hex(canonical.as_bytes()).as_str())
         {
-            return Err(io::Error::other(
-                "approved target legal catalogue source inputs have changed",
-            ));
+            return Err(io::Error::other(format!(
+                "stale packaging legal source binding: {name}"
+            )));
         }
-    }
-    let bytes = fs::read(root.join("legal/catalogue.json"))?;
-    if profiles
-        .get("targets")
-        .and_then(|targets| targets.get(target.name()))
-        .and_then(|profile| profile.get("catalogue_sha256"))
-        .and_then(Value::as_str)
-        != Some(crate::hashlist::sha256_hex(&bytes).as_str())
-    {
-        return Err(io::Error::other("approved target legal catalogue mismatch"));
     }
     Ok(())
 }

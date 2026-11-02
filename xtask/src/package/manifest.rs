@@ -10,6 +10,7 @@ use std::io;
 use std::path::Path;
 
 pub(super) const MANIFEST: &str = "package-manifest.json";
+pub(super) const SOURCE_ARCHIVE: &str = "source-capsule.tar.gz";
 
 pub(super) fn prepare(
     input: &Path,
@@ -43,6 +44,22 @@ pub(super) fn prepare(
             "preinstalled packaging tool or private runtime is missing",
         ));
     }
+    let source_archive = if input.join("legal/source-map.json").try_exists()? {
+        let identity = super::source_map::validate(&input, &input.join(SOURCE_ARCHIVE))?;
+        if identity.file != SOURCE_ARCHIVE {
+            return Err(io::Error::other(
+                "source archive filename differs from the fixed handoff",
+            ));
+        }
+        Some(identity)
+    } else {
+        if input.join(SOURCE_ARCHIVE).try_exists()? {
+            return Err(io::Error::other(
+                "source archive requires its complete source map",
+            ));
+        }
+        None
+    };
     fs::create_dir(stage)?;
     let mut files = Vec::new();
     for name in [
@@ -73,8 +90,7 @@ pub(super) fn prepare(
         &mut files,
     )?;
     files.sort_by(|left, right| left["path"].as_str().cmp(&right["path"].as_str()));
-    let manifest =
-        json!({"schema_version":1,"target":target.triple(),"version":version,"files":files});
+    let manifest = json!({"schema_version":2,"target":target.triple(),"version":version,"files":files,"source_archive":source_archive.map(|source| json!({"file":source.file,"sha256":source.sha256}))});
     let bytes = serde_json::to_vec_pretty(&manifest)?;
     fs::write(stage.join(MANIFEST), &bytes)?;
     Ok(crate::hashlist::sha256_hex(&bytes))
@@ -209,8 +225,15 @@ pub(super) struct Entry {
     pub role: Role,
 }
 
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub(super) struct SourceIdentity {
+    pub file: String,
+    pub sha256: String,
+}
+
 pub(super) struct Verified {
     pub target: Target,
     pub version: String,
     pub files: Vec<Entry>,
+    pub source_archive: Option<SourceIdentity>,
 }

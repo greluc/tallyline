@@ -121,11 +121,15 @@ fn run_check(root: &Path) -> io::Result<ExitCode> {
             failed.push(step.name());
             if matches!(
                 step,
-                Step::NativeAssembly | Step::SqliteNative | Step::NativeScope | Step::BuildCode
+                Step::NativeAssembly
+                    | Step::SqliteNative
+                    | Step::NativeScope
+                    | Step::BuildCode
+                    | Step::PackageLegalSources
             ) {
                 writeln!(
                     io::stderr(),
-                    "native source/scope/assembly or build-code gate failed before test/build work"
+                    "native, build-code or packaging source-binding gate failed before test/build work"
                 )?;
                 return Ok(ExitCode::FAILURE);
             }
@@ -149,6 +153,13 @@ fn run_step(step: &Step, root: &Path) -> io::Result<bool> {
             native_assembly_passes(root, Path::new(xtask::native_assembly::REVIEWED_PATH))
         }
         Step::BuildCode => build_code_passes(root),
+        Step::PackageLegalSources => match xtask::package::verify_source_bindings(root) {
+            Ok(()) => Ok(true),
+            Err(error) => {
+                writeln!(io::stderr(), "{error}")?;
+                Ok(false)
+            }
+        },
         Step::DenySuppressions => deny_suppressions_pass(root),
         Step::VetExemptions => vet_exemptions_pass(root),
         Step::Dependabot => dependabot_passes(root),

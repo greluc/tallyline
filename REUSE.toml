@@ -21,6 +21,7 @@ path = [
   ".cargo/**",
   "supply-chain/**",
   "xtask/fixtures/**",
+  "tools/ocr-eval/tests/fixtures/**",
   "xtask/english-allowlist.toml",
 ]
 precedence = "closest"

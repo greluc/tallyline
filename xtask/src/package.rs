@@ -8,11 +8,12 @@ mod legal;
 mod manifest;
 mod payload;
 mod scan;
+mod source_archive;
 mod source_map;
 pub mod tools;
 mod verify;
 
-use std::io::{self, Write};
+use std::io::{self, Read, Write};
 use std::path::Path;
 
 /// Parses the canonical stable release tag within Windows Installer version limits.
@@ -59,7 +60,7 @@ pub fn run(arguments: &[String]) -> io::Result<()> {
     match arguments.as_slice() {
         [] | ["help"] => writeln!(
             io::stdout(),
-            "usage: xtask package version <vMAJOR.MINOR.PATCH> | tools-verify <windows|linux> <tools> | source-map <payload> <unpacked-source> <archive> <fresh-output> | legal-verify [windows|linux] <payload> | prepare <windows|linux> <vMAJOR.MINOR.PATCH> <payload> <tools> <fresh-stage> | verify <stage> <seal> | archive <zip|tar.gz> <input> <fresh-output> | scan <unpacked-tree> <fixture-file> [allowed-relative-file]"
+            "usage: xtask package version <vMAJOR.MINOR.PATCH> | tools-verify <windows|linux> <tools> | source-bindings <source-root> | source-verify <payload> <archive> | source-map <payload> <unpacked-source> <archive> <fresh-output> | legal-verify [windows|linux] <payload> | prepare <windows|linux> <vMAJOR.MINOR.PATCH> <payload> <tools> <fresh-stage> | inject <stage> <seal> <fixture> | verify-injected <stage> <seal> <fixture> | verify <stage> <seal> | archive <zip|tar.gz|source.tar.gz> <input> <fresh-output> | scan <unpacked-tree> <fixture-file> [allowed-relative-file]"
         ),
         ["archive", format, input, output] => {
             write_archive(format, Path::new(input), Path::new(output))
@@ -80,12 +81,22 @@ pub fn run(arguments: &[String]) -> io::Result<()> {
             writeln!(io::stdout(), "{seal}")
         }
         ["verify", stage, seal] => verify_stage(Path::new(stage), seal),
+        ["inject", stage, seal, fixture] => {
+            inject_fixture(Path::new(stage), seal, Path::new(fixture))
+        }
+        ["verify-injected", stage, seal, fixture] => {
+            verify_injected_stage(Path::new(stage), seal, Path::new(fixture))
+        }
         ["source-map", payload, source, archive, output] => source_map::write(
             Path::new(payload),
             Path::new(source),
             Path::new(archive),
             Path::new(output),
         ),
+        ["source-bindings", root] => verify_source_bindings(Path::new(root)),
+        ["source-verify", payload, archive] => {
+            source_map::validate(Path::new(payload), Path::new(archive)).map(|_| ())
+        }
         ["legal-verify", target, root] => {
             let target = match *target {
                 "windows" => Target::Windows,
@@ -105,7 +116,7 @@ pub fn run(arguments: &[String]) -> io::Result<()> {
         ),
         ["version", tag] => writeln!(io::stdout(), "{}", release_version(tag)?),
         _ => Err(io::Error::other(
-            "usage: xtask package version <vMAJOR.MINOR.PATCH> | tools-verify <windows|linux> <tools> | source-map <payload> <unpacked-source> <archive> <fresh-output> | legal-verify [windows|linux] <payload> | prepare <windows|linux> <vMAJOR.MINOR.PATCH> <payload> <tools> <fresh-stage> | verify <stage> <seal> | archive <zip|tar.gz> <input> <fresh-output> | scan <unpacked-tree> <fixture-file> [allowed-relative-file]",
+            "usage: xtask package version <vMAJOR.MINOR.PATCH> | tools-verify <windows|linux> <tools> | source-bindings <source-root> | source-verify <payload> <archive> | source-map <payload> <unpacked-source> <archive> <fresh-output> | legal-verify [windows|linux] <payload> | prepare <windows|linux> <vMAJOR.MINOR.PATCH> <payload> <tools> <fresh-stage> | inject <stage> <seal> <fixture> | verify-injected <stage> <seal> <fixture> | verify <stage> <seal> | archive <zip|tar.gz|source.tar.gz> <input> <fresh-output> | scan <unpacked-tree> <fixture-file> [allowed-relative-file]",
         )),
     }
 }
@@ -122,7 +133,7 @@ pub fn write_archive(format: &str, source: &Path, output: &Path) -> io::Result<(
             "archive output must be outside the application directory",
         ));
     }
-    if !matches!(format, "tar.gz" | "zip") {
+    if !matches!(format, "tar.gz" | "zip" | "source.tar.gz") {
         return Err(io::Error::other("unsupported application archive format"));
     }
     let file = std::fs::File::options()
@@ -130,7 +141,8 @@ pub fn write_archive(format: &str, source: &Path, output: &Path) -> io::Result<(
         .create_new(true)
         .open(output)?;
     let result = match format {
-        "tar.gz" => archive::tar_gzip(&source, file),
+        "tar.gz" => archive::tar_gzip(&source, file, false),
+        "source.tar.gz" => archive::tar_gzip(&source, file, true),
         _ => archive::zip(&source, file),
     };
     if let Err(error) = result {
@@ -252,4 +264,76 @@ pub fn prepare(
 /// Returns changed, missing, extra or unsafe files, a different helper or malformed metadata.
 pub fn verify_stage(stage: &Path, seal: &str) -> io::Result<()> {
     verify::read(stage, seal).map(|_| ())
+}
+
+/// Verifies a complete source-backed handoff before reading a harmless fixture data file.
+///
+/// The fixture uses the application's bounded printable-ASCII envelope, not an asserted UEX format.
+///
+/// # Errors
+/// Returns invalid immutable inputs, missing source evidence, malformed data or existing injection.
+pub fn inject_fixture(stage: &Path, seal: &str, fixture: &Path) -> io::Result<()> {
+    let description = verify::read(stage, seal)?;
+    require_source(&description)?;
+    let bytes = read_fixture(fixture)?;
+    scan_command(stage, fixture, None)?;
+    let path = stage.join("payload/tallyline-app-token");
+    let mut output = std::fs::File::options()
+        .write(true)
+        .create_new(true)
+        .open(&path)?;
+    output.write_all(&bytes)?;
+    output.sync_all()?;
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o644))?;
+    }
+    verify_injected_stage(stage, seal, fixture)
+}
+
+/// Checks immutable inputs before accessing the fixture and admits only its exact data file.
+///
+/// # Errors
+/// Returns invalid sealed code/tools/source metadata, extra files, bad modes or data mismatches.
+pub fn verify_injected_stage(stage: &Path, seal: &str, fixture: &Path) -> io::Result<()> {
+    verify::injected(stage, seal, fixture).map(|_| ())
+}
+
+fn require_source(description: &manifest::Verified) -> io::Result<()> {
+    if description.source_archive.is_none() {
+        return Err(io::Error::other(
+            "a verified source archive reference is required before fixture access",
+        ));
+    }
+    Ok(())
+}
+
+fn read_fixture(path: &Path) -> io::Result<Vec<u8>> {
+    let metadata = std::fs::symlink_metadata(path)?;
+    if !metadata.file_type().is_file() || metadata.len() == 0 || metadata.len() > 1024 {
+        return Err(io::Error::other(
+            "fixture must be a bounded regular data file",
+        ));
+    }
+    let mut bytes = Vec::new();
+    std::fs::File::open(path)?
+        .take(1025)
+        .read_to_end(&mut bytes)?;
+    if bytes.is_empty() || bytes.len() > 1024 || !bytes.iter().all(u8::is_ascii_graphic) {
+        return Err(io::Error::other(
+            "fixture does not match the application's bounded printable ASCII envelope",
+        ));
+    }
+    Ok(bytes)
+}
+
+/// Checks every recorded canonical project input of the compiled legal profiles.
+///
+/// This source-job/check boundary reads data only and never invokes Cargo or build code.
+///
+/// # Errors
+/// Returns stale recorded input bytes, malformed profiles or missing/linked source material.
+pub fn verify_source_bindings(root: &Path) -> io::Result<()> {
+    legal::verify_source_inputs(Some(root))
 }

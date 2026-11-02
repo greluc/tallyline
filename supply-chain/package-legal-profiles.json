@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "source_inputs": {
-    "Cargo.lock": "4cd78952670be3bb54b903bdcdd302ec429acd707131efafa80992305cad9f76",
+    "Cargo.lock": "e6c6d55ce764d18ea9bcc2d902508c2100f956ebc93368a1b278598e60e87425",
     "NOTICE": "f1da83e717a3ccb48753deb68ac25c82945af3af499f6ba57f2fd87a1b954bc0",
     "supply-chain/notices.toml": "bd9ab530690cb560e3881ae9e91972dd16d528bbb2a1ebd0ea6e929351bfc496"
   },

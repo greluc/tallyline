@@ -14,6 +14,8 @@ pub enum Step {
     NativeScope,
     /// The exact owner-approved literal assembly inventory and activation scope.
     NativeAssembly,
+    /// Fresh canonical inputs bound by the approved packaging legal profiles.
+    PackageLegalSources,
     /// The reviewed build-script and procedural-macro inventory of S-12.
     BuildCode,
     /// Line coverage for the documented core crates.
@@ -57,6 +59,7 @@ impl Step {
             Self::SqliteNative => "sqlite native scope",
             Self::NativeScope => "native scope",
             Self::NativeAssembly => "native assembly",
+            Self::PackageLegalSources => "packaging legal source bindings",
             Self::BuildCode => "build-time code",
             Self::CoreCoverage => "core coverage",
             Self::DenySuppressions => "cargo-deny suppressions",
@@ -89,6 +92,7 @@ pub fn plan() -> Vec<Step> {
         Step::BuildCode,
         Step::NativeScope,
         Step::NativeAssembly,
+        Step::PackageLegalSources,
         cargo(
             "cargo-deny",
             &["deny", "--locked", "check", "licenses", "sources", "bans"],
@@ -150,6 +154,7 @@ mod tests {
             | Step::BuildCode
             | Step::NativeScope
             | Step::NativeAssembly
+            | Step::PackageLegalSources
             | Step::DenySuppressions
             | Step::VetExemptions
             | Step::Dependabot
@@ -192,6 +197,7 @@ mod tests {
                 "build-time code",
                 "native scope",
                 "native assembly",
+                "packaging legal source bindings",
                 "cargo-deny",
                 "cargo-deny suppressions",
                 "cargo-vet exemptions",

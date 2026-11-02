@@ -30,4 +30,5 @@ pub use crate::confirmation::StatusConfirmation;
 pub use crate::manual_review::{ManualReview, ManualReviewSummary, ReviewField};
 pub use crate::price_assessment::{AssessmentUnavailable, PriceAssessment};
 pub use crate::price_confirmation::{PriceConfirmation, StoredPriceDecision};
+pub use crate::stock_assessment::StockAssessment;
 pub use tallyline_reference_data::api::model::PriceReferenceSource;

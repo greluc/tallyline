@@ -99,3 +99,19 @@ impl PricePerScu {
         crate::api::model::Delta::calculate(self.0, reference.0)
     }
 }
+
+impl ScuQuantity {
+    /// Calculates an exact signed SCU difference without narrowing either accepted input.
+    ///
+    /// # Errors
+    /// Returns precision unavailable when the coefficients cannot be aligned exactly.
+    pub fn difference(
+        self,
+        reference: Self,
+    ) -> Result<crate::api::model::Delta, crate::api::model::PrecisionUnavailable> {
+        crate::api::model::Delta::calculate(self.0, reference.0)
+    }
+    pub(crate) const fn decimal(self) -> Decimal {
+        self.0
+    }
+}
