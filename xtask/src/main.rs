@@ -67,8 +67,12 @@ fn main() -> ExitCode {
             run_native_assembly(&root, Path::new(xtask::native_assembly::REVIEWED_PATH))
         }
         ["native-assembly", review] => run_native_assembly(&root, Path::new(review)),
-        ["mutation"] => run_mutation(&root, None),
-        ["mutation", "--in-diff", diff] => run_mutation(&root, Some(Path::new(diff))),
+        ["mutation", options @ ..] => xtask::mutation::Options::parse(options)
+            .map_err(io::Error::other)
+            .and_then(|options| run_mutation(&root, &options)),
+        ["mutation-aggregate", directory, head, run, attempt] => {
+            run_mutation_aggregate(Path::new(directory), head, run, attempt)
+        }
         ["dco", base, head] => run_dco(&root, base, head),
         ["osv-gate", report] => run_osv_gate(&root, Path::new(report)),
         ["vendor-hashes", "write"] => write_hash_list(&root),
@@ -82,7 +86,7 @@ fn main() -> ExitCode {
 fn usage() -> io::Result<ExitCode> {
     writeln!(
         io::stderr(),
-        "usage: cargo xtask check | guard | build-code | native-scope | sqlite-native | native-assembly [<approved.json>] | mutation [--in-diff <diff>] | dco <base> <head> | osv-gate <report.json> | vendor-hashes write | vendor-hashes verify | notices"
+        "usage: cargo xtask check | guard | build-code | native-scope | sqlite-native | native-assembly [<approved.json>] | mutation [--in-diff <diff>] [--shard <k/n>] | mutation-aggregate <directory> <head> <run> <attempt> | dco <base> <head> | osv-gate <report.json> | vendor-hashes write | vendor-hashes verify | notices"
     )?;
     Ok(ExitCode::FAILURE)
 }
@@ -150,21 +154,30 @@ fn run_step(step: &Step, root: &Path) -> io::Result<bool> {
     }
 }
 
-fn run_mutation(root: &Path, diff: Option<&Path>) -> io::Result<ExitCode> {
+fn run_mutation(root: &Path, options: &xtask::mutation::Options) -> io::Result<ExitCode> {
+    let mut output = root.join("target/core-mutation");
+    if let Some(shard) = options.shard {
+        output = output.join(shard.report_directory());
+    }
+    fs::create_dir_all(&output)?;
+    let report = output.join("mutants.out/outcomes.json");
+    if report.exists() {
+        fs::remove_file(&report)?;
+    }
     let metadata = cargo_stdout(
         root,
         &["metadata", "--locked", "--no-deps", "--format-version", "1"],
     )?;
     let packages = xtask::quality::core_packages(&metadata).map_err(io::Error::other)?;
     if packages.is_empty() {
+        fs::write(output.join("all-selected-mutants.json"), "[]")?;
+        fs::write(output.join("selected-mutants.json"), "[]")?;
         writeln!(
             io::stderr(),
             "SKIP core mutation: no core crates; no baseline measured"
         )?;
         return Ok(ExitCode::SUCCESS);
     }
-    let output = root.join("target/core-mutation");
-    fs::create_dir_all(&output)?;
     let mut args = vec![
         OsString::from("mutants"),
         OsString::from("--cargo-arg=--locked"),
@@ -176,20 +189,26 @@ fn run_mutation(root: &Path, diff: Option<&Path>) -> io::Result<ExitCode> {
     for package in packages {
         args.extend([OsString::from("--package"), package.into()]);
     }
-    if let Some(diff) = diff {
+    if let Some(diff) = &options.diff {
         args.extend([OsString::from("--in-diff"), diff.as_os_str().to_owned()]);
     }
-    let listed = Command::new(cargo_program())
-        .args(&args)
-        .args(["--list", "--json"])
-        .current_dir(root)
-        .output()?;
-    if !listed.status.success() {
-        io::stderr().write_all(&listed.stderr)?;
-        return Ok(ExitCode::FAILURE);
-    }
-    let mutants: serde_json::Value =
-        serde_json::from_slice(&listed.stdout).map_err(io::Error::other)?;
+    let complete_selection = list_mutants(root, &args)?;
+    fs::write(
+        output.join("all-selected-mutants.json"),
+        &complete_selection,
+    )?;
+    let selection = if let Some(shard) = options.shard {
+        args.extend([
+            OsString::from("--shard"),
+            shard.to_string().into(),
+            OsString::from("--sharding=round-robin"),
+        ]);
+        list_mutants(root, &args)?
+    } else {
+        complete_selection
+    };
+    fs::write(output.join("selected-mutants.json"), &selection)?;
+    let mutants: serde_json::Value = serde_json::from_str(&selection).map_err(io::Error::other)?;
     let mutants = mutants
         .as_array()
         .ok_or_else(|| io::Error::other("mutation list is not an array"))?;
@@ -200,10 +219,6 @@ fn run_mutation(root: &Path, diff: Option<&Path>) -> io::Result<ExitCode> {
         )?;
         return Ok(ExitCode::SUCCESS);
     }
-    let report = output.join("mutants.out/outcomes.json");
-    if report.exists() {
-        fs::remove_file(&report)?;
-    }
     let status = Command::new(cargo_program())
         .args(args)
         .current_dir(root)
@@ -211,12 +226,58 @@ fn run_mutation(root: &Path, diff: Option<&Path>) -> io::Result<ExitCode> {
     if !matches!(status.code(), Some(0 | 2)) {
         return Ok(ExitCode::FAILURE);
     }
-    match xtask::quality::mutation_score(&fs::read_to_string(report)?) {
-        Ok(score) => {
+    let counts = xtask::mutation::selected_counts(&fs::read_to_string(report)?, &selection)
+        .map_err(io::Error::other)?;
+    if options.shard.is_some() && counts.caught == 0 && counts.missed == 0 {
+        writeln!(
+            io::stderr(),
+            "completed unviable-only shard: {} unviable; no score measured; complete selection requires aggregate",
+            counts.unviable
+        )?;
+        return Ok(ExitCode::SUCCESS);
+    }
+    report_mutation_score(counts.score().map(Some))
+}
+
+fn list_mutants(root: &Path, arguments: &[OsString]) -> io::Result<String> {
+    let output = Command::new(cargo_program())
+        .args(arguments)
+        .args(["--list", "--json"])
+        .current_dir(root)
+        .output()?;
+    if !output.status.success() {
+        return Err(io::Error::other(format!(
+            "mutation listing failed: {}",
+            String::from_utf8_lossy(&output.stderr)
+        )));
+    }
+    String::from_utf8(output.stdout).map_err(io::Error::other)
+}
+
+fn run_mutation_aggregate(
+    directory: &Path,
+    head: &str,
+    run: &str,
+    attempt: &str,
+) -> io::Result<ExitCode> {
+    let identity = xtask::mutation::RunIdentity { head, run, attempt };
+    report_mutation_score(xtask::mutation::aggregate(directory, &identity))
+}
+
+fn report_mutation_score(result: Result<Option<f64>, String>) -> io::Result<ExitCode> {
+    match result {
+        Ok(Some(score)) => {
             writeln!(
                 io::stderr(),
                 "core mutation score: {score:.2}% (frozen floor {:.0}%)",
                 xtask::quality::MUTATION_SCORE_FLOOR
+            )?;
+            Ok(ExitCode::SUCCESS)
+        }
+        Ok(None) => {
+            writeln!(
+                io::stderr(),
+                "SKIP core mutation: complete selection is empty; no baseline measured"
             )?;
             Ok(ExitCode::SUCCESS)
         }

@@ -66,3 +66,8 @@ mod ort_scope;
 
 #[cfg(test)]
 mod target_graph_tests;
+
+#[cfg(test)]
+mod mutation_tests;
+
+pub mod mutation;
