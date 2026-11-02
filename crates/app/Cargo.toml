@@ -15,7 +15,7 @@ tallyline-adapter-ocr.workspace = true
 tallyline-reference-data.workspace = true
 tallyline-adapter-uex = { path = "../adapter-uex" }
 tallyline-adapter-storage.workspace = true
-tokio = { workspace = true, features = ["rt"] }
+tokio = { workspace = true, features = ["rt", "rt-multi-thread"] }
 tallyline-shared-kernel.workspace = true
 eframe.workspace = true
 egui.workspace = true
