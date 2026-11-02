@@ -33,3 +33,5 @@
 #![forbid(unsafe_code)]
 
 pub mod api;
+
+mod screenshot_policy;

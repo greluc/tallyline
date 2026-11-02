@@ -6,7 +6,7 @@
 use crate::api::model::InvalidReport;
 use tallyline_shared_kernel::api::model::Timestamp;
 
-/// SHA-256 of the complete original image bytes.
+/// SHA-256 of source image bytes or a private crop artifact, according to its owning binding.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct ImageHash([u8; 32]);
 impl ImageHash {
@@ -105,12 +105,18 @@ pub struct ManualAttachment {
     pub(crate) binding: AttachmentBinding,
     pub(crate) time: AttachmentTime,
     pub(crate) preview_confirmed: bool,
+    pub(crate) working_copy: Option<ImageHash>,
 }
 impl ManualAttachment {
     /// Returns the exact content and geometry selected for this Report.
     #[must_use]
     pub const fn binding(self) -> AttachmentBinding {
         self.binding
+    }
+    /// Returns the digest of the durably stored private region, when committed.
+    #[must_use]
+    pub const fn working_copy(self) -> Option<ImageHash> {
+        self.working_copy
     }
     /// Returns the attachment's time source and certainty.
     #[must_use]
@@ -140,6 +146,8 @@ pub enum AttachmentEdit {
     Select(AttachmentBinding, AttachmentTime),
     /// Confirm that this exact full-size preview contains no private data.
     ConfirmPreview(AttachmentBinding),
+    /// Bind an already persisted private region to the exact confirmed selection.
+    BindWorkingCopy(AttachmentBinding, ImageHash),
     /// Confirm the shown observation time or move it earlier.
     ConfirmTime(Timestamp),
     /// Detach the evidence without advancing the Report's observation time.
@@ -155,4 +163,6 @@ pub struct StoredAttachment {
     pub time: AttachmentTime,
     /// Privacy decision bound to this exact binding.
     pub preview_confirmed: bool,
+    /// Digest of the persisted private region, absent for legacy selections.
+    pub working_copy: Option<ImageHash>,
 }

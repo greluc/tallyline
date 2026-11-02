@@ -16,3 +16,5 @@ pub use crate::image_intake::read_image_file;
 pub use crate::manual_attachment::{encode_manual_attachment, prepare_manual_attachment_file};
 
 pub use crate::private_artifact::write_private_artifact;
+
+pub use crate::working_copies::{ManualWorkingCopies, restore_manual_attachment};

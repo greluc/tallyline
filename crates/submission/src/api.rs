@@ -216,3 +216,5 @@ fn known_refusal(failure: CredentialFailure) -> bool {
         | CredentialFailure::Storage(_) => false,
     }
 }
+
+pub use crate::screenshot_policy::{ScreenshotPolicyApplication, ScreenshotPolicyStore};

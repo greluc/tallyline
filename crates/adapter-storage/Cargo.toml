@@ -21,3 +21,9 @@ workspace = true
 
 [dependencies.tallyline-game]
 path = "../game"
+
+[dependencies.tallyline-submission]
+workspace = true
+
+[dependencies.sha2]
+workspace = true

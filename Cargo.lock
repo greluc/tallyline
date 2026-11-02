@@ -3723,10 +3723,12 @@ dependencies = [
  "rusqlite",
  "serde",
  "serde_json",
+ "sha2",
  "tallyline-game",
  "tallyline-reference-data",
  "tallyline-reporting",
  "tallyline-shared-kernel",
+ "tallyline-submission",
 ]
 
 [[package]]
@@ -3842,9 +3844,14 @@ dependencies = [
 name = "tallyline-workflows"
 version = "0.1.0"
 dependencies = [
+ "rusqlite",
  "tallyline-adapter-files",
  "tallyline-adapter-platform",
+ "tallyline-adapter-storage",
+ "tallyline-game",
+ "tallyline-reporting",
  "tallyline-shared-kernel",
+ "tallyline-submission",
  "tokio",
  "wiremock",
 ]

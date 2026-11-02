@@ -18,7 +18,7 @@ pub fn show_manual_editor(ui: &mut egui::Ui, state: &mut ShellState, catalogue: 
         ui.label(notice);
     }
     if state.manual().busy {
-        ui.label(catalogue.text("status.saving"));
+        ui.label(catalogue.text("manual.working"));
     }
     let reports: Vec<_> = state
         .manual()
@@ -71,6 +71,8 @@ pub fn show_manual_editor(ui: &mut egui::Ui, state: &mut ShellState, catalogue: 
             ui.label(catalogue.text("reference.no_data"));
         }
     });
+    let account = state.credentials().account().clone();
+    crate::attachment_views::show_manual_attachment_editor(ui, state, catalogue, &account);
 }
 fn context(ui: &mut egui::Ui, state: &mut ShellState, catalogue: &Catalogue) {
     let old = state.manual().selected().map(|report| report.key());

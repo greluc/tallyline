@@ -16,7 +16,7 @@ use tallyline_shared_kernel::api::model::{
     CommodityId, PricePerScu, TerminalId, Timestamp, TradeSide,
 };
 
-const SCHEMA_VERSION: u32 = 5;
+const SCHEMA_VERSION: u32 = 6;
 const SQLITE_BUSY_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(2);
 
 const MIGRATION:&str="CREATE TABLE ref_cache(endpoint TEXT PRIMARY KEY, fetched_at TEXT NOT NULL, payload TEXT NOT NULL);
@@ -83,6 +83,7 @@ impl SqliteReferenceCache {
                 crate::migration::schema_three(&transaction)?;
                 crate::migration::schema_four(&transaction)?;
                 crate::migration::schema_five(&transaction)?;
+                crate::migration::schema_six(&transaction)?;
                 transaction.commit()?;
             }
             1 => {
@@ -92,6 +93,7 @@ impl SqliteReferenceCache {
                 crate::migration::schema_three(&transaction)?;
                 crate::migration::schema_four(&transaction)?;
                 crate::migration::schema_five(&transaction)?;
+                crate::migration::schema_six(&transaction)?;
                 transaction.commit()?;
             }
             2 => {
@@ -100,6 +102,7 @@ impl SqliteReferenceCache {
                 crate::migration::schema_three(&transaction)?;
                 crate::migration::schema_four(&transaction)?;
                 crate::migration::schema_five(&transaction)?;
+                crate::migration::schema_six(&transaction)?;
                 transaction.commit()?;
             }
             3 => {
@@ -107,12 +110,20 @@ impl SqliteReferenceCache {
                 let transaction = cache.connection.transaction()?;
                 crate::migration::schema_four(&transaction)?;
                 crate::migration::schema_five(&transaction)?;
+                crate::migration::schema_six(&transaction)?;
                 transaction.commit()?;
             }
             4 => {
                 backup(&mut cache, version)?;
                 let transaction = cache.connection.transaction()?;
                 crate::migration::schema_five(&transaction)?;
+                crate::migration::schema_six(&transaction)?;
+                transaction.commit()?;
+            }
+            5 => {
+                backup(&mut cache, version)?;
+                let transaction = cache.connection.transaction()?;
+                crate::migration::schema_six(&transaction)?;
                 transaction.commit()?;
             }
             SCHEMA_VERSION => {}

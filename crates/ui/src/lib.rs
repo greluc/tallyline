@@ -31,4 +31,8 @@ mod manual_rows;
 mod manual_views;
 mod reference_views;
 
+mod attachment_editor;
+
+mod attachment_views;
+
 mod credentials;

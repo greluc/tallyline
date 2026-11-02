@@ -13,3 +13,5 @@ mod prior_document;
 mod reference_cache;
 mod reports;
 mod status_document;
+
+mod screenshot_policy;

@@ -393,7 +393,8 @@ fn r_nf_11_r_man_2_r_man_5_r_val_6_q_manual__corrupt_rows_and_attachment_times_a
             "rectangle": [10,20,30,40],
             "observed_at": "90000",
             "time_source": source,
-            "preview_confirmed": true
+            "preview_confirmed": true,
+            "working_copy": null
         });
         connection
             .execute("UPDATE reports SET payload=?1", [invalid.to_string()])
@@ -405,6 +406,17 @@ fn r_nf_11_r_man_2_r_man_5_r_val_6_q_manual__corrupt_rows_and_attachment_times_a
         );
         assert_eq!(reopened.drafts(), Err(RepositoryError::Invalid));
     }
+    let mut invalid = document.clone();
+    invalid["attachment"] = serde_json::json!({ "image": vec![1; 32], "rectangle": [10, 20, 30, 40], "observed_at": "100123", "time_source": "user", "preview_confirmed": false, "working_copy": vec![2; 32] });
+    connection
+        .execute("UPDATE reports SET payload=?1", [invalid.to_string()])
+        .unwrap();
+    let mut corrupt = SqliteReferenceCache::open(&path).unwrap();
+    assert_eq!(
+        corrupt.load_draft(report.id()),
+        Err(RepositoryError::Invalid)
+    );
+    drop(corrupt);
     connection
         .execute("UPDATE reports SET payload=?1", [payload])
         .unwrap();
@@ -473,7 +485,7 @@ fn r_nf_11_r_ui_12_q_manual__schema_three_requires_backup_and_preserves_legacy_u
         current
             .query_row("PRAGMA user_version", [], |row| row.get::<_, u32>(0))
             .unwrap(),
-        5
+        6
     );
     drop(current);
     drop(before);
@@ -539,6 +551,14 @@ fn r_man_5_r_sub_7_r_val_6__attachment_confirmation_is_durable_and_bound_to_geom
             AttachmentEdit::ConfirmTime(Timestamp::from_seconds(899)),
         )
         .unwrap();
+    let digest = ImageHash::new([2; 32]);
+    let report = app
+        .edit_attachment(
+            report.id(),
+            report.version(),
+            AttachmentEdit::BindWorkingCopy(binding, digest),
+        )
+        .unwrap();
     assert!(report.attachment_gate().is_ok());
     assert_eq!(report.observed_at(), Timestamp::from_seconds(899));
     drop(app);
@@ -550,6 +570,7 @@ fn r_man_5_r_sub_7_r_val_6__attachment_confirmation_is_durable_and_bound_to_geom
         .find(|r| r.id() == report.id())
         .unwrap();
     assert!(report.attachment_gate().is_ok());
+    assert_eq!(report.attachment().unwrap().working_copy(), Some(digest));
     let changed = AttachmentBinding::new(
         ImageHash::new([1; 32]),
         AttachmentRegion::new(10, 21, 30, 40).unwrap(),
@@ -650,6 +671,70 @@ fn r_nf_11_r_man_5__schema_four_migrates_without_inventing_attachment_or_changin
         payload
     );
     drop(before);
+    drop(store);
+    std::fs::remove_dir_all(directory).unwrap();
+}
+
+#[test]
+#[expect(
+    non_snake_case,
+    reason = "Requirement tags use a double underscore separator."
+)]
+fn r_man_5_r_sub_7__schema_five_attachment_decisions_migrate_with_exact_backup_and_no_invented_private_copy()
+ {
+    use tallyline_adapter_storage::api::StorageError;
+    let directory = std::env::temp_dir().join(format!(
+        "tallyline-private-migration-{}",
+        std::process::id()
+    ));
+    std::fs::create_dir(&directory).unwrap();
+    let path = directory.join("application.db");
+    let backup = directory.join("before.db");
+    let connection = rusqlite::Connection::open(&path).unwrap();
+    connection.execute_batch("CREATE TABLE reports(id INTEGER PRIMARY KEY AUTOINCREMENT,version INTEGER NOT NULL,payload TEXT NOT NULL); CREATE TABLE report_recents(report_id INTEGER PRIMARY KEY,changed_order INTEGER NOT NULL); PRAGMA user_version=5;").unwrap();
+    let payload = serde_json::json!({ "terminal": 11, "side": "buy", "environment": "live", "observed_at": "100123", "game_version": "4.10.2", "rows": [], "attachment": { "image": vec![7; 32], "rectangle": [1, 2, 3, 4], "observed_at": "900000", "time_source": "user", "preview_confirmed": true } }).to_string();
+    connection
+        .execute("INSERT INTO reports VALUES(1,7,?1)", [&payload])
+        .unwrap();
+    connection
+        .execute("INSERT INTO report_recents VALUES(1,9)", [])
+        .unwrap();
+    drop(connection);
+    let before = std::fs::read(&path).unwrap();
+    assert!(matches!(
+        SqliteReferenceCache::open(&path),
+        Err(StorageError::MigrationBackupRequired)
+    ));
+    assert_eq!(std::fs::read(&path).unwrap(), before);
+    let mut store = SqliteReferenceCache::open_with_migration_backup(&path, |cache, from| {
+        assert_eq!(from, 5);
+        cache.backup_into(&backup, Timestamp::from_seconds(1000), Some(4))?;
+        Ok(())
+    })
+    .unwrap();
+    let report = store.drafts().unwrap().remove(0);
+    assert_eq!(report.version(), 7);
+    assert_eq!(report.observed_at(), Timestamp::from_millis(100123));
+    assert!(report.attachment().unwrap().preview_confirmed());
+    assert_eq!(report.attachment().unwrap().working_copy(), None);
+    let before = rusqlite::Connection::open(&backup).unwrap();
+    assert_eq!(
+        before
+            .query_row("PRAGMA user_version", [], |row| row.get::<_, u32>(0))
+            .unwrap(),
+        5
+    );
+    assert_eq!(
+        before
+            .query_row("SELECT payload FROM reports", [], |row| row
+                .get::<_, String>(0))
+            .unwrap(),
+        payload
+    );
+    drop(before);
+    drop(store);
+    let mut store = SqliteReferenceCache::open(&path).unwrap();
+    assert_eq!(store.load_draft(report.id()).unwrap(), Some(report));
     drop(store);
     std::fs::remove_dir_all(directory).unwrap();
 }

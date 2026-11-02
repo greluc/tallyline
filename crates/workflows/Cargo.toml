@@ -11,8 +11,13 @@ workspace = true
 
 [dependencies]
 tallyline-shared-kernel.workspace = true
+tallyline-reporting.workspace = true
+tallyline-submission.workspace = true
 
 [dev-dependencies]
+rusqlite.workspace = true
+tallyline-adapter-storage = { path = "../adapter-storage" }
+tallyline-game = { path = "../game" }
 tallyline-adapter-files = { path = "../adapter-files" }
 tallyline-adapter-platform = { path = "../adapter-platform" }
 wiremock.workspace = true

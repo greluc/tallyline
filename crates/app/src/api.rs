@@ -12,6 +12,8 @@ pub use crate::cpu_worker::CpuWorker;
 pub use crate::manual_worker::ManualWorker;
 pub use crate::reference_worker::ReferenceWorker;
 
+pub use crate::manual_attachments::ManualAttachmentStorage;
+
 pub use crate::credential_worker::{CredentialStores, CredentialWorker};
 
 pub use crate::credential_logs::{CredentialLogBridge, install_credential_log_bridge};

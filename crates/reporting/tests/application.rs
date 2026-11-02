@@ -415,3 +415,96 @@ fn r_man_5_r_sub_7_q_manual_r_val_6_q_manual__preview_and_time_decisions_belong_
         Err(RepositoryError::Invalid)
     );
 }
+
+#[test]
+#[expect(
+    non_snake_case,
+    reason = "Requirement tags use a double underscore separator."
+)]
+fn r_man_5_r_sub_7__confirmed_working_copy_is_bound_to_current_report_and_selection() {
+    use tallyline_reporting::api::AttachmentEdit;
+    use tallyline_reporting::api::model::{
+        AttachmentBinding, AttachmentRegion, AttachmentTime, ImageHash,
+    };
+    let mut app = ReportingApplication::new(Repository::default(), Fixed);
+    let mut report = app.create(key().unwrap(), Some("4.10.2")).unwrap();
+    let binding = AttachmentBinding::new(
+        ImageHash::new([1; 32]),
+        AttachmentRegion::new(0, 10, 20, 30).unwrap(),
+    );
+    report = app
+        .edit_attachment(
+            report.id(),
+            report.version(),
+            AttachmentEdit::Select(
+                binding,
+                AttachmentTime::ImportedFile(Timestamp::from_seconds(900)),
+            ),
+        )
+        .unwrap();
+    let digest = ImageHash::new([2; 32]);
+    assert_eq!(
+        app.edit_attachment(
+            report.id(),
+            report.version(),
+            AttachmentEdit::BindWorkingCopy(binding, digest)
+        ),
+        Err(RepositoryError::Invalid)
+    );
+    let before = report.version();
+    report = app
+        .confirm_attachment_copy(report.id(), before, binding, digest)
+        .unwrap();
+    assert_eq!(
+        app.drafts().unwrap()[0]
+            .attachment()
+            .unwrap()
+            .working_copy(),
+        Some(digest)
+    );
+    assert_eq!(
+        app.edit_attachment(
+            report.id(),
+            before,
+            AttachmentEdit::BindWorkingCopy(binding, digest)
+        ),
+        Err(RepositoryError::Conflict)
+    );
+    let replacement = AttachmentBinding::new(ImageHash::new([3; 32]), binding.region());
+    report = app
+        .edit_attachment(
+            report.id(),
+            report.version(),
+            AttachmentEdit::Select(
+                replacement,
+                AttachmentTime::ImportedFile(Timestamp::from_seconds(950)),
+            ),
+        )
+        .unwrap();
+    assert_eq!(report.attachment().unwrap().working_copy(), None);
+    assert_eq!(
+        app.confirm_attachment_copy(report.id(), before, binding, digest),
+        Err(RepositoryError::Conflict)
+    );
+
+    assert_eq!(
+        app.edit_attachment(
+            report.id(),
+            report.version(),
+            AttachmentEdit::BindWorkingCopy(binding, digest)
+        ),
+        Err(RepositoryError::Invalid)
+    );
+    report = app
+        .edit_attachment(report.id(), report.version(), AttachmentEdit::Remove)
+        .unwrap();
+    assert_eq!(report.observed_at(), Timestamp::from_seconds(900));
+    assert_eq!(
+        app.edit_attachment(
+            report.id(),
+            report.version(),
+            AttachmentEdit::BindWorkingCopy(binding, digest)
+        ),
+        Err(RepositoryError::Invalid)
+    );
+}
