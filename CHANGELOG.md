@@ -4,6 +4,8 @@ All notable changes are recorded here.
 
 ## [Unreleased]
 
+- Add fifteen balance-redacted Orbituary corpus captures with manual, unverified Buy and Local Market Value transcriptions, long names, literal warning markers and explicit clipped-card boundaries; recognition accuracy remains unmeasured (R-QA-1, R-QA-3).
+
 - Add four balance-redacted MIC-L2 Long Forest Station corpus captures with manual, unverified transcriptions and explicit clipped-card boundaries; recognition accuracy remains unmeasured (R-QA-1, R-QA-3).
 - Reject mutation scores contaminated by known independent test/build infrastructure failures using retained cause logs. Preserve genuine domain-error test failures and the frozen score floor; handle the pinned tool's explicit empty selection without inventing a measured score (R-SEC-1, R-DOC-3).
 
