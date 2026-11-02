@@ -61,6 +61,9 @@ The `unsafe` code of the platform adapter is registered here too. Corrected 2026
 
 | Location | Rule | Reason | Date | Revisit when |
 |---|---|---|---|---|
+| `osv-scanner.toml` `RUSTSEC-2026-0370` | OSV unscored maintenance notice | zvariant 5.15.1 was merged into zbus 6; the latest published secret-service 5.2.0 requires zbus ^5, so retain the exact approved client scope pending a maintained eligible parent release (10 S-19 triage note) | 2026-11-02 | 2026-11-16 |
+| `osv-scanner.toml` `RUSTSEC-2026-0371` | OSV unscored maintenance notice | zbus_names 4.3.5 was merged into zbus 6; the latest published secret-service 5.2.0 requires zbus ^5, so retain the exact approved client scope pending a maintained eligible parent release (10 S-19 triage note) | 2026-11-02 | 2026-11-16 |
+| `osv-scanner.toml` `RUSTSEC-2026-0372` | OSV unscored maintenance notice | zvariant_derive 5.15.1 was merged into zbus 6; the latest published secret-service 5.2.0 requires zbus ^5, so retain the exact approved client scope pending a maintained eligible parent release (10 S-19 triage note) | 2026-11-02 | 2026-11-16 |
 | `crates/adapter-ocr/tests/{assets,runtime,runtime_settings}.rs`, requirement-tagged public asset/loader contracts | `non_snake_case` | The required traceability grammar contains a double underscore | 2026-11-02 | the tag grammar changes or rustc accepts consecutive underscores |
 | `xtask::build_code_workspace_tests`, requirement-tagged public guard contracts | `non_snake_case` | The required traceability grammar contains a double underscore | 2026-11-01 | the tag grammar changes or rustc accepts consecutive underscores |
 | `crates/adapter-platform/tests/{ocr_startup,worker_priority}.rs`, requirement-tagged tests | `non_snake_case` | The required traceability grammar contains a double underscore | 2026-11-01 | the tag grammar changes or rustc accepts consecutive underscores |

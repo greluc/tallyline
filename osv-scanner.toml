@@ -1,0 +1,14 @@
+[[IgnoredVulns]]
+id = "RUSTSEC-2026-0370"
+ignoreUntil = 2026-11-16
+reason = "Triaged 2026-11-02: informational unmaintained notice for zvariant, merged into zbus 6. Latest published secret-service 5.2.0 requires zbus ^5; no stable parent upgrade is published. Keep the existing exact approved Linux client scope, check the parent weekly, and remove this entry when its maintained upgrade is eligible or by 2026-11-16. This ID only; other advisories remain blocking under S-19."
+
+[[IgnoredVulns]]
+id = "RUSTSEC-2026-0371"
+ignoreUntil = 2026-11-16
+reason = "Triaged 2026-11-02: informational unmaintained notice for zbus_names, merged into zbus 6. Latest published secret-service 5.2.0 requires zbus ^5; no stable parent upgrade is published. Keep the existing exact approved Linux client scope, check the parent weekly, and remove this entry when its maintained upgrade is eligible or by 2026-11-16. This ID only; other advisories remain blocking under S-19."
+
+[[IgnoredVulns]]
+id = "RUSTSEC-2026-0372"
+ignoreUntil = 2026-11-16
+reason = "Triaged 2026-11-02: informational unmaintained notice for zvariant_derive, merged into zbus 6. Latest published secret-service 5.2.0 requires zbus ^5; no stable parent upgrade is published. Keep the existing exact approved Linux client scope, check the parent weekly, and remove this entry when its maintained upgrade is eligible or by 2026-11-16. This ID only; other advisories remain blocking under S-19."
