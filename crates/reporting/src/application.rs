@@ -244,3 +244,4 @@ impl<R: ReportRepository, C: Clock> ReportingApplication<R, C> {
 mod attachments;
 mod review;
 mod statuses;
+mod stock;

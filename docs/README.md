@@ -31,3 +31,7 @@ Diagrams are Mermaid or plain-text trees, never binary files. Images in `docs/` 
 The [packaging spike](packaging-spike.md) records the source-independent helper foundation, exact tool verification and remaining protected/installed acceptance. [ADR-0011](adr/0011-source-compiled-wix-packaging.md) supersedes ADR-0005 D7 only; historical WiX 3 descriptions are superseded by its dated correction.
 
 - [Linux Tesseract research controller](tesseract-linux-research-controller.md): exact local research scope, safe Rust lifecycle, native/source/licence gates and honest measurement limits.
+
+The [SCU policy evidence](scu-policy-calibration.md) records exact explicit-band application assessment, the available corpus sensitivity and the remaining calibration/desktop acceptance boundary.
+
+The explicit `scu-policy --public <directory>` developer command analyses complete whole-SCU transcriptions without images or recognition. Its synthetic counts remain separate from golden accuracy and verification flags; [the calibration note](scu-policy-calibration.md) records the provisional starting-pair recommendation and limits.

@@ -258,3 +258,7 @@ The prebuilt helper foundation now parses canonical stable release tags within M
 ## Manual numeric review implementation checkpoint — 2026-11-02
 
 Issue #84 now has desktop price/status assessment, value-bound approval, durable unreviewed/revoked state, keyboard navigation and passive reassessment under R-VAL-2, R-VAL-2a, R-VAL-7 and R-UI-10…12 `:manual`. This is a partial implementation record, not acceptance of the complete ticket or M1 release. SCU percentage/absolute-minimum calibration, complete shared validation/release/submission and native visual acceptance remain open. Existing requirement coverage assignments are unchanged.
+
+## SCU policy evidence checkpoint — 2026-11-02
+
+[The parameterised assessment and candidate table](../scu-policy-calibration.md) narrow the remaining R-VAL-2 `:manual` work without selecting a shipping default. Exact read-only quantity assessment and independent tighten-only bands are tested; adoption of the provisional 20 % / 16 SCU start pair, durable quantity decisions and actual desktop/release composition remain open; broader empirical validation is separately visible. Requirement coverage assignments and #84 acceptance are unchanged.

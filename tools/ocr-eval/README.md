@@ -11,3 +11,7 @@ The `ocr-eval` workspace package inspects schema-version-two corpus entries, ima
 ## Isolated Linux complementary OCR research
 
 The developer-only `tesseract-research` binary and public safe Rust `isolation-probe` belong to this package. They add no application backend or new dependency. See [the controller record](../../docs/tesseract-linux-research-controller.md) for exact approval hashes, CLI sequence, root-only native execution gates, private evidence, licence/native boundaries and resource limitations. `cargo run -p ocr-eval --bin tesseract-research --locked -- contract deadline` runs a recorded own-process contract without a model. Specifying `--bin ocr-eval` continues to select the existing corpus CLI when using `cargo run`.
+
+## Explicit SCU policy sensitivity
+
+`cargo run -p ocr-eval --locked -- scu-policy --public corpus/public` reads only expected metadata and prints input hashes, complete whole-SCU quantity counts and finite synthetic digit-edit comparisons for 30 explicit percentage/absolute candidates. It uses no images, inference, HTTP or private corpus variable, never writes annotations and never reports recognition accuracy. It separately counts repeated rows and distinct scalar quantities. Limits are 64 expected files, 4 MiB per file and 65,536 cards; unsupported quantity types are refused visibly. See [the provisional calibration note](../../docs/scu-policy-calibration.md) for the 20 % / 16 SCU recommendation, its worked cases and empirical limits. Production fractional quantities are unaffected by this whole-quantity research mode.

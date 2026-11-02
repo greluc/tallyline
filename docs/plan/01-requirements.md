@@ -289,3 +289,7 @@ Corrected 2026-11-02: R-MAN-5/R-SUB-7/R-VAL-6 now include integrity-bound durabl
 ## Manual numeric review implementation checkpoint (2026-11-02)
 
 The price/status portion of R-VAL-2, R-VAL-2a, R-VAL-7 and R-UI-10…12 `:manual` now has durable value-bound approval, exact cross-check details, Reporting-owned counters/targets and composed desktop review. The normative worsening relation remains the unlowered-level rule of 07 §2.6: changing an amount within Major, tightening without a worse level, or ageing the prior alone does not introduce an additional revocation rule. This record changes no requirement. SCU calibration, complete shared validation/release/submission and native visual acceptance remain open; the evidence boundary is recorded in 11's manual price checkpoint.
+
+## SCU assessment evidence checkpoint — 2026-11-02
+
+The [SCU calibration evidence](../scu-policy-calibration.md) records explicit percentage/absolute candidate assessment under the existing R-VAL-2 and O-140 rule. Exact read-only application comparisons and independent tightening do not supply a calibrated shipping default or complete #84. No normative requirement changes here.

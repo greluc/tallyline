@@ -155,3 +155,27 @@ impl Delta {
         Ok(Some(format!("{sign}{whole}.{fraction:02}")))
     }
 }
+
+impl Delta {
+    /// Tests a strict absolute SCU boundary without rounding decimal scales.
+    ///
+    /// # Errors
+    /// Returns precision unavailable when aligning the exact coefficients exceeds their range.
+    pub fn exceeds_quantity(
+        self,
+        minimum: crate::api::model::ScuQuantity,
+    ) -> Result<bool, PrecisionUnavailable> {
+        let minimum = minimum.decimal();
+        let scale = self.scale.max(minimum.scale());
+        let difference = self
+            .coefficient
+            .unsigned_abs()
+            .checked_mul(
+                10_u128
+                    .checked_pow(scale - self.scale)
+                    .ok_or(PrecisionUnavailable)?,
+            )
+            .ok_or(PrecisionUnavailable)?;
+        Ok(difference > align(minimum, scale)?.unsigned_abs())
+    }
+}
