@@ -272,6 +272,8 @@ Corrected 2026-11-02: the real-process instance-election fixture previously crea
 
 Corrected 2026-11-02: core mutation runs keep their per-ref concurrency group with `cancel-in-progress: false`, so later pushes cannot interrupt a running measurement. GitHub Actions retains only the newest pending run under its default single-pending policy ([official concurrency documentation](https://docs.github.com/en/actions/how-tos/write-workflows/choose-when-workflows-run/control-workflow-concurrency)). This avoids repeated partial measurements without increasing parallelism or queue capacity; score, timeout and test-selection gates are unchanged.
 
+Corrected 2026-11-02: mutation execution and aggregation now require retained bounded cause logs before scoring; known independent executable-busy, disk, linker and crate-artefact failures invalidate the measurement even when another compiler diagnostic is present. The [mutation evidence record](../mutation-evidence.md) withdraws the affected historical full-run scores and distinguishes genuine domain-error test failures, Rust-unviable mutants and infrastructure failures. The exact selection and frozen 100% floor remain unchanged; replacement full current-source measurements are pending.
+
 ## 9. Dependencies and build
 
 - Versions are declared once, in `[workspace.dependencies]` of the root `Cargo.toml`; member crates inherit them. Shared lint settings live in the workspace `[lints]` table. Repository checks and generators are the `xtask` crate (D12), run through `cargo xtask …`.

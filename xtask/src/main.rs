@@ -254,7 +254,10 @@ fn run_mutation(root: &Path, options: &xtask::mutation::Options) -> io::Result<E
     if !matches!(status.code(), Some(0 | 2)) {
         return Ok(ExitCode::FAILURE);
     }
-    let counts = xtask::mutation::selected_counts(&fs::read_to_string(report)?, &selection)
+    let report_text = fs::read_to_string(report)?;
+    let counts =
+        xtask::mutation::selected_counts(&report_text, &selection).map_err(io::Error::other)?;
+    xtask::mutation_evidence::verify_cause_logs(&output.join("mutants.out"), &report_text)
         .map_err(io::Error::other)?;
     if options.shard.is_some() && counts.caught == 0 && counts.missed == 0 {
         writeln!(
@@ -280,7 +283,7 @@ fn list_mutants(root: &Path, arguments: &[OsString]) -> io::Result<String> {
             String::from_utf8_lossy(&output.stderr)
         )));
     }
-    String::from_utf8(output.stdout).map_err(io::Error::other)
+    xtask::mutation_evidence::listing_json(output.stdout, &output.stderr).map_err(io::Error::other)
 }
 
 fn run_mutation_aggregate(

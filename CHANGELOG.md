@@ -5,6 +5,7 @@ All notable changes are recorded here.
 ## [Unreleased]
 
 - Add four balance-redacted MIC-L2 Long Forest Station corpus captures with manual, unverified transcriptions and explicit clipped-card boundaries; recognition accuracy remains unmeasured (R-QA-1, R-QA-3).
+- Reject mutation scores contaminated by known independent test/build infrastructure failures using retained cause logs. Preserve genuine domain-error test failures and the frozen score floor; handle the pinned tool's explicit empty selection without inventing a measured score (R-SEC-1, R-DOC-3).
 
 - Added bounded headless `--build-info` before native bootstrap. About, logs, UEX identity and update comparison share fixed Development `0.0.0` or complete compile-time tag metadata; invalid or partial metadata refuses startup. Bounded source-job receipts bind compiled metadata and executable hashes into protected staging before fixture access; signed-tag/CI authentication and final package acceptance remain release gates (R-NF-11, R-API-7, R-UI-18, R-SEC-8).
 
