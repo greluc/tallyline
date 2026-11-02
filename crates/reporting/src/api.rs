@@ -59,3 +59,4 @@ pub trait ReportRepository {
     -> Result<(), RepositoryError>;
 }
 pub use crate::application::{ManualEdit, ReportingApplication};
+pub use crate::attachment::AttachmentEdit;

@@ -116,6 +116,7 @@ struct Document {
     observed_at: String,
     game_version: Option<String>,
     rows: Vec<RowDocument>,
+    attachment: Option<AttachmentDocument>,
 }
 #[derive(Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -132,6 +133,7 @@ struct RowDocument {
 }
 fn encode(report: &Report) -> Result<String, RepositoryError> {
     let document = Document {
+        attachment: report.attachment().map(AttachmentDocument::from),
         terminal: report.key().terminal().0,
         side: match report.key().side() {
             TradeSide::Buy => "buy",
@@ -212,6 +214,10 @@ fn decode(id: ReportId, version: u64, payload: &str) -> Result<Report, Repositor
         game_version: document.game_version,
         version,
         rows,
+        attachment: document
+            .attachment
+            .map(AttachmentDocument::restore)
+            .transpose()?,
     })
     .map_err(|_| RepositoryError::Invalid)
 }
@@ -295,5 +301,56 @@ impl From<StoredEnvironment> for UexEnvironment {
             StoredEnvironment::Live => Self::Live,
             StoredEnvironment::Ptu => Self::Ptu,
         }
+    }
+}
+
+#[derive(Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct AttachmentDocument {
+    image: [u8; 32],
+    rectangle: [u32; 4],
+    observed_at: String,
+    time_source: TimeSource,
+    preview_confirmed: bool,
+}
+#[derive(Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+enum TimeSource {
+    ImportedFile,
+    User,
+}
+impl From<tallyline_reporting::api::model::ManualAttachment> for AttachmentDocument {
+    fn from(value: tallyline_reporting::api::model::ManualAttachment) -> Self {
+        use tallyline_reporting::api::model::AttachmentTime;
+        Self {
+            image: value.binding().image().bytes(),
+            rectangle: value.binding().region().rectangle(),
+            observed_at: value.time().at().millis().to_string(),
+            time_source: match value.time() {
+                AttachmentTime::ImportedFile(_) => TimeSource::ImportedFile,
+                AttachmentTime::User(_) => TimeSource::User,
+            },
+            preview_confirmed: value.preview_confirmed(),
+        }
+    }
+}
+impl AttachmentDocument {
+    fn restore(self) -> Result<tallyline_reporting::api::model::StoredAttachment, RepositoryError> {
+        use tallyline_reporting::api::model::{
+            AttachmentBinding, AttachmentRegion, AttachmentTime, ImageHash, StoredAttachment,
+        };
+        let [x, y, width, height] = self.rectangle;
+        let region =
+            AttachmentRegion::new(x, y, width, height).map_err(|_| RepositoryError::Invalid)?;
+        let at = crate::reference_cache::timestamp(&self.observed_at)
+            .map_err(|_| RepositoryError::Invalid)?;
+        Ok(StoredAttachment {
+            binding: AttachmentBinding::new(ImageHash::new(self.image), region),
+            time: match self.time_source {
+                TimeSource::ImportedFile => AttachmentTime::ImportedFile(at),
+                TimeSource::User => AttachmentTime::User(at),
+            },
+            preview_confirmed: self.preview_confirmed,
+        })
     }
 }

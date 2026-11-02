@@ -290,3 +290,120 @@ fn r_man_1_r_man_6__creation_refuses_each_invalid_context_without_persisting_a_d
     assert_eq!(report.version(), 0);
     assert_eq!(app.drafts().unwrap(), vec![report]);
 }
+
+#[test]
+#[expect(
+    non_snake_case,
+    reason = "Requirement tags use a double underscore separator."
+)]
+fn r_man_5_r_sub_7_q_manual_r_val_6_q_manual__preview_and_time_decisions_belong_to_the_current_attachment()
+ {
+    use tallyline_reporting::api::AttachmentEdit;
+    use tallyline_reporting::api::model::{
+        AttachmentBinding, AttachmentBlock, AttachmentRegion, AttachmentTime, ImageHash,
+    };
+    let mut app = ReportingApplication::new(Repository::default(), Fixed);
+    let report = app.create(key().unwrap(), Some("4.10.2")).unwrap();
+    let binding = AttachmentBinding::new(
+        ImageHash::new([1; 32]),
+        AttachmentRegion::new(10, 20, 30, 40).unwrap(),
+    );
+    let selected = app
+        .edit_attachment(
+            report.id(),
+            report.version(),
+            AttachmentEdit::Select(
+                binding,
+                AttachmentTime::ImportedFile(Timestamp::from_seconds(900)),
+            ),
+        )
+        .unwrap();
+    assert_eq!(
+        selected.attachment_gate(),
+        Err(AttachmentBlock::PreviewUnconfirmed)
+    );
+    assert_eq!(
+        app.edit_attachment(
+            selected.id(),
+            report.version(),
+            AttachmentEdit::ConfirmPreview(binding)
+        ),
+        Err(RepositoryError::Conflict)
+    );
+    let approved = app
+        .edit_attachment(
+            selected.id(),
+            selected.version(),
+            AttachmentEdit::ConfirmPreview(binding),
+        )
+        .unwrap();
+    assert_eq!(
+        approved.attachment_gate(),
+        Err(AttachmentBlock::TimeUncertain)
+    );
+    assert_eq!(
+        app.edit_attachment(
+            approved.id(),
+            approved.version(),
+            AttachmentEdit::ConfirmTime(Timestamp::from_seconds(901))
+        ),
+        Err(RepositoryError::Invalid)
+    );
+    let confirmed = app
+        .edit_attachment(
+            approved.id(),
+            approved.version(),
+            AttachmentEdit::ConfirmTime(Timestamp::from_seconds(899)),
+        )
+        .unwrap();
+    assert_eq!(confirmed.observed_at(), Timestamp::from_seconds(899));
+    assert_eq!(confirmed.attachment_gate(), Ok(()));
+    let unchanged = app
+        .edit_attachment(
+            confirmed.id(),
+            confirmed.version(),
+            AttachmentEdit::Select(
+                binding,
+                AttachmentTime::ImportedFile(Timestamp::from_seconds(999)),
+            ),
+        )
+        .unwrap();
+    assert_eq!(unchanged, confirmed);
+    let replacement = AttachmentBinding::new(ImageHash::new([2; 32]), binding.region());
+    let replaced = app
+        .edit_attachment(
+            confirmed.id(),
+            confirmed.version(),
+            AttachmentEdit::Select(
+                replacement,
+                AttachmentTime::ImportedFile(Timestamp::from_seconds(950)),
+            ),
+        )
+        .unwrap();
+    assert_eq!(
+        replaced.attachment_gate(),
+        Err(AttachmentBlock::PreviewUnconfirmed)
+    );
+    assert_eq!(replaced.observed_at(), Timestamp::from_seconds(899));
+    assert_eq!(
+        app.edit_attachment(
+            replaced.id(),
+            replaced.version(),
+            AttachmentEdit::ConfirmPreview(binding)
+        ),
+        Err(RepositoryError::Invalid)
+    );
+    let removed = app
+        .edit_attachment(replaced.id(), replaced.version(), AttachmentEdit::Remove)
+        .unwrap();
+    assert_eq!(removed.observed_at(), Timestamp::from_seconds(899));
+    assert_eq!(removed.attachment_gate(), Ok(()));
+    assert_eq!(
+        app.edit_attachment(
+            removed.id(),
+            removed.version(),
+            AttachmentEdit::ConfirmPreview(replacement)
+        ),
+        Err(RepositoryError::Invalid)
+    );
+}

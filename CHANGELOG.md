@@ -75,3 +75,7 @@ All notable changes are recorded here.
 - Refresh the desktop UI, TLS and async dependencies to eligible stable releases while preserving the approved native boundaries and complete legal notices (R-SEC-1, R-SEC-10).
 
 - Migrated the Pyro Gateway transcription to schema version two with unknown conditions left null; human verification is still required (R-QA-1).
+
+### In progress
+
+- Preserve manual attachment privacy and time decisions on Drafts, with source-hash/geometry-bound region previews and bounded background PNG encoding. Schema-five migration requires a coordinated backup; desktop controls, durable crop files, account requirement memory and release remain pending (R-MAN-5, R-SUB-7, R-CAP-8, R-VAL-6, R-NF-11).

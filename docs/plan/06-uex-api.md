@@ -307,3 +307,7 @@ Full R-API-3 system-proxy acceptance remains pending: the enabled upstream featu
 ### Manual validation parameter recheck (2026-11-02)
 
 A credential-free read of the primary public [`GET /data_parameters`](https://api.uexcorp.uk/2.0/data_parameters) returned `status: ok`, commodity `price_variation: 25`, `scu_variation: 5000` and `ttl: 15`. This confirms the existing field shape and current values; the percentage/day semantics remain those documented above and confirmed by UEX. It supplies no corpus calibration: the SCU value remains diagnostics only under O-140, and neither an unverified transcription nor a geometry label calibrates a client SCU threshold.
+
+### Manual attachment encoding checkpoint (2026-11-02)
+
+The official read-only [data_submit documentation](https://uexcorp.space/api/documentation/id/post_data_submit/) was checked again for screenshot input: PNG/JPG in Base64, documented 10.00 MB and evaluation-period requirement. This does not supersede the owner's stricter Base64 bound or the UEX team's stored-size guidance above. The manual attachment encoder emits only a user-confirmed selected region as PNG within 1920×1080 and at most 10,000,000 Base64 bytes, without a data-URL prefix. This headless slice has made no UEX write, including no dry run; account requirement learning and sending remain pending.

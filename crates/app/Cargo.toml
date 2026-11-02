@@ -38,3 +38,6 @@ serde_json.workspace = true
 
 [dependencies.tallyline-reporting]
 workspace = true
+
+[dev-dependencies.png]
+workspace = true
