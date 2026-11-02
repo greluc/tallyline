@@ -19,6 +19,7 @@
 | [`ci-release-reference.md`](ci-release-reference.md) | Reviewed P4KX build/release patterns, further M1–M5 applications, adaptation boundaries and upstream feedback |
 | [`local-vision-runtime-research.md`](local-vision-runtime-research.md) | Source-backed comparison of bundled local VLM runtimes, complementary OCR readers, hardware tiers and evaluation plans; original research scope and later experimental evidence are distinguished |
 | [`local-vision-first-campaign.md`](local-vision-first-campaign.md) | Completed 310-response local VLM experiment: exact inputs, structural coverage failures, separately labelled exploratory discrepancies and evidence limits; no validated accuracy or backend selection |
+| [`local-vision-small-model-campaign.md`](local-vision-small-model-campaign.md) | Completed author-bound 2B CPU/GPU smoke and a separate literal-field development condition, with raw-value discrepancies, structural failures and independent cleanup evidence |
 | [`adr/0012-strictly-local-recognition-delivery.md`](adr/0012-strictly-local-recognition-delivery.md) | Owner-required local-only inference and complete initial recognition profiles; engine choice and the Windows OCR prerequisite remain under evaluation |
 | [`cla-signatures.md`](cla-signatures.md) | The public roster of CLA signatures |
 
