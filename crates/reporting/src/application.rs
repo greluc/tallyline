@@ -8,7 +8,9 @@ use crate::api::{ReportRepository, RepositoryError};
 use tallyline_game::api::model::EnvironmentMapping;
 use tallyline_reference_data::api::model::ReferenceSnapshot;
 use tallyline_shared_kernel::api::Clock;
-use tallyline_shared_kernel::api::model::{CommodityId, PricePerScu, ScuQuantity, TradeSide};
+use tallyline_shared_kernel::api::model::{
+    CommodityId, Percent, PricePerScu, ScuQuantity, TradeSide,
+};
 
 /// An explicit user edit of a manual Draft.
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -32,6 +34,7 @@ pub struct ReportingApplication<R, C> {
     repository: R,
     clock: C,
     mapping: EnvironmentMapping,
+    price_tolerance_override: Option<Percent>,
 }
 impl<R: ReportRepository, C: Clock> ReportingApplication<R, C> {
     /// Constructs the manual Draft application.
@@ -40,6 +43,7 @@ impl<R: ReportRepository, C: Clock> ReportingApplication<R, C> {
             repository,
             clock,
             mapping: EnvironmentMapping::default(),
+            price_tolerance_override: None,
         }
     }
     /// Applies the currently persisted game-channel mapping.
@@ -221,13 +225,7 @@ impl<R: ReportRepository, C: Clock> ReportingApplication<R, C> {
         id: ReportId,
         snapshot: &ReferenceSnapshot,
     ) -> Result<Vec<crate::api::model::StatusAssessment>, RepositoryError> {
-        let report = self
-            .repository
-            .load_draft(id)?
-            .ok_or(RepositoryError::Invalid)?;
-        if self.mapping.environment(report.key().environment()) != snapshot.environment() {
-            return Err(RepositoryError::Invalid);
-        }
+        let report = self.draft_for_reference(id, snapshot)?;
         let priors = snapshot.terminal_priors(report.key().terminal());
         Ok(report
             .rows()
@@ -255,5 +253,31 @@ impl<R: ReportRepository, C: Clock> ReportingApplication<R, C> {
                 ))
             })
             .collect())
+    }
+}
+
+impl<R: ReportRepository, C: Clock> ReportingApplication<R, C> {
+    /// Applies an optional tighten-only price override at the next assessment.
+    pub fn set_price_tolerance_override(&mut self, value: Option<Percent>) {
+        self.price_tolerance_override = value;
+    }
+}
+
+mod prices;
+
+impl<R: ReportRepository, C: Clock> ReportingApplication<R, C> {
+    fn draft_for_reference(
+        &mut self,
+        id: ReportId,
+        snapshot: &ReferenceSnapshot,
+    ) -> Result<Report, RepositoryError> {
+        let report = self
+            .repository
+            .load_draft(id)?
+            .ok_or(RepositoryError::Invalid)?;
+        if self.mapping.environment(report.key().environment()) != snapshot.environment() {
+            return Err(RepositoryError::Invalid);
+        }
+        Ok(report)
     }
 }
