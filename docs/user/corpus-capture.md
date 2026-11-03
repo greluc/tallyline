@@ -1,6 +1,6 @@
 # Corpus capture and annotation
 
-> **Doc type:** Living reference — current. Last reviewed: 2026-11-02.
+> **Doc type:** Living reference — current. Last reviewed: 2026-11-03.
 
 The offline `ocr-eval` tool supports R-QA-1, R-QA-3 and R-DOC-1. It inspects metadata and sample readiness before recognition is implemented. No current class is claimed to meet recognition accuracy, confidence or runtime requirements.
 
@@ -38,8 +38,8 @@ O-50 permits small anonymised public fixtures, restricted to this entry's termin
 
 ## MIC-L2 sample limits
 
-The public `mic-l2-long-forest-station-01` entry supplies four source-resolution captures with the balance irreversibly filled. Its JPEG originals were decoded once to PNG; the recorded outside-mask pixel hashes bind the unchanged decoded image regions. The transcriptions remain unverified smoke data. Unknown capture conditions, game version, capture times and UEX IDs remain null. Clipped cards retain their own edge and visible evidence and supply no complete row; a blank section records a header outside that capture. The on-screen Local Market Value tab uses the corpus's existing `SELL` side.
+The public `mic-l2-long-forest-station-01` entry supplies four source-resolution captures with the balance irreversibly filled. Its JPEG originals were decoded once to PNG; the recorded outside-mask pixel hashes bind the unchanged decoded image regions. The transcriptions remain unverified smoke data. Unknown capture conditions, game version and UEX IDs remain null. Corrected 2026-11-02: capture times use the owner-confirmed unchanged local filenames in MEZ (UTC+01:00), converted to UTC at second precision; the opaque suffix supplies no milliseconds or Game.log correlation. Clipped cards retain their own edge and visible evidence and supply no complete row; a blank section records a header outside that capture. The on-screen Local Market Value tab uses the corpus's existing `SELL` side.
 
 ## Orbituary sample limits
 
-The public `orbituary-01` entry adds five Buy and ten Local Market Value captures from the orange terminal theme. Each source JPEG was decoded once to a balance-redacted PNG with unchanged exterior decoded pixels. The entry remains unverified smoke data with unknown capture conditions, times, game version and UEX IDs. Compare each capture independently: anonymous edge fragments have no inferred identity, warning markers remain literal text, and visible cargo digits never promote a card whose border is clipped. Only shop-panel section headers actually visible in that capture are recorded.
+The public `orbituary-01` entry adds five Buy and ten Local Market Value captures from the orange terminal theme. Each source JPEG was decoded once to a balance-redacted PNG with unchanged exterior decoded pixels. The entry remains unverified smoke data with unknown capture conditions, game version and UEX IDs. Corrected 2026-11-02: capture times follow the same owner-confirmed filename conversion and precision limits as MIC-L2. Compare each capture independently: anonymous edge fragments have no inferred identity, warning markers remain literal text, and visible cargo digits never promote a card whose border is clipped. Only shop-panel section headers actually visible in that capture are recorded.
