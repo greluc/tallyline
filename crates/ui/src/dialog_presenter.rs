@@ -9,7 +9,9 @@ pub struct DialogPresenter {
     about: bool,
     build: crate::api::model::BuildPresentation,
     gpl: bool,
+    gpl_viewer: crate::licence_text_viewer::LicenceTextViewer,
     licences: bool,
+    licence_browser: crate::licence_browser::LicenceBrowser,
     catalogue: Option<crate::api::model::LicenceCatalogue>,
     pub(crate) manual_confirmation: Option<crate::api::model::ManualReviewCommand>,
 }
@@ -39,6 +41,7 @@ impl DialogPresenter {
         context: &egui::Context,
         catalogue: &crate::api::Catalogue,
         unit: &crate::api::FanKitUnit,
+        theme: tallyline_egui::Theme,
     ) {
         egui::Window::new(catalogue.text("about.title"))
             .open(&mut self.about)
@@ -57,36 +60,22 @@ impl DialogPresenter {
             });
         egui::Window::new(catalogue.text("about.gpl"))
             .open(&mut self.gpl)
-            .vscroll(true)
+            .default_size([720.0, 500.0])
             .show(context, |ui| {
-                ui.label(include_str!("../../../LICENSE"));
+                egui::ScrollArea::vertical()
+                    .auto_shrink([false, false])
+                    .show(ui, |ui| {
+                        self.gpl_viewer
+                            .show(ui, catalogue, include_str!("../../../LICENSE"));
+                    });
             });
         egui::Window::new(catalogue.text("about.licences"))
             .open(&mut self.licences)
-            .vscroll(true)
+            .default_size([720.0, 520.0])
             .show(context, |ui| {
                 if let Some(licences) = &self.catalogue {
-                    for component in licences.components() {
-                        ui.heading(format!("{} {}", component.name, component.version));
-                        ui.label(&component.licence);
-                        match &component.copyright {
-                            crate::api::model::CopyrightInformation::Provided { notices } => {
-                                for line in notices {
-                                    ui.label(line);
-                                }
-                            }
-                            crate::api::model::CopyrightInformation::NotStatedByUpstream => {
-                                ui.label(catalogue.text("about.no_copyright_stated"));
-                            }
-                        }
-                        ui.hyperlink_to(catalogue.text("about.source"), &component.source);
-                        for notice in &component.notices {
-                            ui.collapsing(&notice.path, |ui| {
-                                ui.label(&notice.text);
-                            });
-                        }
-                        ui.separator();
-                    }
+                    self.licence_browser
+                        .show(ui, catalogue, licences, theme.palette());
                 } else {
                     ui.label(catalogue.text("about.missing_licences"));
                 }

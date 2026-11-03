@@ -25,6 +25,8 @@ pub mod api;
 mod desktop;
 mod game_witness;
 mod legal_views;
+mod licence_browser;
+mod licence_text_viewer;
 mod licences;
 mod theme;
 

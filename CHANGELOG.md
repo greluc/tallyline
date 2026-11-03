@@ -4,6 +4,8 @@ All notable changes are recorded here.
 
 ## [Unreleased]
 
+- Present offline open-source licences in a bounded, keyboard-selectable component browser with exact upstream SPDX declarations, attribution and all bundled licence/notice files. Share a wrapped, selectable, read-only text viewer with the full GPL dialog, including keyboard scrolling and copying at 200% scale (R-UI-17, R-UI-18).
+
 - Restore the approved Material Symbols Rounded state icons and separately shipped, hash-checked subset, with complete Apache licence and modification notices (R-UI-4, R-UI-17, R-UI-18).
 - Compose every existing page within a persistent top bar, responsive sidebar or rail, scrollable content and bottom status. Preserve setup guards, account choices, reference warnings and update actions across views, with expandable endpoint details (R-UI-7, R-UI-8, R-UI-16, R-UI-17).
 

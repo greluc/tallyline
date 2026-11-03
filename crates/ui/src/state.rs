@@ -183,7 +183,8 @@ impl ShellState {
         catalogue: &crate::api::Catalogue,
         unit: &crate::api::FanKitUnit,
     ) {
-        self.dialogs.show(context, catalogue, unit);
+        let theme = crate::api::resolve_theme(self.settings.theme(), context.system_theme());
+        self.dialogs.show(context, catalogue, unit, theme);
     }
     /// Returns the preferences confirmed by the settings worker.
     #[must_use]
