@@ -7,6 +7,7 @@ path = [
   ".gitattributes",
   ".gitignore",
   ".gitleaks.toml",
+  ".gitleaksignore",
   ".github/**",
   "corpus/public/**/expected.json",
   "crates/adapter-uex/contracts/*.json",

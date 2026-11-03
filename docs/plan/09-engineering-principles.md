@@ -61,6 +61,7 @@ The `unsafe` code of the platform adapter is registered here too. Corrected 2026
 
 | Location | Rule | Reason | Date | Revisit when |
 |---|---|---|---|---|
+| `.gitleaksignore`, exact commit `1a70a40766669fe1df71a85f4198d8f6a916e141`, `crates/workflows/tests/diagnostics.rs:62` | gitleaks `generic-api-key`, commit/file/rule/line fingerprint | Synthetic diagnostic privacy marker; current fixture uses a low-entropy marker, while reachable history is retained (see [verification](../diagnostics-export.md#verification-and-remaining-work)) | 2026-11-03 | The pinned scanner or retained commit identity changes |
 | `crates/reference-data/tests/local_priors.rs` and its `local_priors/` modules | `non_snake_case`, local `#[expect]` per tagged test | The required traceability grammar contains a double underscore | 2026-11-03 | the tag grammar changes or rustc accepts consecutive underscores |
 | `crates/app/tests/submission_controller.rs` and its `submission_controller/` modules, `crates/submission/tests/credentials.rs` | `non_snake_case`, local `#[expect]` per tagged test | The required traceability grammar contains a double underscore | 2026-11-03 | the tag grammar changes or rustc accepts consecutive underscores |
 | `crates/reporting/tests/stock_review.rs` and its `stock_review/` modules | `non_snake_case`, local `#[expect]` per tagged test | The required traceability grammar contains a double underscore | 2026-11-02 | the tag grammar changes or rustc accepts consecutive underscores |

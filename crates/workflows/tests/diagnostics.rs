@@ -35,7 +35,7 @@ impl DiagnosticExportSink for Sink {
 #[test]
 fn r_nf_6_r_doc_2__a_preview_is_allowlisted_and_masked_before_the_explicit_save() {
     let privacy = DiagnosticPrivacy::new(
-        &["uex-private-key-7823", "private-app-token-9221"],
+        &["test-user-secret", "private-app-token-9221"],
         &["PrivateRunner", "LocalOwner"],
     )
     .unwrap();
@@ -59,7 +59,7 @@ fn r_nf_6_r_doc_2__a_preview_is_allowlisted_and_masked_before_the_explicit_save(
         DiagnosticInput::new(
             DiagnosticSection::Logs,
             format!(
-                "DEBUG secret-key=uex-private-key-7823 token=private-app-token-9221\n\
+                "DEBUG secret-key=test-user-secret token=private-app-token-9221\n\
                  INFO user=privaterunner folder=C:\\Users\\LOCALOWNER\\Captures\n\
                  DEBUG submit screenshot=\"{image_payload}\"\n\
                  DEBUG vlm images=[\"{image_payload}\"]\n\
@@ -86,7 +86,7 @@ fn r_nf_6_r_doc_2__a_preview_is_allowlisted_and_masked_before_the_explicit_save(
         .collect::<Vec<_>>()
         .join("\n");
     for prohibited in [
-        "uex-private-key-7823",
+        "test-user-secret",
         "private-app-token-9221",
         "PrivateRunner",
         "privaterunner",
