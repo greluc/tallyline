@@ -1,6 +1,6 @@
 # Current Game.log witness validation
 
-> **Doc type:** Living reference — initial validation complete; supported scope and exclusions recorded. Last reviewed: 2026-11-01.
+> **Doc type:** Living reference — finite validation complete; supported scope and exclusions recorded. Last reviewed: 2026-11-03.
 
 This is the dated result of the local current-LIVE review for issue #107, R-OCR-20, A24 and O-101. It records the validated initial evidence scope, not a production parser or exhaustive mapping registry. The witness remains opt-in and default off; unknown formats and mappings supply no automatic resolving evidence. The implementation boundary and its privacy checks are recorded below (issue #108).
 
@@ -128,6 +128,37 @@ The validated initial scope is:
 The Patch City candidate, Checkmate candidate, every unlisted location/template or commodity mapping, and other builds remain unsupported by this initial allowlist. Further independently established mappings can extend coverage; similar names, discarded suffixes and unverified corpus expectations cannot. The original capture-time localisation and current packaged-localisation provenance remain unverified, without invalidating the independently inspected paired-capture evidence.
 
 The M2 research-spike checkbox is complete. Corrected 2026-11-01: issue #108 implements the initial source boundary described below, with finite mappings, opt-in/default-off behaviour, unsupported-format handling and independent privacy checks at the present output/storage boundaries. This document introduces none of that implementation, no persistent game-log data, normative change or API write. All corpus verification flags remain false; selected pixel inspection does not make an entry golden data.
+
+## Finite mapping extension — 2026-11-03
+
+The source allowlist additionally accepts the exact terminal pairs and literal commodity names below for the same build `4.10.197.2878` and branch `sc-alpha-4.10.2`. The three initial terminal pairs and four commodity aliases remain unchanged. There is no general name normaliser or cross-template fallback.
+
+The independent clock review used owner-confirmed original capture filenames in MEZ (UTC+01:00), converted to UTC at whole-second precision. Nineteen captures from `mic-l2-long-forest-station-01` and `orbituary-01` follow the latest preceding eligible load by 4.903–58.422 seconds. Their opaque filename suffixes supply no milliseconds. Direct inspection of seven public redacted buy PNGs establishes both visible station labels and 23 complete-card name/size agreements. These are paired observations, not verified golden metrics; twelve sell captures support location only.
+
+Only one complete, stable, strict UTF-8 backup supplied this evidence: 900,762 bytes, SHA-256 `090a46f59a6148ebe6b5e408d11aac7fd4fc976b74a86239009c1783839d9e7b`. Its timestamped build/branch headers agree exactly with the manifest. Its latest preceding location requests establish `RR_MIC_L2` before the admin load and `RR_P3_LEO` before the Pyro rest-stop admin load, with no intervening location change during either capture sequence. Two other inspected sources were wholly refused as invalid UTF-8; none of their headers or rows participates. The retained sanitised clock receipt has SHA-256 `75af9ac1070d2a632f8253fb44da3813730382d060923b73aaf26bbbf0a94b84`.
+
+Separate credential-free first-party GETs on 2026-11-03 at 08:51:48–49 UTC identified the current public UEX identities. The selected [terminal](https://api.uexcorp.uk/2.0/terminals) rows each have numeric `is_available=1`, `is_available_live=1`, `is_visible=1` and `is_player_owned=0`. Each is the unique `commodity` terminal at both the exact display label and station ID; other terminal types at that station are excluded.
+
+| Exact location + shop template | Terminal identity | Selected location identity |
+|---|---|---|
+| `RR_MIC_L2` + `SCShop_Admin_lt_base_g` | 55, Admin - MIC-L2; code `MICL2`; Commodity Shop - Admin - MIC-L2 | MIC-L2 Long Forest Station, station 18; Stanton 68; MicroTech 190; microTech Lagrange Point 2, orbit 340 |
+| `RR_P3_LEO` + `SCShop_Pyro_RestStop_Rund_Admin` | 443, Admin - Orbituary; code `ORBIT`; Commodity Shop - Admin - Orbituary | Orbituary, station 32; Pyro 64; Bloom, planet/orbit 242 |
+
+There are 13 terminal rows at the MIC-L2 display and 17 at Orbituary. In particular, Refinery Ore Sales 240 and 691 have type `commodity_raw` and are excluded, as are refinery, item, fuel and vehicle terminals. Terminal `game_version=4.0` is last-update metadata, not the capture patch. The separate [game versions](https://api.uexcorp.uk/2.0/game_versions) response names LIVE `4.10.2` and PTU `4.10.3`; neither observation widens the accepted source build or proves PTU eligibility.
+
+| Exact internal commodity | Unique exact public UEX name / ID | Independently visible buy sizes |
+|---|---|---|
+| `ResourceType.Astatine` | Astatine / 9 | `{1,2,4,8,16}` |
+| `ResourceType.Carbon` | Carbon / 102 | `{8,16,24,32}` |
+| `ResourceType.Copper` | Copper / 20 | `{8,16,24,32}` |
+| `ResourceType.Diamond` | Diamond / 25 | `{1,2,4,8,16}` |
+| `ResourceType.Potassium` | Potassium / 116 | `{8,16,24,32}` |
+| `ResourceType.Scrap` | Scrap / 67 | `{1,2,4,8,16}` |
+| `ResourceType.Waste` | Waste / 79 | `{1,2,4,8,16,24,32}` |
+
+Each name matches exactly one of the 205 [commodity](https://api.uexcorp.uk/2.0/commodities) rows; all seven IDs are distinct positive integers and the numeric availability, LIVE and visibility flags are 1. Their literal internal suffixes agree with directly inspected visible names, ignoring case only in the research comparison. Runtime matching remains exact and case-sensitive. The retained minimal identity projection has SHA-256 `ab312aad2bf7ba5f8480c275a1f4ee0c66a0613d34c8d23be4d241024de7978a`; current UEX identity evidence is separate from the capture/source pairing.
+
+MedicalSupplies and the seven ShipAmmoSize plus two ShipCountermeasures aliases remain outside this extension. Their visible UEX identities and equal size sets do not independently establish their internal-name bridges. A qualified loose-localisation supplement does not establish packaged or capture-time provenance. No price, quantity or status from the log supplies evidence. The five-minute matching rule, certain-time prerequisite, buy-only assortment/sizes and sell location-only rule remain unchanged. Corpus PNGs, IDs, expected values, gameVersion and every verification flag are untouched; this extension makes no runtime or package acceptance claim.
 
 ## Initial source implementation and local format check
 

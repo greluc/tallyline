@@ -27,6 +27,8 @@ pub(crate) fn location_mapping(code: &str) -> Option<TerminalId> {
         "RR_P6_LEO" => Some(TerminalId(466)),
         "RR_CRU_LEO" => Some(TerminalId(259)),
         "Nyx_Levski" => Some(TerminalId(778)),
+        "RR_MIC_L2" => Some(TerminalId(55)),
+        "RR_P3_LEO" => Some(TerminalId(443)),
         _ => None,
     }
 }
@@ -36,6 +38,8 @@ pub(crate) fn terminal_mapping(location: Option<TerminalId>, shop: &str) -> Opti
         (Some(TerminalId(466)), "SCShop_Pyro_RestStop_Rund_Admin") => location,
         (Some(TerminalId(259)), "SCShop_Admin_lt_base_g") => location,
         (Some(TerminalId(778)), "SCShop_Levski_CargoOffice_Commodities") => location,
+        (Some(TerminalId(55)), "SCShop_Admin_lt_base_g") => location,
+        (Some(TerminalId(443)), "SCShop_Pyro_RestStop_Rund_Admin") => location,
         _ => None,
     }
 }
@@ -46,6 +50,13 @@ pub(crate) fn commodity_mapping(name: &str) -> Option<CommodityId> {
         "ResourceType.QuantumFuel" => Some(CommodityId(87)),
         "ResourceType.RMC" => Some(CommodityId(63)),
         "ResourceType.AltruciaToxin_unprocessed" => Some(CommodityId(66)),
+        "ResourceType.Astatine" => Some(CommodityId(9)),
+        "ResourceType.Carbon" => Some(CommodityId(102)),
+        "ResourceType.Copper" => Some(CommodityId(20)),
+        "ResourceType.Diamond" => Some(CommodityId(25)),
+        "ResourceType.Potassium" => Some(CommodityId(116)),
+        "ResourceType.Scrap" => Some(CommodityId(67)),
+        "ResourceType.Waste" => Some(CommodityId(79)),
         _ => None,
     }
 }

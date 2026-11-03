@@ -5,6 +5,7 @@ All notable changes are recorded here.
 ## [Unreleased]
 
 - Allow a previously validated account to release reviewed Reports to the persistent queue while offline. Sending waits for validation in the current session, and replacement credentials close release and sending until accepted (R-API-7, R-SUB-2).
+- Extend the optional Game.log witness to the exact MIC-L2 Long Forest Station and Orbituary terminal pairs and Astatine, Carbon, Copper, Diamond, Potassium, Scrap and Waste. The same validated build and default-off privacy boundary apply; the log supplies no reported prices, quantities or status values (R-OCR-20).
 
 - Verify rebuilt Development MSI/ZIP/deb/tar.gz packages, exact preferred-source inventory, legal terms and fixture boundaries. Keep shared libraries as non-executable data in portable archives written on Windows, with independent format-reader and actual artefact red/green. These recorded Development tuples do not establish Windows OS isolation, installed acceptance or authenticated releases (R-NF-2:installers, R-DOC-3, R-DOC-4, R-SEC-8).
 
