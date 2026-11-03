@@ -79,6 +79,9 @@ pub mod mutation_evidence;
 mod mutation_evidence_tests;
 
 #[cfg(test)]
+mod package_archive_tests;
+
+#[cfg(test)]
 mod package_tests;
 
 #[cfg(test)]

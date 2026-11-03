@@ -98,11 +98,12 @@ pub(super) fn repack(tree: &Path, output: &Path) -> io::Result<()> {
     normalise(&control)?;
     let control_archive = tree.join("final-control.tar.gz");
     let data_archive = tree.join("final-data.tar.gz");
-    super::archive::tree_gzip(&control, create(&control_archive)?, None)?;
+    super::archive::tree_gzip(&control, create(&control_archive)?, None, file_mode)?;
     super::archive::tree_gzip(
         &data,
         create(&data_archive)?,
         Some(("usr/bin/tallyline", LINK_TARGET)),
+        file_mode,
     )?;
     let mut archive = create(output)?;
     let result = (|| {
@@ -154,16 +155,7 @@ fn normalise(path: &Path) -> io::Result<()> {
     #[cfg(unix)]
     {
         use std::os::unix::fs::PermissionsExt;
-        let mode = if metadata.is_dir()
-            || path.ends_with("usr/bin/tallyline")
-            || path.ends_with("usr/lib/tallyline/tallyline")
-            || path.ends_with("usr/lib/tallyline/libonnxruntime.so.1.31.0")
-        {
-            0o755
-        } else {
-            0o644
-        };
-        fs::set_permissions(path, fs::Permissions::from_mode(mode))?;
+        fs::set_permissions(path, fs::Permissions::from_mode(file_mode(path, &metadata)))?;
     }
     if metadata.is_dir() {
         for child in fs::read_dir(path)? {
@@ -171,6 +163,18 @@ fn normalise(path: &Path) -> io::Result<()> {
         }
     }
     Ok(())
+}
+
+fn file_mode(path: &Path, metadata: &fs::Metadata) -> u32 {
+    if metadata.is_dir()
+        || path.ends_with("usr/bin/tallyline")
+        || path.ends_with("usr/lib/tallyline/tallyline")
+        || path.ends_with("usr/lib/tallyline/libonnxruntime.so.1.31.0")
+    {
+        0o755
+    } else {
+        0o644
+    }
 }
 
 fn installed_size(path: &Path) -> io::Result<u64> {
