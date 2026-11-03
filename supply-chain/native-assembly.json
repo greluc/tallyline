@@ -62,14 +62,17 @@
       "version": "0.4.3",
       "archive_sha256": "300e883d756b2e4ec94e02791f39b04b522276138852cfc41d9fb7e904106099",
       "full_features": [
-        "std"
+        "std",
+        "sys_rng"
       ],
       "targets": {
         "x86_64-pc-windows-msvc": [
-          "std"
+          "std",
+          "sys_rng"
         ],
         "x86_64-unknown-linux-gnu": [
-          "std"
+          "std",
+          "sys_rng"
         ]
       },
       "files": {
@@ -77,7 +80,7 @@
         "src/backends/rndr.rs": "edded389094deef0207fdf08acdf9c2e10d9ae8576cc64f7af21333cab0d0448"
       },
       "licence": "MIT OR Apache-2.0",
-      "scope": "linux_raw syscall and AArch64 RNDR backends. Both inactive: defaults use Windows system RNG or Linux libc getrandom/file fallback. getrandom_backend=linux_raw/rndr overrides are outside this scope."
+      "scope": "linux_raw syscall and AArch64 RNDR backends. Both inactive: defaults use Windows system RNG or Linux libc getrandom/file fallback. getrandom_backend=linux_raw/rndr overrides are outside this scope. Owner-approved 2026-11-03 std,sys_rng test-profile extension; sys_rng only forwards to the existing entropy functions. Archive, backend, assembly and build-script identities remain unchanged; approval provenance is in property-testing.json."
     },
     {
       "name": "half",

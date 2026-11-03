@@ -74,6 +74,15 @@ fn main() -> ExitCode {
         ["architecture"] => architecture_passes(&root).map(exit_status),
         ["build-code"] => run_build_code(&root),
         ["native-scope"] => run_native_scope(&root),
+        ["property-scope", metadata, lock, target] => {
+            run_property_scope(Path::new(metadata), Path::new(lock), target, None)
+        }
+        ["property-scope", metadata, lock, target, review] => run_property_scope(
+            Path::new(metadata),
+            Path::new(lock),
+            target,
+            Some(Path::new(review)),
+        ),
         ["sqlite-native"] => run_sqlite_native(&root),
         ["native-assembly"] => {
             run_native_assembly(&root, Path::new(xtask::native_assembly::REVIEWED_PATH))
@@ -98,7 +107,7 @@ fn main() -> ExitCode {
 fn usage() -> io::Result<ExitCode> {
     writeln!(
         io::stderr(),
-        "usage: cargo xtask check | guard | architecture | build-code | native-scope | sqlite-native | native-assembly [<approved.json>] | mutation [--in-diff <diff>] [--shard <k/n>] | mutation-aggregate <directory> <head> <run> <attempt> | dco <base> <head> | osv-gate <report.json> | vendor-hashes write | vendor-hashes verify | notices"
+        "usage: cargo xtask check | guard | architecture | build-code | native-scope | property-scope <metadata.json> <Cargo.lock> <target> [<approved.json>] | sqlite-native | native-assembly [<approved.json>] | mutation [--in-diff <diff>] [--shard <k/n>] | mutation-aggregate <directory> <head> <run> <attempt> | dco <base> <head> | osv-gate <report.json> | vendor-hashes write | vendor-hashes verify | notices"
     )?;
     Ok(ExitCode::FAILURE)
 }
@@ -395,13 +404,31 @@ fn native_scope_passes(root: &Path) -> io::Result<bool> {
                 target,
             ],
         )?;
-        let findings = xtask::native::violations(&metadata).map_err(io::Error::other)?;
+        let mut findings = xtask::native::violations(&metadata).map_err(io::Error::other)?;
+        findings.extend(xtask::property_scope_command::workspace_violations(
+            root,
+            target,
+            |args| cargo_stdout(root, args),
+        )?);
         for finding in &findings {
             writeln!(io::stderr(), "{target}: {finding}")?;
         }
         passed &= findings.is_empty();
     }
     Ok(passed)
+}
+
+fn run_property_scope(
+    metadata: &Path,
+    lock: &Path,
+    target: &str,
+    review: Option<&Path>,
+) -> io::Result<ExitCode> {
+    let findings = xtask::property_scope_command::inspect(metadata, lock, target, review)?;
+    for finding in &findings {
+        writeln!(io::stderr(), "{finding}")?;
+    }
+    Ok(exit_status(findings.is_empty()))
 }
 fn architecture_passes(root: &Path) -> io::Result<bool> {
     let metadata = cargo_stdout(

@@ -24,6 +24,8 @@ pub mod native_assembly;
 pub mod notices;
 pub mod osv;
 pub mod package;
+pub mod property_scope;
+pub mod property_scope_command;
 pub mod quality;
 pub mod register;
 pub mod registry;
@@ -89,4 +91,7 @@ mod work_paths_tests;
 
 #[cfg(test)]
 mod check_paths_tests;
+
+#[cfg(test)]
+mod property_scope_tests;
 pub mod reconstitution;

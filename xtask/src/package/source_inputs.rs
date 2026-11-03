@@ -42,6 +42,10 @@ pub(super) fn compiled() -> io::Result<BTreeMap<&'static str, &'static [u8]>> {
             include_bytes!("../../../crates/adapter-uex/Cargo.toml").as_slice(),
         ),
         (
+            "crates/recognition/Cargo.toml",
+            include_bytes!("../../../crates/recognition/Cargo.toml").as_slice(),
+        ),
+        (
             "crates/app/Cargo.toml",
             include_bytes!("../../../crates/app/Cargo.toml").as_slice(),
         ),

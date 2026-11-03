@@ -154,3 +154,5 @@ Distribution source checks also bind every workspace manifest, so feature-only c
 The packaging helper now includes fixed native backend adapters and independently inspected Debian archive/CRT prerequisite contracts. Actual final protected distributions and clean-OS/native acceptance remain pending; the Windows Visual C++ runtime prerequisite remains unchanged.
 
 Corrected 2026-11-03: remembered validated accounts can release reviewed Reports to the durable queue offline; dispatch waits for successful validation in the current session. Replacement credentials close both release and sending until validated (R-API-7, R-SUB-2). Native/provider and approved real-service acceptance remain open.
+
+The source foundation also contains shared exact numeric parsing and typed raw observations, verified by a reproducible development-only property profile. Desktop recognition integration remains pending (R-VLM-5).

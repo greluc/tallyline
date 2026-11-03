@@ -1,6 +1,6 @@
 # Supply Chain Security
 
-> **Doc type:** Living spec — binding. Last reviewed: 2026-11-02.
+> **Doc type:** Living spec — binding. Last reviewed: 2026-11-03.
 
 Goal: Neither a compromised dependency, a tampered build tool or CI action, nor a subverted release artifact should bring code onto users' machines unnoticed. The client handles a UEX secret key and runs alongside the game – a compromised build would be a direct attack on the users.
 
@@ -28,6 +28,8 @@ Amended 2026-10-12: the measures were re-expressed for Cargo after the move from
 | T14 | Code that runs **at build time** from a dependency: `build.rs` scripts and procedural macros | A build script that downloads and executes a binary, reads secrets from the environment or patches other crates |
 
 ## 2. Measures
+
+Implementation preparation 2026-11-03: the property-testing pre-build guard binds an adopted profile to exact archive/source-tree identities, active features, supported targets and the recognition dev-only introduction, with separate test and normal/build tree checks. Corrected 2026-11-03: the exact owner-approved profile, qualified AI source audits and sole getrandom 0.4.3 std,sys_rng feature extension are adopted with actual chat provenance. S-6 audits and native/source approval remain distinct; configuration/source review does not establish matching-host Linux runtime or final release acceptance. See [the executable guard and its limits](../../xtask/README.md#property-testing-profile-preparation).
 
 ### 2.1 Resolving dependencies (T1–T3)
 
@@ -245,4 +247,8 @@ The [Tesseract research controller](../tesseract-linux-research-controller.md) r
 
 **Packaging source freshness and protected input ordering (2026-11-02).** The normal check validates canonical Cargo.lock, NOTICE and notices.toml bindings before quality build/test work, including graph-neutral byte changes. Profile rebinds require fresh comparison of both target catalogue bytes. Source-map validation streams the real fixed-profile archive and rejects mismatched mapped files, unsafe paths and metadata. Secret-free preparation validates the source capsule and seals only its identity plus the map; the protected stage contains no source capsule. Fixture commands verify helper/tool/payload/source bindings before reading the fixture and allow it only in the fixed data file. Installer assembly, actual UEX format, clean-OS acceptance and publication remain separate pending gates.
 
-**Manifest-only freshness correction (2026-11-02).** The legal profile now binds twenty canonical inputs, adding root Cargo.toml and all sixteen actual workspace member manifests to the original lock/legal inputs. Its compiled literal inventory must match declared membership, and current Cargo metadata is independently compared during rebind. A real regression demonstrated the old acceptance of a feature-only manifest change with identical lockfile bytes; the normal guard now rejects it before quality build/test work. This adds no dependency version or native activation.
+**Manifest-only freshness correction (2026-11-02).** The legal profile now binds twenty-one canonical inputs, including root Cargo.toml and all seventeen actual workspace member manifests alongside the original lock/legal inputs. Its compiled literal inventory must match declared membership, and current Cargo metadata is independently compared during rebind. A real regression demonstrated the old acceptance of a feature-only manifest change with identical lockfile bytes; the normal guard now rejects it before quality build/test work. This adds no dependency version or native activation.
+
+### Approved numeric property-testing profile (2026-11-03)
+
+The [exact record](../../supply-chain/property-testing.json) binds the owner's actual chat approval to the reviewed proposal, seven testing archives and the existing getrandom 0.4.3 feature extension. Six qualified AI safe-to-run records and one complete dependency-free rand_core safe-to-deploy review add no future publisher trust, import or exemption. The normal/build tree must exclude all seven testing packages. Source changes, features, targets, expiry, renamed or normal/build introductions fail closed before workspace compilation. Source-tree identity includes genuine Cargo extraction markers, requiring explicit vendor reconciliation. Matching-host Linux execution, release/SBOM and native desktop acceptance remain separate gates; no new C/assembler/FFI exception is introduced.

@@ -1,10 +1,10 @@
 {
   "schema_version": 1,
   "source_inputs": {
-    "Cargo.lock": "b68f255643b7a305edd7a74c8f945fca6c0a5cfbef569616c078b62233e9afd8",
+    "Cargo.lock": "41ae0c1702a678dc9cdc091b0c950cad0f4add8009193738b52f3f1f612733ac",
     "NOTICE": "f1da83e717a3ccb48753deb68ac25c82945af3af499f6ba57f2fd87a1b954bc0",
     "supply-chain/notices.toml": "bd9ab530690cb560e3881ae9e91972dd16d528bbb2a1ebd0ea6e929351bfc496",
-    "Cargo.toml": "a9beacc2cd53be333d7f70bbe4cf2f0b903ef799783fb85e42bd95ae7f40e2ea",
+    "Cargo.toml": "d9bd00317da2a6abafc9e130bca559a1b77a8ec50f25ae71441d5d7bfac5442d",
     "crates/adapter-files/Cargo.toml": "a1b47d81c64d797149d68d9b9a6f8fc359144cc317fbdc435d0c32e0071a4aa8",
     "crates/adapter-ocr/Cargo.toml": "be7c86c279822954cf8b6610d79bc631d1e7bbb57702f2178e8ee0384ee6b435",
     "crates/adapter-platform/Cargo.toml": "b33ae444971e5c50636e1a8af6f2ff0087bb84467c63f9bd24235947d4f7c5b9",
@@ -20,7 +20,8 @@
     "crates/ui/Cargo.toml": "190cf76e52446c5f89a4309b73a4f542f897b15b52dc41c23a64da4ad4775cf6",
     "crates/workflows/Cargo.toml": "fea15ffeed1ac12298762860f48993bd28276cb69d1f7b38e69b71ea2967ef9c",
     "tools/ocr-eval/Cargo.toml": "b7966240b2a31b35f911314d25055714e636cedaf083ab3f2718026a7a04e1ff",
-    "xtask/Cargo.toml": "de901941742c4fa7dd73512cd792d59dd892863c6a09cdac125d3cd53aee2811"
+    "xtask/Cargo.toml": "de901941742c4fa7dd73512cd792d59dd892863c6a09cdac125d3cd53aee2811",
+    "crates/recognition/Cargo.toml": "831534172ae613ebb85aba6b1dc99c41e4dbb0f317c55595de741754ed67e0e6"
   },
   "targets": {
     "windows": {

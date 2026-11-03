@@ -60,7 +60,7 @@ pub(super) fn hash(
     Ok((path_text.to_owned(), crate::hashlist::sha256_hex(&contents)))
 }
 
-fn reject_links(path: &Path) -> Result<(), String> {
+pub(crate) fn reject_links(path: &Path) -> Result<(), String> {
     for ancestor in path.ancestors() {
         let metadata = std::fs::symlink_metadata(ancestor).map_err(|error| error.to_string())?;
         if metadata.file_type().is_symlink() || is_reparse_point(&metadata) {

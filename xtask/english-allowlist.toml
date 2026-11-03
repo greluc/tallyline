@@ -28,3 +28,8 @@ reason = "The byte-exact Apache-2.0 upstream OCR alphabet contains multilingual 
 [[exception]]
 path = "crates/adapter-ocr/assets/research/ppocrv6_tiny_dict.txt"
 reason = "The byte-exact Apache-2.0 upstream Tiny OCR alphabet contains multilingual glyph labels and must not be translated or reordered."
+
+[[exception]]
+path = "supply-chain/property-testing.json"
+line = "    \"statement\": \"Ja, genau \u0064iese Feature-Erweiterung \u0075nd \u0064ieses Testprofil freigeben\","
+reason = "Exact verbatim owner approval in chat; only this quotation is exempt, and all profile prose remains English."

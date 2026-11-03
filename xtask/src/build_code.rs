@@ -6,6 +6,8 @@
 mod source;
 mod workspace;
 
+pub(crate) use source::reject_links;
+
 use std::collections::{BTreeMap, BTreeSet};
 
 use serde_json::Value;

@@ -332,7 +332,7 @@ fn matches_activation(expected: &Value, node: Option<&Value>) -> Result<bool, St
     })
 }
 
-fn reachable(document: &Value) -> Result<BTreeMap<(&str, &str), &Value>, String> {
+pub(crate) fn reachable(document: &Value) -> Result<BTreeMap<(&str, &str), &Value>, String> {
     let packages = index(array(document, "packages")?)?;
     let nodes = index(array(
         document.get("resolve").ok_or("missing resolve graph")?,
@@ -352,7 +352,12 @@ fn reachable(document: &Value) -> Result<BTreeMap<(&str, &str), &Value>, String>
         }
         let node = nodes.get(id).ok_or("unknown reachable node")?;
         let package = packages.get(id).ok_or("unknown reachable package")?;
-        reached.insert((text(package, "name")?, text(package, "version")?), *node);
+        if reached
+            .insert((text(package, "name")?, text(package, "version")?), *node)
+            .is_some()
+        {
+            return Err("ambiguous reachable package identity".to_owned());
+        }
         for dependency in array(node, "deps")? {
             pending.push(text(dependency, "pkg")?);
         }
@@ -360,7 +365,7 @@ fn reachable(document: &Value) -> Result<BTreeMap<(&str, &str), &Value>, String>
     Ok(reached)
 }
 
-fn expiry(date: &str) -> Result<(), String> {
+pub(crate) fn expiry(date: &str) -> Result<(), String> {
     let parts: Vec<u64> = date
         .split('-')
         .map(str::parse)
@@ -419,7 +424,7 @@ fn expiry(date: &str) -> Result<(), String> {
     Ok(())
 }
 
-fn index(values: &[Value]) -> Result<BTreeMap<&str, &Value>, String> {
+pub(crate) fn index(values: &[Value]) -> Result<BTreeMap<&str, &Value>, String> {
     let mut result = BTreeMap::new();
     for value in values {
         if result.insert(text(value, "id")?, value).is_some() {
@@ -429,7 +434,7 @@ fn index(values: &[Value]) -> Result<BTreeMap<&str, &Value>, String> {
     Ok(result)
 }
 
-fn array<'a>(value: &'a Value, key: &str) -> Result<&'a [Value], String> {
+pub(crate) fn array<'a>(value: &'a Value, key: &str) -> Result<&'a [Value], String> {
     value
         .get(key)
         .and_then(Value::as_array)
@@ -437,7 +442,7 @@ fn array<'a>(value: &'a Value, key: &str) -> Result<&'a [Value], String> {
         .ok_or_else(|| format!("missing array {key}"))
 }
 
-fn text<'a>(value: &'a Value, key: &str) -> Result<&'a str, String> {
+pub(crate) fn text<'a>(value: &'a Value, key: &str) -> Result<&'a str, String> {
     value
         .get(key)
         .and_then(Value::as_str)
@@ -445,7 +450,7 @@ fn text<'a>(value: &'a Value, key: &str) -> Result<&'a str, String> {
         .ok_or_else(|| format!("missing string {key}"))
 }
 
-fn strings(values: &[Value]) -> Result<BTreeSet<&str>, String> {
+pub(crate) fn strings(values: &[Value]) -> Result<BTreeSet<&str>, String> {
     values
         .iter()
         .map(|v| v.as_str().ok_or_else(|| "invalid string array".to_owned()))

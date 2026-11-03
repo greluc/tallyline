@@ -274,3 +274,7 @@ Issue #84 now composes the provisional baseline, independent tighten-only persis
 ### Manual serial queue checkpoint (2026-11-03)
 
 Issue #86 now composes durable manual release, fixed account/mode, actual pre-release reference attempts, atomic write-ahead, one in-flight shared HTTP submission, restart recovery, passive queue/history, unsent cancellation and the same-queue onboarding dry run. Schema 9/config 6 migrations preserve coordinated backups. At-least-once outbox notifications publish committed state before acknowledgement; dry runs and PTU never create LIVE priors. [The implementation record](../submission-queue.md) records exact safeguards and remaining gates. Requirement coverage assignments remain unchanged; canonical/mutation verification, native/provider acceptance and an approved real-service dry run are not claimed complete.
+
+### Versioned transcription foundation — 2026-11-03
+
+The `recognition` source crate provides the pure shared number parser and typed raw fields ([02](02-architecture.md#versioned-transcription-source-contract--2026-11-03)). This checkpoint does not complete M5: actual redacted-crop requests, layout matching, fusion, report preservation, queue/lifecycle, runtime/model selection, native and installed-profile acceptance remain open. A parser contract is not an evaluated-model result and never establishes confidence.
