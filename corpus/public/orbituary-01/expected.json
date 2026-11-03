@@ -7,7 +7,7 @@
     "uploadedBy": "project owner",
     "provided": "Fifteen original JPEG files from the LIVE screenshots directory, supplied for public corpus inclusion; originals remain outside the repository.",
     "redaction": "Each original JPEG was decoded once to RGB with zune-jpeg 0.5.15, filled with black over CURRENT BALANCE at x=2896,y=272,width=352,height=128, and stored as lossless RGB PNG with png 0.18.1. PNG readback matched the masked raster byte for byte; every pixel outside the rectangle matched the decoded original. JPEG block-lossless redaction was unavailable in this intake route. The conservative allowed reencoded-unknown fidelity class makes no resolution or capture-method coverage claim.",
-    "captureTimeNote": "Original filename date/time text is provenance only. Timezone and suffix semantics are unconfirmed; hexadecimal suffixes are not treated as milliseconds and capturedAt remains null."
+    "captureTimeNote": "Confirmed by the project owner on 2026-11-02: conditions.originalFile retains the unchanged game-generated local filename, in MEZ (UTC+01:00), with no clock change. capturedAt converts its date/time to UTC at second precision; the opaque hexadecimal suffix is not interpreted as milliseconds."
   },
   "location": {
     "displayedText": "ORBITUARY",
@@ -25,7 +25,7 @@
     "buy-1.png": {
       "side": "BUY",
       "displayedTab": "Buy",
-      "capturedAt": null,
+      "capturedAt": "2026-11-02T16:14:25Z",
       "locationDisplayedText": "ORBITUARY",
       "conditions": {
         "originalFile": "ScreenShot-2026-11-02_17-14-25-180.jpg",
@@ -142,7 +142,7 @@
     "buy-2.png": {
       "side": "BUY",
       "displayedTab": "Buy",
-      "capturedAt": null,
+      "capturedAt": "2026-11-02T16:14:28Z",
       "locationDisplayedText": "ORBITUARY",
       "conditions": {
         "originalFile": "ScreenShot-2026-11-02_17-14-28-B63.jpg",
@@ -274,7 +274,7 @@
     "buy-3.png": {
       "side": "BUY",
       "displayedTab": "Buy",
-      "capturedAt": null,
+      "capturedAt": "2026-11-02T16:14:31Z",
       "locationDisplayedText": "ORBITUARY",
       "conditions": {
         "originalFile": "ScreenShot-2026-11-02_17-14-31-970.jpg",
@@ -408,7 +408,7 @@
     "buy-4.png": {
       "side": "BUY",
       "displayedTab": "Buy",
-      "capturedAt": null,
+      "capturedAt": "2026-11-02T16:14:34Z",
       "locationDisplayedText": "ORBITUARY",
       "conditions": {
         "originalFile": "ScreenShot-2026-11-02_17-14-34-440.jpg",
@@ -543,7 +543,7 @@
     "buy-5.png": {
       "side": "BUY",
       "displayedTab": "Buy",
-      "capturedAt": null,
+      "capturedAt": "2026-11-02T16:14:37Z",
       "locationDisplayedText": "ORBITUARY",
       "conditions": {
         "originalFile": "ScreenShot-2026-11-02_17-14-37-FBA.jpg",
@@ -674,7 +674,7 @@
     "sell-1.png": {
       "side": "SELL",
       "displayedTab": "Local Market Value",
-      "capturedAt": null,
+      "capturedAt": "2026-11-02T16:14:40Z",
       "locationDisplayedText": "ORBITUARY",
       "conditions": {
         "originalFile": "ScreenShot-2026-11-02_17-14-40-A74.jpg",
@@ -803,7 +803,7 @@
     "sell-2.png": {
       "side": "SELL",
       "displayedTab": "Local Market Value",
-      "capturedAt": null,
+      "capturedAt": "2026-11-02T16:14:42Z",
       "locationDisplayedText": "ORBITUARY",
       "conditions": {
         "originalFile": "ScreenShot-2026-11-02_17-14-42-522.jpg",
@@ -938,7 +938,7 @@
     "sell-3.png": {
       "side": "SELL",
       "displayedTab": "Local Market Value",
-      "capturedAt": null,
+      "capturedAt": "2026-11-02T16:14:45Z",
       "locationDisplayedText": "ORBITUARY",
       "conditions": {
         "originalFile": "ScreenShot-2026-11-02_17-14-45-D6A.jpg",
@@ -1073,7 +1073,7 @@
     "sell-4.png": {
       "side": "SELL",
       "displayedTab": "Local Market Value",
-      "capturedAt": null,
+      "capturedAt": "2026-11-02T16:14:48Z",
       "locationDisplayedText": "ORBITUARY",
       "conditions": {
         "originalFile": "ScreenShot-2026-11-02_17-14-48-996.jpg",
@@ -1208,7 +1208,7 @@
     "sell-5.png": {
       "side": "SELL",
       "displayedTab": "Local Market Value",
-      "capturedAt": null,
+      "capturedAt": "2026-11-02T16:14:50Z",
       "locationDisplayedText": "ORBITUARY",
       "conditions": {
         "originalFile": "ScreenShot-2026-11-02_17-14-50-3A2.jpg",
@@ -1343,7 +1343,7 @@
     "sell-6.png": {
       "side": "SELL",
       "displayedTab": "Local Market Value",
-      "capturedAt": null,
+      "capturedAt": "2026-11-02T16:14:53Z",
       "locationDisplayedText": "ORBITUARY",
       "conditions": {
         "originalFile": "ScreenShot-2026-11-02_17-14-53-DA8.jpg",
@@ -1481,7 +1481,7 @@
     "sell-7.png": {
       "side": "SELL",
       "displayedTab": "Local Market Value",
-      "capturedAt": null,
+      "capturedAt": "2026-11-02T16:14:58Z",
       "locationDisplayedText": "ORBITUARY",
       "conditions": {
         "originalFile": "ScreenShot-2026-11-02_17-14-58-FF7.jpg",
@@ -1617,7 +1617,7 @@
     "sell-8.png": {
       "side": "SELL",
       "displayedTab": "Local Market Value",
-      "capturedAt": null,
+      "capturedAt": "2026-11-02T16:15:03Z",
       "locationDisplayedText": "ORBITUARY",
       "conditions": {
         "originalFile": "ScreenShot-2026-11-02_17-15-03-433.jpg",
@@ -1740,7 +1740,7 @@
     "sell-9.png": {
       "side": "SELL",
       "displayedTab": "Local Market Value",
-      "capturedAt": null,
+      "capturedAt": "2026-11-02T16:15:06Z",
       "locationDisplayedText": "ORBITUARY",
       "conditions": {
         "originalFile": "ScreenShot-2026-11-02_17-15-06-143.jpg",
@@ -1875,7 +1875,7 @@
     "sell-10.png": {
       "side": "SELL",
       "displayedTab": "Local Market Value",
-      "capturedAt": null,
+      "capturedAt": "2026-11-02T16:15:08Z",
       "locationDisplayedText": "ORBITUARY",
       "conditions": {
         "originalFile": "ScreenShot-2026-11-02_17-15-08-976.jpg",

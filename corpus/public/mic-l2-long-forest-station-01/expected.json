@@ -7,7 +7,7 @@
     "uploadedBy": "project owner",
     "provided": "Four original JPEG files from the LIVE screenshots directory, supplied for public corpus inclusion; originals remain outside the repository.",
     "redaction": "Each original JPEG was decoded once to RGB with zune-jpeg 0.5.15, filled with black over CURRENT BALANCE at x=2912,y=252,width=384,height=112, and stored as lossless RGB PNG with png 0.18.1. PNG readback matched the masked raster byte for byte; every pixel outside the rectangle matched the decoded original. JPEG block-lossless redaction was unavailable in this intake route.",
-    "captureTimeNote": "Original filename date/time text is retained only as provenance. Timezone and suffix semantics are unconfirmed; the hexadecimal suffix is not treated as milliseconds and capturedAt remains null."
+    "captureTimeNote": "Confirmed by the project owner on 2026-11-02: conditions.originalFile retains the unchanged game-generated local filename, in MEZ (UTC+01:00), with no clock change. capturedAt converts its date/time to UTC at second precision; the opaque hexadecimal suffix is not interpreted as milliseconds."
   },
   "location": {
     "displayedText": "MIC-L2 LONG FOREST STATION",
@@ -25,7 +25,7 @@
     "buy-1.png": {
       "side": "BUY",
       "displayedTab": "BUY",
-      "capturedAt": null,
+      "capturedAt": "2026-11-02T15:51:32Z",
       "locationDisplayedText": "MIC-L2 LONG FOREST STATION",
       "conditions": {
         "originalFile": "ScreenShot-2026-11-02_16-51-32-BAB.jpg",
@@ -151,7 +151,7 @@
     "buy-2.png": {
       "side": "BUY",
       "displayedTab": "BUY",
-      "capturedAt": null,
+      "capturedAt": "2026-11-02T15:51:34Z",
       "locationDisplayedText": "MIC-L2 LONG FOREST STATION",
       "conditions": {
         "originalFile": "ScreenShot-2026-11-02_16-51-34-594.jpg",
@@ -285,7 +285,7 @@
     "sell-1.png": {
       "side": "SELL",
       "displayedTab": "LOCAL MARKET VALUE",
-      "capturedAt": null,
+      "capturedAt": "2026-11-02T15:51:37Z",
       "locationDisplayedText": "MIC-L2 LONG FOREST STATION",
       "conditions": {
         "originalFile": "ScreenShot-2026-11-02_16-51-37-18C.jpg",
@@ -435,7 +435,7 @@
     "sell-2.png": {
       "side": "SELL",
       "displayedTab": "LOCAL MARKET VALUE",
-      "capturedAt": null,
+      "capturedAt": "2026-11-02T15:51:41Z",
       "locationDisplayedText": "MIC-L2 LONG FOREST STATION",
       "conditions": {
         "originalFile": "ScreenShot-2026-11-02_16-51-41-0F5.jpg",
