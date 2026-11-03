@@ -19,6 +19,7 @@ fn r_sec_1__external_target_keeps_scratch_notices_and_mutation_outside_the_works
     fs::create_dir(&workspace).unwrap();
     let paths = WorkPaths::resolve(&workspace, &workspace, Some(external.as_os_str())).unwrap();
     for kind in [
+        OutputKind::Check,
         OutputKind::Vendor,
         OutputKind::Notices,
         OutputKind::Mutation,

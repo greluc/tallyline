@@ -167,7 +167,7 @@ fn run_step(step: &Step, root: &Path) -> io::Result<bool> {
         Step::Architecture => architecture_passes(root),
         Step::CoreCoverage => coverage_passes(root),
         Step::Cargo { args, env, .. } => Ok(work_paths(root)?
-            .command(&cargo_program())
+            .check_command(&cargo_program())?
             .args(args)
             .envs(env.iter().copied())
             .current_dir(root)
@@ -342,7 +342,7 @@ fn coverage_passes(root: &Path) -> io::Result<bool> {
         args.extend(["--package".to_owned(), package]);
     }
     Ok(work_paths(root)?
-        .command(&cargo_program())
+        .check_command(&cargo_program())?
         .args(args)
         .current_dir(root)
         .status()?
@@ -756,7 +756,7 @@ fn write_notices(root: &Path) -> io::Result<ExitCode> {
 
 fn check_requirement_tags(list: &[String], root: &Path) -> io::Result<bool> {
     let listing = work_paths(root)?
-        .command(&cargo_program())
+        .check_command(&cargo_program())?
         .args(list)
         .current_dir(root)
         .output()?;

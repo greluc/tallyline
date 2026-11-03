@@ -18,6 +18,8 @@ pub enum OutputKind {
     Vendor,
     /// Generated notices for shipped targets.
     Notices,
+    /// Build artefacts for nested workspace quality checks.
+    Check,
     /// Mutation selections and reports.
     Mutation,
 }
@@ -83,6 +85,19 @@ impl WorkPaths {
             command.env("CARGO_TARGET_DIR", &self.target);
         }
         command
+    }
+
+    /// Configures a quality-check subprocess with independent build artefacts.
+    ///
+    /// # Errors
+    /// Refuses foreign, linked or obstructed output and filesystem failures.
+    pub fn check_command(&self, program: &OsStr) -> io::Result<Command> {
+        let output = self.prepare(OutputKind::Check)?;
+        let mut command = self.command(program);
+        command
+            .env("CARGO_TARGET_DIR", &output)
+            .env("CARGO_BUILD_BUILD_DIR", &output);
+        Ok(command)
     }
 
     /// Configures mutation work that executes in copied source roots.
@@ -202,6 +217,7 @@ impl WorkPaths {
     #[must_use]
     pub fn output(&self, kind: OutputKind) -> PathBuf {
         self.target.join(match kind {
+            OutputKind::Check => "xtask-check",
             OutputKind::Vendor => "xtask-vendor",
             OutputKind::Notices => "notices",
             OutputKind::Mutation => "core-mutation",
