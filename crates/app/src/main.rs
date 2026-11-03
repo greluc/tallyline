@@ -92,7 +92,7 @@ fn run(
         }
     };
     let (_writer_lease, listener) = primary.into_parts();
-    let (files, light_logo, dark_logo) =
+    let (files, light_logo, dark_logo, icon) =
         executor::spawn("tallyline-resources", || -> std::io::Result<_> {
             Ok((
                 font_files()?,
@@ -102,6 +102,7 @@ fn run(
                 logo_pixels(include_bytes!(
                     "../../../docs/images/fankit/MadeByTheCommunity_White.png"
                 ))?,
+                tallyline_app::api::native_window_icon()?,
             ))
         })?
         .join()
@@ -114,7 +115,8 @@ fn run(
             renderer: eframe::Renderer::Wgpu,
             viewport: egui::ViewportBuilder::default()
                 .with_inner_size([1000.0, 900.0])
-                .with_min_inner_size([800.0, 640.0]),
+                .with_min_inner_size([800.0, 640.0])
+                .with_icon(icon),
             ..Default::default()
         },
         Box::new(move |creation| {
@@ -202,6 +204,9 @@ fn logo_pixels(bytes: &[u8]) -> std::io::Result<egui::ColorImage> {
 
 fn already_running() -> Result<(), Box<dyn std::error::Error>> {
     let fonts = font_files()?;
+    let icon = executor::spawn("tallyline-icon", tallyline_app::api::native_window_icon)?
+        .join()
+        .map_err(|_| std::io::Error::other("icon worker terminated unexpectedly"))??;
     let catalogue = Catalogue::english()?;
     eframe::run_native(
         "Tallyline",
@@ -209,7 +214,8 @@ fn already_running() -> Result<(), Box<dyn std::error::Error>> {
             renderer: eframe::Renderer::Wgpu,
             viewport: egui::ViewportBuilder::default()
                 .with_inner_size([420.0, 140.0])
-                .with_resizable(false),
+                .with_resizable(false)
+                .with_icon(icon),
             ..Default::default()
         },
         Box::new(move |creation| {

@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 Lucas Greuloch
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Exact approved initial Small/native/font application payload identities.
+//! Exact approved initial Small/native/font/branding application payload identities.
 
 use super::Target;
 use std::collections::BTreeSet;
@@ -10,7 +10,15 @@ use std::io::{self, Read, Seek, SeekFrom};
 use std::path::Path;
 
 const MAX_PINNED_ASSET_BYTES: u64 = 32 * 1024 * 1024;
-const ASSETS: [(&str, &str); 10] = [
+const ASSETS: [(&str, &str); 12] = [
+    (
+        "assets/branding/tallyline-icon-256.png",
+        "d0ed9a91e6e5fd79633352b1f319e8f2c96c0ff1159c371a9354857ab5d8108f",
+    ),
+    (
+        "assets/branding/tallyline.ico",
+        "13c3bf7fd049940f4ae4ec656ca548491ad22aa5760ef2562a2d072cad4b2879",
+    ),
     (
         "assets/ocr/small/PP-OCRv6_small_det.onnx",
         "d73e0058b7a8086bbd57f3d10b8bcd4ff95363f67e06e2762b5e814fe9c9410e",

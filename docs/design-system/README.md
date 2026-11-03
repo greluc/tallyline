@@ -1,6 +1,6 @@
 # Design system
 
-> **Doc type:** Living reference — draft (JavaFX handoff stage 2; JavaFX mechanism superseded by ADR-0005). Last reviewed: 2026-11-01.
+> **Doc type:** Living reference — draft (JavaFX handoff stage 2; JavaFX mechanism superseded by ADR-0005). Last reviewed: 2026-11-03.
 
 > **Note 2026-10-12, updated 2026-11-01:** [ADR-0005](../adr/0005-rust-and-egui.md) replaces JavaFX with egui. Tallyline continues as the design system; its egui rendition (the crate `tallyline-egui`) replaces the JavaFX CSS handoff described below. The token values, state names and contrast results in this directory stay; the JavaFX-specific parts are marked where they occur. The crate was recreated for issue #32; remaining work is listed in "egui rendition (ADR-0005)" below.
 
@@ -41,3 +41,9 @@ The original crate's egui limitations and contrast results have not been revalid
 8. The crate is maintained in `crates/egui/`; public Rust items carry documentation and source headers.
 
 `ui/design-tokens/` remains the source of truth for token values.
+
+## Product artwork source qualification — 2026-11-03
+
+Corrected 2026-11-03: the supplied `Tallyline-Design-System.zip` and `tallyline-egui.zip` are reference exports, not a replacement for accepted requirements or ADRs. Their SHA-256 identities, extracted concept-C geometry, durable SVG/PNG/ICO exports and licence terms are recorded in [branding/](../../branding/README.md). This is the approved Line selection of ADR-0004 §1/O-83, retained by O-112; an undecided caption in the export does not reopen it. The product name remains Tallyline; working-title and JavaFX language in the archives is historical.
+
+The app uses the fixed dark-colour icon for native window identity in every theme. Debian launcher metadata and Windows shortcut/installed-programmes authoring use the same project artwork. The supplied AppShell reserves its header for navigation and actions and explicitly excludes a product logo; it receives none. Fan Kit artwork remains its coupled legal unit in the approved placements and is never used as product branding. No archive code or generators are executed. Native and rebuilt-package acceptance are recorded separately from source and headless contracts.

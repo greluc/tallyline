@@ -42,3 +42,5 @@ mod submission_controller;
 mod submission_bridge;
 
 mod release_reference;
+
+mod native_icon;

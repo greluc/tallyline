@@ -10,6 +10,8 @@ While the game is running, lightweight local OCR does the work. Optional local A
 
 Local builds identify themselves as **Development 0.0.0**. `target/debug/tallyline --build-info` (Windows: `tallyline.exe`) prints public compiled metadata and exits before desktop startup, without assets or user state. Release versions derive from compile-time tag metadata; a sealed prebuilt handoff binds its report to the executable hash before fixture insertion. Signed release provenance and final package/installed acceptance remain separate release gates.
 
+The native window uses the owner-selected Line icon. [Branding exports](branding/README.md) provide the organisation avatar, repository social preview, outlined wordmarks and app icons for manual upload; their source geometry and SHA-256 identities are retained with the assets.
+
 ## Run the desktop shell from source
 
 Build with `cargo build --locked -p tallyline-app`, then run `target/debug/tallyline --assets crates/ui/assets` (on Windows, `target/debug/tallyline.exe`). The explicit assets argument selects the separately shipped font files; an installed or portable image instead keeps `assets/fonts/` next to the executable. See the [desktop guide](docs/user/desktop.md) for the storage paths, portable marker and settings errors. An explicit second launch restores the existing window even when it is minimised. Reference browsing loads SQLite before refreshing public UEX endpoints in the background. Reference-data adapters use exact decimal values and environment/static Windows proxy support; PAC and per-protocol Windows proxy lists remain unsupported by the current upstream path.

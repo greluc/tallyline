@@ -44,3 +44,5 @@ pub use crate::submission_bridge::SubmissionQueueBridge;
 pub use crate::release_reference::{
     ReleaseReferenceClient, ReleaseReferenceOwner, ReleaseReferenceRefresh,
 };
+
+pub use crate::native_icon::native_window_icon;

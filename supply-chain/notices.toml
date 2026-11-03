@@ -211,3 +211,14 @@ version = "1.31.0"
 licence = "MIT project; upstream third-party terms in the complete notices"
 source = "https://github.com/microsoft/onnxruntime/releases/tag/v1.31.0"
 copyright = ["Microsoft Corporation; complete third-party authorship and terms in ThirdPartyNotices.txt"]
+
+[[component]]
+directory = "tallyline-branding"
+name = "Tallyline product artwork"
+shipped = "always"
+files = [{ repository = "LICENSE" }, { repository = "branding/NOTICE" }]
+[component.catalogue]
+version = "Line export 2026-11-03"
+licence = "GPL-3.0-or-later"
+source = "https://github.com/tallyline-sc/tallyline/tree/main/branding"
+copyright = ["Copyright 2026 Lucas Greuloch"]

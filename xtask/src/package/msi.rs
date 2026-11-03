@@ -3,6 +3,7 @@
 
 //! Fixed MSI authoring and verified extraction through the sealed WiX tool.
 
+use super::desktop::escape;
 use super::manifest::{Role, Verified};
 use std::collections::BTreeSet;
 use std::fs;
@@ -18,18 +19,7 @@ pub(super) fn build(
     let work = output.join("inspection");
     fs::create_dir(&work)?;
     let files = payload_paths(description)?;
-    let mut authoring = format!(
-        "<Wix xmlns=\"http://wixtoolset.org/schemas/v4/wxs\"><Package Name=\"Tallyline\" Manufacturer=\"Tallyline Project\" Version=\"{}\" Language=\"1033\" Scope=\"perMachine\" UpgradeCode=\"B8E64389-A01F-4C23-9F28-E77312875B38\"><MajorUpgrade DowngradeErrorMessage=\"A newer Tallyline version is already installed.\"/><MediaTemplate EmbedCab=\"yes\"/>{}<StandardDirectory Id=\"ProgramFiles64Folder\"><Directory Id=\"INSTALLFOLDER\" Name=\"Tallyline\">",
-        description.version,
-        super::msi_prerequisite_authoring()?
-    );
-    let mut components = Vec::new();
-    directory(stage, "", &files, &mut authoring, &mut components)?;
-    authoring.push_str("</Directory></StandardDirectory><StandardDirectory Id=\"ProgramMenuFolder\"/><Feature Id=\"Application\" Title=\"Tallyline\" Level=\"1\">");
-    for component in components {
-        authoring.push_str(&format!("<ComponentRef Id=\"{component}\"/>"));
-    }
-    authoring.push_str("</Feature></Package></Wix>");
+    let authoring = msi_package_authoring(&stage.join("payload"), &description.version, &files)?;
     let source = work.join("package.wxs");
     fs::write(&source, &authoring)?;
     if authoring.contains("$(")
@@ -175,7 +165,7 @@ fn payload_paths(description: &Verified) -> io::Result<Vec<String>> {
 }
 
 fn directory(
-    stage: &Path,
+    payload: &Path,
     parent: &str,
     files: &[String],
     authoring: &mut String,
@@ -192,13 +182,13 @@ fn directory(
         }
         let component = id("C", path);
         let file = id("F", path);
-        let source = stage.join("payload").join(path);
+        let source = payload.join(path);
         let source = source
             .to_str()
             .ok_or_else(|| io::Error::other("MSI source path is not UTF-8"))?;
         authoring.push_str(&format!("<Component Id=\"{component}\" Guid=\"*\" Bitness=\"always64\"><File Id=\"{file}\" Name=\"{}\" Source=\"{}\" KeyPath=\"yes\">", escape(relative), escape(source)));
         if path == "tallyline.exe" {
-            authoring.push_str("<Shortcut Id=\"StartMenuShortcut\" Directory=\"ProgramMenuFolder\" Name=\"Tallyline\" Advertise=\"yes\" WorkingDirectory=\"INSTALLFOLDER\"/>");
+            authoring.push_str(super::desktop::msi_shortcut_authoring());
         }
         authoring.push_str("</File></Component>");
         components.push(component);
@@ -210,7 +200,7 @@ fn directory(
             id("D", &relative),
             escape(child)
         ));
-        directory(stage, &relative, files, authoring, components)?;
+        directory(payload, &relative, files, authoring, components)?;
         authoring.push_str("</Directory>");
     }
     Ok(())
@@ -221,15 +211,6 @@ fn id(prefix: &str, path: &str) -> String {
         "{prefix}{}",
         super::super::hashlist::sha256_hex(path.as_bytes())
     )
-}
-
-fn escape(value: &str) -> String {
-    value
-        .replace('&', "&amp;")
-        .replace('<', "&lt;")
-        .replace('>', "&gt;")
-        .replace('"', "&quot;")
-        .replace('\'', "&apos;")
 }
 
 fn command(
@@ -411,4 +392,32 @@ pub(super) fn probe(tools: &Path, output: &Path) -> io::Result<()> {
             output.join("decompiled.wxs").into_os_string(),
         ],
     )
+}
+
+/// Authors the complete Windows package without invoking installer tools.
+///
+/// The caller supplies a verified payload and its exact relative file inventory.
+///
+/// # Errors
+/// Returns an invalid release version or a non-UTF-8 source path.
+pub fn msi_package_authoring(
+    payload: &Path,
+    version: &str,
+    files: &[String],
+) -> io::Result<String> {
+    super::release_version(&format!("v{version}"))?;
+    let mut authoring = format!(
+        "<Wix xmlns=\"http://wixtoolset.org/schemas/v4/wxs\"><Package Name=\"Tallyline\" Manufacturer=\"Tallyline Project\" Version=\"{}\" Language=\"1033\" Scope=\"perMachine\" UpgradeCode=\"B8E64389-A01F-4C23-9F28-E77312875B38\"><MajorUpgrade DowngradeErrorMessage=\"A newer Tallyline version is already installed.\"/><MediaTemplate EmbedCab=\"yes\"/>{}{}<StandardDirectory Id=\"ProgramFiles64Folder\"><Directory Id=\"INSTALLFOLDER\" Name=\"Tallyline\">",
+        version,
+        super::msi_prerequisite_authoring()?,
+        super::desktop::msi_icon_authoring(payload)?
+    );
+    let mut components = Vec::new();
+    directory(payload, "", files, &mut authoring, &mut components)?;
+    authoring.push_str("</Directory></StandardDirectory><StandardDirectory Id=\"ProgramMenuFolder\"/><Feature Id=\"Application\" Title=\"Tallyline\" Level=\"1\">");
+    for component in components {
+        authoring.push_str(&format!("<ComponentRef Id=\"{component}\"/>"));
+    }
+    authoring.push_str("</Feature></Package></Wix>");
+    Ok(authoring)
 }

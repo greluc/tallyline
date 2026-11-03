@@ -161,3 +161,9 @@ path = "supply-chain/wix/wix7-self-compiled.patch"
 precedence = "override"
 SPDX-FileCopyrightText = [".NET Foundation and contributors", "2026 Lucas Greuloch"]
 SPDX-License-Identifier = "MS-RL"
+
+[[annotations]]
+path = "branding/**"
+precedence = "override"
+SPDX-FileCopyrightText = "2026 Lucas Greuloch"
+SPDX-License-Identifier = "GPL-3.0-or-later"

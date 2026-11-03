@@ -21,10 +21,7 @@ pub(super) fn build(
     let copyright = work.join("copyright");
     super::write_debian_copyright(&stage.join("payload"), &copyright)?;
     let desktop = work.join("tallyline.desktop");
-    fs::write(
-        &desktop,
-        "[Desktop Entry]\nType=Application\nName=Tallyline\nComment=Star Citizen commodity terminal data client\nExec=tallyline\nTerminal=false\n",
-    )?;
+    fs::write(&desktop, super::debian_desktop_entry())?;
     let packager = work.join("packager");
     fs::create_dir(&packager)?;
     let resources = [
@@ -50,7 +47,7 @@ pub(super) fn build(
         "linux":{"generateDesktopEntry":false},
         "deb":{"packageName":"tallyline", "section":"utils", "priority":"optional",
             "depends":["libc6 (>= 2.36)","libgcc-s1","libstdc++6","libx11-6","libxcursor1","libxrandr2","libxi6","libxkbcommon0","libwayland-client0","libegl1","libgl1","libvulkan1"],
-            "files":{copyright.to_string_lossy().to_string():"usr/share/doc/tallyline/copyright",desktop.to_string_lossy().to_string():"usr/share/applications/tallyline.desktop"}}
+            "files":{copyright.to_string_lossy().to_string():"usr/share/doc/tallyline/copyright",desktop.to_string_lossy().to_string():"usr/share/applications/tallyline.desktop",stage.join("payload/assets/branding/tallyline-icon-256.png").to_string_lossy().to_string():"usr/share/icons/hicolor/256x256/apps/tallyline.png"}}
     });
     let config = work.join("packager.json");
     fs::write(&config, serde_json::to_vec_pretty(&configuration)?)?;
@@ -134,7 +131,15 @@ fn verify_payload(
         PathBuf::from("usr/lib/tallyline/tallyline-app-token"),
         PathBuf::from("usr/share/doc/tallyline/copyright"),
         PathBuf::from("usr/share/applications/tallyline.desktop"),
+        PathBuf::from("usr/share/icons/hicolor/256x256/apps/tallyline.png"),
     ]);
+    if fs::read(data.join("usr/share/icons/hicolor/256x256/apps/tallyline.png"))?
+        != fs::read(stage.join("payload/assets/branding/tallyline-icon-256.png"))?
+    {
+        return Err(io::Error::other(
+            "Debian desktop icon differs from the sealed artwork",
+        ));
+    }
     let mut actual = BTreeSet::new();
     collect(data, data, &mut actual)?;
     if actual != expected {

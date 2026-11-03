@@ -10,6 +10,7 @@ mod cli;
 mod copyright;
 mod deb_archive;
 mod debian;
+mod desktop;
 mod legal;
 mod manifest;
 mod msi;
@@ -427,3 +428,6 @@ pub fn prepare_with_identity(
     let identity = serde_json::json!({"receipt_sha256":seal,"receipt":receipt});
     prepare_inner(input, tools, stage, target, tag, Some(identity))
 }
+
+pub use desktop::debian_desktop_entry;
+pub use msi::msi_package_authoring;

@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 Lucas Greuloch
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Decoding of immutable bundled legal artwork.
+//! Decoding of immutable bundled artwork.
 
 use crate::api::model::LogoRaster;
 use std::io::Cursor;
