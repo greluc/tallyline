@@ -225,6 +225,8 @@ fn r_ui_8_r_api_6__staff_notice_is_capped_literal_text_and_closed_submissions_le
         );
     harness.run();
     assert!(harness.query_by_label(&expected).is_some());
+    harness.get_by_label("Reference details").click();
+    harness.run();
     assert!(
         harness
             .query_by_label("Parameters: Age at last update: 60 seconds")

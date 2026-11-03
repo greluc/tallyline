@@ -8,9 +8,13 @@ Choose **Settings** to select Follow OS (the default), Dark, Light or High contr
 
 Added 2026-11-03: the native window uses the fixed-colour Tallyline Line icon in every theme. Packaged desktop metadata uses the same mark for the Start menu and installed-programmes entry on Windows and the application launcher on Debian. The [branding folder](../../branding/README.md) contains project logos and prepared GitHub avatar/social-preview files for manual upload. The artwork is separate from the Fan Kit unit.
 
+The top bar shows Tallyline, the actual test/production mode and mapped UEX environment. Navigation uses a labelled sidebar when space permits and a compact icon rail in narrower windows. Hover an icon for its name or reach it with Tab and activate it with Space. Home remains unavailable until onboarding is acknowledged; **Back to setup** returns to unfinished setup. The native title bar retains the window controls.
+
+The bottom status remains visible across pages, showing saved-submission counts, held-job navigation, reference/cache/offline state, data age at the last reference update and background loading or saving. Account choices, actionable errors, update notices and staff messages remain in the notice area above each page; this area scrolls independently when several notices are present. Expand **Reference details** for individual endpoint ages. Page content scrolls separately. Manual input groups wrap when space is narrow; explicitly focusing a clipped Manual or SCU-settings input reveals it without following passive updates. Background updates do not change the current page or keyboard focus.
+
 The minimum window size is 800 × 640 logical pixels. Both Fan Kit notices use 14 egui points, above the 10 pt floor (13.33 egui points at 100 % scale). Their stored strings have no inserted line break; the layout can flow them over several lines. The logo is not tinted or modified. The existing light/dark asset mapping follows the README; the owner's kit check remains O-27.
 
-For source builds with `CARGO_TARGET_DIR` set, find the executable under that chosen build directory instead of the default `target/`. The [source-build instructions](../../README.md#run-the-desktop-shell-from-source) link the corresponding check and scratch-output commands.
+For source builds with `CARGO_TARGET_DIR` set, find the executable under that chosen build directory instead of the default `target/`. The [source-build instructions](../../README.md#run-from-source) link the corresponding check and scratch-output commands.
 
 ## UEX account setup
 
@@ -215,7 +219,7 @@ Database schema 9 and settings schema 6 supersede the earlier schema description
 
 The source-level VLM transcription contract can parse recorded Markdown answers and explicitly retry a token-limited answer once. It is not connected to desktop recognition: no model is selected, no screenshot is sent and no report field is replaced by this contract (R-VLM-5, R-VLM-10).
 
-The desktop uses approved IBM Plex Sans weights and explicit line heights for reference-browser headings, manual-review headings, required-decision text, action labels and existing widgets. Current exact price/SCU values use strong JetBrains Mono, confirmation values use large Mono, and reference/delta details use regular Mono. Prices and SCU comparisons show English digit grouping, positive delta signs, a minus sign and percentages without a separating space; values retain exact domain precision. Existing themes use small corners, strong field outlines and visible keyboard button focus. Full shell/table adoption and native display-scale acceptance remain in progress (R-UI-7, R-UI-10, R-UI-11, R-UI-17).
+The desktop uses approved IBM Plex Sans weights and explicit line heights for reference-browser headings, manual-review headings, required-decision text, action labels and existing widgets. Current exact price/SCU values use strong JetBrains Mono, confirmation values use large Mono, and reference/delta details use regular Mono. Prices and SCU comparisons show English digit grouping, positive delta signs, a minus sign and percentages without a separating space; values retain exact domain precision. Existing themes use small corners, strong field outlines and visible keyboard button focus. The shell composition is adopted; complete review-table composition and native display-scale acceptance remain in progress (R-UI-7, R-UI-10, R-UI-11, R-UI-17).
 
 ## State icons
 

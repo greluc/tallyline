@@ -13,7 +13,12 @@ mod fan_kit;
 mod fonts;
 mod material_symbols_font;
 
+mod control_focus;
 mod shell;
+mod shell_content;
+mod shell_metrics;
+mod shell_navigation;
+mod shell_status;
 
 mod activation;
 pub mod api;

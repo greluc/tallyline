@@ -1,11 +1,12 @@
 // SPDX-FileCopyrightText: 2026 Lucas Greuloch
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Event-driven desktop views and commands.
+//! Persistent desktop shell composition.
 
-use crate::api::model::{SettingsCommand, UserAction, View};
+use crate::api::model::SettingsCommand;
 use crate::api::{Catalogue, FanKitUnit, ShellState};
-use tallyline_workflows::api::model::Theme;
+use crate::shell_metrics as metrics;
+use tallyline_egui::TypeStyle;
 
 /// Draws the shell from owned state and returns user-requested worker commands.
 pub fn show_shell(
@@ -14,181 +15,88 @@ pub fn show_shell(
     catalogue: &Catalogue,
     unit: &FanKitUnit,
 ) -> Vec<SettingsCommand> {
-    let mut commands = Vec::new();
-    egui::MenuBar::new().ui(ui, |ui| {
-        if ui
-            .add_enabled(
-                state.settings().onboarding_complete(),
-                egui::Button::new(tallyline_egui::button_text(catalogue.text("menu.home"))),
-            )
-            .clicked()
-        {
-            state.leave_settings();
-        }
-        if ui
-            .button(tallyline_egui::button_text(
-                catalogue.text("reference.title"),
-            ))
-            .clicked()
-        {
-            state.show_reference();
-        }
-        if ui
-            .button(tallyline_egui::button_text(catalogue.text("menu.settings")))
-            .clicked()
-        {
-            state.show_settings();
-        }
-        if ui
-            .button(tallyline_egui::button_text(catalogue.text("manual.title")))
-            .clicked()
-        {
-            state.show_manual();
-        }
-        if ui
-            .button(tallyline_egui::button_text(catalogue.text("queue.title")))
-            .clicked()
-        {
-            state.show_submission_queue();
-        }
-        if !state.settings().onboarding_complete()
-            && state.view() != View::Onboarding
-            && ui
-                .button(tallyline_egui::button_text(
-                    catalogue.text("release.back_setup"),
-                ))
-                .clicked()
-        {
-            state.return_to_setup();
-        }
-        ui.menu_button(catalogue.text("menu.help"), |ui| {
-            if ui
-                .button(tallyline_egui::button_text(catalogue.text("menu.about")))
-                .clicked()
-            {
-                state.open_about();
-                ui.close();
-            }
-        });
-    });
-    ui.separator();
-    ui.horizontal_wrapped(|ui| {
-        let theme = crate::api::resolve_theme(state.settings().theme(), ui.ctx().system_theme());
-        crate::api::show_submission_mode(ui, state.submission_mode(), catalogue, theme);
-        ui.separator();
-        ui.label(format!(
-            "{} {}",
-            catalogue.text("queue.count"),
-            state.submission.queue.jobs().len()
+    let expanded = ui.available_width()
+        >= metrics::SIDEBAR
+            + metrics::MIN_CONTENT_WIDTH
+            + 2.0 * f32::from(metrics::CONTENT_PADDING);
+    let theme = crate::api::resolve_theme(state.settings().theme(), ui.ctx().system_theme());
+    let palette = theme.palette();
+    let frame = egui::Frame::new()
+        .fill(
+            palette
+                .color("surface-1")
+                .unwrap_or(ui.visuals().panel_fill),
+        )
+        .inner_margin(egui::Margin::symmetric(
+            metrics::CONTENT_PADDING,
+            metrics::BAR_PADDING,
         ));
-    });
-    crate::api::show_submission_account_choice(ui, state, catalogue);
-    if let Some(feedback) = &state.submission.background_feedback {
-        ui.label(catalogue.text("queue.action_required"));
-        crate::submission_feedback::show(ui, feedback, catalogue);
-    }
-    crate::reference_views::show_reference_status(ui, state, catalogue);
-    commands.extend(crate::updates::notice(ui, state, catalogue));
-    if let Some(notice) = state.notice() {
-        ui.label(catalogue.text("status.action_required"));
-        ui.label(notice);
-    }
-    if !state.ready() && state.notice().is_none() {
-        ui.label(catalogue.text("status.starting"));
-    }
-    if state.busy() {
-        ui.label(catalogue.text("status.saving"));
-    }
-    ui.separator();
-    egui::ScrollArea::vertical().show(ui, |ui| match state.view() {
-        View::Onboarding => {
-            if let Some(action) = crate::api::show_onboarding_view(ui, state, catalogue, unit) {
-                commands.extend(state.act(action));
-            }
-            crate::credentials::show(ui, state.credentials_mut(), catalogue);
-            ui.label(catalogue.text("release.onboarding_test"));
-            if ui
-                .add_enabled(
-                    state.ready(),
-                    egui::Button::new(tallyline_egui::button_text(
-                        catalogue.text("release.prepare_test"),
-                    )),
-                )
-                .clicked()
-            {
-                state.show_manual();
-            }
-        }
-        View::Queue => {
-            if let Some(feedback) = &state.submission.feedback {
-                crate::submission_feedback::show(ui, feedback, catalogue);
-            }
-            let theme =
-                crate::api::resolve_theme(state.settings().theme(), ui.ctx().system_theme());
-            let command = ui
-                .add_enabled_ui(!state.submission_busy(), |ui| {
-                    crate::api::show_submission_queue(
-                        ui,
-                        &mut state.submission.queue,
-                        catalogue,
-                        theme,
-                    )
-                })
-                .inner;
-            if let Some(command) = command {
-                state.queue_cancel_intent(command);
-            }
-        }
-        View::Manual => crate::manual_views::show_manual_editor(ui, state, catalogue),
-        View::Reference => crate::reference_views::show_browser_contents(ui, state, catalogue),
-        View::Home => {
-            ui.heading(catalogue.text("home.title"));
-            ui.label(catalogue.text("home.empty"));
-        }
-        View::Settings => {
-            ui.heading(catalogue.text("settings.title"));
-            ui.label(catalogue.text("settings.theme"));
-            for (theme, key) in [
-                (Theme::System, "settings.system"),
-                (Theme::Dark, "settings.dark"),
-                (Theme::Light, "settings.light"),
-                (Theme::HighContrast, "settings.high_contrast"),
-            ] {
-                if ui
-                    .add_enabled(
-                        state.ready() && !state.busy(),
-                        egui::RadioButton::new(
-                            state.settings().theme() == theme,
-                            catalogue.text(key),
-                        ),
-                    )
-                    .clicked()
-                {
-                    commands.extend(state.act(UserAction::ChooseTheme(theme)));
-                }
-            }
-            let stock = egui::CollapsingHeader::new(catalogue.text("settings.stock_title"))
-                .show(ui, |ui| crate::stock_settings::show(ui, state, catalogue));
-            commands.extend(stock.body_returned.unwrap_or_default());
-            let submission = egui::CollapsingHeader::new(catalogue.text("settings.submission"))
-                .show(ui, |ui| {
-                    crate::api::show_submission_settings(ui, state, catalogue)
-                });
-            commands.extend(submission.body_returned.unwrap_or_default());
-            commands.extend(crate::updates::settings(ui, state, catalogue));
-            commands.extend(crate::reference_views::show_mapping(ui, state, catalogue));
-            commands.extend(crate::game_witness::show(ui, state, catalogue));
-            if ui
-                .button(tallyline_egui::button_text(catalogue.text("action.done")))
-                .clicked()
-            {
-                state.leave_settings();
-            }
-            egui::CollapsingHeader::new(catalogue.text("credentials.title")).show(ui, |ui| {
-                crate::credentials::show(ui, state.credentials_mut(), catalogue);
+    egui::Panel::top("shell-header")
+        .min_size(metrics::TOP_BAR)
+        .frame(frame)
+        .show(ui, |ui| {
+            ui.horizontal_wrapped(|ui| {
+                ui.label(TypeStyle::HEADING_3.text(catalogue.text("app.name")));
+                ui.separator();
+                crate::api::show_submission_mode(ui, state.submission_mode(), catalogue, theme);
+                let environment = state
+                    .game_witness()
+                    .settings
+                    .environment_mapping
+                    .environment(state.references().channel());
+                ui.label(TypeStyle::UI_SMALL.text(format!(
+                    "{} {}",
+                    catalogue.text("reference.environment"),
+                    crate::reference_views::environment_name(environment, catalogue)
+                )));
             });
-        }
-    });
+        });
+    egui::Panel::bottom("shell-status")
+        .min_size(metrics::STATUS_BAR)
+        .frame(frame)
+        .show(ui, |ui| {
+            crate::shell_status::summary(ui, state, catalogue);
+        });
+    egui::Panel::left("shell-navigation")
+        .exact_size(if expanded {
+            metrics::SIDEBAR
+        } else {
+            metrics::RAIL
+        })
+        .resizable(false)
+        .frame(
+            egui::Frame::new()
+                .fill(
+                    palette
+                        .color("surface-1")
+                        .unwrap_or(ui.visuals().panel_fill),
+                )
+                .inner_margin(metrics::NAV_PADDING),
+        )
+        .show(ui, |ui| {
+            crate::shell_navigation::show(ui, state, catalogue, expanded);
+        });
+    let commands = egui::CentralPanel::default()
+        .frame(
+            egui::Frame::new()
+                .fill(
+                    palette
+                        .color("surface-0")
+                        .unwrap_or(ui.visuals().faint_bg_color),
+                )
+                .inner_margin(metrics::CONTENT_PADDING),
+        )
+        .show(ui, |ui| {
+            let mut commands = crate::shell_status::notices(ui, state, catalogue);
+            commands.extend(
+                ui.push_id("shell-page", |ui| {
+                    crate::shell_content::show(ui, state, catalogue, unit)
+                })
+                .inner,
+            );
+            commands
+        })
+        .inner;
     state.show_dialogs(ui.ctx(), catalogue, unit);
     commands
 }

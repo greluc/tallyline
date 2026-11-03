@@ -8,6 +8,8 @@ use tallyline_reference_data::api::model::ReferenceSnapshot;
 use tallyline_reporting::api::ManualEdit;
 use tallyline_shared_kernel::api::model::TradeSide;
 
+const FIELD_WIDTH: f32 = 130.0;
+
 pub(crate) fn show(
     ui: &mut egui::Ui,
     state: &mut ShellState,
@@ -152,7 +154,7 @@ pub(crate) fn show(
             } else {
                 ui.label(catalogue.text("manual.no_reference"));
             }
-            ui.horizontal(|ui| {
+            ui.horizontal_wrapped(|ui| {
                 if field(
                     ui,
                     &mut row.price,
@@ -224,16 +226,21 @@ fn name(
         )
 }
 fn field(ui: &mut egui::Ui, input: &mut String, label: String) -> bool {
-    ui.vertical(|ui| {
-        ui.label(&label);
-        let response = ui.add(
-            egui::TextEdit::singleline(input)
-                .desired_width(130.0)
-                .id_salt(&label),
-        );
-        response.widget_info(|| egui::WidgetInfo::labeled(egui::Role::TextInput, true, &label));
-        response.lost_focus()
-    })
+    ui.allocate_ui_with_layout(
+        egui::vec2(FIELD_WIDTH, 0.0),
+        egui::Layout::top_down(egui::Align::Min),
+        |ui| {
+            ui.label(&label);
+            let response = ui.add(
+                egui::TextEdit::singleline(input)
+                    .desired_width(FIELD_WIDTH)
+                    .id_salt(&label),
+            );
+            response.widget_info(|| egui::WidgetInfo::labeled(egui::Role::TextInput, true, &label));
+            crate::control_focus::reveal(ui, &response);
+            response.lost_focus()
+        },
+    )
     .inner
 }
 fn optional<T: std::str::FromStr>(text: &str) -> Result<Option<T>, ()> {

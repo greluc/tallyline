@@ -1,6 +1,8 @@
 {
   "fan_kit.trademark": "Star Citizen®, Roberts Space Industries® and Cloud Imperium ® are registered trademarks of Cloud Imperium Rights LLC",
   "fan_kit.agreement": "This site is not endorsed by or affiliated with the Cloud Imperium or Roberts Space Industries group of companies. All game content and materials are copyright Cloud Imperium Rights LLC and Cloud Imperium Rights Ltd.. Star Citizen®, Squadron 42®, Roberts Space Industries®, and Cloud Imperium® are registered trademarks of Cloud Imperium Rights LLC. All rights reserved.",
+  "shell.reference_age": "Oldest reference age at last update:",
+  "shell.reference_details": "Reference details",
   "app.name": "Tallyline",
   "onboarding.title": "Welcome to Tallyline",
   "onboarding.introduction": "Capture commodity terminal data and review it before submitting to UEX.",

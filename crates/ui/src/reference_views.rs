@@ -70,6 +70,9 @@ pub(crate) fn show_browser_contents(
 }
 
 pub(crate) fn show_reference_status(ui: &mut egui::Ui, state: &ShellState, catalogue: &Catalogue) {
+    show_reference_summary(ui, state, catalogue);
+    show_reference_details(ui, state, catalogue);
+    show_reference_warnings(ui, state, catalogue);
     let mapping = &state.game_witness().settings.environment_mapping;
     let environment = mapping.environment(state.references().channel());
     ui.label(format!(
@@ -77,6 +80,9 @@ pub(crate) fn show_reference_status(ui: &mut egui::Ui, state: &ShellState, catal
         catalogue.text("reference.environment"),
         environment_name(environment, catalogue)
     ));
+}
+
+pub(crate) fn show_reference_summary(ui: &mut egui::Ui, state: &ShellState, catalogue: &Catalogue) {
     let key = match state.reference_snapshot().map(|snapshot| snapshot.state()) {
         None | Some(ReferenceState::NoReferenceData) => "reference.no_data",
         Some(ReferenceState::Cached) => "reference.cached",
@@ -86,6 +92,36 @@ pub(crate) fn show_reference_status(ui: &mut egui::Ui, state: &ShellState, catal
     if state.references().refreshing() {
         ui.label(catalogue.text("reference.refreshing"));
     }
+}
+
+pub(crate) fn show_reference_age(ui: &mut egui::Ui, state: &ShellState, catalogue: &Catalogue) {
+    if let Some(snapshot) = state.reference_snapshot() {
+        let oldest = [
+            Endpoint::Terminals,
+            Endpoint::Commodities,
+            Endpoint::GameVersions,
+            Endpoint::StatusLevels,
+            Endpoint::Parameters,
+        ]
+        .into_iter()
+        .filter_map(|endpoint| snapshot.fetched_at(endpoint))
+        .min();
+        if let Some(at) = oldest {
+            let text = state.references().age_seconds(at).map_or_else(
+                || catalogue.text("reference.age_unknown").to_owned(),
+                |age| {
+                    format!(
+                        "{} {age} {}",
+                        catalogue.text("shell.reference_age"),
+                        catalogue.text("reference.seconds")
+                    )
+                },
+            );
+            ui.label(TypeStyle::UI_SMALL.text(text));
+        }
+    }
+}
+pub(crate) fn show_reference_details(ui: &mut egui::Ui, state: &ShellState, catalogue: &Catalogue) {
     if let Some(snapshot) = state.reference_snapshot() {
         ui.horizontal_wrapped(|ui| {
             for (endpoint, key) in [
@@ -110,6 +146,13 @@ pub(crate) fn show_reference_status(ui: &mut egui::Ui, state: &ShellState, catal
             }
         });
     }
+}
+
+pub(crate) fn show_reference_warnings(
+    ui: &mut egui::Ui,
+    state: &ShellState,
+    catalogue: &Catalogue,
+) {
     if let Some(diagnostic) = state.references().diagnostic() {
         ui.label(format!(
             "{} HTTP {}; {} {}; {} {}",

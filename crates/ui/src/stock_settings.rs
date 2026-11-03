@@ -52,14 +52,11 @@ pub(crate) fn show(
                 ),
             ] {
                 ui.label(catalogue.text(key));
-                ui.add(egui::TextEdit::singleline(value).id_salt(salt))
-                    .widget_info(|| {
-                        egui::WidgetInfo::labeled(
-                            egui::Role::TextInput,
-                            enabled,
-                            catalogue.text(key),
-                        )
-                    });
+                let response = ui.add(egui::TextEdit::singleline(value).id_salt(salt));
+                response.widget_info(|| {
+                    egui::WidgetInfo::labeled(egui::Role::TextInput, enabled, catalogue.text(key))
+                });
+                crate::control_focus::reveal(ui, &response);
             }
             if ui
                 .button(tallyline_egui::button_text(
