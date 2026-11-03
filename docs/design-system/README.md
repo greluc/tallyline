@@ -11,7 +11,7 @@ The app's design system is **Tallyline** (D1; since 2026-10-12 also the name of 
 | [`tokens.md`](tokens.md) | The token files, their schema, the conversion and validation rules and the JavaFX mapping |
 | [`states.md`](states.md) | Every user-visible state, its state id and its pseudo-class or style class; open design defects |
 | [`accessibility-report.md`](accessibility-report.md) | Contrast results on the token values; later the colour-vision, rendered-sheet and manual checks |
-| `components.md`, `references.md` | From stages 3 and 4 of the handoff: component specifications, and the sources and references |
+| [`components.md`](components.md) | Hash-bound supplied references, accepted overrides, component inventory and partial adoption status |
 
 The Claude Design artifacts (system and screens canvas) are private references; the repository keeps no copy of them. A local export may sit in the gitignored `design-previews/`.
 
@@ -47,3 +47,4 @@ The original crate's egui limitations and contrast results have not been revalid
 Corrected 2026-11-03: the supplied `Tallyline-Design-System.zip` and `tallyline-egui.zip` are reference exports, not a replacement for accepted requirements or ADRs. Their SHA-256 identities, extracted concept-C geometry, durable SVG/PNG/ICO exports and licence terms are recorded in [branding/](../../branding/README.md). This is the approved Line selection of ADR-0004 §1/O-83, retained by O-112; an undecided caption in the export does not reopen it. The product name remains Tallyline; working-title and JavaFX language in the archives is historical.
 
 The app uses the fixed dark-colour icon for native window identity in every theme. Debian launcher metadata and Windows shortcut/installed-programmes authoring use the same project artwork. The supplied AppShell reserves its header for navigation and actions and explicitly excludes a product logo; it receives none. Fan Kit artwork remains its coupled legal unit in the approved placements and is never used as product branding. No archive code or generators are executed. Native and rebuilt-package acceptance are recorded separately from source and headless contracts.
+Corrected 2026-11-03: both archives are available. [Component adoption](components.md) records source identities, accepted overrides and remaining work. This foundation registers 20 type styles and five approved weights, corrects scrim alpha and existing widget geometry/semantic colours, and adopts exact numeric review presentation. The icon font, full shell, review table and screen composition remain separate work.

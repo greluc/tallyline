@@ -81,10 +81,20 @@ pub fn show_manual_attachment_editor(
             }));
             let mut edit = None;
             ui.horizontal_wrapped(|ui| {
-                if ui.button(catalogue.text("attachment.view")).clicked() {
+                if ui
+                    .button(tallyline_egui::button_text(
+                        catalogue.text("attachment.view"),
+                    ))
+                    .clicked()
+                {
                     edit = Some(ManualAttachmentAction::View);
                 }
-                if ui.button(catalogue.text("attachment.remove")).clicked() {
+                if ui
+                    .button(tallyline_egui::button_text(
+                        catalogue.text("attachment.remove"),
+                    ))
+                    .clicked()
+                {
                     edit = Some(ManualAttachmentAction::Edit(AttachmentEdit::Remove));
                 }
             });
@@ -99,7 +109,9 @@ pub fn show_manual_attachment_editor(
             )
             .widget_info(|| egui::WidgetInfo::labeled(egui::Role::TextInput, true, label));
             if ui
-                .button(catalogue.text("attachment.confirm_time"))
+                .button(tallyline_egui::button_text(
+                    catalogue.text("attachment.confirm_time"),
+                ))
                 .clicked()
             {
                 match state.manual().attachment.time.trim().parse::<u64>() {
@@ -144,7 +156,9 @@ fn policy(
             if ui
                 .add_enabled(
                     !state.manual().busy,
-                    egui::Button::new(catalogue.text("attachment.try_without")),
+                    egui::Button::new(tallyline_egui::button_text(
+                        catalogue.text("attachment.try_without"),
+                    )),
                 )
                 .clicked()
             {
@@ -164,7 +178,9 @@ fn policy(
     if ui
         .add_enabled(
             !state.manual().busy,
-            egui::Button::new(catalogue.text("attachment.check")),
+            egui::Button::new(tallyline_egui::button_text(
+                catalogue.text("attachment.check"),
+            )),
         )
         .clicked()
     {
@@ -215,7 +231,9 @@ fn select(ui: &mut egui::Ui, state: &mut ShellState, catalogue: &Catalogue) {
     if ui
         .add_enabled(
             region.is_some() && !state.manual().attachment.source.trim().is_empty(),
-            egui::Button::new(catalogue.text("attachment.prepare")),
+            egui::Button::new(tallyline_egui::button_text(
+                catalogue.text("attachment.prepare"),
+            )),
         )
         .clicked()
         && let Some(region) = region
@@ -264,7 +282,9 @@ fn preview(ui: &mut egui::Ui, state: &mut ShellState, catalogue: &Catalogue) {
             });
     }
     if ui
-        .button(catalogue.text("attachment.confirm_preview"))
+        .button(tallyline_egui::button_text(
+            catalogue.text("attachment.confirm_preview"),
+        ))
         .clicked()
         && let Some(preview) = state.manual().attachment.preview.clone()
     {

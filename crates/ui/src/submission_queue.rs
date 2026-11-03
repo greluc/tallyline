@@ -217,11 +217,11 @@ pub fn show_submission_queue(
                 if ui
                     .add_enabled(
                         state.can_cancel(job.id()),
-                        egui::Button::new(format!(
+                        egui::Button::new(tallyline_egui::button_text(format!(
                             "{} {}",
                             catalogue.text("queue.cancel"),
                             job.id().0
-                        )),
+                        ))),
                     )
                     .clicked()
                 {

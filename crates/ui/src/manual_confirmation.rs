@@ -5,6 +5,7 @@
 
 use crate::api::model::{ManualReviewAction, ManualReviewCommand, ManualReviewState};
 use crate::api::{Catalogue, DialogPresenter};
+use tallyline_egui::TypeStyle;
 use tallyline_reporting::api::model::ReviewField;
 impl DialogPresenter {
     /// Opens a confirmation only after an explicit action on a current required decision.
@@ -43,9 +44,17 @@ impl DialogPresenter {
             .find(|row| row.id() == field.row())?;
         let value = match field {
             ReviewField::Price(_) => {
-                format!("{} {}", row.price()?, catalogue.text("review.per_scu"))
+                format!(
+                    "{} {}",
+                    crate::number_text::price(row.price()?),
+                    catalogue.text("review.per_scu")
+                )
             }
-            ReviewField::Stock(_) => format!("{} {}", row.stock()?, catalogue.text("review.scu")),
+            ReviewField::Stock(_) => format!(
+                "{} {}",
+                crate::number_text::quantity(row.stock()?),
+                catalogue.text("review.scu")
+            ),
             ReviewField::Status(_) => format!(
                 "{} {}",
                 catalogue.text("review.status_value"),
@@ -54,12 +63,18 @@ impl DialogPresenter {
         };
         let mut approved = false;
         let mut cancelled = false;
-        let modal =
-            egui::Modal::new(egui::Id::unique("manual-value-confirmation")).show(context, |ui| {
+        let modal = egui::Modal::new(egui::Id::unique("manual-value-confirmation"))
+            .backdrop_color(
+                theme
+                    .palette()
+                    .color("scrim")
+                    .unwrap_or(egui::Color32::BLACK),
+            )
+            .show(context, |ui| {
                 ui.set_max_width(700.0);
-                ui.heading(catalogue.text("review.confirm_title"));
-                ui.label(value);
-                ui.label(catalogue.text("review.approval_scope"));
+                ui.heading(TypeStyle::HEADING_2.text(catalogue.text("review.confirm_title")));
+                ui.label(TypeStyle::NUMERALS_LARGE.text(value));
+                ui.label(TypeStyle::BODY_STRONG.text(catalogue.text("review.approval_scope")));
                 match field {
                     ReviewField::Price(_) => {
                         if let Some(assessment) = review
@@ -106,8 +121,14 @@ impl DialogPresenter {
                 }
                 evidence(ui);
                 ui.horizontal(|ui| {
-                    approved = ui.button(catalogue.text("review.approve")).clicked();
-                    cancelled = ui.button(catalogue.text("review.cancel")).clicked();
+                    approved = ui
+                        .button(tallyline_egui::button_text(
+                            catalogue.text("review.approve"),
+                        ))
+                        .clicked();
+                    cancelled = ui
+                        .button(tallyline_egui::button_text(catalogue.text("review.cancel")))
+                        .clicked();
                 });
             });
         if approved || cancelled || modal.should_close() {

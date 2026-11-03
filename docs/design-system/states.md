@@ -1,6 +1,6 @@
 # States: from the domain to the screen
 
-> **Doc type:** Living spec — draft (JavaFX handoff stage 2; ADR-0004 partly superseded by ADR-0005). Last reviewed: 2026-11-02.
+> **Doc type:** Living spec — draft (JavaFX handoff stage 2; ADR-0004 partly superseded by ADR-0005). Last reviewed: 2026-11-03.
 
 > **Note 2026-10-12:** [ADR-0005](../adr/0005-rust-and-egui.md) replaces JavaFX with egui. The state ids, their meaning and their plan sources stand. The JavaFX column below (pseudo-classes such as `:confidence-confirm`, `:row-selected`, and the style classes `tl-state-<id>`) names a CSS mechanism that no longer exists: in the egui rendition each state is a variant or flag on the widget (for example `Confidence`, `Deviation`, `ChipTone` of the Tallyline crate), keyed by the same state id, and the "Selection and focus in the review table (SP-9)" paragraph is a JavaFX finding (egui has no CSS pseudo-classes; the review table is our own work, ADR-0005 D3). Open point O-112 decides what of the crate is adopted; see [README.md](README.md), "egui rendition (ADR-0005)".
 
@@ -132,3 +132,7 @@ The private-region editor component uses normal token-backed text and controls i
 ## Manual numeric review states (2026-11-02)
 
 Manual Report composes price/status review with Reporting-owned counters and required-decision targets. Major/minor/no-reference states use existing theme tokens, text and semantic icons; stale Minor displays as Equal while retaining its unlowered comparison. Value approval opens only after an explicit action and requires a second explicit action in the dialog. F8/Shift+F8 records durable focus without approval, with stable widget identities across counter changes. Passive reference checks keep previous details visible with an updating notice, suspend approval and preserve keyboard focus; unfinished input delays admission. Failed checks wait for an explicit retry. Numeric review and attachment readiness remain separate from complete release readiness. Native visual/accessibility acceptance remains pending.
+
+## Existing widget rendition checkpoint (2026-11-03)
+
+Chips, deviation badges, fields and raised panels use small radii; minor badges have an outline. Toast tones are a closed `SemanticTone` enum with actual foreground/background/border tokens. Built-in button focus uses the 2 px focus ring; text-selection backgrounds remain separate from row selection. Exact manual-review values use grouped Mono text, positive delta signs, U+2212 and adjacent percent signs without changing domain decisions. Native walkthroughs, full state matrices and independent text-edit focus styling remain open. See [component adoption](components.md).

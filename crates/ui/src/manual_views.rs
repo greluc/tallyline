@@ -48,18 +48,21 @@ fn show_contents(ui: &mut egui::Ui, state: &mut ShellState, catalogue: &Catalogu
         .map(|report| (report.id(), report.key()))
         .collect();
     ui.horizontal_wrapped(|ui| {
-        if ui.button(catalogue.text("manual.new")).clicked() {
+        if ui
+            .button(tallyline_egui::button_text(catalogue.text("manual.new")))
+            .clicked()
+        {
             state.manual_mut().new_draft();
         }
         for (id, key) in reports {
             if ui
-                .button(format!(
+                .button(tallyline_egui::button_text(format!(
                     "{} {} · {} · {:?}",
                     catalogue.text("manual.resume"),
                     id.0,
                     key.terminal().0,
                     key.environment()
-                ))
+                )))
                 .clicked()
             {
                 state.manual_mut().select(id);
@@ -238,7 +241,7 @@ fn create(
     if ui
         .add_enabled(
             key.is_some(),
-            egui::Button::new(catalogue.text("manual.create")),
+            egui::Button::new(tallyline_egui::button_text(catalogue.text("manual.create"))),
         )
         .clicked()
         && let Some(key) = key

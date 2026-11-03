@@ -8,6 +8,7 @@ use crate::api::model::{
     ManualReviewAction, ManualReviewCommand, ManualReviewState, ReviewDirection,
 };
 use crate::manual_review_details::{price_details, status_details};
+use tallyline_egui::TypeStyle;
 use tallyline_reporting::api::model::ReviewField;
 
 /// Draws committed manual assessments and returns explicit focus or confirmation intent.
@@ -18,7 +19,7 @@ pub fn show_manual_review(
     catalogue: &Catalogue,
     theme: tallyline_egui::Theme,
 ) -> Option<ManualReviewCommand> {
-    ui.heading(catalogue.text("review.title"));
+    ui.heading(TypeStyle::HEADING_2.text(catalogue.text("review.title")));
     if state.updating() {
         ui.label(catalogue.text("review.updating"));
     }
@@ -52,7 +53,9 @@ pub fn show_manual_review(
         if ui
             .add_enabled(
                 summary.needs_confirmation > 0,
-                egui::Button::new(catalogue.text("review.previous")),
+                egui::Button::new(tallyline_egui::button_text(
+                    catalogue.text("review.previous"),
+                )),
             )
             .clicked()
         {
@@ -61,7 +64,7 @@ pub fn show_manual_review(
         if ui
             .add_enabled(
                 summary.needs_confirmation > 0,
-                egui::Button::new(catalogue.text("review.next")),
+                egui::Button::new(tallyline_egui::button_text(catalogue.text("review.next"))),
             )
             .clicked()
         {
@@ -81,14 +84,14 @@ pub fn show_manual_review(
         {
             ui.push_id(("price-review", row.id().0), |ui| {
                 ui.separator();
-                ui.label(format!(
+                ui.label(TypeStyle::NUMERALS_STRONG.text(format!(
                     "{} {}: {}",
                     catalogue.text("review.price"),
                     row.commodity().0,
                     row.price()
-                        .map(|price| price.to_string())
+                        .map(crate::number_text::price)
                         .unwrap_or_default()
-                ));
+                )));
                 price_details(ui, *assessment, catalogue, theme);
                 decision(
                     ui,
@@ -113,15 +116,15 @@ pub fn show_manual_review(
         {
             ui.push_id(("stock-review", row.id().0), |ui| {
                 ui.separator();
-                ui.label(format!(
+                ui.label(TypeStyle::NUMERALS_STRONG.text(format!(
                     "{} {}: {} {}",
                     catalogue.text("review.stock"),
                     row.commodity().0,
                     row.stock()
-                        .map(|stock| stock.to_string())
+                        .map(crate::number_text::quantity)
                         .unwrap_or_default(),
                     catalogue.text("review.scu")
-                ));
+                )));
                 crate::manual_review_details::stock_details(ui, *assessment, catalogue, theme);
                 decision(
                     ui,
@@ -215,7 +218,7 @@ fn decision(
         ui.label(catalogue.text("review.confirmed"));
     }
     if state.needs_confirmation(field) {
-        ui.label(catalogue.text("review.required"));
+        ui.label(TypeStyle::BODY_STRONG.text(catalogue.text("review.required")));
         let key = match field {
             ReviewField::Price(_) => "review.confirm_price",
             ReviewField::Status(_) => "review.confirm_status",
@@ -237,7 +240,12 @@ fn decision(
                     kind,
                     field.row().0,
                 ))),
-                |ui| ui.button(format!("{} {commodity}", catalogue.text(key))),
+                |ui| {
+                    ui.button(tallyline_egui::button_text(format!(
+                        "{} {commodity}",
+                        catalogue.text(key)
+                    )))
+                },
             )
             .inner;
         if focus == Some(field) {

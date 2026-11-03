@@ -61,7 +61,7 @@ impl ShellState {
         if ui
             .add_enabled(
                 snapshot.is_some() && entered && !self.manual.busy && !self.manual.inputs_pending(),
-                egui::Button::new(catalogue.text("review.retry")),
+                egui::Button::new(tallyline_egui::button_text(catalogue.text("review.retry"))),
             )
             .clicked()
             && let Some(snapshot) = snapshot.as_ref()

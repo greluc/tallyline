@@ -24,7 +24,12 @@ pub(crate) fn notice(
                 ui.label(version);
             });
             ui.hyperlink_to(catalogue.text("update.open"), url);
-            if ui.button(catalogue.text("update.dismiss")).clicked() {
+            if ui
+                .button(tallyline_egui::button_text(
+                    catalogue.text("update.dismiss"),
+                ))
+                .clicked()
+            {
                 commands.extend(state.act(UserAction::DismissUpdate));
             }
         });

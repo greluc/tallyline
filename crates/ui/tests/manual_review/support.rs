@@ -54,11 +54,17 @@ impl ReferenceDataCache for Cache {
     }
 }
 pub fn review() -> Result<(ManualReview, ReferenceSnapshot), Box<dyn std::error::Error>> {
+    review_prices("200", "100")
+}
+pub fn review_prices(
+    value: &str,
+    reference: &str,
+) -> Result<(ManualReview, ReferenceSnapshot), Box<dyn std::error::Error>> {
     let prior = PricePrior::new(
         CommodityId(42),
         TradeSide::Buy,
         PriorValues {
-            price: "100".parse()?,
+            price: reference.parse()?,
             stock: "0".parse()?,
             status: std::num::NonZeroU8::new(3),
             container_sizes: vec![],
@@ -84,7 +90,7 @@ pub fn review() -> Result<(ManualReview, ReferenceSnapshot), Box<dyn std::error:
         Some("4.10.2"),
     )?;
     let row = report.add_commodity(CommodityId(42))?;
-    report.set_price(row, Some("200".parse()?))?;
+    report.set_price(row, Some(value.parse()?))?;
     report.set_status(row, std::num::NonZeroU8::new(5))?;
     let version = report.version();
     let mut app = ReportingApplication::new(Repository(report), Fixed);

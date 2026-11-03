@@ -135,7 +135,9 @@ pub(crate) fn show(
         if ui
             .add_enabled(
                 !setup.busy(),
-                egui::Button::new(catalogue.text("credentials.fallback_confirm")),
+                egui::Button::new(tallyline_egui::button_text(
+                    catalogue.text("credentials.fallback_confirm"),
+                )),
             )
             .clicked()
         {
@@ -176,7 +178,12 @@ pub(crate) fn show(
                 Persistence::Durable
             });
         }
-        if ui.button(catalogue.text("credentials.validate")).clicked() {
+        if ui
+            .button(tallyline_egui::button_text(
+                catalogue.text("credentials.validate"),
+            ))
+            .clicked()
+        {
             setup.validate();
         }
     });

@@ -54,7 +54,9 @@ pub(crate) fn show(
     if ui
         .add_enabled(
             enabled,
-            egui::Button::new(catalogue.text("witness.select_channel")),
+            egui::Button::new(tallyline_egui::button_text(
+                catalogue.text("witness.select_channel"),
+            )),
         )
         .clicked()
     {
@@ -78,7 +80,9 @@ pub(crate) fn show(
     if ui
         .add_enabled(
             enabled,
-            egui::Button::new(catalogue.text("witness.refresh")),
+            egui::Button::new(tallyline_egui::button_text(
+                catalogue.text("witness.refresh"),
+            )),
         )
         .clicked()
     {

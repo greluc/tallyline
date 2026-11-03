@@ -4,6 +4,7 @@
 //! Unmodified static font resources approved by ADR-0004.
 
 use egui::{FontData, FontDefinitions, FontFamily};
+use tallyline_egui::FontFace;
 
 /// The approved font files loaded by the composition root.
 pub struct FontFiles {
@@ -22,16 +23,18 @@ pub struct FontFiles {
 /// Installs the approved fonts from their separately shipped, unmodified files.
 pub fn configure_fonts(context: &egui::Context, files: FontFiles) {
     let mut fonts = FontDefinitions::empty();
-    for (name, bytes) in [
-        ("IBM Plex Sans", files.plex_regular),
-        ("IBM Plex Sans SemiBold", files.plex_semibold),
-        ("IBM Plex Sans Bold", files.plex_bold),
-        ("JetBrains Mono NL", files.mono_regular),
-        ("JetBrains Mono NL Bold", files.mono_bold),
+    for (face, bytes) in [
+        (FontFace::SansRegular, files.plex_regular),
+        (FontFace::SansSemibold, files.plex_semibold),
+        (FontFace::SansBold, files.plex_bold),
+        (FontFace::MonoRegular, files.mono_regular),
+        (FontFace::MonoBold, files.mono_bold),
     ] {
+        let name = face.name();
         fonts
             .font_data
             .insert(name.to_owned(), FontData::from_owned(bytes).into());
+        fonts.families.insert(face.family(), vec![name.to_owned()]);
     }
     fonts
         .families

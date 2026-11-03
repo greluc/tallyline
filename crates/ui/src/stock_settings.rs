@@ -61,7 +61,12 @@ pub(crate) fn show(
                         )
                     });
             }
-            if ui.button(catalogue.text("settings.stock_save")).clicked() {
+            if ui
+                .button(tallyline_egui::button_text(
+                    catalogue.text("settings.stock_save"),
+                ))
+                .clicked()
+            {
                 let settings = editor
                     .percent
                     .trim()

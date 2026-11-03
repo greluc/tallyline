@@ -134,7 +134,9 @@ pub fn show_submission_controls(ui: &mut egui::Ui, state: &mut ShellState, catal
         if ui
             .add_enabled(
                 state.can_release(),
-                egui::Button::new(catalogue.text("release.manual")),
+                egui::Button::new(tallyline_egui::button_text(
+                    catalogue.text("release.manual"),
+                )),
             )
             .clicked()
         {
@@ -143,7 +145,7 @@ pub fn show_submission_controls(ui: &mut egui::Ui, state: &mut ShellState, catal
         if ui
             .add_enabled(
                 state.can_release(),
-                egui::Button::new(catalogue.text("release.test")),
+                egui::Button::new(tallyline_egui::button_text(catalogue.text("release.test"))),
             )
             .clicked()
         {
@@ -156,7 +158,9 @@ pub fn show_submission_controls(ui: &mut egui::Ui, state: &mut ShellState, catal
         && ui
             .add_enabled(
                 !state.submission.busy && !state.manual().busy && !state.manual().inputs_pending(),
-                egui::Button::new(catalogue.text("release.confirm_age")),
+                egui::Button::new(tallyline_egui::button_text(
+                    catalogue.text("release.confirm_age"),
+                )),
             )
             .clicked()
     {
@@ -233,12 +237,12 @@ fn show_newer_choices(
         if ui
             .add_enabled(
                 state.can_release() && same_account,
-                egui::Button::new(format!(
+                egui::Button::new(tallyline_egui::button_text(format!(
                     "{} {} {}",
                     catalogue.text("release.older_prefix"),
                     id.0,
                     catalogue.text("release.older_suffix")
-                )),
+                ))),
             )
             .clicked()
         {

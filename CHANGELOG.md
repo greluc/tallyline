@@ -5,6 +5,7 @@ All notable changes are recorded here.
 ## [Unreleased]
 
 - Use the approved fixed-colour Line mark for native window identity and packaged desktop icons. Provide durable project-logo, avatar and social-preview exports for manual GitHub upload (R-UI-9, R-DOC-1).
+- Apply approved semantic typography with explicit line heights in reference-browser headings, manual review/confirmation, action labels and existing widgets, alongside small-corner theme/widget styling, with visible keyboard button focus and theme-correct confirmation scrims. Current manual-review prices/SCU and confirmation values use strong/large exact grouped Mono numerals; reference/delta details retain regular Mono, explicit delta signs and compact percentages; full shell/table adoption and native visual acceptance remain in progress (R-UI-7, R-UI-10, R-UI-11, R-UI-17).
 
 - Follow the project repository transfer to `tallyline-sc/tallyline` for optional release checks, About source/release links and packaging source information (R-NF-7, R-UI-18, R-DOC-4).
 

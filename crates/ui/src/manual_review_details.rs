@@ -4,6 +4,8 @@
 //! Shared exact reference details for review and confirmation.
 
 use crate::api::Catalogue;
+use crate::number_text;
+use tallyline_egui::TypeStyle;
 use tallyline_reporting::api::model::{
     Deviation, PriceAssessment, PriceReferenceSource, StatusAssessment,
 };
@@ -13,16 +15,16 @@ pub(crate) fn price_details(
     catalogue: &Catalogue,
     theme: tallyline_egui::Theme,
 ) {
-    ui.label(format!(
+    ui.label(TypeStyle::NUMERALS.text(format!(
         "{}: {} · {}: {}",
         catalogue.text("manual.reference"),
         assessment.reference().map_or_else(
             || catalogue.text("manual.no_reference").to_owned(),
-            |price| price.to_string()
+            number_text::price
         ),
         catalogue.text("review.age"),
         age(assessment.reference_age_millis(), catalogue)
-    ));
+    )));
     if assessment.reference_source() == Some(PriceReferenceSource::CommodityAverage) {
         ui.label(catalogue.text("review.average"));
         ui.label(catalogue.text("review.average_band"));
@@ -31,36 +33,36 @@ pub(crate) fn price_details(
         ui.label(catalogue.text("review.outdated"));
     }
     let percent = match assessment.percentage_difference() {
-        Ok(Some(percent)) => format!("{percent} %"),
+        Ok(Some(percent)) => number_text::percentage(&percent),
         Ok(None) => catalogue.text("review.percentage_unavailable").to_owned(),
         Err(_) => catalogue.text("review.precision_unavailable").to_owned(),
     };
     if let Some(difference) = assessment.difference() {
-        ui.label(format!(
+        ui.label(TypeStyle::NUMERALS.text(format!(
             "{}: {} {} · {}",
             catalogue.text("review.difference"),
-            difference,
+            number_text::difference(difference),
             catalogue.text("review.per_scu"),
             percent
-        ));
+        )));
     } else {
         ui.label(catalogue.text("review.no_difference"));
     }
-    ui.label(format!(
-        "{}: {} %",
+    ui.label(TypeStyle::NUMERALS.text(format!(
+        "{}: {}%",
         catalogue.text("review.tolerance"),
         assessment.tolerance().percent().get()
-    ));
+    )));
     match assessment.tolerance().source() {
         tallyline_reference_data::api::model::PriceToleranceSource::Uex(_) => {
             ui.label(catalogue.text("review.policy_uex"));
         }
         tallyline_reference_data::api::model::PriceToleranceSource::SettingsFallback(source) => {
-            ui.label(format!(
+            ui.label(TypeStyle::NUMERALS.text(format!(
                 "{} {}",
                 catalogue.text("review.policy_fallback"),
                 source.verified_on()
-            ));
+            )));
         }
     }
     marking(ui, assessment.display_deviation(), catalogue, theme);
@@ -71,49 +73,44 @@ pub(crate) fn stock_details(
     catalogue: &Catalogue,
     theme: tallyline_egui::Theme,
 ) {
-    ui.label(format!(
+    ui.label(TypeStyle::NUMERALS.text(format!(
         "{}: {} · {}: {}",
         catalogue.text("manual.reference"),
         assessment.reference().map_or_else(
             || catalogue.text("manual.no_reference").to_owned(),
-            |price| price.to_string()
+            number_text::quantity
         ),
         catalogue.text("review.age"),
         age(assessment.reference_age_millis(), catalogue)
-    ));
+    )));
     if assessment.reference_outdated() {
         ui.label(catalogue.text("review.outdated"));
     }
     let percent = match assessment.percentage_difference() {
-        Ok(Some(percent)) => format!("{percent} %"),
+        Ok(Some(percent)) => number_text::percentage(&percent),
         Ok(None) => catalogue.text("review.percentage_unavailable").to_owned(),
         Err(_) => catalogue.text("review.precision_unavailable").to_owned(),
     };
     if let Some(difference) = assessment.difference() {
-        let text = difference.to_string();
-        let signed = if text.starts_with('-') || difference.is_zero() {
-            text
-        } else {
-            format!("+{text}")
-        };
-        ui.label(format!(
+        let signed = number_text::difference(difference);
+        ui.label(TypeStyle::NUMERALS.text(format!(
             "{}: {} {} · {}",
             catalogue.text("review.difference"),
             signed,
             catalogue.text("review.scu"),
             percent
-        ));
+        )));
     } else {
         ui.label(catalogue.text("review.no_difference"));
     }
-    ui.label(format!(
-        "{}: {} % {} {} {}",
+    ui.label(TypeStyle::NUMERALS.text(format!(
+        "{}: {}% {} {} {}",
         catalogue.text("review.stock_tolerance"),
         assessment.tolerance().percent().get(),
         catalogue.text("review.and"),
-        assessment.tolerance().minimum(),
+        number_text::quantity(assessment.tolerance().minimum()),
         catalogue.text("review.scu")
-    ));
+    )));
     ui.label(catalogue.text("review.policy_scu"));
     marking(ui, assessment.display_deviation(), catalogue, theme);
 }

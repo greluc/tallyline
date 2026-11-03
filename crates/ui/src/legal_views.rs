@@ -25,7 +25,9 @@ pub fn show_onboarding_view(
     ui.label(catalogue.text("onboarding.introduction"));
     ui.add_enabled(
         state.ready() && !state.busy(),
-        egui::Button::new(catalogue.text("onboarding.continue")),
+        egui::Button::new(tallyline_egui::button_text(
+            catalogue.text("onboarding.continue"),
+        )),
     )
     .clicked()
     .then_some(UserAction::ContinueOnboarding)
@@ -75,10 +77,18 @@ pub(crate) fn show_about_view_with_build(
         }
     }
     ui.label(catalogue.text("about.warranty"));
-    if ui.button(catalogue.text("about.gpl")).clicked() {
+    if ui
+        .button(tallyline_egui::button_text(catalogue.text("about.gpl")))
+        .clicked()
+    {
         actions.push(AboutAction::ShowGpl);
     }
-    if ui.button(catalogue.text("about.licences")).clicked() {
+    if ui
+        .button(tallyline_egui::button_text(
+            catalogue.text("about.licences"),
+        ))
+        .clicked()
+    {
         actions.push(AboutAction::ShowLicences);
     }
     let (source, release) = match build {

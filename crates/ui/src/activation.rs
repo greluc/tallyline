@@ -41,7 +41,12 @@ impl eframe::App for AlreadyRunningNotice {
     fn ui(&mut self, ui: &mut egui::Ui, _: &mut eframe::Frame) {
         egui::CentralPanel::default().show(ui, |ui| {
             ui.label(self.catalogue.text("instance.already_running"));
-            if ui.button(self.catalogue.text("action.close")).clicked() {
+            if ui
+                .button(tallyline_egui::button_text(
+                    self.catalogue.text("action.close"),
+                ))
+                .clicked()
+            {
                 ui.ctx().send_viewport_cmd(egui::ViewportCommand::Close);
             }
         });

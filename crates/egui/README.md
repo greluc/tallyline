@@ -3,7 +3,7 @@
 
 # `tallyline-egui`
 
-Tallyline theme tokens and reusable widgets for egui 0.36.2.
+Tallyline theme tokens and reusable widgets for egui 0.37.0.
 
 The crate currently provides dark, light and high-contrast colour palettes;
 theme, density and reduced-motion settings; nine state icons drawn with egui
@@ -27,3 +27,5 @@ available when this crate was recreated. The icon font is not included. The
 replacement state icons are hand-drawn egui primitives; pixel-grid and
 magnified wgpu review of the original font therefore remain inapplicable to
 this implementation and the full icon inventory is not recreated yet.
+
+Corrected 2026-11-03: see [component adoption](../../docs/design-system/components.md) for the supplied archive identities and partial typography/widget adoption. All 20 named type styles and five approved face weights are installed through the separate-file desktop loader; native visual acceptance remains open.

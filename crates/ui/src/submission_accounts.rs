@@ -59,10 +59,20 @@ pub fn show_submission_account_choice(
     }
     ui.label(catalogue.text("queue.account_choice"));
     ui.horizontal_wrapped(|ui| {
-        if ui.button(catalogue.text("queue.review_accounts")).clicked() {
+        if ui
+            .button(tallyline_egui::button_text(
+                catalogue.text("queue.review_accounts"),
+            ))
+            .clicked()
+        {
             state.show_submission_queue();
         }
-        if ui.button(catalogue.text("queue.keep_accounts")).clicked() {
+        if ui
+            .button(tallyline_egui::button_text(
+                catalogue.text("queue.keep_accounts"),
+            ))
+            .clicked()
+        {
             state.submission.accounts.acknowledged = state.submission.accounts.prompt.take();
         }
     });

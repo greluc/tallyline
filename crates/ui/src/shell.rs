@@ -19,32 +19,53 @@ pub fn show_shell(
         if ui
             .add_enabled(
                 state.settings().onboarding_complete(),
-                egui::Button::new(catalogue.text("menu.home")),
+                egui::Button::new(tallyline_egui::button_text(catalogue.text("menu.home"))),
             )
             .clicked()
         {
             state.leave_settings();
         }
-        if ui.button(catalogue.text("reference.title")).clicked() {
+        if ui
+            .button(tallyline_egui::button_text(
+                catalogue.text("reference.title"),
+            ))
+            .clicked()
+        {
             state.show_reference();
         }
-        if ui.button(catalogue.text("menu.settings")).clicked() {
+        if ui
+            .button(tallyline_egui::button_text(catalogue.text("menu.settings")))
+            .clicked()
+        {
             state.show_settings();
         }
-        if ui.button(catalogue.text("manual.title")).clicked() {
+        if ui
+            .button(tallyline_egui::button_text(catalogue.text("manual.title")))
+            .clicked()
+        {
             state.show_manual();
         }
-        if ui.button(catalogue.text("queue.title")).clicked() {
+        if ui
+            .button(tallyline_egui::button_text(catalogue.text("queue.title")))
+            .clicked()
+        {
             state.show_submission_queue();
         }
         if !state.settings().onboarding_complete()
             && state.view() != View::Onboarding
-            && ui.button(catalogue.text("release.back_setup")).clicked()
+            && ui
+                .button(tallyline_egui::button_text(
+                    catalogue.text("release.back_setup"),
+                ))
+                .clicked()
         {
             state.return_to_setup();
         }
         ui.menu_button(catalogue.text("menu.help"), |ui| {
-            if ui.button(catalogue.text("menu.about")).clicked() {
+            if ui
+                .button(tallyline_egui::button_text(catalogue.text("menu.about")))
+                .clicked()
+            {
                 state.open_about();
                 ui.close();
             }
@@ -89,7 +110,9 @@ pub fn show_shell(
             if ui
                 .add_enabled(
                     state.ready(),
-                    egui::Button::new(catalogue.text("release.prepare_test")),
+                    egui::Button::new(tallyline_egui::button_text(
+                        catalogue.text("release.prepare_test"),
+                    )),
                 )
                 .clicked()
             {
@@ -155,7 +178,10 @@ pub fn show_shell(
             commands.extend(crate::updates::settings(ui, state, catalogue));
             commands.extend(crate::reference_views::show_mapping(ui, state, catalogue));
             commands.extend(crate::game_witness::show(ui, state, catalogue));
-            if ui.button(catalogue.text("action.done")).clicked() {
+            if ui
+                .button(tallyline_egui::button_text(catalogue.text("action.done")))
+                .clicked()
+            {
                 state.leave_settings();
             }
             egui::CollapsingHeader::new(catalogue.text("credentials.title")).show(ui, |ui| {

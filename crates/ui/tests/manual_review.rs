@@ -172,7 +172,7 @@ fn r_ui_11_q_manual_r_ui_12_q_manual__drawn_review_shows_exact_reference_deltas_
     );
     assert!(
         harness
-            .query_by_label("Difference: 100 per SCU · +100.00 %")
+            .query_by_label("Difference: +100 per SCU · +100.00%")
             .is_some()
     );
     assert!(harness.state().1.is_empty());
@@ -262,7 +262,7 @@ fn r_ui_11_q_manual_r_ui_12_q_manual__confirmation_dialog_requires_a_separate_ex
                 .query_by_label(if stock {
                     "Difference: +100 SCU · Percentage unavailable"
                 } else {
-                    "Difference: 100 per SCU · +100.00 %"
+                    "Difference: +100 per SCU · +100.00%"
                 })
                 .is_some()
         );
@@ -421,7 +421,7 @@ fn r_ui_11_q_manual_r_ui_12_q_manual__drawn_stock_review_shows_bands_and_navigat
     );
     assert!(
         harness
-            .query_by_label("Effective tolerance: 20 % and 16 SCU")
+            .query_by_label("Effective tolerance: 20% and 16 SCU")
             .is_some()
     );
     assert!(
@@ -437,3 +437,128 @@ fn r_ui_11_q_manual_r_ui_12_q_manual__drawn_stock_review_shows_bands_and_navigat
     harness.run();
     assert_eq!(harness.state().focused(), Some(ReviewField::Stock(row)));
 }
+
+#[test]
+fn drawn_price_details_preserve_large_exact_decimals_and_signed_display_conventions() {
+    for (value, reference, expected_reference, expected_difference) in [
+        (
+            "12345678901234567890.125",
+            "12345678901234567900.250",
+            "UEX reference: 12,345,678,901,234,567,900.25 · age at review: 100 seconds",
+            "Difference: \u{2212}10.125 per SCU · \u{2212}0.00%",
+        ),
+        (
+            "200",
+            "100",
+            "UEX reference: 100 · age at review: 100 seconds",
+            "Difference: +100 per SCU · +100.00%",
+        ),
+        (
+            "18014398509481986.25",
+            "9007199254740993.125",
+            "UEX reference: 9,007,199,254,740,993.125 · age at review: 100 seconds",
+            "Difference: +9,007,199,254,740,993.125 per SCU · +100.00%",
+        ),
+        (
+            "100",
+            "100",
+            "UEX reference: 100 · age at review: 100 seconds",
+            "Difference: 0 per SCU · 0.00%",
+        ),
+    ] {
+        let context = egui::Context::default();
+        tallyline_ui::api::configure_fonts(&context, support::fonts());
+        tallyline_egui::apply_theme(
+            &context,
+            tallyline_egui::Theme::Dark,
+            tallyline_egui::Density::Compact,
+            tallyline_egui::Motion::Reduced,
+        );
+        let (review, snapshot) = support::review_prices(value, reference).unwrap();
+        let mut state = ManualReviewState::default();
+        state.received(review, snapshot);
+        let catalogue = tallyline_ui::api::Catalogue::english().unwrap();
+        let mut output = context.run_ui(egui::RawInput::default(), |ui| {
+            let _ = tallyline_ui::api::show_manual_review(
+                ui,
+                &mut state,
+                &catalogue,
+                tallyline_egui::Theme::Dark,
+            );
+        });
+        output.textures_delta.clear();
+        for expected in [expected_reference, expected_difference] {
+            let text = output
+                .shapes
+                .iter()
+                .filter_map(paint_text::shape)
+                .find(|text| text.galley.job.text == expected)
+                .unwrap_or_else(|| {
+                    panic!(
+                        "Missing exact displayed details: {expected}; drawn: {:?}",
+                        output
+                            .shapes
+                            .iter()
+                            .filter_map(paint_text::shape)
+                            .map(|text| &text.galley.job.text)
+                            .collect::<Vec<_>>()
+                    )
+                });
+            assert_eq!(
+                text.galley.job.sections[0].format.font_id.family,
+                egui::FontFamily::Name("JetBrains Mono NL".into())
+            );
+            assert_eq!(text.galley.job.sections[0].format.font_id.size, 14.0);
+            assert_eq!(text.galley.job.sections[0].format.line_height, Some(20.0));
+        }
+    }
+}
+#[test]
+fn requested_value_confirmation_paints_the_theme_scrim_without_dispatching_approval() {
+    for (theme, palette) in [
+        (tallyline_egui::Theme::Dark, tallyline_egui::tokens::DARK),
+        (tallyline_egui::Theme::Light, tallyline_egui::tokens::LIGHT),
+        (
+            tallyline_egui::Theme::HighContrast,
+            tallyline_egui::tokens::HIGH_CONTRAST,
+        ),
+    ] {
+        let context = egui::Context::default();
+        tallyline_ui::api::configure_fonts(&context, support::fonts());
+        tallyline_egui::apply_theme(
+            &context,
+            theme,
+            tallyline_egui::Density::Compact,
+            tallyline_egui::Motion::Reduced,
+        );
+        let (review, snapshot) = support::review().unwrap();
+        let field =
+            tallyline_reporting::api::model::ReviewField::Price(review.report().rows()[0].id());
+        let mut state = ManualReviewState::default();
+        state.received(review, snapshot);
+        let mut presenter = tallyline_ui::api::DialogPresenter::default();
+        presenter.open_manual_confirmation(&state, field);
+        let catalogue = tallyline_ui::api::Catalogue::english().unwrap();
+        let mut command = None;
+        let mut settled = None;
+        for _ in 0..3 {
+            let mut output = context.run_ui(egui::RawInput::default(), |ui| {
+                command =
+                    presenter.show_manual_confirmation(ui.ctx(), &state, &catalogue, theme, |ui| {
+                        ui.label("No screenshot attached");
+                    });
+            });
+            output.textures_delta.clear();
+            assert!(command.is_none());
+            settled = Some(output);
+        }
+        let output = settled.unwrap();
+        assert!(output.shapes.iter().any(|shape| matches!(&shape.shape, egui::Shape::Rect(rectangle) if rectangle.fill == palette.color("scrim").unwrap())), "Missing theme scrim: {theme:?}");
+    }
+}
+
+#[path = "design_typography/paint_text.rs"]
+mod paint_text;
+
+#[path = "manual_review/typography.rs"]
+mod typography;

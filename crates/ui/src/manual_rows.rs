@@ -43,11 +43,11 @@ pub(crate) fn show(
                 .iter()
                 .any(|row| row.commodity() == prior.commodity())
                 && ui
-                    .button(format!(
+                    .button(tallyline_egui::button_text(format!(
                         "{} {}",
                         catalogue.text("manual.add"),
                         name(snapshot, prior.commodity())
-                    ))
+                    )))
                     .clicked()
             {
                 add = Some(prior.commodity());
@@ -76,12 +76,12 @@ pub(crate) fn show(
                 .iter()
                 .any(|row| row.commodity() == commodity.id())
                 && ui
-                    .button(format!(
+                    .button(tallyline_egui::button_text(format!(
                         "{} {} · UEX ID {}",
                         catalogue.text("manual.add"),
                         commodity.name(),
                         commodity.id().0
-                    ))
+                    )))
                     .clicked()
             {
                 add = Some(commodity.id());
@@ -141,7 +141,12 @@ pub(crate) fn show(
                         .unwrap_or_else(|| "?".to_owned()),
                     age
                 ));
-                if ui.button(catalogue.text("manual.takeover")).clicked() {
+                if ui
+                    .button(tallyline_egui::button_text(
+                        catalogue.text("manual.takeover"),
+                    ))
+                    .clicked()
+                {
                     edit = Some(ManualEdit::TakeOver(row.id));
                 }
             } else {

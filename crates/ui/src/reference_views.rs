@@ -4,6 +4,7 @@
 //! Cached reference browsing and environment status presentation.
 
 use crate::api::{Catalogue, ShellState};
+use tallyline_egui::TypeStyle;
 use tallyline_game::api::model::GameEnvironment;
 use tallyline_reference_data::api::model::{Endpoint, ReferenceState, UexEnvironment};
 
@@ -26,8 +27,8 @@ pub(crate) fn show_browser_contents(
     state: &mut ShellState,
     catalogue: &Catalogue,
 ) {
-    ui.heading(catalogue.text("reference.title"));
-    ui.label(catalogue.text("reference.channel"));
+    ui.heading(TypeStyle::HEADING_1.text(catalogue.text("reference.title")));
+    ui.label(TypeStyle::BODY.text(catalogue.text("reference.channel")));
     ui.horizontal_wrapped(|ui| {
         for (channel, key) in CHANNELS {
             if ui
@@ -41,7 +42,9 @@ pub(crate) fn show_browser_contents(
     if ui
         .add_enabled(
             !state.references().refreshing(),
-            egui::Button::new(catalogue.text("reference.refresh")),
+            egui::Button::new(tallyline_egui::button_text(
+                catalogue.text("reference.refresh"),
+            )),
         )
         .clicked()
     {
@@ -139,7 +142,7 @@ pub(crate) fn environment_name(environment: UexEnvironment, catalogue: &Catalogu
 }
 
 fn terminals(ui: &mut egui::Ui, state: &mut ShellState, catalogue: &Catalogue) {
-    ui.heading(catalogue.text("reference.terminals"));
+    ui.heading(TypeStyle::HEADING_3.text(catalogue.text("reference.terminals")));
     let label = ui.label(catalogue.text("reference.terminal_search"));
     ui.add(
         egui::TextEdit::singleline(state.references_mut().terminal_query())
@@ -186,7 +189,7 @@ fn terminals(ui: &mut egui::Ui, state: &mut ShellState, catalogue: &Catalogue) {
 }
 
 fn commodities(ui: &mut egui::Ui, state: &mut ShellState, catalogue: &Catalogue) {
-    ui.heading(catalogue.text("reference.commodities"));
+    ui.heading(TypeStyle::HEADING_3.text(catalogue.text("reference.commodities")));
     let label = ui.label(catalogue.text("reference.commodity_search"));
     ui.add(
         egui::TextEdit::singleline(state.references_mut().commodity_query())
@@ -239,7 +242,7 @@ pub(crate) fn show_mapping(
     use crate::api::model::UserAction;
     let mut commands = Vec::new();
     ui.separator();
-    ui.heading(catalogue.text("reference.mapping"));
+    ui.heading(TypeStyle::HEADING_2.text(catalogue.text("reference.mapping")));
     ui.label(catalogue.text("reference.mapping_explanation"));
     for (channel, key) in CHANNELS {
         ui.horizontal(|ui| {
