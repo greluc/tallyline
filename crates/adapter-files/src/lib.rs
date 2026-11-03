@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 Lucas Greuloch
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Versioned application settings and owner-only application directories.
+//! Versioned settings, owner-only directories and explicit private exports.
 
 #![forbid(unsafe_code)]
 
@@ -24,6 +24,8 @@ mod manual_attachment;
 
 mod private_artifact;
 
+mod diagnostic_logs;
+mod diagnostics;
 mod working_copies;
 
 mod stock_config;

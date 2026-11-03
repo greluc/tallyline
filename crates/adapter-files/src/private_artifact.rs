@@ -1,12 +1,12 @@
 // SPDX-FileCopyrightText: 2026 Lucas Greuloch
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Explicit exclusive private development-artifact writes.
+//! Explicit exclusive private artifact writes.
 
 use std::io::Write;
 use std::path::Path;
 
-/// A private development artifact could not be created or completed.
+/// A private artifact could not be created or completed.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum PrivateArtifactError {
     /// The destination was not an explicitly selected absolute path.
@@ -48,7 +48,7 @@ pub fn write_private_artifact(path: &Path, bytes: &[u8]) -> Result<(), PrivateAr
 
 impl std::fmt::Display for PrivateArtifactError {
     fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(formatter, "private development artifact failed: {self:?}")
+        write!(formatter, "private artifact failed: {self:?}")
     }
 }
 

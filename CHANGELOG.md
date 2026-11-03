@@ -21,6 +21,8 @@ All notable changes are recorded here.
 
 - Add guarded manual SCU review with provisional 20 % / 16 SCU bands, independent tighten-only Settings, durable value-bound confirmations and F8/Shift+F8 targets. Database schema 8 and settings schema 5 migrate after coordinated backups; complete release/submission and native visual acceptance remain pending (R-VAL-2, R-VAL-7, R-UI-10, R-UI-11, R-UI-12, R-NF-5, R-NF-11).
 
+- Add masked support-preview and private JSON-export foundations with bounded application-log tails. Desktop diagnostics, rotating logging and the complete support-export flow remain in progress (R-NF-6, R-UI-15, R-DOC-2).
+
 - Add sealed prebuilt MSI/Debian assembly adapters, original-term DEP-5 output, safe Debian layout and leak-safe tool-log retention. A core CRT probe passes actual WiX validation and read-only engine cases; final protected application packages and installation acceptance remain pending (R-NF-2:installers, R-DOC-3, R-SEC-8).
 
 - Add credential-free public UEX field/type/code checks and a default-off, main-only weekly workflow. Output excludes response values, and observed drift fails visibly without automatically changing the baseline (R-API-5, R-DOC-2).

@@ -6,6 +6,8 @@
 pub mod model;
 
 pub use crate::config::ConfigFile;
+pub use crate::diagnostic_logs::DiagnosticLogFiles;
+pub use crate::diagnostics::DiagnosticFileExport;
 pub use crate::game_log::GameLogFiles;
 pub use crate::layout::StorageLayout;
 pub use crate::logo::decode_logo;

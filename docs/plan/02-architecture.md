@@ -826,7 +826,7 @@ The privacy gate ([CLAUDE.md](../../CLAUDE.md), R-NF-12) allows user data to lea
 | L4 | working copies (redacted panel crops), confirmed manual private regions in `manual-attachments/`, and the inbox for images without a source file (§4a) | redacted crops; confirmed source-scale lossless ARGB regions with source hash/rectangle header; inbox copies | R-CAP-7; inbox per R-OCR-16 | R-CAP-7, R-OCR-16 |
 | L5 | database backups (`backup/`) | database copies and the config file | the last 3 backups | R-NF-11, [release process](../release-process.md) |
 | L6 | logs | rotating log files, secrets masked | rotation limits set in M1 | R-NF-6 |
-| L7 | diagnostics export | allowlisted files, saved where the user chooses | the user's file | R-NF-6 |
+| L7 | diagnostics export | allowlisted files, saved where the user chooses; implementation checkpoint 2026-11-02: masked immutable previews, explicit public-attachment acknowledgement and bounded exclusive JSON writes, with fixed application-log tails; [desktop/logging composition remains pending](../diagnostics-export.md) | the user's file | R-NF-6 |
 | L8 | cache directory | regenerable files only (for example render or shader caches, if the graphics backend writes any) | can be deleted at any time | §8 |
 
 **Local sources read** (read-only; nothing from them leaves the machine)

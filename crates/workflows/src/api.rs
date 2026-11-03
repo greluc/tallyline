@@ -5,6 +5,12 @@
 
 pub mod model;
 
+pub use crate::diagnostics::{
+    ConfirmedDiagnosticExport, DiagnosticEntry, DiagnosticExportApplication,
+    DiagnosticExportFailure, DiagnosticExportSink, DiagnosticInput, DiagnosticPreview,
+    DiagnosticPrivacy, DiagnosticSection,
+};
+
 use model::{AppSettings, Theme};
 
 /// Persists application preferences as one atomic update.

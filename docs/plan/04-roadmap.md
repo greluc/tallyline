@@ -85,6 +85,8 @@ Implementation 2026-11-01 (R-NF-10): the app elects before writable startup; ada
 
 **Status checkpoint 2026-11-02 (#82):** the authenticated Linux DH store, Windows Local store, bounded credential codec, passive revalidation persistence, warning-confirmed owner-only Linux fallback and bounded desktop credential worker are implemented. Masked onboarding and the Settings account disclosure offer packaged/own-token and explicit session-only choices while preserving local browsing. Headless application/UI and isolated Linux protocol/temporary-file contracts cover failures and uncertain mutation reconciliation. Actual OS providers/prompts, cross-session provider persistence, FAT/exFAT media, installed clean-OS and native visual acceptance remain pending; issue #82 and its M1 acceptance criterion are not complete.
 
+**Status checkpoint 2026-11-02 (#94):** masked support previews, explicit acknowledgement, exclusive private JSON exports and fixed-name bounded application-log tails have public application/real-file contracts. Actual diagnostics UI, connection testing, rotating tracing and optional image exports remain open; [the implementation record](../diagnostics-export.md) states the bounds and remaining acceptance.
+
 ## M2 – OCR core and eval
 
 - [ ] `adapter-ocr`: ORT sessions through `ort`, DB postprocessing, CTC decode; ONNX Runtime telemetry switched off by our own code: `ORT_DISABLE_TELEMETRY=1` before the first ONNX Runtime call and `with_telemetry(false)` before the first session (R-NF-12, ADR-0008)
