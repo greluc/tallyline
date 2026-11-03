@@ -186,6 +186,7 @@ fn next_snapshot(
             | BackgroundEvent::ReportReviewed { .. }
             | BackgroundEvent::ReviewFailed { .. }
             | BackgroundEvent::ReportsLoaded { .. }
+            | BackgroundEvent::ReportEditFinished { .. }
             | BackgroundEvent::ReportFailed(_)
             | BackgroundEvent::UpdateChecked(_)
             | BackgroundEvent::GameWitnessLoaded(_)
@@ -584,6 +585,7 @@ fn r_api_3__non_json_metadata_uses_the_injected_observation_time_without_replaci
             | BackgroundEvent::ReportReviewed { .. }
             | BackgroundEvent::ReviewFailed { .. }
             | BackgroundEvent::ReportsLoaded { .. }
+            | BackgroundEvent::ReportEditFinished { .. }
             | BackgroundEvent::ReportFailed(_)
             | BackgroundEvent::UpdateChecked(_)
             | BackgroundEvent::GameWitnessLoaded(_)

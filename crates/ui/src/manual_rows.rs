@@ -4,6 +4,8 @@
 //! Keyboard entry with aged UEX references beside empty manual inputs.
 
 use crate::api::{Catalogue, ShellState};
+use crate::manual_frame;
+use crate::manual_frame::ManualFrame;
 use tallyline_reference_data::api::model::ReferenceSnapshot;
 use tallyline_reporting::api::ManualEdit;
 use tallyline_shared_kernel::api::model::TradeSide;
@@ -15,6 +17,7 @@ pub(crate) fn show(
     state: &mut ShellState,
     catalogue: &Catalogue,
     snapshot: &ReferenceSnapshot,
+    mut actions: Vec<ManualEdit>,
 ) {
     let Some(report) = state.manual().selected().cloned() else {
         return;
@@ -32,14 +35,12 @@ pub(crate) fn show(
         catalogue.text("manual.observed"),
         crate::attachment_views::format_time(report.observed_at())
     ));
-    let priors = snapshot.terminal_priors(report.key().terminal());
+    let terminal = state.manual().terminal.unwrap_or(report.key().terminal());
+    let side = state.manual().side.unwrap_or(report.key().side());
+    let priors = snapshot.terminal_priors(terminal);
     let mut add = None;
     if let Some(priors) = priors {
-        for prior in priors
-            .rows()
-            .iter()
-            .filter(|prior| prior.side() == report.key().side())
-        {
+        for prior in priors.rows().iter().filter(|prior| prior.side() == side) {
             if !report
                 .rows()
                 .iter()
@@ -91,11 +92,7 @@ pub(crate) fn show(
         }
     }
     if let Some(commodity) = add {
-        crate::manual_views::queue_edit(
-            state,
-            ManualEdit::AddCommodity(commodity),
-            snapshot.clone(),
-        );
+        actions.push(ManualEdit::AddCommodity(commodity));
     }
     let ages: std::collections::BTreeMap<_, _> = priors
         .into_iter()
@@ -109,16 +106,16 @@ pub(crate) fn show(
             )
         })
         .collect();
-    let mut edit = None;
-    let mut invalid = false;
+    let mut frame = ManualFrame::new(actions);
     for row in &mut state.manual_mut().rows {
         ui.push_id(row.id.0, |ui| {
             ui.separator();
             ui.label(name(snapshot, row.commodity));
             let prior = priors.and_then(|priors| {
-                priors.rows().iter().find(|prior| {
-                    prior.commodity() == row.commodity && prior.side() == report.key().side()
-                })
+                priors
+                    .rows()
+                    .iter()
+                    .find(|prior| prior.commodity() == row.commodity && prior.side() == side)
             });
             if let Some(prior) = prior {
                 let values = prior.values();
@@ -149,7 +146,7 @@ pub(crate) fn show(
                     ))
                     .clicked()
                 {
-                    edit = Some(ManualEdit::TakeOver(row.id));
+                    frame.actions.push(ManualEdit::TakeOver(row.id));
                 }
             } else {
                 ui.label(catalogue.text("manual.no_reference"));
@@ -161,9 +158,9 @@ pub(crate) fn show(
                     tallyline_egui::NumericUnit::AuecPerScu,
                     format!("{} {}", catalogue.text("manual.price_for"), row.commodity.0),
                 ) {
-                    match optional(&row.price) {
-                        Ok(value) => edit = Some(ManualEdit::Price(row.id, value)),
-                        Err(()) => invalid = true,
+                    match manual_frame::optional(&row.price) {
+                        Ok(value) => frame.edits.push(ManualEdit::Price(row.id, value)),
+                        Err(()) => frame.invalid = true,
                     }
                 }
                 if numeric_field(
@@ -172,9 +169,9 @@ pub(crate) fn show(
                     tallyline_egui::NumericUnit::Scu,
                     format!("{} {}", catalogue.text("manual.scu_for"), row.commodity.0),
                 ) {
-                    match optional(&row.stock) {
-                        Ok(value) => edit = Some(ManualEdit::Stock(row.id, value)),
-                        Err(()) => invalid = true,
+                    match manual_frame::optional(&row.stock) {
+                        Ok(value) => frame.edits.push(ManualEdit::Stock(row.id, value)),
+                        Err(()) => frame.invalid = true,
                     }
                 }
                 if field(
@@ -186,22 +183,22 @@ pub(crate) fn show(
                         row.commodity.0
                     ),
                 ) {
-                    match optional(&row.status) {
-                        Ok(value) => edit = Some(ManualEdit::Status(row.id, value)),
-                        Err(()) => invalid = true,
+                    match manual_frame::optional(&row.status) {
+                        Ok(value) => frame.edits.push(ManualEdit::Status(row.id, value)),
+                        Err(()) => frame.invalid = true,
                     }
                 }
             });
         });
     }
-    if invalid {
-        state.manual_mut().notice = Some(catalogue.text("manual.invalid").to_owned());
-    }
-    if let Some(edit) = edit {
-        crate::manual_views::queue_edit(state, edit, snapshot.clone());
-    }
+    frame.finish(
+        state.manual_mut(),
+        &report,
+        snapshot,
+        catalogue.text("manual.invalid"),
+    );
     if let Some(levels) = snapshot.status_levels() {
-        let levels = match report.key().side() {
+        let levels = match side {
             TradeSide::Buy => &levels.buy,
             TradeSide::Sell => &levels.sell,
         };
@@ -240,7 +237,7 @@ fn field(ui: &mut egui::Ui, input: &mut String, label: String) -> bool {
             );
             response.widget_info(|| egui::WidgetInfo::labeled(egui::Role::TextInput, true, &label));
             crate::control_focus::reveal(ui, &response);
-            response.lost_focus()
+            response.lost_focus() && ui.is_enabled()
         },
     )
     .inner
@@ -258,12 +255,5 @@ fn numeric_field(
         unit,
     });
     crate::control_focus::reveal(ui, &response);
-    response.lost_focus()
-}
-fn optional<T: std::str::FromStr>(text: &str) -> Result<Option<T>, ()> {
-    if text.trim().is_empty() {
-        Ok(None)
-    } else {
-        text.trim().parse().map(Some).map_err(|_| ())
-    }
+    response.lost_focus() && ui.is_enabled()
 }

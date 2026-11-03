@@ -286,7 +286,7 @@ fn r_man_5_r_sub_7_q_manual_r_ui_16__passive_other_draft_commit_preserves_unfini
     harness.key_press(egui::Key::Tab);
     harness.run();
     assert!(
-        matches!(harness.state_mut().manual_mut().take_command(), Some(ManualCommand::Edit { edit: tallyline_reporting::api::ManualEdit::Price(_, Some(value)), .. }) if value.to_string() == "123.45")
+        matches!(harness.state_mut().manual_mut().take_command(), Some(ManualCommand::Edit { edits, .. }) if matches!(edits.as_slice(), [tallyline_reporting::api::ManualEdit::Price(_, Some(value))] if value.to_string() == "123.45"))
     );
 }
 #[test]

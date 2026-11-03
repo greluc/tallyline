@@ -87,20 +87,19 @@ impl ManualEditor {
             .iter_mut()
             .find(|report| report.id() == id && report.version() == expected)
         else {
-            self.busy = self
-                .selected
-                .is_some_and(|id| self.review_or_attachment_pending(id));
+            self.refresh_busy();
             return;
         };
         *stored = review.report().clone();
+        if self.selected == Some(id) && self.input_version == Some(expected) {
+            self.input_version = Some(review.report().version());
+        }
         if self.selected == Some(id) && review.stock_settings() == self.stock_settings {
             self.review_attempt = Some((id, review.report().version(), snapshot.clone()));
             self.review.received(review, snapshot);
             self.notice = None;
         }
-        self.busy = self
-            .selected
-            .is_some_and(|id| self.review_or_attachment_pending(id));
+        self.refresh_busy();
     }
     pub(crate) fn review_failed(&mut self, id: ReportId, expected: u64, error: RepositoryError) {
         if !self.pending_reviews.contains(&(id, expected)) {
@@ -108,9 +107,7 @@ impl ManualEditor {
         }
         self.pending_reviews
             .retain(|request| *request != (id, expected));
-        self.busy = self
-            .selected
-            .is_some_and(|id| self.review_or_attachment_pending(id));
+        self.refresh_busy();
         if self.selected == Some(id) {
             self.review.invalidate();
             self.notice = Some(error.to_string());

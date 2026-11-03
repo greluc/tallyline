@@ -125,14 +125,18 @@ impl eframe::App for DesktopShell {
             }
         }
         if let Some(command) = self.state.manual_mut().take_command() {
-            let sent = self
-                .manual_commands
-                .as_ref()
-                .is_some_and(|sender| sender.try_send(command).is_ok());
-            if !sent {
-                self.state
-                    .manual_mut()
-                    .failed(tallyline_reporting::api::RepositoryError::Unavailable);
+            let undelivered = match self.manual_commands.as_ref() {
+                Some(sender) => match sender.try_send(command) {
+                    Ok(()) => None,
+                    Err(
+                        std::sync::mpsc::TrySendError::Full(command)
+                        | std::sync::mpsc::TrySendError::Disconnected(command),
+                    ) => Some(command),
+                },
+                None => Some(command),
+            };
+            if let Some(command) = undelivered {
+                self.state.manual_mut().failed_delivery(command);
             }
         }
         if let Some(command) = self.state.credentials_mut().take_command() {

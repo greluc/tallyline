@@ -4,6 +4,8 @@ All notable changes are recorded here.
 
 ## [Unreleased]
 
+- Save manual field commits together with explicit takeover, Add commodity and context changes so one interaction cannot lose another row's input. Preserve unrelated invalid text and bind save results to their exact request across Draft selection and retries; a refused batch saves nothing (R-MAN-2, R-MAN-3, R-UI-16).
+
 - Present offline open-source licences in a bounded, keyboard-selectable component browser with exact upstream SPDX declarations, attribution and all bundled licence/notice files. Share a wrapped, selectable, read-only text viewer with the full GPL dialog, including keyboard scrolling and copying at 200% scale (R-UI-17, R-UI-18).
 - Style existing manual price/SCU and stock-tolerance inputs with exact-string right-aligned Mono numerals, muted aUEC/SCU, SCU and % unit suffixes and unit-bearing accessible names. Preserve explicit reference takeover, field-leaving commits and saved tolerance validation; wrap whole numeric input groups in narrow views (R-MAN-2, R-UI-7, R-UI-17).
 

@@ -16,7 +16,7 @@ pub use crate::licences::{
 };
 pub use crate::material_symbols_font::MaterialSymbolsFont;
 
-pub use crate::manual_editor::{ManualCommand, ManualEditor};
+pub use crate::manual_editor::{ManualCommand, ManualEditRequestId, ManualEditor};
 pub use crate::reference_browser::{ReferenceBrowser, ReferenceCommand, ReferenceDiagnostic};
 
 pub use crate::attachment_editor::{ManualAttachmentAction, ManualAttachmentCommand};

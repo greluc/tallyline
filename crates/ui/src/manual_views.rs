@@ -70,7 +70,8 @@ fn show_contents(ui: &mut egui::Ui, state: &mut ShellState, catalogue: &Catalogu
         }
     });
     ui.add_enabled_ui(!state.manual().busy && state.manual().ready, |ui| {
-        context(ui, state, catalogue);
+        let mut actions = Vec::new();
+        context(ui, state, catalogue, &mut actions);
         let snapshot = state
             .manual()
             .environment
@@ -85,9 +86,9 @@ fn show_contents(ui: &mut egui::Ui, state: &mut ShellState, catalogue: &Catalogu
             })
             .cloned();
         if let Some(snapshot) = snapshot {
-            terminals(ui, state, catalogue, &snapshot);
+            terminals(ui, state, catalogue, &snapshot, &mut actions);
             if state.manual().selected().is_some() {
-                crate::manual_rows::show(ui, state, catalogue, &snapshot);
+                crate::manual_rows::show(ui, state, catalogue, &snapshot, actions);
             } else {
                 create(ui, state, catalogue, &snapshot);
             }
@@ -99,36 +100,49 @@ fn show_contents(ui: &mut egui::Ui, state: &mut ShellState, catalogue: &Catalogu
     let account = state.credentials().account().clone();
     crate::attachment_views::show_manual_attachment_editor(ui, state, catalogue, &account);
 }
-fn context(ui: &mut egui::Ui, state: &mut ShellState, catalogue: &Catalogue) {
+fn context(
+    ui: &mut egui::Ui,
+    state: &mut ShellState,
+    catalogue: &Catalogue,
+    actions: &mut Vec<ManualEdit>,
+) {
     let old = state.manual().selected().map(|report| report.key());
+    let mut changed = false;
     ui.label(catalogue.text("manual.environment"));
     ui.horizontal_wrapped(|ui| {
         for (channel, key) in crate::reference_views::CHANNELS {
-            ui.selectable_value(
-                &mut state.manual_mut().environment,
-                Some(channel),
-                catalogue.text(key),
-            );
+            changed |= ui
+                .selectable_value(
+                    &mut state.manual_mut().environment,
+                    Some(channel),
+                    catalogue.text(key),
+                )
+                .changed();
         }
     });
     ui.horizontal(|ui| {
         ui.label(catalogue.text("manual.side"));
-        ui.selectable_value(
-            &mut state.manual_mut().side,
-            Some(TradeSide::Buy),
-            catalogue.text("manual.buy"),
-        );
-        ui.selectable_value(
-            &mut state.manual_mut().side,
-            Some(TradeSide::Sell),
-            catalogue.text("manual.sell"),
-        );
+        changed |= ui
+            .selectable_value(
+                &mut state.manual_mut().side,
+                Some(TradeSide::Buy),
+                catalogue.text("manual.buy"),
+            )
+            .changed();
+        changed |= ui
+            .selectable_value(
+                &mut state.manual_mut().side,
+                Some(TradeSide::Sell),
+                catalogue.text("manual.sell"),
+            )
+            .changed();
     });
-    if let Some(old) = old
+    if changed
+        && let Some(old) = old
         && let Some(environment) = state.manual().environment
         && let Some(side) = state.manual().side
         && (old.environment() != environment || old.side() != side)
-        && let Some(snapshot) = state
+        && state
             .references()
             .snapshot(
                 state
@@ -137,10 +151,10 @@ fn context(ui: &mut egui::Ui, state: &mut ShellState, catalogue: &Catalogue) {
                     .environment_mapping
                     .environment(environment),
             )
-            .cloned()
+            .is_some()
         && let Ok(key) = ReportKey::new(old.terminal(), side, environment)
     {
-        queue_edit(state, ManualEdit::ChangeKey(key), snapshot);
+        actions.push(ManualEdit::ChangeKey(key));
     }
 }
 fn terminals(
@@ -148,6 +162,7 @@ fn terminals(
     state: &mut ShellState,
     catalogue: &Catalogue,
     snapshot: &ReferenceSnapshot,
+    actions: &mut Vec<ManualEdit>,
 ) {
     ui.label(catalogue.text("manual.terminal"));
     ui.add(
@@ -214,11 +229,14 @@ fn terminals(
                     if let Some(report) = state.manual().selected()
                         && let Ok(key) = ReportKey::new(
                             terminal.id(),
-                            report.key().side(),
-                            report.key().environment(),
+                            state.manual().side.unwrap_or(report.key().side()),
+                            state
+                                .manual()
+                                .environment
+                                .unwrap_or(report.key().environment()),
                         )
                     {
-                        queue_edit(state, ManualEdit::ChangeKey(key), snapshot.clone());
+                        actions.push(ManualEdit::ChangeKey(key));
                     }
                 }
             }
@@ -249,17 +267,6 @@ fn create(
         state.manual_mut().queue(ManualCommand::Create {
             key,
             snapshot: snapshot.clone(),
-        });
-    }
-}
-pub(crate) fn queue_edit(state: &mut ShellState, edit: ManualEdit, snapshot: ReferenceSnapshot) {
-    if let Some(report) = state.manual().selected() {
-        let (id, expected) = (report.id(), report.version());
-        state.manual_mut().queue(ManualCommand::Edit {
-            id,
-            expected,
-            edit,
-            snapshot,
         });
     }
 }

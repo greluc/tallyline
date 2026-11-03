@@ -88,6 +88,20 @@ pub enum BackgroundEvent {
         /// Draft explicitly created or edited by this user action.
         selected: Option<tallyline_reporting::api::model::ReportId>,
     },
+    /// The committed result or refusal for exactly one manual edit attempt.
+    ReportEditFinished {
+        /// Editor-owned unique attempt.
+        request: crate::api::model::ManualEditRequestId,
+        /// Requested Draft identity.
+        id: tallyline_reporting::api::model::ReportId,
+        /// Draft version observed when the request was admitted.
+        expected: u64,
+        /// Saved state or actionable refusal, without replacing unrelated input.
+        result: Result<
+            Box<tallyline_reporting::api::model::Report>,
+            tallyline_reporting::api::RepositoryError,
+        >,
+    },
     /// Committed assessments for one request, without selecting a Draft or moving focus.
     ReportReviewed {
         /// Draft version used when this request was queued.
@@ -299,6 +313,14 @@ impl ShellState {
             BackgroundEvent::ReportsLoaded { reports, selected } => {
                 self.receive_drafts(reports, selected)
             }
+            BackgroundEvent::ReportEditFinished {
+                request,
+                id,
+                expected,
+                result,
+            } => self
+                .manual
+                .edit_finished(request, id, expected, result.map(|report| *report)),
             BackgroundEvent::ReportReviewed {
                 expected,
                 review,

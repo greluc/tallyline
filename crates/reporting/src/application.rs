@@ -8,9 +8,7 @@ use crate::api::{ReportRepository, RepositoryError};
 use tallyline_game::api::model::EnvironmentMapping;
 use tallyline_reference_data::api::model::ReferenceSnapshot;
 use tallyline_shared_kernel::api::Clock;
-use tallyline_shared_kernel::api::model::{
-    CommodityId, Percent, PricePerScu, ScuQuantity, TradeSide,
-};
+use tallyline_shared_kernel::api::model::{CommodityId, Percent, PricePerScu, ScuQuantity};
 
 /// An explicit user edit of a manual Draft.
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -113,107 +111,6 @@ impl<R: ReportRepository, C: Clock> ReportingApplication<R, C> {
     pub fn drafts(&mut self) -> Result<Vec<Report>, RepositoryError> {
         self.repository.drafts()
     }
-    /// Validates and persists an explicit user edit against its expected version.
-    ///
-    /// # Errors
-    /// Returns stale edits, invalid vocabulary/reference choices or unavailable storage.
-    pub fn edit(
-        &mut self,
-        id: ReportId,
-        expected: u64,
-        edit: ManualEdit,
-        snapshot: &ReferenceSnapshot,
-    ) -> Result<Report, RepositoryError> {
-        let mut report = self
-            .repository
-            .load_draft(id)?
-            .ok_or(RepositoryError::Invalid)?;
-        if report.version() != expected {
-            return Err(RepositoryError::Conflict);
-        }
-        let key = match edit {
-            ManualEdit::ChangeKey(key) => key,
-            ManualEdit::AddCommodity(_)
-            | ManualEdit::Price(..)
-            | ManualEdit::Stock(..)
-            | ManualEdit::Status(..)
-            | ManualEdit::TakeOver(_) => report.key(),
-        };
-        if self.mapping.environment(key.environment()) != snapshot.environment() {
-            return Err(RepositoryError::Invalid);
-        }
-        let result = match edit {
-            ManualEdit::AddCommodity(commodity) => {
-                let known = snapshot
-                    .commodities("")
-                    .iter()
-                    .any(|item| item.id() == commodity)
-                    || snapshot
-                        .terminal_priors(key.terminal())
-                        .is_some_and(|priors| {
-                            priors
-                                .rows()
-                                .iter()
-                                .any(|row| row.commodity() == commodity && row.side() == key.side())
-                        });
-                if !known {
-                    return Err(RepositoryError::Invalid);
-                }
-                report.add_commodity(commodity).map(|_| ())
-            }
-            ManualEdit::Price(row, value) => report.set_price(row, value),
-            ManualEdit::Stock(row, value) => report.set_stock(row, value),
-            ManualEdit::Status(row, value) => {
-                if let Some(value) = value {
-                    let levels = snapshot.status_levels().ok_or(RepositoryError::Invalid)?;
-                    let statuses = match key.side() {
-                        TradeSide::Buy => &levels.buy,
-                        TradeSide::Sell => &levels.sell,
-                    };
-                    if !statuses.iter().any(|level| level.code == value) {
-                        return Err(RepositoryError::Invalid);
-                    }
-                }
-                report.set_status(row, value)
-            }
-            ManualEdit::TakeOver(row) => {
-                let commodity = report
-                    .rows()
-                    .iter()
-                    .find(|item| item.id() == row)
-                    .ok_or(RepositoryError::Invalid)?
-                    .commodity();
-                let prior = snapshot
-                    .terminal_priors(key.terminal())
-                    .and_then(|priors| {
-                        priors.rows().iter().find(|prior| {
-                            prior.commodity() == commodity && prior.side() == key.side()
-                        })
-                    })
-                    .ok_or(RepositoryError::Invalid)?;
-                let values = prior.values();
-                report
-                    .set_price(row, Some(values.price))
-                    .and_then(|()| report.set_stock(row, Some(values.stock)))
-                    .and_then(|()| report.set_status(row, values.status))
-            }
-            ManualEdit::ChangeKey(key) => {
-                if !snapshot
-                    .terminals("")
-                    .iter()
-                    .any(|terminal| terminal.id() == key.terminal())
-                {
-                    return Err(RepositoryError::Invalid);
-                }
-                report.change_key(key)
-            }
-        };
-        result.map_err(|_| RepositoryError::Invalid)?;
-        if report.version() > expected {
-            self.repository.save_draft(&report, expected)?;
-        }
-        Ok(report)
-    }
 }
 
 impl<R: ReportRepository, C: Clock> ReportingApplication<R, C> {
@@ -223,6 +120,7 @@ impl<R: ReportRepository, C: Clock> ReportingApplication<R, C> {
     }
 }
 
+mod manual;
 mod prices;
 
 impl<R: ReportRepository, C: Clock> ReportingApplication<R, C> {

@@ -9,6 +9,8 @@ use tallyline_reporting::api::model::{Report, ReportId, ReportKey, RowId};
 use tallyline_reporting::api::{ManualEdit, RepositoryError};
 use tallyline_shared_kernel::api::model::{CommodityId, TerminalId, TradeSide};
 
+pub use edits::ManualEditRequestId;
+
 /// A manual Report operation handled by the app-owned storage worker.
 #[derive(Clone, Debug)]
 pub enum ManualCommand {
@@ -25,12 +27,14 @@ pub enum ManualCommand {
     },
     /// Persist an explicit edit against its observed version and reference snapshot.
     Edit {
+        /// Unique attempt owned by this editor session.
+        request: ManualEditRequestId,
         /// Persistent Draft identity.
         id: ReportId,
         /// Version last displayed to the user.
         expected: u64,
-        /// Explicit input or context change.
-        edit: ManualEdit,
+        /// Ordered explicit inputs and actions.
+        edits: Vec<ManualEdit>,
         /// Immutable data used for this decision.
         snapshot: ReferenceSnapshot,
     },
@@ -60,6 +64,9 @@ pub struct ManualEditor {
     pub(crate) busy: bool,
     pub(crate) notice: Option<String>,
     command: Option<ManualCommand>,
+    pending_edit: Option<edits::PendingEdit>,
+    next_edit_request: u64,
+    input_version: Option<u64>,
     stock_settings: tallyline_reporting::api::model::StockSettings,
     pending_reviews: Vec<(ReportId, u64)>,
     review_attempt: Option<(ReportId, u64, ReferenceSnapshot)>,
@@ -91,6 +98,9 @@ impl ManualEditor {
     }
     /// Clears a failed delivery while keeping the user's input visible.
     pub fn failed(&mut self, error: RepositoryError) {
+        if self.pending_edit.is_some() {
+            return;
+        }
         self.busy = false;
         self.pending_attachments
             .retain(|(id, _)| Some(*id) != self.selected);
@@ -98,8 +108,14 @@ impl ManualEditor {
             .retain(|(id, _)| Some(*id) != self.selected);
         self.notice = Some(error.to_string());
     }
+    fn refresh_busy(&mut self) {
+        self.busy = self.pending_edit.is_some()
+            || self
+                .selected
+                .is_some_and(|id| self.review_or_attachment_pending(id));
+    }
     pub(crate) fn queue(&mut self, command: ManualCommand) {
-        if self.ready && !self.busy {
+        if self.ready && !self.busy && self.pending_edit.is_none() {
             let pending = match &command {
                 ManualCommand::Attachment(request) => Some((request.id, request.expected)),
                 ManualCommand::Review(request) => {
@@ -151,6 +167,12 @@ impl ManualEditor {
             {
                 if current.version() < previous.version() {
                     *current = previous;
+                } else if self.selected == Some(previous.id())
+                    && self.input_version == Some(previous.version())
+                    && self.pending_edit.is_none()
+                    && edits::same_input_values(&previous, current)
+                {
+                    self.input_version = Some(current.version());
                 }
             } else {
                 positions.insert(previous.id().0, reports.len());
@@ -158,7 +180,9 @@ impl ManualEditor {
             }
         }
         reports.retain(visible);
-        let selected = selected.filter(|id| reports.iter().any(|report| report.id() == *id));
+        let selected = selected
+            .filter(|_| self.pending_edit.is_none())
+            .filter(|id| reports.iter().any(|report| report.id() == *id));
         self.pending_attachments.retain(|(id, expected)| {
             reports
                 .iter()
@@ -184,6 +208,7 @@ impl ManualEditor {
                 .selected
                 .is_some_and(|id| self.review_or_attachment_pending(id));
         }
+        self.busy |= self.pending_edit.is_some();
         if self.selected.is_none() && self.environment.is_none() {
             self.environment = self
                 .reports
@@ -206,7 +231,7 @@ impl ManualEditor {
             self.pending_attachments
                 .retain(|request| *request != (id, expected));
             if self.selected == Some(id) {
-                self.busy = false;
+                self.busy = self.pending_edit.is_some();
             }
         }
         matched
@@ -214,7 +239,7 @@ impl ManualEditor {
     pub(crate) fn select(&mut self, id: ReportId) {
         if let Some(report) = self.reports.iter().find(|report| report.id() == id) {
             if self.selected != Some(id) {
-                self.busy = self.review_or_attachment_pending(id);
+                self.busy = self.pending_edit.is_some() || self.review_or_attachment_pending(id);
                 self.review = crate::manual_review::ManualReviewState::default();
                 self.review_attempt = None;
             }
@@ -228,6 +253,7 @@ impl ManualEditor {
                 self.attachment.clear_preview();
             }
             self.selected = Some(id);
+            self.input_version = Some(report.version());
             self.environment = Some(report.key().environment());
             self.terminal = Some(report.key().terminal());
             self.side = Some(report.key().side());
@@ -248,8 +274,9 @@ impl ManualEditor {
         self.review = crate::manual_review::ManualReviewState::default();
         self.review_attempt = None;
         self.attachment.clear_preview();
-        self.busy = false;
+        self.busy = self.pending_edit.is_some();
         self.selected = None;
+        self.input_version = None;
         self.terminal = None;
         self.side = None;
         self.rows.clear();
@@ -257,3 +284,5 @@ impl ManualEditor {
 }
 
 mod review;
+
+mod edits;

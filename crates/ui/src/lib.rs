@@ -35,6 +35,7 @@ mod updates;
 mod reference_browser;
 
 mod manual_editor;
+mod manual_frame;
 mod manual_rows;
 mod manual_views;
 mod reference_views;

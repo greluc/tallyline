@@ -6,8 +6,8 @@
 use tallyline_adapter_storage::api::SqliteReferenceCache;
 use tallyline_game::api::model::GameEnvironment;
 use tallyline_reference_data::api::model::{
-    CachedReference, EndpointData, PricePrior, PriorProvenance, PriorValues, TerminalPriors,
-    UexEnvironment,
+    CachedReference, Commodity, CommodityAverages, EndpointData, PricePrior, PriorProvenance,
+    PriorValues, TerminalPriors, UexEnvironment,
 };
 use tallyline_reference_data::api::{ReferenceApplication, ReferenceDataCache};
 use tallyline_reporting::api::model::ReportKey;
@@ -48,10 +48,22 @@ fn reference(
         },
     )?;
     Ok(ReferenceApplication::load(
-        Cache(vec![CachedReference::new(
-            Timestamp::from_seconds(950),
-            EndpointData::TerminalPriors(TerminalPriors::new(TerminalId(11), vec![prior])?),
-        )]),
+        Cache(vec![
+            CachedReference::new(
+                Timestamp::from_seconds(950),
+                EndpointData::Commodities(vec![Commodity::new(
+                    CommodityId(43),
+                    "Silver",
+                    "SILV",
+                    true,
+                    CommodityAverages::new(None, None),
+                )]),
+            ),
+            CachedReference::new(
+                Timestamp::from_seconds(950),
+                EndpointData::TerminalPriors(TerminalPriors::new(TerminalId(11), vec![prior])?),
+            ),
+        ]),
         Fixed,
     )?
     .snapshot(UexEnvironment::Live))
@@ -508,4 +520,108 @@ fn test_path(name: &str) -> Result<std::path::PathBuf, Box<dyn std::error::Error
             .duration_since(std::time::UNIX_EPOCH)?
             .as_nanos()
     )))
+}
+
+#[test]
+#[expect(
+    non_snake_case,
+    reason = "Requirement tags use a double underscore separator."
+)]
+fn r_man_2_r_man_3_r_nf_11__cross_row_batch_values_survive_sqlite_reopening() {
+    let path = test_path("tallyline-manual-batch").unwrap();
+    let snapshot = reference("100").unwrap();
+    let mut app = ReportingApplication::new(SqliteReferenceCache::open(&path).unwrap(), Fixed);
+    let key = ReportKey::new(TerminalId(11), TradeSide::Buy, GameEnvironment::Live).unwrap();
+    let report = app.create(key, Some("4.10.2")).unwrap();
+    let report = app
+        .edit_batch(
+            report.id(),
+            0,
+            &[
+                ManualEdit::AddCommodity(CommodityId(42)),
+                ManualEdit::AddCommodity(CommodityId(43)),
+            ],
+            &snapshot,
+        )
+        .unwrap();
+    let report = app
+        .edit_batch(
+            report.id(),
+            report.version(),
+            &[
+                ManualEdit::Price(
+                    report.rows()[1].id(),
+                    Some("12345678901234567890.125".parse().unwrap()),
+                ),
+                ManualEdit::TakeOver(report.rows()[0].id()),
+            ],
+            &snapshot,
+        )
+        .unwrap();
+    assert_eq!(report.rows()[0].price().unwrap().to_string(), "100");
+    assert_eq!(
+        report.rows()[1].price().unwrap().to_string(),
+        "12345678901234567890.125"
+    );
+    assert!(report.rows()[1].stock().is_none());
+    assert!(report.rows()[1].status().is_none());
+    assert_eq!(report.version(), 6);
+    drop(app);
+    let mut store = SqliteReferenceCache::open(&path).unwrap();
+    assert_eq!(store.load_draft(report.id()).unwrap(), Some(report));
+    drop(store);
+    std::fs::remove_file(path).unwrap();
+}
+
+#[test]
+#[expect(
+    non_snake_case,
+    reason = "Requirement tags use a double underscore separator."
+)]
+fn r_man_2_r_nf_11__later_invalid_edit_rolls_back_every_value_and_decision_across_reopening() {
+    use tallyline_reporting::api::RepositoryError;
+    let path = test_path("tallyline-manual-batch-rollback").unwrap();
+    let snapshot = reference("100").unwrap();
+    let mut app = ReportingApplication::new(SqliteReferenceCache::open(&path).unwrap(), Fixed);
+    let key = ReportKey::new(TerminalId(11), TradeSide::Buy, GameEnvironment::Live).unwrap();
+    let report = app.create(key, Some("4.10.2")).unwrap();
+    let report = app
+        .edit(
+            report.id(),
+            0,
+            ManualEdit::AddCommodity(CommodityId(42)),
+            &snapshot,
+        )
+        .unwrap();
+    let row = report.rows()[0].id();
+    let report = app
+        .edit(
+            report.id(),
+            report.version(),
+            ManualEdit::Price(row, Some("100".parse().unwrap())),
+            &snapshot,
+        )
+        .unwrap();
+    let report = app
+        .confirm_price(report.id(), report.version(), row, &snapshot)
+        .unwrap();
+    assert!(report.rows()[0].price_confirmation().is_some());
+    assert_eq!(
+        app.edit_batch(
+            report.id(),
+            report.version(),
+            &[
+                ManualEdit::Price(row, Some("900".parse().unwrap())),
+                ManualEdit::Status(row, std::num::NonZeroU8::new(7)),
+            ],
+            &snapshot
+        ),
+        Err(RepositoryError::Invalid)
+    );
+    assert_eq!(app.drafts().unwrap(), vec![report.clone()]);
+    drop(app);
+    let mut store = SqliteReferenceCache::open(&path).unwrap();
+    assert_eq!(store.load_draft(report.id()).unwrap(), Some(report));
+    drop(store);
+    std::fs::remove_file(path).unwrap();
 }

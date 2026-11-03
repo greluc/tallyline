@@ -208,11 +208,22 @@ fn run<R: ReportRepository, C: Clock>(
                             expected: request.expected,
                             error: tallyline_reporting::api::RepositoryError::Unavailable,
                         },
-                        ManualCommand::Create { .. }
-                        | ManualCommand::Edit { .. }
-                        | ManualCommand::Attachment(_) => BackgroundEvent::ReportFailed(
-                            tallyline_reporting::api::RepositoryError::Unavailable,
-                        ),
+                        ManualCommand::Edit {
+                            request,
+                            id,
+                            expected,
+                            ..
+                        } => BackgroundEvent::ReportEditFinished {
+                            request: *request,
+                            id: *id,
+                            expected: *expected,
+                            result: Err(tallyline_reporting::api::RepositoryError::Unavailable),
+                        },
+                        ManualCommand::Create { .. } | ManualCommand::Attachment(_) => {
+                            BackgroundEvent::ReportFailed(
+                                tallyline_reporting::api::RepositoryError::Unavailable,
+                            )
+                        }
                     },
                     &wake,
                     stop,
@@ -234,8 +245,34 @@ fn run<R: ReportRepository, C: Clock>(
             deliver(&outgoing, event, &wake, stop)?;
             continue;
         }
+        if let ManualCommand::Edit {
+            request,
+            id,
+            expected,
+            edits,
+            snapshot,
+        } = command
+        {
+            let result = application
+                .edit_batch(id, expected, &edits, &snapshot)
+                .map(Box::new);
+            deliver(
+                &outgoing,
+                BackgroundEvent::ReportEditFinished {
+                    request,
+                    id,
+                    expected,
+                    result,
+                },
+                &wake,
+                stop,
+            )?;
+            continue;
+        }
         let result = match command {
-            ManualCommand::Attachment(_) | ManualCommand::Review(_) => {
+            ManualCommand::Attachment(_)
+            | ManualCommand::Review(_)
+            | ManualCommand::Edit { .. } => {
                 return Err(io::Error::other(
                     "specialised manual command was not dispatched",
                 ));
@@ -243,12 +280,6 @@ fn run<R: ReportRepository, C: Clock>(
             ManualCommand::Create { key, snapshot } => {
                 application.create_from_reference(key, &snapshot)
             }
-            ManualCommand::Edit {
-                id,
-                expected,
-                edit,
-                snapshot,
-            } => application.edit(id, expected, edit, &snapshot),
         };
         let event = match result {
             Ok(report) => match application.drafts() {

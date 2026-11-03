@@ -25,7 +25,7 @@ Tallyline is a Windows and Linux desktop client for reviewing Star Citizen commo
 | Step | What Tallyline provides |
 |---|---|
 | Capture | Manual commodity Drafts, resumable after restart; bounded image decoding and private screenshot-region foundations. The desktop capture and OCR workflow is still being integrated. |
-| Review | Exact decimal prices and SCU quantities, reference comparisons, price/stock/status counters, keyboard navigation and value-bound confirmation. Passive refreshes preserve user input. |
+| Review | Exact decimal prices and SCU quantities, reference comparisons, price/stock/status counters, keyboard navigation and value-bound confirmation. Passive refreshes preserve user input. Manual field commits and explicit actions save together; refused requests keep unfinished text. |
 | Report | Explicit test mode, reviewed release into a durable serial queue, remembered account/mode and cancellation before sending. Uncertain sends never replay automatically; complete retry, quota and partial-result handling remain open. |
 
 Offline reference browsing and manual Drafts work without credentials. Onboarding and **Settings → UEX account** validate a masked key before saving it; session-only credentials are also supported. Actual OS-provider, real-service and native visual acceptance remain separate gates.

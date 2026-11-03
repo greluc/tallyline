@@ -144,21 +144,6 @@ fn r_man_3_r_ui_2__resumed_draft_keeps_empty_inputs_until_keyboard_entry_and_que
             .is_some()
     );
     assert!(harness.state_mut().manual_mut().take_command().is_none());
-    harness
-        .get_by_label("Take over UEX values explicitly")
-        .click();
-    harness.run();
-    assert!(matches!(
-        harness.state_mut().manual_mut().take_command(),
-        Some(ManualCommand::Edit {
-            edit: tallyline_reporting::api::ManualEdit::TakeOver(_),
-            ..
-        })
-    ));
-    harness.state_mut().receive(BackgroundEvent::ReportFailed(
-        tallyline_reporting::api::RepositoryError::Unavailable,
-    ));
-    harness.run();
     for label in [
         "Price per SCU for commodity 42 (aUEC/SCU)",
         "SCU for commodity 42 (SCU)",
@@ -189,12 +174,9 @@ fn r_man_3_r_ui_2__resumed_draft_keeps_empty_inputs_until_keyboard_entry_and_que
     assert!(harness.state_mut().manual_mut().take_command().is_none());
     harness.key_press(egui::Key::Tab);
     harness.run();
-    assert!(matches!(
-        harness.state_mut().manual_mut().take_command(),
-        Some(ManualCommand::Edit {
-            edit: tallyline_reporting::api::ManualEdit::Price(_, Some(price)),
-            ..
-        }) if price.to_string() == "12345678901234567890.125"
+    let command = harness.state_mut().manual_mut().take_command().unwrap();
+    assert!(matches!(&command,
+        ManualCommand::Edit { edits, .. } if matches!(edits.as_slice(), [tallyline_reporting::api::ManualEdit::Price(_, Some(price))] if price.to_string() == "12345678901234567890.125")
     ));
     harness.run();
     assert!(
@@ -206,9 +188,7 @@ fn r_man_3_r_ui_2__resumed_draft_keeps_empty_inputs_until_keyboard_entry_and_que
             .accesskit_node()
             .is_disabled()
     );
-    harness.state_mut().receive(BackgroundEvent::ReportFailed(
-        tallyline_reporting::api::RepositoryError::Unavailable,
-    ));
+    refuse_edit(harness.state_mut(), command).unwrap();
     harness.run();
     harness
         .get_by_role_and_label(
@@ -234,6 +214,14 @@ fn r_man_3_r_ui_2__resumed_draft_keeps_empty_inputs_until_keyboard_entry_and_que
             .query_by_label("Enter a valid non-negative number; a traded price must be positive.")
             .is_some()
     );
+    harness
+        .get_by_label("Take over UEX values explicitly")
+        .click();
+    harness.run();
+    assert!(matches!(
+        harness.state_mut().manual_mut().take_command(),
+        Some(ManualCommand::Edit { edits, .. }) if matches!(edits.as_slice(), [tallyline_reporting::api::ManualEdit::TakeOver(_)])
+    ));
 }
 
 fn font_files() -> Result<tallyline_ui::api::model::FontFiles, &'static str> {
@@ -393,3 +381,24 @@ fn r_man_1__all_ambiguous_terminal_results_remain_selectable_beyond_twelve_match
 
 #[path = "manual_reports/numeric_fields.rs"]
 mod numeric_fields;
+
+fn refuse_edit(state: &mut ShellState, command: ManualCommand) -> Result<(), &'static str> {
+    let ManualCommand::Edit {
+        request,
+        id,
+        expected,
+        ..
+    } = command
+    else {
+        return Err("expected a manual edit request");
+    };
+    state.receive(BackgroundEvent::ReportEditFinished {
+        request,
+        id,
+        expected,
+        result: Err(tallyline_reporting::api::RepositoryError::Unavailable),
+    });
+    Ok(())
+}
+#[path = "manual_reports/batches.rs"]
+mod batches;
