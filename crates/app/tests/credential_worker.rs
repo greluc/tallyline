@@ -453,3 +453,153 @@ fn r_api_4_r_api_7_r_nf_4_r_ui_16__restored_account_is_revalidated_passively_and
         worker.finish().unwrap();
     }
 }
+
+struct PendingValidator {
+    entered: mpsc::SyncSender<()>,
+    release: std::sync::Arc<tokio::sync::Notify>,
+}
+impl CredentialValidator for PendingValidator {
+    async fn validate(&self, _: &CredentialValues) -> Result<ValidatedAccount, CredentialFailure> {
+        self.entered
+            .try_send(())
+            .map_err(|_| CredentialFailure::Unavailable)?;
+        self.release.notified().await;
+        Ok(ValidatedAccount::new("dummy-runner".to_owned()))
+    }
+}
+#[test]
+#[expect(
+    non_snake_case,
+    reason = "Requirement tags use a double underscore separator."
+)]
+fn r_nf_4_r_sub_2__credential_shutdown_does_not_wait_for_a_shared_http_validation_reply() {
+    let (commands, incoming) = mpsc::sync_channel(1);
+    let (outgoing, events) = mpsc::sync_channel(4);
+    let (entered, requests) = mpsc::sync_channel(1);
+    let release = std::sync::Arc::new(tokio::sync::Notify::new());
+    let worker = tallyline_app::api::CredentialWorker::start(
+        || async { Ok(Store) },
+        PendingValidator {
+            entered,
+            release: release.clone(),
+        },
+        Clock,
+        None,
+        incoming,
+        outgoing,
+        || (),
+    )
+    .unwrap();
+    events.recv_timeout(Duration::from_secs(10)).unwrap();
+    commands
+        .send(CredentialCommand::Validate(CredentialCandidate::new(
+            CredentialValues::new("dummy-key".to_owned(), Some("dummy-token".to_owned())).unwrap(),
+            Persistence::Session,
+        )))
+        .ok()
+        .unwrap();
+    requests.recv_timeout(Duration::from_secs(10)).unwrap();
+    let (completed, completion) = mpsc::sync_channel(1);
+    let shutdown = std::thread::Builder::new()
+        .spawn(move || {
+            let result = worker.finish();
+            completed.send(()).ok();
+            result
+        })
+        .unwrap();
+    let finished_before_reply = completion.recv_timeout(Duration::from_secs(2)).is_ok();
+    release.notify_one();
+    shutdown.join().unwrap().unwrap();
+    drop(commands);
+    assert!(finished_before_reply);
+    assert!(events.try_recv().is_err());
+}
+
+struct QueueProbe {
+    observations: mpsc::SyncSender<(bool, bool, bool)>,
+    closed: std::sync::Arc<std::sync::atomic::AtomicUsize>,
+}
+impl tallyline_app::api::CredentialQueue for QueueProbe {
+    fn poll(
+        &mut self,
+        application: &tallyline_submission::api::CredentialApplication,
+        _: Option<&tallyline_submission::api::model::ReleaseToken>,
+        _: Timestamp,
+    ) -> std::io::Result<()> {
+        let _sent = self.observations.try_send((
+            tallyline_adapter_platform::api::worker_priority()?.is_below_normal(),
+            tokio::runtime::Handle::try_current().is_err(),
+            application.credentials_for("dummy-runner").is_some(),
+        ));
+        Ok(())
+    }
+    fn shutdown(&mut self, _: Timestamp) -> std::io::Result<()> {
+        self.closed
+            .fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+        Ok(())
+    }
+}
+#[test]
+#[expect(
+    non_snake_case,
+    reason = "Requirement tags use a double underscore separator."
+)]
+fn r_nf_3_r_sub_2_r_sub_8__queue_composition_borrows_live_session_only_on_the_dedicated_cpu_owner()
+{
+    let (commands, incoming) = mpsc::sync_channel(1);
+    let (outgoing, events) = mpsc::sync_channel(4);
+    let (activate, queue) = mpsc::sync_channel(1);
+    let (observations, observed) = mpsc::sync_channel(16);
+    let closed = std::sync::Arc::new(std::sync::atomic::AtomicUsize::new(0));
+    let worker = tallyline_app::api::CredentialWorker::start_with_queue(
+        || async { Ok(Store) },
+        Validator,
+        Clock,
+        None,
+        (incoming, outgoing),
+        queue,
+        || (),
+    )
+    .unwrap();
+    events.recv_timeout(Duration::from_secs(5)).unwrap();
+    let constructed = std::sync::Arc::new(std::sync::atomic::AtomicUsize::new(0));
+    let constructions = std::sync::Arc::clone(&constructed);
+    let closes = std::sync::Arc::clone(&closed);
+    let deferred = tallyline_app::api::DeferredCredentialQueue::new(move || {
+        assert!(tallyline_adapter_platform::api::worker_priority()?.is_below_normal());
+        assert!(tokio::runtime::Handle::try_current().is_err());
+        constructions.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+        Ok(Box::new(QueueProbe {
+            observations,
+            closed: closes,
+        }) as Box<dyn tallyline_app::api::CredentialQueue>)
+    });
+    assert_eq!(constructed.load(std::sync::atomic::Ordering::SeqCst), 0);
+    activate.send(Box::new(deferred)).ok().unwrap();
+    assert_eq!(
+        observed.recv_timeout(Duration::from_secs(5)).unwrap(),
+        (true, true, false)
+    );
+    assert_eq!(constructed.load(std::sync::atomic::Ordering::SeqCst), 1);
+    commands
+        .send(CredentialCommand::Validate(CredentialCandidate::new(
+            CredentialValues::new("dummy-key".to_owned(), Some("dummy-token".to_owned())).unwrap(),
+            Persistence::Session,
+        )))
+        .ok()
+        .unwrap();
+    events.recv_timeout(Duration::from_secs(5)).unwrap();
+    let deadline = std::time::Instant::now() + Duration::from_secs(5);
+    loop {
+        let (priority, outside, authorised) =
+            observed.recv_timeout(Duration::from_secs(5)).unwrap();
+        assert!(priority && outside);
+        if authorised {
+            break;
+        }
+        assert!(std::time::Instant::now() < deadline);
+    }
+    drop(commands);
+    worker.finish().unwrap();
+    assert_eq!(closed.load(std::sync::atomic::Ordering::SeqCst), 1);
+}

@@ -265,3 +265,14 @@ impl<S: ReferenceDataCache, C: Clock> ReferenceApplication<S, C> {
         self.store
     }
 }
+
+/// Reads retained local acceptance independently of usable UEX reference snapshots.
+pub trait AcceptedPriorHistoryStore {
+    /// A closed persistence failure, never an empty successful history on failure.
+    type Error;
+    /// Loads ordered evidence and exact active, refreshed or revoked projections.
+    ///
+    /// # Errors
+    /// Refuses unavailable or inconsistent stored evidence.
+    fn accepted_history(&mut self) -> Result<model::AcceptedPriorHistory, Self::Error>;
+}

@@ -5,7 +5,7 @@
 
 use crate::api::model::Deviation;
 use tallyline_reference_data::api::model::{
-    EffectiveStaleness, PricePrior, PriceReferenceSource, PriceTolerance,
+    EffectiveStaleness, PriceReferenceSource, PriceTolerance, PriorReference,
 };
 use tallyline_shared_kernel::api::model::{
     Delta, PrecisionUnavailable, PricePerScu, RowId, Timestamp,
@@ -125,10 +125,10 @@ pub(crate) struct PriceReference {
     source: PriceReferenceSource,
 }
 impl PriceReference {
-    pub(crate) fn terminal(prior: &PricePrior) -> Self {
+    pub(crate) fn terminal(prior: PriorReference<'_>) -> Self {
         Self {
             value: prior.values().price,
-            modified_at: Some(prior.provenance().modified_at),
+            modified_at: Some(prior.modified_at()),
             source: PriceReferenceSource::Terminal,
         }
     }

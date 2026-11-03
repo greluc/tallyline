@@ -1,6 +1,6 @@
 # Roadmap
 
-> **Doc type:** Living plan — active. Last reviewed: 2026-11-02.
+> **Doc type:** Living plan — active. Last reviewed: 2026-11-03.
 
 Amended 2026-10-12 ([ADR-0005](../adr/0005-rust-and-egui.md)): the milestones now build a Rust and egui application. "Module" reads as "Cargo workspace crate" (the context cut of ADR-0002 is unchanged), M0 is rewritten for the Rust toolchain, the supply chain and the new spikes, and the Java-specific items (JDK 27 toolchain check, jlink and ONNX Runtime merge, JavaFX screen-reader spike, JVM heap limits) are gone. The acceptance criteria keep their meaning.
 
@@ -269,3 +269,8 @@ Issue #84 now has desktop price/status assessment, value-bound approval, durable
 ### Guarded SCU review checkpoint (2026-11-02)
 
 Issue #84 now composes the provisional baseline, independent tighten-only persisted bands, durable value/context-bound stock approval, exact class-based reassessment, counters and required-field navigation. Reporting supplies immutable numeric/decision readiness for the release/queue slice. Database 8/config 5 forward migrations retain coordinated backups. Native visual acceptance remains pending; broader calibration observations remain open without blocking the documented starting choice. Complete atomic release/send remains issue #86.
+
+
+### Manual serial queue checkpoint (2026-11-03)
+
+Issue #86 now composes durable manual release, fixed account/mode, actual pre-release reference attempts, atomic write-ahead, one in-flight shared HTTP submission, restart recovery, passive queue/history, unsent cancellation and the same-queue onboarding dry run. Schema 9/config 6 migrations preserve coordinated backups. At-least-once outbox notifications publish committed state before acknowledgement; dry runs and PTU never create LIVE priors. [The implementation record](../submission-queue.md) records exact safeguards and remaining gates. Requirement coverage assignments remain unchanged; canonical/mutation verification, native/provider acceptance and an approved real-service dry run are not claimed complete.

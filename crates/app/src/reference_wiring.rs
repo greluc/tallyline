@@ -6,33 +6,38 @@
 use std::io;
 use std::sync::mpsc::{Receiver, SyncSender};
 use tallyline_adapter_storage::api::SqliteReferenceCache;
-use tallyline_adapter_uex::api::{BuildError, ClientIdentity, ReaderSettings, UexReader};
 use tallyline_ui::api::model::{BackgroundEvent, ReferenceCommand};
-
-const PRIMARY_API: &str = "https://api.uexcorp.uk/2.0/";
 
 pub(crate) fn start(
     cache: SqliteReferenceCache,
     incoming: Receiver<ReferenceCommand>,
     outgoing: SyncSender<BackgroundEvent>,
     context: egui::Context,
+    client: tallyline_app::api::HttpClient,
+    history_path: std::path::PathBuf,
+    refresh: tallyline_app::api::ReleaseReferenceOwner,
 ) -> io::Result<tallyline_app::api::ReferenceWorker> {
-    tallyline_app::api::ReferenceWorker::start(
+    let mut history: Option<SqliteReferenceCache> = None;
+    tallyline_app::api::ReferenceWorker::start_with_history_and_refresh(
         cache,
         crate::update_wiring::SystemClock,
-        incoming,
-        outgoing,
-        reader,
+        (incoming, outgoing),
+        move || Ok::<_, io::Error>(client.clone()),
+        move || {
+            use tallyline_reference_data::api::AcceptedPriorHistoryStore;
+            if history.is_none() {
+                history = Some(
+                    SqliteReferenceCache::open(&history_path)
+                        .map_err(|_| io::Error::other("local reference history unavailable"))?,
+                );
+            }
+            history
+                .as_mut()
+                .ok_or_else(|| io::Error::other("local reference history unavailable"))?
+                .accepted_history()
+                .map_err(|_| io::Error::other("local reference history unavailable"))
+        },
+        refresh,
         move || tallyline_ui::api::wake_up(&context),
     )
-}
-fn reader() -> Result<UexReader, BuildError> {
-    let information = tallyline_app::api::compiled_build_information()
-        .map_err(|_| BuildError::Client("compiled build information is invalid".to_owned()))?;
-    let settings = ReaderSettings::new(
-        PRIMARY_API,
-        ClientIdentity::new("tallyline", information.version()),
-    )
-    .map_err(|_| BuildError::Client("primary UEX URL is invalid".to_owned()))?;
-    UexReader::new(&settings)
 }

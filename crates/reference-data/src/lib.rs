@@ -7,7 +7,9 @@
 
 pub mod api;
 mod averages;
+mod local_priors;
 mod parameters;
+mod prior_history;
 mod priors;
 mod scu_tolerance;
 mod snapshot;

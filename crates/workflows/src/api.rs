@@ -49,16 +49,7 @@ impl<S: AppSettingsStore> SettingsApplication<S> {
     /// # Errors
     /// Returns a storage error and keeps the active preferences unchanged.
     pub fn change_theme(&mut self, theme: Theme) -> Result<(), S::Error> {
-        let next = AppSettings::from_persisted(theme, self.settings.onboarding_complete())
-            .with_update_state(
-                self.settings.update_checks(),
-                self.settings.last_update_attempt(),
-            )
-            .with_release_notice(
-                self.settings.available_release(),
-                self.settings.dismissed_release(),
-            );
-        let next = next.with_stock_settings(self.settings.stock_settings());
+        let next = self.settings.clone().with_theme(theme);
         self.store.save(&next)?;
         self.settings = next;
         Ok(())
@@ -69,16 +60,7 @@ impl<S: AppSettingsStore> SettingsApplication<S> {
     /// # Errors
     /// Returns a storage error and keeps onboarding incomplete.
     pub fn complete_onboarding(&mut self) -> Result<(), S::Error> {
-        let next = AppSettings::from_persisted(self.settings.theme(), true)
-            .with_update_state(
-                self.settings.update_checks(),
-                self.settings.last_update_attempt(),
-            )
-            .with_release_notice(
-                self.settings.available_release(),
-                self.settings.dismissed_release(),
-            );
-        let next = next.with_stock_settings(self.settings.stock_settings());
+        let next = self.settings.clone().with_completed_onboarding();
         self.store.save(&next)?;
         self.settings = next;
         Ok(())
@@ -227,3 +209,56 @@ impl<S: AppSettingsStore> SettingsApplication<S> {
         Ok(())
     }
 }
+
+pub use crate::submission_priors::accepted_submission_priors;
+
+pub use crate::submission_request::manual_submission_request;
+
+pub use crate::manual_release::{ManualRelease, ManualReleaseError, ManualReleaseStore};
+
+pub use crate::submission_delivery::apply_submission_delivery;
+
+pub use crate::submission_queue::SubmissionQueueStore;
+
+pub use crate::submission_history::{
+    assess_release_observation_history, confirm_older_observation,
+};
+
+pub use crate::receipt_enrichment::ReceiptEnrichmentStore;
+
+pub use crate::manual_dispatch::{
+    ManualDispatch, ManualDispatchError, ManualDispatchStore, assess_manual_send_context,
+};
+
+impl<S: AppSettingsStore> SettingsApplication<S> {
+    /// Saves the global mode for future releases before making it active.
+    ///
+    /// # Errors
+    /// Returns a failed save without changing the current mode or any queued request.
+    pub fn change_submission_mode(
+        &mut self,
+        mode: Option<tallyline_shared_kernel::api::model::SubmissionMode>,
+    ) -> Result<(), S::Error> {
+        let next = self.settings.clone().with_submission_mode(mode);
+        self.store.save(&next)?;
+        self.settings = next;
+        Ok(())
+    }
+    /// Saves the tighten-only observation-age policy before applying it.
+    ///
+    /// # Errors
+    /// Returns a failed save without changing the current policy or observation values.
+    pub fn change_observation_age(
+        &mut self,
+        age: tallyline_shared_kernel::api::model::ObservationAgeSettings,
+    ) -> Result<(), S::Error> {
+        let next = self.settings.clone().with_observation_age(age);
+        self.store.save(&next)?;
+        self.settings = next;
+        Ok(())
+    }
+}
+
+pub use crate::event_outbox::{
+    EventOutbox, OUTBOX_BATCH_LIMIT, OutboxError, OutboxEvent, OutboxKind, dispatch_pending_events,
+};

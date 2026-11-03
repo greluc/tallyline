@@ -68,3 +68,15 @@ mod prior_contract_tests;
     reason = "Requirement tags use a double underscore separator."
 )]
 mod public_contract_tests;
+
+#[cfg(test)]
+mod queue_contract_tests;
+mod submission;
+
+mod http_date;
+mod server_time;
+
+mod response_processing;
+
+#[cfg(test)]
+mod processing_contract_tests;

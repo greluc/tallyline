@@ -29,3 +29,5 @@ mod diagnostics;
 mod working_copies;
 
 mod stock_config;
+
+mod submission_config;

@@ -1,12 +1,13 @@
 // SPDX-FileCopyrightText: 2026 Lucas Greuloch
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Atomic manual reassessment and immutable review publication.
+//! Atomic manual reassessment and immutable review preparation.
 
 use super::{
     Clock, ReferenceSnapshot, ReportId, ReportRepository, ReportingApplication, RepositoryError,
 };
-use crate::api::model::ManualReview;
+use crate::api::model::{ManualReview, Report};
+
 impl<R: ReportRepository, C: Clock> ReportingApplication<R, C> {
     /// Reassesses prices, stocks and statuses atomically and returns the committed Draft with its assessments.
     ///
@@ -22,35 +23,36 @@ impl<R: ReportRepository, C: Clock> ReportingApplication<R, C> {
         if report.version() != expected {
             return Err(RepositoryError::Conflict);
         }
-        let prices = self.price_assessments(&report, snapshot);
-        if prices
-            .iter()
-            .any(|assessment| assessment.unavailable().is_some())
-        {
-            return Err(RepositoryError::AssessmentUnavailable);
+        let review = self.reassess_report(report, snapshot)?;
+        if review.report().version() != expected {
+            self.repository.save_draft(review.report(), expected)?;
         }
-        let stocks = self.stock_assessments(&report, snapshot, self.stock_settings.tolerance());
-        if stocks
-            .iter()
-            .any(|assessment| assessment.unavailable().is_some())
-        {
-            return Err(RepositoryError::AssessmentUnavailable);
-        }
-        let statuses = self.status_assessments(&report, snapshot);
-        let next = report
-            .reassess_prices(&prices, snapshot.environment())
-            .and_then(|report| report.reassess_stocks(&stocks, snapshot.environment()))
-            .and_then(|report| report.reassess_status(&statuses, snapshot.environment()))
-            .map_err(|_| RepositoryError::Invalid)?;
-        if next.version() != expected {
-            self.repository.save_draft(&next, expected)?;
-        }
-        Ok(ManualReview::new(
-            next,
+        Ok(review)
+    }
+
+    /// Prepares fresh numeric decisions for this exact Report without accessing its repository.
+    /// The owning workflow must atomically persist the returned Report before publishing readiness.
+    ///
+    /// # Errors
+    /// Refuses mismatched reference context or unavailable exact arithmetic without changing source values.
+    pub fn reassess_report(
+        &self,
+        report: Report,
+        snapshot: &ReferenceSnapshot,
+    ) -> Result<ManualReview, RepositoryError> {
+        self.manual_reviewer()
+            .reassess(report, snapshot, self.clock.now())
+    }
+}
+
+impl<R: ReportRepository, C: Clock> ReportingApplication<R, C> {
+    /// Captures the current immutable review policy for repository-independent workflow preparation.
+    #[must_use]
+    pub fn manual_reviewer(&self) -> crate::api::ManualReviewer {
+        crate::api::ManualReviewer::new(
+            self.mapping.clone(),
             self.stock_settings,
-            prices,
-            stocks,
-            statuses,
-        ))
+            self.price_tolerance_override,
+        )
     }
 }

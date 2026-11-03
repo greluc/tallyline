@@ -192,3 +192,30 @@ pub(crate) fn schema_eight(connection: &Connection) -> Result<(), StorageError> 
     connection.pragma_update(None, "user_version", 8)?;
     Ok(())
 }
+
+pub(crate) fn schema_nine(connection: &Connection) -> Result<(), StorageError> {
+    let mut statement = connection.prepare("SELECT id,payload FROM reports")?;
+    let records = statement
+        .query_map([], |row| {
+            Ok((row.get::<_, i64>(0)?, row.get::<_, String>(1)?))
+        })?
+        .collect::<Result<Vec<_>, _>>()?;
+    for (id, payload) in records {
+        let mut document: serde_json::Value =
+            serde_json::from_str(&payload).map_err(|_| StorageError::InvalidCache)?;
+        let object = document.as_object_mut().ok_or(StorageError::InvalidCache)?;
+        let lifecycle = serde_json::to_value(crate::report_lifecycle::LifecycleDocument::from(
+            tallyline_reporting::api::model::StoredReportLifecycle::default(),
+        ))
+        .map_err(|_| StorageError::InvalidCache)?;
+        if object.insert("lifecycle".to_owned(), lifecycle).is_some() {
+            return Err(StorageError::InvalidCache);
+        }
+        connection.execute(
+            "UPDATE reports SET payload=?1 WHERE id=?2",
+            (document.to_string(), id),
+        )?;
+    }
+    connection.execute_batch("ALTER TABLE reports ADD COLUMN phase TEXT NOT NULL DEFAULT 'draft'; CREATE TABLE submission_jobs(id INTEGER PRIMARY KEY AUTOINCREMENT,report_id INTEGER NOT NULL REFERENCES reports(id),revision INTEGER NOT NULL CHECK(revision>0),phase TEXT NOT NULL,payload TEXT NOT NULL,release_report TEXT NOT NULL,release_report_version INTEGER NOT NULL CHECK(release_report_version>0)); CREATE UNIQUE INDEX submission_one_sending ON submission_jobs((1)) WHERE phase='sending'; CREATE TABLE domain_outbox(event_source TEXT NOT NULL,aggregate_id INTEGER NOT NULL,revision INTEGER NOT NULL,event_kind TEXT NOT NULL,delivered INTEGER NOT NULL DEFAULT 0 CHECK(delivered IN(0,1)),PRIMARY KEY(event_source,aggregate_id,revision)); CREATE TABLE accepted_priors(sequence INTEGER PRIMARY KEY AUTOINCREMENT,submission_id INTEGER NOT NULL REFERENCES submission_jobs(id),commodity INTEGER NOT NULL,environment TEXT NOT NULL,projection TEXT NOT NULL,payload TEXT NOT NULL,UNIQUE(submission_id,commodity)); CREATE INDEX accepted_priors_projection ON accepted_priors(environment,projection); CREATE TABLE submission_receipt_enrichment(job_id INTEGER PRIMARY KEY REFERENCES submission_jobs(id),job_revision INTEGER NOT NULL CHECK(job_revision>0),payload TEXT); PRAGMA user_version=9;")?;
+    Ok(())
+}

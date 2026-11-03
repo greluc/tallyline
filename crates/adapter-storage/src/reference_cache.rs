@@ -16,7 +16,7 @@ use tallyline_shared_kernel::api::model::{
     CommodityId, PricePerScu, TerminalId, Timestamp, TradeSide,
 };
 
-const SCHEMA_VERSION: u32 = 8;
+const SCHEMA_VERSION: u32 = 9;
 const SQLITE_BUSY_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(2);
 
 const MIGRATION:&str="CREATE TABLE ref_cache(endpoint TEXT PRIMARY KEY, fetched_at TEXT NOT NULL, payload TEXT NOT NULL);
@@ -86,6 +86,7 @@ impl SqliteReferenceCache {
                 crate::migration::schema_six(&transaction)?;
                 crate::migration::schema_seven(&transaction)?;
                 crate::migration::schema_eight(&transaction)?;
+                crate::migration::schema_nine(&transaction)?;
                 transaction.commit()?;
             }
             1 => {
@@ -98,6 +99,7 @@ impl SqliteReferenceCache {
                 crate::migration::schema_six(&transaction)?;
                 crate::migration::schema_seven(&transaction)?;
                 crate::migration::schema_eight(&transaction)?;
+                crate::migration::schema_nine(&transaction)?;
                 transaction.commit()?;
             }
             2 => {
@@ -109,6 +111,7 @@ impl SqliteReferenceCache {
                 crate::migration::schema_six(&transaction)?;
                 crate::migration::schema_seven(&transaction)?;
                 crate::migration::schema_eight(&transaction)?;
+                crate::migration::schema_nine(&transaction)?;
                 transaction.commit()?;
             }
             3 => {
@@ -119,6 +122,7 @@ impl SqliteReferenceCache {
                 crate::migration::schema_six(&transaction)?;
                 crate::migration::schema_seven(&transaction)?;
                 crate::migration::schema_eight(&transaction)?;
+                crate::migration::schema_nine(&transaction)?;
                 transaction.commit()?;
             }
             4 => {
@@ -128,6 +132,7 @@ impl SqliteReferenceCache {
                 crate::migration::schema_six(&transaction)?;
                 crate::migration::schema_seven(&transaction)?;
                 crate::migration::schema_eight(&transaction)?;
+                crate::migration::schema_nine(&transaction)?;
                 transaction.commit()?;
             }
             5 => {
@@ -136,6 +141,7 @@ impl SqliteReferenceCache {
                 crate::migration::schema_six(&transaction)?;
                 crate::migration::schema_seven(&transaction)?;
                 crate::migration::schema_eight(&transaction)?;
+                crate::migration::schema_nine(&transaction)?;
                 transaction.commit()?;
             }
             6 => {
@@ -143,12 +149,20 @@ impl SqliteReferenceCache {
                 let transaction = cache.connection.transaction()?;
                 crate::migration::schema_seven(&transaction)?;
                 crate::migration::schema_eight(&transaction)?;
+                crate::migration::schema_nine(&transaction)?;
                 transaction.commit()?;
             }
             7 => {
                 backup(&mut cache, version)?;
                 let transaction = cache.connection.transaction()?;
                 crate::migration::schema_eight(&transaction)?;
+                crate::migration::schema_nine(&transaction)?;
+                transaction.commit()?;
+            }
+            8 => {
+                backup(&mut cache, version)?;
+                let transaction = cache.connection.transaction()?;
+                crate::migration::schema_nine(&transaction)?;
                 transaction.commit()?;
             }
             SCHEMA_VERSION => {}
@@ -340,45 +354,7 @@ impl ReferenceDataCache for SqliteReferenceCache {
     type Error = StorageError;
 
     fn load(&mut self) -> Result<Vec<CachedReference>, Self::Error> {
-        let mut entries = Vec::new();
-        for endpoint in [
-            "commodities",
-            "game_versions",
-            "status_levels",
-            "terminals",
-            "parameters",
-        ] {
-            let cached = self
-                .connection
-                .query_row(
-                    "SELECT fetched_at,payload FROM ref_cache WHERE endpoint=?1",
-                    [endpoint],
-                    |row| Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?)),
-                )
-                .optional()?;
-            if let Some((fetched_at, payload)) = cached {
-                entries.push(CachedReference::new(
-                    timestamp(&fetched_at)?,
-                    decode(endpoint, &payload)?,
-                ));
-            }
-        }
-        let mut statement=self.connection.prepare("SELECT endpoint,fetched_at,payload FROM ref_cache WHERE endpoint GLOB 'terminal_priors:*' ORDER BY endpoint")?;
-        let rows = statement.query_map([], |row| {
-            Ok((
-                row.get::<_, String>(0)?,
-                row.get::<_, String>(1)?,
-                row.get::<_, String>(2)?,
-            ))
-        })?;
-        for record in rows {
-            let (endpoint, fetched_at, payload) = record?;
-            entries.push(CachedReference::new(
-                timestamp(&fetched_at)?,
-                decode(&endpoint, &payload)?,
-            ));
-        }
-        Ok(entries)
+        load_references(&self.connection)
     }
 
     fn replace(&mut self, entry: &CachedReference) -> Result<(), Self::Error> {
@@ -401,6 +377,7 @@ impl ReferenceDataCache for SqliteReferenceCache {
             | EndpointData::Parameters(_)
             | EndpointData::TerminalPriors(_) => {}
         }
+        crate::accepted_priors::refreshed(&transaction, entry.data())?;
         transaction.commit()?;
         Ok(())
     }
@@ -410,4 +387,47 @@ fn parse_average(value: Option<String>) -> Result<Option<PricePerScu>, StorageEr
     value
         .map(|value| value.parse().map_err(|_| StorageError::InvalidCache))
         .transpose()
+}
+
+pub(crate) fn load_references(
+    connection: &Connection,
+) -> Result<Vec<CachedReference>, StorageError> {
+    let mut entries = Vec::new();
+    for endpoint in [
+        "commodities",
+        "game_versions",
+        "status_levels",
+        "terminals",
+        "parameters",
+    ] {
+        let cached = connection
+            .query_row(
+                "SELECT fetched_at,payload FROM ref_cache WHERE endpoint=?1",
+                [endpoint],
+                |row| Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?)),
+            )
+            .optional()?;
+        if let Some((fetched_at, payload)) = cached {
+            entries.push(CachedReference::new(
+                timestamp(&fetched_at)?,
+                decode(endpoint, &payload)?,
+            ));
+        }
+    }
+    let mut statement=connection.prepare("SELECT endpoint,fetched_at,payload FROM ref_cache WHERE endpoint GLOB 'terminal_priors:*' ORDER BY endpoint")?;
+    let rows = statement.query_map([], |row| {
+        Ok((
+            row.get::<_, String>(0)?,
+            row.get::<_, String>(1)?,
+            row.get::<_, String>(2)?,
+        ))
+    })?;
+    for record in rows {
+        let (endpoint, fetched_at, payload) = record?;
+        entries.push(CachedReference::new(
+            timestamp(&fetched_at)?,
+            decode(&endpoint, &payload)?,
+        ));
+    }
+    Ok(entries)
 }

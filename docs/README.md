@@ -1,6 +1,6 @@
 # Documentation
 
-> **Doc type:** Living reference — current. Last reviewed: 2026-11-02.
+> **Doc type:** Living reference — current. Last reviewed: 2026-11-03.
 
 `docs/` is the project's single source of truth ([`CLAUDE.md`](../CLAUDE.md), "The documentation is the project"). This file says what belongs where. A new directory or top-level file under `docs/` gets its row here in the same commit.
 
@@ -43,3 +43,6 @@ The [packaging spike](packaging-spike.md) records the source-independent helper 
 The [SCU policy evidence](scu-policy-calibration.md) records exact explicit-band application assessment, the available corpus sensitivity and the broader calibration and native visual acceptance boundary.
 
 The explicit `scu-policy --public <directory>` developer command analyses complete whole-SCU transcriptions without images or recognition. Its synthetic counts remain separate from golden accuracy and verification flags; [the calibration note](scu-policy-calibration.md) records the provisional starting-pair recommendation and limits.
+
+
+The [durable manual submission queue](submission-queue.md) records fixed release identity, actual refresh/send gates, transactional recovery/outbox delivery, schema 9/settings 6 and the remaining acceptance boundary.

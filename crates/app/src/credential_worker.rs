@@ -18,6 +18,8 @@ use tallyline_submission::api::model::{
 use tallyline_submission::api::{CredentialApplication, CredentialValidator, SecretStore};
 use tallyline_ui::api::model::{BackgroundEvent, CredentialCommand};
 
+const CONTROL_POLL: Duration = Duration::from_millis(100);
+
 /// Store instances created on the credential worker without reading the fallback record.
 pub struct CredentialStores<S> {
     primary: Result<S, StorageFailure>,
@@ -57,6 +59,10 @@ impl CredentialWorker {
     ///
     /// # Errors
     /// Returns a thread creation failure.
+    /// Starts credential-only work through the existing bounded owner.
+    ///
+    /// # Errors
+    /// Returns a thread creation failure.
     pub fn start<S, V, C, F, Fut, I>(
         initialise: F,
         validator: V,
@@ -74,14 +80,81 @@ impl CredentialWorker {
         Fut: Future<Output = I>,
         I: Into<CredentialStores<S>>,
     {
+        Self::start_configured(
+            initialise,
+            validator,
+            clock,
+            token,
+            (incoming, outgoing),
+            wake,
+            None,
+        )
+    }
+    /// Composes one activated submission queue after coordinated storage bootstrap.
+    /// Queue CPU work runs on this dedicated owner only after verified below-normal priority.
+    ///
+    /// # Errors
+    /// Returns thread creation failure; priority or queue failures surface when the owner joins.
+    pub fn start_with_queue<S, V, C, F, Fut, I>(
+        initialise: F,
+        validator: V,
+        clock: C,
+        token: Option<ReleaseToken>,
+        channels: (Receiver<CredentialCommand>, SyncSender<BackgroundEvent>),
+        queues: Receiver<Box<dyn crate::api::CredentialQueue>>,
+        wake: impl Fn() + Send + 'static,
+    ) -> io::Result<Self>
+    where
+        S: SecretStore + 'static,
+        V: CredentialValidator + Send + 'static,
+        C: Clock + Send + 'static,
+        F: FnOnce() -> Fut + Send + 'static,
+        Fut: Future<Output = I>,
+        I: Into<CredentialStores<S>>,
+    {
+        Self::start_configured(
+            initialise,
+            validator,
+            clock,
+            token,
+            channels,
+            wake,
+            Some(queues),
+        )
+    }
+    fn start_configured<S, V, C, F, Fut, I>(
+        initialise: F,
+        validator: V,
+        clock: C,
+        token: Option<ReleaseToken>,
+        channels: (Receiver<CredentialCommand>, SyncSender<BackgroundEvent>),
+        wake: impl Fn() + Send + 'static,
+        queues: Option<Receiver<Box<dyn crate::api::CredentialQueue>>>,
+    ) -> io::Result<Self>
+    where
+        S: SecretStore + 'static,
+        V: CredentialValidator + Send + 'static,
+        C: Clock + Send + 'static,
+        F: FnOnce() -> Fut + Send + 'static,
+        Fut: Future<Output = I>,
+        I: Into<CredentialStores<S>>,
+    {
+        let (incoming, outgoing) = channels;
         let stop = Arc::new(AtomicBool::new(false));
         let stopping = Arc::clone(&stop);
         let worker = crate::executor::spawn("tallyline-credentials", move || {
+            if queues.is_some() {
+                tallyline_adapter_platform::api::lower_worker_priority()?;
+            }
+            let mut queue = queues.map(crate::credential_queue::QueueComposition::new);
             tracing::subscriber::with_default(tracing::subscriber::NoSubscriber::default(), || {
                 let runtime = tokio::runtime::Builder::new_current_thread()
                     .enable_all()
                     .build()?;
-                let stores = runtime.block_on(initialise()).into();
+                let Some(stores) = runtime.block_on(interruptible(initialise(), &stopping)) else {
+                    return Ok(());
+                };
+                let stores = stores.into();
                 let mut session = Session {
                     application: CredentialApplication::default(),
                     store: stores.primary,
@@ -92,23 +165,61 @@ impl CredentialWorker {
                     reconcile: false,
                     fallback_available: false,
                 };
-                let failure = runtime.block_on(session.restore());
+                let Some(failure) = runtime.block_on(interruptible(session.restore(), &stopping))
+                else {
+                    return Ok(());
+                };
                 session.fallback_available = failure
                     == Some(CredentialFailure::Storage(StorageFailure::Unavailable))
                     && session.fallback.is_some();
                 deliver(&outgoing, session.event(failure), &wake, &stopping)?;
-                while !stopping.load(Ordering::Acquire) {
-                    let command = match incoming.recv_timeout(Duration::from_millis(100)) {
-                        Ok(command) => command,
-                        Err(RecvTimeoutError::Timeout) => continue,
-                        Err(RecvTimeoutError::Disconnected) => break,
-                    };
-                    let failure = runtime.block_on(session.process(command));
-                    session.reconcile |=
-                        failure == Some(CredentialFailure::Storage(StorageFailure::OutcomeUnknown));
-                    deliver(&outgoing, session.event(failure), &wake, &stopping)?;
-                }
-                Ok(())
+                let result = (|| {
+                    while !stopping.load(Ordering::Acquire) {
+                        match incoming.try_recv() {
+                            Ok(command) => {
+                                let Some(failure) = runtime
+                                    .block_on(interruptible(session.process(command), &stopping))
+                                else {
+                                    break;
+                                };
+                                session.reconcile |= failure
+                                    == Some(CredentialFailure::Storage(
+                                        StorageFailure::OutcomeUnknown,
+                                    ));
+                                deliver(&outgoing, session.event(failure), &wake, &stopping)?;
+                                continue;
+                            }
+                            Err(std::sync::mpsc::TryRecvError::Disconnected) => break,
+                            Err(std::sync::mpsc::TryRecvError::Empty) => {}
+                        }
+                        if let Some(queue) = &mut queue {
+                            queue.poll(
+                                &session.application,
+                                session.token.as_ref(),
+                                session.clock.now(),
+                            )?;
+                        }
+                        let command = match incoming.recv_timeout(CONTROL_POLL) {
+                            Ok(command) => command,
+                            Err(RecvTimeoutError::Timeout) => continue,
+                            Err(RecvTimeoutError::Disconnected) => break,
+                        };
+                        let Some(failure) =
+                            runtime.block_on(interruptible(session.process(command), &stopping))
+                        else {
+                            break;
+                        };
+                        session.reconcile |= failure
+                            == Some(CredentialFailure::Storage(StorageFailure::OutcomeUnknown));
+                        deliver(&outgoing, session.event(failure), &wake, &stopping)?;
+                    }
+                    Ok(())
+                })();
+                let shutdown = match &mut queue {
+                    Some(queue) => queue.shutdown(session.clock.now()),
+                    None => Ok(()),
+                };
+                result.and(shutdown)
             })
         })?;
         Ok(Self {
@@ -277,4 +388,15 @@ fn deliver(
             Err(TrySendError::Disconnected(_)) => return Ok(()),
         }
     }
+}
+
+async fn interruptible<T>(future: impl Future<Output = T>, stop: &AtomicBool) -> Option<T> {
+    let mut future = std::pin::pin!(future);
+    while !stop.load(Ordering::Acquire) {
+        match tokio::time::timeout(CONTROL_POLL, future.as_mut()).await {
+            Ok(result) => return Some(result),
+            Err(_) => continue,
+        }
+    }
+    None
 }

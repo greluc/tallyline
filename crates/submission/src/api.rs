@@ -82,6 +82,13 @@ impl ValidationRequest {
     }
 }
 
+#[derive(Clone, Copy, Default, PartialEq, Eq)]
+enum ReleaseEligibility {
+    Remembered,
+    #[default]
+    Closed,
+}
+
 /// Retains the last accepted credential identity independently of a new candidate.
 #[derive(Default)]
 pub struct CredentialApplication {
@@ -89,6 +96,8 @@ pub struct CredentialApplication {
     accepted: Option<SavedCredentials>,
     state: AccountState,
     persistence: Option<Persistence>,
+    send_authorised: bool,
+    release_eligibility: ReleaseEligibility,
 }
 
 impl CredentialApplication {
@@ -109,6 +118,8 @@ impl CredentialApplication {
             accepted,
             state,
             persistence,
+            send_authorised: false,
+            release_eligibility: ReleaseEligibility::Remembered,
         })
     }
 
@@ -118,8 +129,44 @@ impl CredentialApplication {
         &self.state
     }
 
-    /// Starts a candidate and supersedes all earlier validation requests.
+    /// Borrows the last validated account eligible for release without granting send authority.
+    #[must_use]
+    pub fn release_account(&self) -> Option<&str> {
+        if self.release_eligibility != ReleaseEligibility::Remembered {
+            return None;
+        }
+        match &self.state {
+            AccountState::Validated { username, .. } => Some(username),
+            AccountState::Unconfigured | AccountState::Rejected(_) => None,
+        }
+    }
+
+    /// Borrows accepted values only after successful validation in this session.
+    #[must_use]
+    pub fn credentials_for(&self, account: &str) -> Option<&CredentialValues> {
+        if !self.send_authorised {
+            return None;
+        }
+        match &self.state {
+            AccountState::Validated { username, .. } if username == account => {
+                let saved = self.accepted.as_ref()?;
+                if saved.account.username == account && saved.refusal.is_none() {
+                    Some(&saved.values)
+                } else {
+                    None
+                }
+            }
+            AccountState::Unconfigured
+            | AccountState::Rejected(_)
+            | AccountState::Validated { .. } => None,
+        }
+    }
+
+    /// Starts a candidate, closes release and sending, and supersedes earlier validation requests.
+    /// The accepted identity remains visible until a current successful candidate replaces it.
     pub fn begin(&mut self, candidate: CredentialCandidate) -> ValidationRequest {
+        self.send_authorised = false;
+        self.release_eligibility = ReleaseEligibility::Closed;
         self.generation = self.generation.wrapping_add(1);
         ValidationRequest {
             identity: self.generation,
@@ -129,11 +176,14 @@ impl CredentialApplication {
     }
 
     /// Rechecks the accepted identity at startup or before its first send.
+    /// Retains existing release eligibility without reopening a replacement candidate.
     pub fn begin_revalidation(&mut self) -> Option<ValidationRequest> {
         let saved = self.accepted.as_ref()?;
         let persistence = self.persistence?;
         let candidate = CredentialCandidate::new(saved.values.clone(), persistence);
+        let eligibility = self.release_eligibility;
         let mut request = self.begin(candidate);
+        self.release_eligibility = eligibility;
         request.revalidation = true;
         Some(request)
     }
@@ -187,6 +237,8 @@ impl CredentialApplication {
         self.state = account_state(&saved, request.candidate.persistence);
         self.persistence = Some(request.candidate.persistence);
         self.accepted = Some(saved);
+        self.send_authorised = true;
+        self.release_eligibility = ReleaseEligibility::Remembered;
         Ok(())
     }
 }
@@ -218,3 +270,48 @@ fn known_refusal(failure: CredentialFailure) -> bool {
 }
 
 pub use crate::screenshot_policy::{ScreenshotPolicyApplication, ScreenshotPolicyStore};
+
+/// Sends one prepared released snapshot through the application's shared client.
+pub trait SubmissionGateway {
+    /// An adapter-owned body prepared outside asynchronous polling.
+    type Prepared: Send;
+    /// Serialises and hashes one immutable request on a bounded application worker.
+    ///
+    /// # Errors
+    /// Refuses unsupported payload values without dispatching an attempt.
+    fn prepare(
+        &self,
+        request: &model::SubmissionRequest,
+    ) -> Result<(Self::Prepared, model::PayloadHash), model::PreparationFailure>;
+    /// Performs exactly one prepared attempt without retrying uncertain writes.
+    fn submit(
+        &self,
+        prepared: Self::Prepared,
+        credentials: &model::CredentialValues,
+        release_token: Option<&str>,
+    ) -> impl std::future::Future<Output = model::SubmissionResult> + Send;
+}
+pub use crate::budget::SubmissionBudget;
+pub use crate::preflight::SubmissionPreflight;
+
+/// Supplies both wall time and one stable monotonic origin for submission metadata.
+pub trait SubmissionClock: tallyline_shared_kernel::api::Clock + Send + Sync {
+    /// Returns elapsed monotonic time independently of wall-clock adjustments.
+    fn monotonic(&self) -> std::time::Duration;
+}
+pub use crate::application::{SubmissionApplication, SubmissionJobRepository};
+pub use crate::schedule::SubmissionSchedule;
+
+/// Performs bounded identity reads only after production acceptance is durable.
+pub trait SubmissionReceiptVerifier {
+    /// Verifies every unmapped identity against its exact released row and attempted wire date.
+    /// A failed or incomplete lookup returns absence without changing known acceptance.
+    fn verify_receipts(
+        &self,
+        job: &model::SubmissionJob,
+        credentials: &model::CredentialValues,
+        release_token: Option<&str>,
+    ) -> impl std::future::Future<Output = Option<Vec<model::VerifiedUexReport>>> + Send;
+}
+
+pub use crate::observation_order::ObservationOrder;

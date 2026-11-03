@@ -1,13 +1,13 @@
 // SPDX-FileCopyrightText: 2026 Lucas Greuloch
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Filtered dependency diagnostics before credential argument formatting.
+//! Filtered dependency diagnostics before credential or HTTP argument formatting.
 
-/// Bridges ordinary dependency diagnostics while excluding credential targets.
+/// Bridges ordinary diagnostics while excluding credential and HTTP targets.
 pub struct CredentialLogBridge;
 impl log::Log for CredentialLogBridge {
     fn enabled(&self, metadata: &log::Metadata<'_>) -> bool {
-        !credential_target(metadata.target())
+        !sensitive_dependency_target(metadata.target())
     }
     fn log(&self, record: &log::Record<'_>) {
         if !self.enabled(record.metadata()) {
@@ -33,7 +33,7 @@ impl log::Log for CredentialLogBridge {
     }
     fn flush(&self) {}
 }
-fn credential_target(target: &str) -> bool {
+pub(crate) fn sensitive_dependency_target(target: &str) -> bool {
     let root = target.split("::").next().unwrap_or(target);
     matches!(
         root,
@@ -47,6 +47,17 @@ fn credential_target(target: &str) -> bool {
             | "zvariant"
             | "zbus_names"
             | "zvariant_utils"
+            | "reqwest"
+            | "h2"
+            | "hyper"
+            | "hyper_util"
+            | "hyper_rustls"
+            | "rustls"
+            | "rustls_platform_verifier"
+            | "tower"
+            | "tower_http"
+            | "tokio"
+            | "mio"
     )
 }
 /// Installs the single filtered bridge before native providers or workers start.

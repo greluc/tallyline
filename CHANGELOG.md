@@ -4,6 +4,9 @@ All notable changes are recorded here.
 
 ## [Unreleased]
 
+- Allow a previously validated account to release reviewed Reports to the persistent queue while offline. Sending waits for validation in the current session, and replacement credentials close release and sending until accepted (R-API-7, R-SUB-2).
+- Extend the optional Game.log witness to the exact MIC-L2 Long Forest Station and Orbituary terminal pairs and Astatine, Carbon, Copper, Diamond, Potassium, Scrap and Waste. The same validated build and default-off privacy boundary apply; the log supplies no reported prices, quantities or status values (R-OCR-20).
+
 - Verify rebuilt Development MSI/ZIP/deb/tar.gz packages, exact preferred-source inventory, legal terms and fixture boundaries. Keep shared libraries as non-executable data in portable archives written on Windows, with independent format-reader and actual artefact red/green. These recorded Development tuples do not establish Windows OS isolation, installed acceptance or authenticated releases (R-NF-2:installers, R-DOC-3, R-DOC-4, R-SEC-8).
 
 - Add fifteen balance-redacted Orbituary corpus captures with manual, unverified Buy and Local Market Value transcriptions, long names, literal warning markers and explicit clipped-card boundaries; recognition accuracy remains unmeasured (R-QA-1, R-QA-3).
@@ -14,6 +17,8 @@ All notable changes are recorded here.
 - Added bounded headless `--build-info` before native bootstrap. About, logs, UEX identity and update comparison share fixed Development `0.0.0` or complete compile-time tag metadata; invalid or partial metadata refuses startup. Bounded source-job receipts bind compiled metadata and executable hashes into protected staging before fixture access; signed-tag/CI authentication and final package acceptance remain release gates (R-NF-11, R-API-7, R-UI-18, R-SEC-8).
 
 ### Added
+
+- Release reviewed manual Reports through a durable serial queue with fixed account/mode, fresh checks, restart recovery, passive history and unsent cancellation. The onboarding test uses dry-run mode; database 9/settings 6 require coordinated backups, and uncertain sends never replay automatically. Native and approved real-service acceptance remain pending (R-SUB-1, R-SUB-2, R-SUB-3, R-SUB-8, R-SUB-9, R-VAL-7, R-UI-1:reports, R-API-7).
 
 - Correct unnecessary MSI file-language defaults and the Debian launcher's missing optional icon reference, with actual prebuilt artefact red/green and independent historical package inspections. Current-source freeze, Windows OS isolation and installed/release acceptance remain separate gates (R-NF-2:installers, R-DOC-3, R-SEC-8).
 

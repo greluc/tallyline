@@ -22,3 +22,9 @@ mod stock_confirmation;
 mod stock_settings;
 
 mod numeric_readiness;
+
+mod manual_reviewer;
+
+mod submission_gate;
+
+mod observation_history;

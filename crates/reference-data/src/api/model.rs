@@ -292,7 +292,15 @@ pub struct StatusLevels {
     /// Sell-side labels in server order.
     pub sell: Vec<StatusLevel>,
 }
+pub use crate::local_priors::{
+    AcceptedLocalPrior, AcceptedPriorContext, PriorReference, PriorReferenceSource,
+};
 pub use crate::parameters::{EffectiveStaleness, StalenessSource};
 pub use crate::scu_tolerance::{ScuTolerance, ScuToleranceSource};
 pub use crate::tolerance::PriceReferenceSource;
 pub use crate::tolerance::{PriceTolerance, PriceToleranceSource, SourcedPriceFallback};
+
+pub use crate::prior_history::{
+    AcceptedPriorHistory, AcceptedPriorRecord, LocalPriorProjection, LocalPriorRevocation,
+    StoredAcceptedPriorRecord,
+};

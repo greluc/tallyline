@@ -73,7 +73,7 @@ fn r_ui_10_q_manual__status_review_distinguishes_equal_minor_missing_and_unsent_
         tallyline_reporting::api::model::Deviation::Minor
     );
     let sell = ReportKey::new(TerminalId(11), TradeSide::Sell, GameEnvironment::Live).unwrap();
-    report.change_key(sell);
+    report.change_key(sell).unwrap();
     let mut app = ReportingApplication::new(Repository(vec![report.clone()]), Fixed);
     assert_eq!(
         app.review_statuses(report.id(), &live).unwrap()[0].deviation(),

@@ -194,6 +194,7 @@ fn next_snapshot(
             | BackgroundEvent::LicencesLoaded(_)
             | BackgroundEvent::StorageWarning(_)
             | BackgroundEvent::CredentialsUpdated { .. }
+            | BackgroundEvent::SubmissionUpdated(_)
             | BackgroundEvent::LicencesUnavailable) => {
                 return Err(std::io::Error::other(format!(
                     "unexpected worker event: {other:?}"
@@ -591,6 +592,7 @@ fn r_api_3__non_json_metadata_uses_the_injected_observation_time_without_replaci
             | BackgroundEvent::LicencesLoaded(_)
             | BackgroundEvent::StorageWarning(_)
             | BackgroundEvent::CredentialsUpdated { .. }
+            | BackgroundEvent::SubmissionUpdated(_)
             | BackgroundEvent::LicencesUnavailable) => panic!("unexpected event: {other:?}"),
         }
     }
@@ -601,5 +603,207 @@ fn r_api_3__non_json_metadata_uses_the_injected_observation_time_without_replaci
         Some(Timestamp::from_seconds(0))
     );
     finish(worker).unwrap();
+    drop(commands);
+}
+
+#[test]
+#[expect(
+    non_snake_case,
+    reason = "Requirement tags use a double underscore separator."
+)]
+fn r_val_7_r_api_6_r_nf_3__cached_publication_reads_actual_accepted_history_on_cpu_owner_without_refresh_or_ptu_repair()
+ {
+    use tallyline_reference_data::api::model::{
+        AcceptedLocalPrior, AcceptedPriorContext, AcceptedPriorHistory, PricePrior,
+        PriorProvenance, PriorReferenceSource, PriorValues,
+    };
+    use tallyline_shared_kernel::api::model::{
+        ReportId, SubmissionJobId, TradeSide, UexEnvironment,
+    };
+    let values = |price: &str| PriorValues {
+        price: price.parse().unwrap(),
+        stock: "0".parse().unwrap(),
+        status: std::num::NonZeroU8::new(1),
+        container_sizes: vec![],
+    };
+    let prior = PricePrior::new(
+        CommodityId(7),
+        TradeSide::Sell,
+        values("120"),
+        PriorProvenance {
+            game_version: "4.10.2".to_owned(),
+            modified_at: Timestamp::from_seconds(90),
+        },
+    )
+    .unwrap();
+    let writes = Arc::new(AtomicUsize::new(0));
+    let store = MemoryCache {
+        entries: Arc::new(Mutex::new(vec![CachedReference::new(
+            Timestamp::from_seconds(95),
+            EndpointData::TerminalPriors(TerminalPriors::new(TerminalId(89), vec![prior]).unwrap()),
+        )])),
+        writes: Arc::clone(&writes),
+        read_only: false,
+    };
+    let history = Arc::new(Mutex::new(AcceptedPriorHistory::default()));
+    let observed = Arc::clone(&history);
+    let unavailable = Arc::new(AtomicBool::new(false));
+    let failure = Arc::clone(&unavailable);
+    let factories = Arc::new(AtomicUsize::new(0));
+    let requested = Arc::clone(&factories);
+    let (commands, incoming) = mpsc::sync_channel(1);
+    let (outgoing, events) = mpsc::sync_channel(16);
+    let worker = ReferenceWorker::start_with_history(
+        store,
+        TestClock,
+        (incoming, outgoing),
+        move || {
+            requested.fetch_add(1, Ordering::SeqCst);
+            Err::<ReadyFetcher, _>(())
+        },
+        move || {
+            assert!(tallyline_adapter_platform::api::worker_priority()?.is_below_normal());
+            assert!(tokio::runtime::Handle::try_current().is_err());
+            if failure.load(Ordering::SeqCst) {
+                return Err(std::io::Error::other("recorded history unavailable"));
+            }
+            Ok(observed.lock().unwrap().clone())
+        },
+        || {},
+    )
+    .unwrap();
+    let (live, _, _) = next_snapshot(&events).unwrap();
+    assert_eq!(
+        live.prior_reference(TerminalId(89), CommodityId(7), TradeSide::Sell)
+            .unwrap()
+            .values()
+            .price
+            .to_string(),
+        "120"
+    );
+    next_snapshot(&events).unwrap();
+    let local = |environment, submission| {
+        AcceptedLocalPrior::new(
+            Arc::new(AcceptedPriorContext {
+                report: ReportId(9),
+                report_version: 3,
+                submission: SubmissionJobId(submission),
+                environment,
+                terminal: TerminalId(89),
+                side: TradeSide::Sell,
+                game_version: "4.10.2".to_owned(),
+                observed_at: Timestamp::from_seconds(100),
+                accepted_at: Timestamp::from_seconds(110),
+            }),
+            CommodityId(7),
+            values("125"),
+        )
+        .unwrap()
+    };
+    let accepted = AcceptedPriorHistory::default()
+        .accepted(&[
+            local(UexEnvironment::Live, 7),
+            local(UexEnvironment::Ptu, 8),
+        ])
+        .unwrap();
+    *history.lock().unwrap() = accepted;
+    commands.send(ReferenceCommand::PublishCached).unwrap();
+    let (live, ptu, _) = next_snapshot(&events).unwrap();
+    let selected = live
+        .prior_reference(TerminalId(89), CommodityId(7), TradeSide::Sell)
+        .unwrap();
+    assert_eq!(selected.values().price.to_string(), "125");
+    assert_eq!(selected.source(), PriorReferenceSource::AcceptedLocal);
+    assert!(
+        ptu.prior_reference(TerminalId(89), CommodityId(7), TradeSide::Sell)
+            .is_none()
+    );
+    assert!(ptu.terminal_priors(TerminalId(89)).is_none());
+    assert_eq!(writes.load(Ordering::SeqCst), 0);
+    assert_eq!(factories.load(Ordering::SeqCst), 1);
+    unavailable.store(true, Ordering::SeqCst);
+    commands.send(ReferenceCommand::PublishCached).unwrap();
+    assert!(matches!(
+        events.recv_timeout(Duration::from_secs(5)).unwrap(),
+        BackgroundEvent::Failure(_)
+    ));
+    assert!(finish(worker).is_err());
+    assert!(events.try_recv().is_err());
+    assert_eq!(factories.load(Ordering::SeqCst), 1);
+}
+
+#[test]
+#[expect(
+    non_snake_case,
+    reason = "Requirement tags use a double underscore separator."
+)]
+fn r_val_7_r_sub_2__release_refresh_acknowledges_all_selected_endpoint_attempts_and_closes_when_owner_stops()
+ {
+    use tallyline_app::api::{ReleaseReferenceClient, ReleaseReferenceRefresh};
+    struct OfflineFetcher(Arc<Mutex<Vec<Endpoint>>>);
+    impl ReferenceDataFetcher for OfflineFetcher {
+        type Error = ReadError;
+        async fn fetch(&self, endpoint: Endpoint) -> Result<EndpointData, ReadError> {
+            self.0.lock().unwrap().push(endpoint);
+            Err(ReadError::Transport("recorded offline".to_owned()))
+        }
+        async fn fetch_terminal_priors(
+            &self,
+            _: &[TerminalId],
+        ) -> Result<Vec<TerminalPriors>, ReadError> {
+            Err(ReadError::Transport("unused batch".to_owned()))
+        }
+    }
+    let calls = Arc::new(Mutex::new(Vec::new()));
+    let recorded = Arc::clone(&calls);
+    let store = MemoryCache {
+        entries: Arc::new(Mutex::new(Vec::new())),
+        writes: Arc::new(AtomicUsize::new(0)),
+        read_only: false,
+    };
+    let (commands, incoming) = mpsc::sync_channel(1);
+    let (outgoing, events) = mpsc::sync_channel(32);
+    let (mut refresh, owner) = ReleaseReferenceClient::channel();
+    refresh.begin(TerminalId(89)).unwrap();
+    assert!(
+        !refresh.completed().unwrap(),
+        "requesting work is not acknowledgement"
+    );
+    let worker = ReferenceWorker::start_with_history_and_refresh(
+        store,
+        TestClock,
+        (incoming, outgoing),
+        move || Ok::<_, ()>(OfflineFetcher(Arc::clone(&recorded))),
+        || Ok(Default::default()),
+        owner,
+        || {},
+    )
+    .unwrap();
+    next_snapshot(&events).unwrap();
+    commands.send(ReferenceCommand::PublishCached).unwrap();
+    let deadline = std::time::Instant::now() + Duration::from_secs(5);
+    while !refresh.completed().unwrap() {
+        while events.try_recv().is_ok() {}
+        assert!(std::time::Instant::now() < deadline);
+        std::thread::sleep(Duration::from_millis(5));
+    }
+    let observed = calls.lock().unwrap();
+    assert_eq!(observed.len(), 6);
+    for endpoint in [
+        Endpoint::Commodities,
+        Endpoint::Terminals,
+        Endpoint::GameVersions,
+        Endpoint::StatusLevels,
+        Endpoint::Parameters,
+        Endpoint::TerminalPriors(TerminalId(89)),
+    ] {
+        assert!(observed.contains(&endpoint));
+    }
+    drop(observed);
+    finish(worker).unwrap();
+    assert!(
+        refresh.begin(TerminalId(89)).is_err(),
+        "stopped owners cannot authorise cached release"
+    );
     drop(commands);
 }

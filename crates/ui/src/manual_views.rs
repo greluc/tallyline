@@ -12,6 +12,12 @@ use tallyline_shared_kernel::api::model::TradeSide;
 
 /// Draws persistent manual Draft entry without requiring account credentials.
 pub fn show_manual_editor(ui: &mut egui::Ui, state: &mut ShellState, catalogue: &Catalogue) {
+    ui.add_enabled_ui(!state.submission_busy(), |ui| {
+        show_contents(ui, state, catalogue)
+    });
+    crate::api::show_submission_controls(ui, state, catalogue);
+}
+fn show_contents(ui: &mut egui::Ui, state: &mut ShellState, catalogue: &Catalogue) {
     ui.heading(catalogue.text("manual.title"));
     ui.label(catalogue.text("manual.instructions"));
     if let Some(review) = state.manual().review() {

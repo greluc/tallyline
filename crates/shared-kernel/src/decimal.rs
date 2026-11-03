@@ -57,6 +57,15 @@ impl fmt::Display for ScuQuantity {
     }
 }
 impl ScuQuantity {
+    /// Returns an exact whole quantity when it fits the supported unsigned wire range.
+    #[must_use]
+    pub fn whole_units(self) -> Option<u64> {
+        if self.0.scale() == 0 {
+            u64::try_from(self.0.mantissa()).ok()
+        } else {
+            None
+        }
+    }
     /// Constructs an exact non-negative whole quantity.
     #[must_use]
     pub const fn whole(value: u32) -> Self {

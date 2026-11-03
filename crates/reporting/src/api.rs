@@ -65,3 +65,5 @@ pub trait ReportRepository {
 }
 pub use crate::application::{ManualEdit, ReportingApplication};
 pub use crate::attachment::AttachmentEdit;
+
+pub use crate::manual_reviewer::ManualReviewer;

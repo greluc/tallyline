@@ -67,7 +67,7 @@ fn r_nf_11__existing_database_and_exact_config_are_backed_up_together_before_mig
     assert_eq!(marker.configuration_schema, Some(3));
     let manifest: serde_json::Value =
         serde_json::from_slice(&std::fs::read(backup.join("manifest.json")).unwrap()).unwrap();
-    assert_eq!(manifest["database_schema"], 8);
+    assert_eq!(manifest["database_schema"], 9);
     assert_eq!(manifest["config_schema"], 3);
     assert_eq!(manifest["database_file"], "tallyline.db");
 }
@@ -131,7 +131,7 @@ fn r_nf_11__invalid_config_refuses_database_creation_and_current_bootstrap_does_
     std::fs::write(&settings, br#"{"schema_version":99}"#).unwrap();
     assert!(tallyline_app::api::initialise_storage(&layout, &FixedClock).is_err());
     assert!(!layout.data().join("tallyline.db").exists());
-    std::fs::write(&settings, br#"{"schema_version":5}"#).unwrap();
+    std::fs::write(&settings, br#"{"schema_version":6}"#).unwrap();
     drop(tallyline_app::api::initialise_storage(&layout, &FixedClock).unwrap());
     drop(tallyline_app::api::initialise_storage(&layout, &FixedClock).unwrap());
     assert!(!layout.data().join("backup").exists());
@@ -171,7 +171,7 @@ fn r_nf_11__joint_schema_upgrades_reuse_only_the_exact_original_config_backup() 
     );
     assert_eq!(
         prepared.settings.backup_source().unwrap().unwrap().schema,
-        5
+        6
     );
     assert_eq!(
         prepared
@@ -179,9 +179,9 @@ fn r_nf_11__joint_schema_upgrades_reuse_only_the_exact_original_config_backup() 
             .backup_into(
                 &directory.0.join("after.db"),
                 Timestamp::from_millis(2000),
-                Some(5)
+                Some(6)
             )
             .unwrap(),
-        8
+        9
     );
 }

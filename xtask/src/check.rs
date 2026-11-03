@@ -32,7 +32,7 @@ pub enum Step {
     SourceHeaders,
     /// The English check over the tracked files (ADR-0005 D12).
     English,
-    /// The Cargo dependency edges against the architecture context map.
+    /// Cargo context-map edges and the persistence-only reconstruction boundary.
     Architecture,
     /// A Cargo invocation that must exit successfully.
     Cargo {

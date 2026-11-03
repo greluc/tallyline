@@ -1,11 +1,11 @@
 // SPDX-FileCopyrightText: 2026 Lucas Greuloch
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Exact manual review tied to one committed Draft version.
+//! Exact manual review tied to one Report version.
 
 use crate::api::model::{PriceAssessment, Report, StatusAssessment, StockAssessment};
 
-/// Price, stock and status assessments of one committed manual Draft.
+/// Price, stock and status assessments of one exact manual Report snapshot.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ManualReview {
     report: Report,
@@ -13,6 +13,7 @@ pub struct ManualReview {
     prices: Vec<PriceAssessment>,
     stocks: Vec<StockAssessment>,
     statuses: Vec<StatusAssessment>,
+    accepted_references: Vec<AcceptedReference>,
 }
 impl ManualReview {
     pub(crate) fn new(
@@ -21,6 +22,7 @@ impl ManualReview {
         prices: Vec<PriceAssessment>,
         stocks: Vec<StockAssessment>,
         statuses: Vec<StatusAssessment>,
+        accepted_references: Vec<AcceptedReference>,
     ) -> Self {
         Self {
             report,
@@ -28,6 +30,7 @@ impl ManualReview {
             prices,
             stocks,
             statuses,
+            accepted_references,
         }
     }
     /// Returns the exact validated SCU policy used by this immutable review.
@@ -35,7 +38,7 @@ impl ManualReview {
     pub const fn stock_settings(&self) -> crate::api::model::StockSettings {
         self.stock_settings
     }
-    /// Returns the committed Draft assessed by this review.
+    /// Returns the exact Report snapshot assessed by this review.
     #[must_use]
     pub const fn report(&self) -> &Report {
         &self.report
@@ -139,5 +142,26 @@ impl ManualReview {
             })
             .sum();
         summary
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub(crate) struct AcceptedReference {
+    pub(crate) row: tallyline_shared_kernel::api::model::RowId,
+    pub(crate) prior: tallyline_reference_data::api::model::AcceptedLocalPrior,
+}
+impl ManualReview {
+    /// Borrows distinct accepted-local provenance only when it supplied this row's reference.
+    ///
+    /// Terminal tolerance basis alone never claims that this value came from a UEX refresh.
+    #[must_use]
+    pub fn accepted_reference(
+        &self,
+        row: tallyline_shared_kernel::api::model::RowId,
+    ) -> Option<&tallyline_reference_data::api::model::AcceptedLocalPrior> {
+        self.accepted_references
+            .iter()
+            .find(|reference| reference.row == row)
+            .map(|reference| &reference.prior)
     }
 }

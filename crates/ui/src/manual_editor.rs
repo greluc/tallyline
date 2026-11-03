@@ -130,10 +130,35 @@ impl ManualEditor {
             self.notice = None;
         }
     }
-    pub(crate) fn loaded(&mut self, reports: Vec<Report>, selected: Option<ReportId>) {
+    pub(crate) fn loaded(
+        &mut self,
+        mut reports: Vec<Report>,
+        selected: Option<ReportId>,
+        visible: impl Fn(&Report) -> bool,
+    ) {
         let before = self
             .selected()
             .map(|report| (report.id(), report.version()));
+        let mut positions = reports
+            .iter()
+            .enumerate()
+            .map(|(index, report)| (report.id().0, index))
+            .collect::<std::collections::BTreeMap<_, _>>();
+        for previous in std::mem::take(&mut self.reports) {
+            if let Some(current) = positions
+                .get(&previous.id().0)
+                .and_then(|index| reports.get_mut(*index))
+            {
+                if current.version() < previous.version() {
+                    *current = previous;
+                }
+            } else {
+                positions.insert(previous.id().0, reports.len());
+                reports.push(previous);
+            }
+        }
+        reports.retain(visible);
+        let selected = selected.filter(|id| reports.iter().any(|report| report.id() == *id));
         self.pending_attachments.retain(|(id, expected)| {
             reports
                 .iter()

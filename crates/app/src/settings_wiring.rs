@@ -16,31 +16,47 @@ type WorkerChannels = (
     SyncSender<ReferenceCommand>,
     SyncSender<tallyline_ui::api::model::ManualCommand>,
     SyncSender<tallyline_ui::api::model::CredentialCommand>,
+    SyncSender<tallyline_ui::api::model::SubmissionControl>,
     Receiver<BackgroundEvent>,
     std::thread::JoinHandle<()>,
     tallyline_app::api::CredentialWorker,
 );
 
-pub(crate) fn start(context: egui::Context, layout: StorageLayout) -> io::Result<WorkerChannels> {
+pub(crate) fn start(
+    context: egui::Context,
+    layout: StorageLayout,
+    client: tallyline_app::api::HttpClient,
+) -> io::Result<WorkerChannels> {
     let (commands, incoming) = mpsc::sync_channel(1);
     let (reference_commands, reference_incoming) = mpsc::sync_channel(1);
     let (manual_commands, manual_incoming) = mpsc::sync_channel(1);
     let (credential_commands, credential_incoming) = mpsc::sync_channel(1);
     let (outgoing, events) = mpsc::sync_channel(16);
+    let (submission_commands, submission_incoming) = mpsc::sync_channel(1);
+    let (activate, activation) = mpsc::sync_channel(1);
     let credential_worker = crate::credential_wiring::start(
         layout.data().join("credentials"),
         credential_incoming,
         outgoing.clone(),
         context.clone(),
+        client.clone(),
+        activation,
     )?;
+    let reference_publication = reference_commands.clone();
     let worker = crate::executor::spawn("tallyline-settings", move || {
         let result = run(
             &incoming,
             &outgoing,
             &context,
             layout,
-            reference_incoming,
-            manual_incoming,
+            (
+                reference_incoming,
+                manual_incoming,
+                submission_incoming,
+                activate,
+                reference_publication,
+            ),
+            client,
         );
         if let Err(error) = result {
             let _sent = outgoing.try_send(BackgroundEvent::Failure(error.to_string()));
@@ -52,6 +68,7 @@ pub(crate) fn start(context: egui::Context, layout: StorageLayout) -> io::Result
         reference_commands,
         manual_commands,
         credential_commands,
+        submission_commands,
         events,
         worker,
         credential_worker,
@@ -68,14 +85,24 @@ fn deliver(
     Ok(())
 }
 
+type WorkerInputs = (
+    Receiver<ReferenceCommand>,
+    Receiver<tallyline_ui::api::model::ManualCommand>,
+    Receiver<tallyline_ui::api::model::SubmissionControl>,
+    SyncSender<Box<dyn tallyline_app::api::CredentialQueue>>,
+    SyncSender<ReferenceCommand>,
+);
+
 fn run(
     incoming: &Receiver<SettingsCommand>,
     outgoing: &SyncSender<BackgroundEvent>,
     context: &egui::Context,
     layout: StorageLayout,
-    reference_incoming: Receiver<ReferenceCommand>,
-    manual_incoming: Receiver<tallyline_ui::api::model::ManualCommand>,
+    workers: WorkerInputs,
+    client: tallyline_app::api::HttpClient,
 ) -> io::Result<()> {
+    let (reference_incoming, manual_incoming, submission_incoming, activate, reference_publication) =
+        workers;
     let executable = std::env::current_exe()?;
     let directory = executable
         .parent()
@@ -139,12 +166,24 @@ fn run(
             ),
         )?;
     }
+    let (release_refresh, release_owner) = tallyline_app::api::ReleaseReferenceClient::channel();
+    crate::submission_wiring::activate(
+        layout.clone(),
+        client.clone(),
+        (submission_incoming, outgoing.clone(), reference_publication),
+        &activate,
+        context.clone(),
+        release_refresh,
+    )?;
     deliver_game(outgoing, context, &settings_path)?;
     let reference_worker = crate::reference_wiring::start(
         cache,
         reference_incoming,
         outgoing.clone(),
         context.clone(),
+        client,
+        layout.data().join("tallyline.db"),
+        release_owner,
     )?;
     let manual_store = tallyline_adapter_storage::api::SqliteReferenceCache::open(
         layout.data().join("tallyline.db"),
@@ -235,7 +274,9 @@ fn run(
                 Err(mpsc::RecvTimeoutError::Disconnected) => break,
             };
             let app_command = match &command {
-                SettingsCommand::ChangeStockSettings(_)
+                SettingsCommand::ChangeSubmissionMode(_)
+                | SettingsCommand::ChangeObservationAge(_)
+                | SettingsCommand::ChangeStockSettings(_)
                 | SettingsCommand::ChangeTheme(_)
                 | SettingsCommand::CompleteOnboarding
                 | SettingsCommand::ChangeUpdateChecks(_)
@@ -250,6 +291,10 @@ fn run(
                 SettingsCommand::DismissUpdate | SettingsCommand::ChangeUpdateChecks(_)
             );
             let result = match command {
+                SettingsCommand::ChangeSubmissionMode(mode) => {
+                    settings.change_submission_mode(mode)
+                }
+                SettingsCommand::ChangeObservationAge(age) => settings.change_observation_age(age),
                 SettingsCommand::ChangeEnvironmentMapping(channel, environment) => {
                     crate::game_wiring::change_mapping(settings_path.clone(), channel, environment)
                 }

@@ -8,9 +8,11 @@
 mod credential_wiring;
 mod executor;
 mod game_wiring;
+mod http_wiring;
 mod instance_wiring;
 mod reference_wiring;
 mod settings_wiring;
+mod submission_wiring;
 mod update_wiring;
 
 use tallyline_ui::api::{Catalogue, DesktopShell, configure_fonts};
@@ -22,17 +24,22 @@ fn main() -> Result<std::process::ExitCode, Box<dyn std::error::Error>> {
         tallyline_app::api::compiled_build_information(),
         &mut output,
         |information| {
-            tallyline_app::api::install_credential_log_bridge()?;
-            tracing::info!(
-                version = information.version(),
-                build_kind = ?information.kind(),
-                target = information.target().triple(),
-                source_commit = ?information.source_commit(),
-                "application build information"
-            );
             use tallyline_adapter_platform::api::model::{OcrChildExit, OcrProcessStartup};
             match tallyline_adapter_platform::api::prepare_ocr_process()? {
                 OcrProcessStartup::Prepared => {
+                    tallyline_app::api::install_credential_log_bridge()?;
+                    tracing::subscriber::set_global_default(
+                        tallyline_app::api::DependencyDiagnostics::new(
+                            tracing::subscriber::NoSubscriber::default(),
+                        ),
+                    )?;
+                    tracing::info!(
+                        version = information.version(),
+                        build_kind = ?information.kind(),
+                        target = information.target().triple(),
+                        source_commit = ?information.source_commit(),
+                        "application build information"
+                    );
                     run(information)?;
                     Ok(std::process::ExitCode::SUCCESS)
                 }
@@ -100,6 +107,7 @@ fn run(
         .join()
         .map_err(|_| std::io::Error::other("resource worker terminated unexpectedly"))??;
     let (lifecycle_sender, lifecycle_receiver) = std::sync::mpsc::sync_channel(1);
+    let (http_driver, http_client) = http_wiring::start(information)?;
     let result = eframe::run_native(
         "Tallyline",
         eframe::NativeOptions {
@@ -121,10 +129,11 @@ fn run(
                 reference_commands,
                 manual_commands,
                 credential_commands,
+                submission_commands,
                 events,
                 worker,
                 credential_worker,
-            ) = settings_wiring::start(creation.egui_ctx.clone(), layout)?;
+            ) = settings_wiring::start(creation.egui_ctx.clone(), layout, http_client)?;
             lifecycle_sender.send((worker, activation_worker, credential_worker))?;
             Ok(Box::new(
                 DesktopShell::new(
@@ -139,7 +148,8 @@ fn run(
                 .with_window_commands(activation_events)
                 .with_reference_commands(reference_commands)
                 .with_manual_commands(manual_commands)
-                .with_credential_commands(credential_commands),
+                .with_credential_commands(credential_commands)
+                .with_submission_commands(submission_commands),
             ))
         }),
     );
@@ -150,6 +160,7 @@ fn run(
         credential_worker.finish()?;
         activation_worker.finish()?;
     }
+    http_driver.finish()?;
     result?;
     Ok(())
 }

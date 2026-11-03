@@ -43,3 +43,18 @@ mod manual_review_views;
 
 mod build_presentation;
 mod stock_settings;
+
+mod submission_queue;
+
+mod submission_control;
+
+mod submission_controls;
+mod submission_feedback;
+
+mod submission_settings;
+
+mod submission_waiting;
+
+mod submission_wake;
+
+mod submission_accounts;

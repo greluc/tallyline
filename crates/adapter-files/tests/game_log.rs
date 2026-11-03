@@ -7,6 +7,7 @@ use std::path::PathBuf;
 use std::sync::atomic::{AtomicU64, Ordering};
 use tallyline_adapter_files::api::GameLogFiles;
 use tallyline_game::api::model::{GameSettings, WitnessMode, WitnessSnapshot, WitnessUnavailable};
+use tallyline_shared_kernel::api::model::Timestamp;
 
 struct GameDirectory(PathBuf);
 impl GameDirectory {
@@ -239,8 +240,8 @@ fn r_ocr_20__future_location_entries_do_not_supply_a_terminal_for_earlier_rows()
         .unwrap();
     std::fs::write(directory.0.join("Game.log"), concat!(
         "FileVersion: 4.10.197.2878\nBranch: sc-alpha-4.10.2\n",
-        "<2000-01-01T12:00:00.126Z> [Notice] <RequestLocationInventory> Player[SYNTHETIC] requested inventory for Location[Nyx_Levski]\n",
-        "<2000-01-01T12:00:00.125Z> [Notice] CEntityComponentCommodityUIProvider::LoadShopInventoryData AddingCommodityBox shopName[SCShop_Levski_CargoOffice_Commodities] commodityName[ResourceType.PlasmaFuel] Available Box Sizes: boxSize[1]\n"
+        "<2000-01-01T12:00:00.126Z> [Notice] <RequestLocationInventory> Player[SYNTHETIC] requested inventory for Location[RR_MIC_L2]\n",
+        "<2000-01-01T12:00:00.125Z> [Notice] CEntityComponentCommodityUIProvider::LoadShopInventoryData AddingCommodityBox shopName[SCShop_Admin_lt_base_g] commodityName[ResourceType.Scrap] Available Box Sizes: boxSize[1]\n"
     )).unwrap();
     let WitnessSnapshot::Available(facts) = directory.source().inspect(&enabled()) else {
         panic!("Expected sanitised facts")
@@ -279,12 +280,89 @@ fn r_ocr_20__changed_kiosk_payload_and_non_digit_timestamps_disable_the_witness(
     non_snake_case,
     reason = "Requirement tags use a double underscore separator."
 )]
-fn r_ocr_20__all_initial_allowlist_entries_require_the_exact_location_and_template_pair() {
+fn r_ocr_20__allowlisted_observations_require_the_exact_location_and_template_pair() {
     let directory = GameDirectory::new().unwrap();
     directory
         .manifest("4.10.197.2878", "sc-alpha-4.10.2")
         .unwrap();
     for (location, shop, commodity, terminal_id, commodity_id) in [
+        (
+            "RR_MIC_L2",
+            "SCShop_Admin_lt_base_g",
+            "ResourceType.Astatine",
+            Some(55),
+            Some(9),
+        ),
+        (
+            "RR_P3_LEO",
+            "SCShop_Pyro_RestStop_Rund_Admin",
+            "ResourceType.Carbon",
+            Some(443),
+            Some(102),
+        ),
+        (
+            "RR_P3_LEO",
+            "SCShop_Pyro_RestStop_Rund_Admin",
+            "ResourceType.Copper",
+            Some(443),
+            Some(20),
+        ),
+        (
+            "RR_MIC_L2",
+            "SCShop_Admin_lt_base_g",
+            "ResourceType.Diamond",
+            Some(55),
+            Some(25),
+        ),
+        (
+            "RR_P3_LEO",
+            "SCShop_Pyro_RestStop_Rund_Admin",
+            "ResourceType.Potassium",
+            Some(443),
+            Some(116),
+        ),
+        (
+            "RR_MIC_L2",
+            "SCShop_Admin_lt_base_g",
+            "ResourceType.Scrap",
+            Some(55),
+            Some(67),
+        ),
+        (
+            "RR_MIC_L2",
+            "SCShop_Admin_lt_base_g",
+            "ResourceType.Waste",
+            Some(55),
+            Some(79),
+        ),
+        (
+            "RR_MIC_L2",
+            "SCShop_Admin_lt_base_g",
+            "ResourceType.PlasmaFuel",
+            Some(55),
+            Some(104),
+        ),
+        (
+            "RR_P3_LEO",
+            "SCShop_Pyro_RestStop_Rund_Admin",
+            "ResourceType.RMC",
+            Some(443),
+            Some(63),
+        ),
+        (
+            "RR_MIC_L2",
+            "SCShop_Pyro_RestStop_Rund_Admin",
+            "ResourceType.PlasmaFuel",
+            None,
+            Some(104),
+        ),
+        (
+            "RR_P3_LEO",
+            "SCShop_Admin_lt_base_g",
+            "ResourceType.RMC",
+            None,
+            Some(63),
+        ),
         (
             "RR_P6_LEO",
             "SCShop_Pyro_RestStop_Rund_Admin",
@@ -323,7 +401,7 @@ fn r_ocr_20__all_initial_allowlist_entries_require_the_exact_location_and_templa
         (
             "SYNTHETIC_UNKNOWN_LOCATION",
             "SCShop_Levski_CargoOffice_Commodities",
-            "ResourceType.Waste",
+            "ResourceType.SyntheticUnknown",
             None,
             None,
         ),
@@ -335,6 +413,56 @@ fn r_ocr_20__all_initial_allowlist_entries_require_the_exact_location_and_templa
         let row = facts.rows().first().unwrap();
         assert_eq!(row.terminal().map(|id| id.0), terminal_id);
         assert_eq!(row.commodity().map(|id| id.0), commodity_id);
+        assert_eq!(facts.rows().len(), 1);
+        assert_eq!(facts.major_minor(), (4, 10));
+        assert_eq!(row.logged_at(), Timestamp::from_millis(946728000000));
+        assert_eq!(
+            row.container_sizes().iter().copied().collect::<Vec<_>>(),
+            vec![1, 2, 4, 8, 16, 24, 32]
+        );
+    }
+}
+
+#[test]
+#[expect(
+    non_snake_case,
+    reason = "Requirement tags use a double underscore separator."
+)]
+fn r_ocr_20__commodity_extensions_do_not_admit_similar_names_or_unvalidated_aliases() {
+    let directory = GameDirectory::new().unwrap();
+    directory
+        .manifest("4.10.197.2878", "sc-alpha-4.10.2")
+        .unwrap();
+    for commodity in [
+        "ResourceType.astatine",
+        "ResourceType.Carbon ",
+        "ResourceType.Copper_ore",
+        "ResourceType.DiamondLaminate",
+        "OtherType.Potassium",
+        "ResourceType.ScrapMetal",
+        "ResourceType.Waste_unprocessed",
+        "ResourceType.MedicalSupplies",
+        "ResourceType.ShipAmmoSize1",
+        "ResourceType.ShipAmmoSize2",
+        "ResourceType.ShipAmmoSize3",
+        "ResourceType.ShipAmmoSize4",
+        "ResourceType.ShipAmmoSize5",
+        "ResourceType.ShipAmmoSize6",
+        "ResourceType.ShipAmmoSize7",
+        "ResourceType.ShipCountermeasuresDecoy",
+        "ResourceType.ShipCountermeasuresNoise",
+    ] {
+        std::fs::write(directory.0.join("Game.log"), format!("FileVersion: 4.10.197.2878\nBranch: sc-alpha-4.10.2\n<2000-01-01T11:59:59.000Z> [Notice] <RequestLocationInventory> Player[SYNTHETIC] requested inventory for Location[RR_P3_LEO]\n<2000-01-01T12:00:00.000Z> [Notice] CEntityComponentCommodityUIProvider::LoadShopInventoryData AddingCommodityBox shopName[SCShop_Pyro_RestStop_Rund_Admin] commodityName[{commodity}] Available Box Sizes: boxSize[8] boxSize[16] boxSize[24] boxSize[32]\n")).unwrap();
+        let WitnessSnapshot::Available(facts) = directory.source().inspect(&enabled()) else {
+            panic!("Expected sanitised unmapped observation")
+        };
+        assert_eq!(facts.rows().len(), 1);
+        let row = facts.rows().first().unwrap();
+        assert_eq!(row.terminal().map(|id| id.0), Some(443));
+        assert!(
+            row.commodity().is_none(),
+            "Unexpected mapping for {commodity}"
+        );
     }
 }
 

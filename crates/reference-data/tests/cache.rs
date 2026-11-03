@@ -1348,3 +1348,38 @@ fn r_val_2_q_manual_r_val_2a_q_manual__shared_price_policy_owns_both_reference_b
         Ok(true)
     );
 }
+
+#[test]
+#[expect(
+    non_snake_case,
+    reason = "Requirement tags use a double underscore separator."
+)]
+fn r_sub_2_r_val_7__release_reference_comparison_refuses_changed_values_and_refreshes() {
+    let entry = CachedReference::new(
+        Timestamp::from_seconds(1000),
+        EndpointData::Commodities(vec![Commodity::new(
+            CommodityId(1),
+            "Gold",
+            "GOLD",
+            true,
+            CommodityAverages::new(None, None),
+        )]),
+    );
+    let app = ReferenceApplication::load(MemoryCache(vec![entry.clone()]), FixedClock).unwrap();
+    let snapshot = app.snapshot(UexEnvironment::Live);
+    assert!(snapshot.matches_cached_references(std::slice::from_ref(&entry)));
+    assert!(!snapshot.matches_cached_references(&[]));
+    let refreshed = CachedReference::new(Timestamp::from_seconds(1001), entry.data().clone());
+    assert!(!snapshot.matches_cached_references(&[refreshed]));
+    let changed = CachedReference::new(
+        entry.fetched_at(),
+        EndpointData::Commodities(vec![Commodity::new(
+            CommodityId(1),
+            "Gold",
+            "GOLD",
+            true,
+            CommodityAverages::new(Some("123".parse().unwrap()), None),
+        )]),
+    );
+    assert!(!snapshot.matches_cached_references(&[changed]));
+}

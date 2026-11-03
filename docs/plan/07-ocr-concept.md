@@ -1,6 +1,6 @@
 # OCR concept
 
-> **Doc type:** Living spec — binding. Last reviewed: 2026-11-02.
+> **Doc type:** Living spec — binding. Last reviewed: 2026-11-03.
 
 ## 1. Observations on real screenshots (Patch City, Pyro)
 
@@ -275,6 +275,7 @@ The parsers get a **field-typed raw string** per card field. Deciding which toke
    - **Game version** (R-CAP-3b): the log and `build_manifest.id` give the branch and a four-part build version (`4.10.193.11644`), not the UEX patch string (A24); they can only confirm the major and minor version, and a differing major or minor version marks the capture's version uncertain, never certain.
    - **Never a value source:** stock quantities and prices from the log, including transaction prices, are never used, never witness a price, SCU or status repair (R-VAL-2b) and are never sent.
    - **Validated per game version:** the line formats are validated per game version like the layout profiles (R-OCR-19); for a version without a validated format the witness is off. Player handle and ID are dropped while parsing (02 §9 G1).
+   - **Finite source scope, extended 2026-11-03:** [the dated validation record](../game-log-validation.md#finite-mapping-extension--2026-11-03) adds two exact location/template pairs (MIC-L2 and Orbituary) and seven literal commodity names to the initial allowlist, for the same exact build/branch. Strict eligible-source clock/capture evidence and separate current public UEX identities establish this extension; no general name matching, localisation provenance, golden metrics or wider version support follows. Scan resolution remains a later integration and retains all rules above.
 
 ### 2.5b Stitching without overlap
 

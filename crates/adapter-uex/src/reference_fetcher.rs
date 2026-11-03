@@ -27,19 +27,31 @@ impl ReferenceDataFetcher for UexReader {
             }
             Endpoint::Parameters => {
                 let data = self.transport.get("data_parameters/", &[], &[]).await?;
-                crate::parameter_wire::parameters(data).map(EndpointData::Parameters)
+                self.transport
+                    .process(move || {
+                        crate::parameter_wire::parameters(data).map(EndpointData::Parameters)
+                    })
+                    .await
             }
             Endpoint::Commodities => {
                 let data = self.transport.get("commodities/", &[], &[]).await?;
-                crate::reference_wire::commodities(data).map(EndpointData::Commodities)
+                self.transport
+                    .process(move || {
+                        crate::reference_wire::commodities(data).map(EndpointData::Commodities)
+                    })
+                    .await
             }
             Endpoint::Terminals => self.terminals().await.map(EndpointData::Terminals),
             Endpoint::StatusLevels => {
                 let levels = self.commodity_status_levels().await?;
-                Ok(EndpointData::StatusLevels(StatusLevels {
-                    buy: mapped_status_levels(levels.buy)?,
-                    sell: mapped_status_levels(levels.sell)?,
-                }))
+                self.transport
+                    .process(move || {
+                        Ok(EndpointData::StatusLevels(StatusLevels {
+                            buy: mapped_status_levels(levels.buy)?,
+                            sell: mapped_status_levels(levels.sell)?,
+                        }))
+                    })
+                    .await
             }
             Endpoint::GameVersions => {
                 let versions = self.game_versions().await?;
@@ -75,7 +87,10 @@ impl ReferenceDataFetcher for UexReader {
             .transport
             .get("commodities_prices/", &[("id_terminal", &ids)], &[])
             .await?;
-        crate::prior_wire::priors(data, terminals)
+        let terminals = terminals.to_vec();
+        self.transport
+            .process(move || crate::prior_wire::priors(data, &terminals))
+            .await
     }
 }
 

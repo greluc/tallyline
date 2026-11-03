@@ -1,6 +1,6 @@
 # Engineering Principles: Modularisation, Maintainability, Clean Code
 
-> **Doc type:** Living spec — binding. Last reviewed: 2026-11-02.
+> **Doc type:** Living spec — binding. Last reviewed: 2026-11-03.
 
 This document makes "best practices" **verifiable**: every rule states *how* it is enforced. Where possible this happens automatically (compiler, the Cargo crate graph, Clippy, `cargo-deny`, `xtask`, CI), otherwise via the review checklist and the Definition of Done.
 
@@ -61,6 +61,8 @@ The `unsafe` code of the platform adapter is registered here too. Corrected 2026
 
 | Location | Rule | Reason | Date | Revisit when |
 |---|---|---|---|---|
+| `crates/reference-data/tests/local_priors.rs` and its `local_priors/` modules | `non_snake_case`, local `#[expect]` per tagged test | The required traceability grammar contains a double underscore | 2026-11-03 | the tag grammar changes or rustc accepts consecutive underscores |
+| `crates/app/tests/submission_controller.rs` and its `submission_controller/` modules, `crates/submission/tests/credentials.rs` | `non_snake_case`, local `#[expect]` per tagged test | The required traceability grammar contains a double underscore | 2026-11-03 | the tag grammar changes or rustc accepts consecutive underscores |
 | `crates/reporting/tests/stock_review.rs` and its `stock_review/` modules | `non_snake_case`, local `#[expect]` per tagged test | The required traceability grammar contains a double underscore | 2026-11-02 | the tag grammar changes or rustc accepts consecutive underscores |
 | `xtask/src/check_paths_tests.rs`, requirement-tagged real Cargo contract | `non_snake_case`, local `#[expect]` | The required traceability grammar contains a double underscore | 2026-11-03 | the tag grammar changes or rustc accepts consecutive underscores |
 | xtask/src/package_tests.rs | non_snake_case | Requirement traceability uses double underscores | 2026-11-02 | the tag grammar changes |

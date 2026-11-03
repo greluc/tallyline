@@ -220,13 +220,13 @@ fn r_ui_12_q_manual__pending_price_focus_and_context_edits_never_approve_values(
         ReportKey::new(TerminalId(11), TradeSide::Buy, GameEnvironment::Ptu).unwrap(),
     ] {
         let mut changed = approved.clone();
-        changed.change_key(key);
+        changed.change_key(key).unwrap();
         assert!(changed.rows()[0].price_confirmation().is_none());
         assert!(changed.rows()[0].price_deviation().is_none());
         assert!(!changed.rows()[0].price_unreviewed());
     }
     let mut equal = approved.clone();
-    equal.change_key(approved.key());
+    equal.change_key(approved.key()).unwrap();
     assert_eq!(equal, approved);
     equal.set_price(row, None).unwrap();
     assert!(equal.rows()[0].price_confirmation().is_none());

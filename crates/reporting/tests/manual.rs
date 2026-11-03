@@ -49,7 +49,8 @@ fn r_man_2_r_ui_2__manual_values_remain_explicit_user_values_when_the_report_key
     report.set_stock(row, Some("0".parse().unwrap())).unwrap();
     report.set_status(row, std::num::NonZeroU8::new(3)).unwrap();
     report
-        .change_key(ReportKey::new(TerminalId(12), TradeSide::Sell, GameEnvironment::Ptu).unwrap());
+        .change_key(ReportKey::new(TerminalId(12), TradeSide::Sell, GameEnvironment::Ptu).unwrap())
+        .unwrap();
     let row = report.rows().first().unwrap();
     assert_eq!(row.price().unwrap().to_string(), "123.45");
     assert_eq!(row.stock().unwrap().to_string(), "0");
