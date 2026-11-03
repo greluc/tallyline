@@ -1,6 +1,6 @@
 # Desktop shell
 
-> **Doc type:** Living reference — M1 foundation. Last reviewed: 2026-11-02.
+> **Doc type:** Living reference — M1 foundation. Last reviewed: 2026-11-03.
 
 Tallyline starts with the onboarding welcome screen and its coupled Star Citizen Fan Kit unit. Choose **Continue** to acknowledge it and open the workspace. The workspace shows its empty capture state and keeps Settings and Help available. That acknowledgement and the selected theme survive a restart; subsequent starts open the workspace. **Done** or **Home** leaves Settings. If Settings was opened before the start-screen acknowledgement, Done returns to onboarding. This foundation provides the shell; capture and submission arrive through the remaining M1 work. Account setup is available below the welcome acknowledgement and in Settings.
 
@@ -65,7 +65,7 @@ retains the upstream declaration and every complete original legal text.
 
 Open **Settings → Game log witness**, enter the directory of the game channel containing `Game.log` and `build_manifest.id`, and choose **Use channel and switch witness off**. Then select **Enable read-only Game.log witness**. Access is off by default; selecting another channel revokes the old opt-in. **Refresh witness facts** reads the selected files once on the background settings worker. There is no watcher or network request.
 
-The status explains an unselected channel, unreadable files, an unvalidated build or payload, or a size limit. Settings shows the major/minor version and latest 50 sanitised buy-side observations; unknown terminal or commodity IDs remain absent. An enabled source can have zero observations when no kiosk was opened. The validated initial scope is build `4.10.197.2878` with branch `sc-alpha-4.10.2`, three terminal pairs and four commodity aliases listed in [the validation record](../game-log-validation.md). Similar names and other builds do not extend that scope.
+The status explains an unselected channel, unreadable files, an unvalidated build or payload, or a size limit. Settings shows the major/minor version and latest 50 sanitised buy-side observations; unknown terminal or commodity IDs remain absent. An enabled source can have zero observations when no kiosk was opened. The validated scope is build `4.10.197.2878` with branch `sc-alpha-4.10.2`, five exact terminal pairs and eleven commodity names listed in [the validation record](../game-log-validation.md). Extended 2026-11-03: MIC-L2 Long Forest Station and Orbituary join the initial stations, with Astatine, Carbon, Copper, Diamond, Potassium, Scrap and Waste. Similar names and other builds do not extend that scope.
 
 These facts prepare later recognition resolution; this shell does not resolve or submit reports from them. The log is never a Reader. Sell captures may eventually use location only; buy-side assortment and sizes are never sell-side evidence. No price, quantity or status from any log record is retained as a reported value. The witness only provides major/minor version evidence, never a UEX patch or certainty. Capture matching, the latest preceding load and the five-minute window belong to the later resolution flow.
 
