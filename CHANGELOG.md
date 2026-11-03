@@ -20,7 +20,7 @@ All notable changes are recorded here.
 
 - Release reviewed manual Reports through a durable serial queue with fixed account/mode, fresh checks, restart recovery, passive history and unsent cancellation. The onboarding test uses dry-run mode; database 9/settings 6 require coordinated backups, and uncertain sends never replay automatically. Native and approved real-service acceptance remain pending (R-SUB-1, R-SUB-2, R-SUB-3, R-SUB-8, R-SUB-9, R-VAL-7, R-UI-1:reports, R-API-7).
 
-- Add the source foundation for shared exact numeric parsing and typed raw observations, with a reproducible development-only property profile. Desktop recognition integration remains pending (R-VLM-5).
+- Add the source foundation for versioned local-VLM transcription and shared exact numeric parsing, with bounded format failures and one explicit truncation retry. Desktop inference and report fusion remain pending (R-VLM-5, R-VLM-10).
 
 - Correct unnecessary MSI file-language defaults and the Debian launcher's missing optional icon reference, with actual prebuilt artefact red/green and independent historical package inspections. Current-source freeze, Windows OS isolation and installed/release acceptance remain separate gates (R-NF-2:installers, R-DOC-3, R-SEC-8).
 

@@ -3809,6 +3809,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "tallyline-adapter-vlm"
+version = "0.1.0"
+dependencies = [
+ "tallyline-recognition",
+ "tallyline-shared-kernel",
+]
+
+[[package]]
 name = "tallyline-app"
 version = "0.1.0"
 dependencies = [

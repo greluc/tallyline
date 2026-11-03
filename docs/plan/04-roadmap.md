@@ -277,4 +277,4 @@ Issue #86 now composes durable manual release, fixed account/mode, actual pre-re
 
 ### Versioned transcription foundation — 2026-11-03
 
-The `recognition` source crate provides the pure shared number parser and typed raw fields ([02](02-architecture.md#versioned-transcription-source-contract--2026-11-03)). This checkpoint does not complete M5: actual redacted-crop requests, layout matching, fusion, report preservation, queue/lifecycle, runtime/model selection, native and installed-profile acceptance remain open. A parser contract is not an evaluated-model result and never establishes confidence.
+The `recognition` and `adapter-vlm` source crates provide the pure shared number parser, typed raw fields, versioned Markdown answer parser and injected-answer retry contract ([02](02-architecture.md#versioned-transcription-source-contract--2026-11-03)). This checkpoint does not complete M5: actual redacted-crop requests, layout matching, fusion, report preservation, queue/lifecycle, runtime/model selection, native and installed-profile acceptance remain open. A parser contract is not an evaluated-model result and never establishes confidence.

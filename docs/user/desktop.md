@@ -211,4 +211,4 @@ Open **Submission queue and history** to inspect the fixed account/mode, outcome
 
 Database schema 9 and settings schema 6 supersede the earlier schema descriptions above. Startup backs up the exact prior database/settings together before forward migration; older binaries refuse these schemas. Existing manual values, numeric decisions, attachments and account screenshot evidence are preserved. Native visual/provider acceptance and an explicitly approved real dry-run remain pending.
 
-The source-level recognition foundation provides shared exact numeric parsing and typed raw observations. It is not connected to desktop recognition: no model is selected, no screenshot is sent and no report field is replaced by this foundation (R-VLM-5).
+The source-level VLM transcription contract can parse recorded Markdown answers and explicitly retry a token-limited answer once. It is not connected to desktop recognition: no model is selected, no screenshot is sent and no report field is replaced by this contract (R-VLM-5, R-VLM-10).

@@ -362,7 +362,7 @@ The initial installation profile supplies its chosen local engines and model ass
 3. The answer parser fills the same field-typed `RawCard` fields by table column (`scu` → quantity, `price_per_scu` → price). The values then run through the same number parser and vocabulary resolution as OCR; unit and currency-glyph handling are OCR-specific (§2.4). Then OCR and VLM are **fused per field**, and only the fused result is validated once (prior, consistency, confidence). Afterwards the report is re-stitched.
 4. If the game starts (mode Automatic), the request is aborted and the model is unloaded; the running job returns to Pending and no job is lost ([02](02-architecture.md) §4b).
 
-**Prompt** (planned `crates/adapter-vlm/prompts/shop_panel_v1.md`, versioned; planned source path corrected 2026-11-03):
+**Prompt** (`crates/adapter-vlm/prompts/shop_panel_v1.md`, versioned; source path corrected 2026-11-03):
 
 - describes the card layout (name, status text, quantity "… SCU", price "¤…/SCU", cargo boxes) and the active tab
 - requires exact transcription ("digit by digit, correct nothing, `?` for unreadable")
@@ -616,4 +616,4 @@ The [research controller](../tesseract-linux-research-controller.md) supplies a 
 
 ### Deterministic transcription checkpoint — 2026-11-03
 
-The pure `recognition` numeric interface implements the bounded numeric source slice described in [02](02-architecture.md#versioned-transcription-source-contract--2026-11-03). Fixed and property contracts exercise the named 333/3237 example and unsupported numeric paths. These are parser contracts, not model or corpus accuracy measurements. Layout matching, VLM answers, fusion, redacted image requests, report-level OCR preservation, lifecycle, engine selection and delivery remain open.
+The pure `recognition` numeric interface and `adapter-vlm` answer/request contract implement the bounded source slice described in [02](02-architecture.md#versioned-transcription-source-contract--2026-11-03). Literal contract answers exercise the named 333/3237 example and malformed/unreadable/truncation paths without an inference runtime. These are parser contracts, not model or corpus accuracy measurements. The current public corpus references remain unverified; comparisons against them establish concordance only. Layout matching, fusion, redacted image requests, report-level OCR preservation, lifecycle, engine selection and delivery remain open.

@@ -155,4 +155,4 @@ The packaging helper now includes fixed native backend adapters and independentl
 
 Corrected 2026-11-03: remembered validated accounts can release reviewed Reports to the durable queue offline; dispatch waits for successful validation in the current session. Replacement credentials close both release and sending until validated (R-API-7, R-SUB-2). Native/provider and approved real-service acceptance remain open.
 
-The source foundation also contains shared exact numeric parsing and typed raw observations, verified by a reproducible development-only property profile. Desktop recognition integration remains pending (R-VLM-5).
+The source foundation also contains a versioned local-VLM transcription parser and bounded answer retry contract. It does not select or run an inference engine or change the desktop recognition flow (R-VLM-5, R-VLM-10).
