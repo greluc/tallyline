@@ -3,21 +3,35 @@
 
 //! Real-file contracts for the isolated research command.
 
-use std::{fs, path::PathBuf, process::Command};
+use std::{
+    fs,
+    path::PathBuf,
+    process::Command,
+    sync::atomic::{AtomicU64, Ordering},
+};
 
 struct Fixture(PathBuf);
 
 impl Fixture {
     fn new() -> std::io::Result<Self> {
-        let path = std::env::temp_dir().join(format!(
-            "research-contract-{}-{}",
-            std::process::id(),
+        Self::with_timestamp(
             std::time::SystemTime::now()
                 .duration_since(std::time::UNIX_EPOCH)
                 .unwrap_or_default()
-                .as_nanos()
+                .as_nanos(),
+        )
+    }
+    fn with_timestamp(timestamp: u128) -> std::io::Result<Self> {
+        static NEXT_FIXTURE: AtomicU64 = AtomicU64::new(0);
+        let path = std::env::temp_dir().join(format!(
+            "research-contract-{}-{timestamp}-{}",
+            std::process::id(),
+            NEXT_FIXTURE.fetch_add(1, Ordering::Relaxed),
         ));
-        fs::create_dir_all(&path)?;
+        Self::create(path)
+    }
+    fn create(path: PathBuf) -> std::io::Result<Self> {
+        fs::create_dir(&path)?;
         Ok(Self(path))
     }
     fn run(&self, args: &[&str]) -> std::io::Result<std::process::Output> {
@@ -42,8 +56,46 @@ impl Fixture {
 
 impl Drop for Fixture {
     fn drop(&mut self) {
-        assert!(fs::remove_dir_all(&self.0).is_ok());
+        let result = fs::remove_dir_all(&self.0);
+        assert!(
+            result.is_ok(),
+            "fixture cleanup failed for {}: {result:?}; remaining entries: {:?}",
+            self.0.display(),
+            fs::read_dir(&self.0).map(|entries| entries.collect::<Vec<_>>())
+        );
     }
+}
+
+#[test]
+fn equal_clock_readings_keep_research_cli_working_directories_independent() {
+    let first = Fixture::with_timestamp(0).unwrap();
+    let second = Fixture::with_timestamp(0).unwrap();
+    fs::write(
+        second.0.join("build-evidence.json"),
+        br#"{"generated_artifacts":[]}"#,
+    )
+    .unwrap();
+    drop(first);
+    let output = second.run(&["verify-evidence", "."]).unwrap();
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+}
+
+#[test]
+fn existing_research_fixture_directory_is_refused_without_adopting_its_files() {
+    let parent = Fixture::new().unwrap();
+    let reserved = parent.0.join("reserved");
+    fs::create_dir(&reserved).unwrap();
+    fs::write(reserved.join("owner.txt"), b"another fixture").unwrap();
+    let reservation = Fixture::create(reserved.clone());
+    assert!(matches!(reservation, Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists));
+    assert_eq!(
+        fs::read(reserved.join("owner.txt")).unwrap(),
+        b"another fixture"
+    );
 }
 
 #[test]

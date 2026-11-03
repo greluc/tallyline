@@ -1,6 +1,6 @@
 # Linux Tesseract research controller
 
-> **Doc type:** Living reference — completed Linux pilot; product acceptance pending. Last reviewed: 2026-11-02.
+> **Doc type:** Living reference — completed Linux pilot; product acceptance pending. Last reviewed: 2026-11-03.
 
 The developer-only `tesseract-research` binary belongs to `tools/ocr-eval`. It controls the owner's exact Linux-v1 Tesseract 5.5.4 and Leptonica 1.87.0 experiment; it is not an application backend, distribution decision or selected recognition profile. Our controller and public isolation probe are safe Rust. No registry dependency, Cargo feature, own FFI or unsafe site is added. ADR-0005 and ADR-0012 remain binding.
 
@@ -40,6 +40,8 @@ Build the controller normally with `cargo build -p ocr-eval --bin tesseract-rese
 6. Root alone: `... -- run <campaign-directory>`. The fixed five panels, best/fast English models, PSM 11 and separately frozen 4/8 GiB budgets define twenty attempts. Each has exclusive start/TSV/parsed/metadata artefacts. A failed attempt preserves an incomplete campaign and stops; it does not silently rerun with a larger budget. `CANCEL` in the owned controller directory cancels the active native attempt.
 
 `resource <recorded-metadata> <4g|8g> [recorded-inspect.json]` validates recorded own-cgroup limits/peak evidence without kernel access. `bmp <source.png> <fresh.bmp>` and `tsv <input.bmp> <recorded.tsv> <fresh-private.json>` are non-inference real-file contracts. `verify-evidence <owned-directory>` checks recorded generated-file hashes without a process; `verify-model <best|fast> <traineddata>` checks the fixed model identity without a process. `contract <deadline|output|row|blocked-stdin|error|environment|cancel|stderr|runtime-stderr>` exercises recorded own-process lifecycle fixtures. `fixture` is a fixed own-process test mode, not an arbitrary subprocess interface. The public `isolation-probe` binary is never placed beside the official private worker.
+
+Corrected 2026-11-03: parallel Windows research contracts reproduced identical process-ID/wall-clock temporary-directory names in two test threads. One test reached cleanup while the other test's recorded child still held that shared working directory, producing an OS sharing violation; a separate reproduction found the shared directory already removed. Fixture names now include an atomic per-process sequence, and directory creation exclusively reserves the candidate rather than adopting an existing directory. Deterministic real-file contracts refuse an already reserved directory without removing its contents and exercise the actual CLI in independent directories after identical clock readings. Cleanup remains strict, with the original OS error, fixture path and remaining entries retained on failure. This changes test fixture ownership only; it introduces no cleanup retry, process-lifetime relaxation, dependency or native execution.
 
 ## Historical source checkpoint and remaining gates
 
