@@ -205,8 +205,7 @@ impl<R: ReportRepository, C: Clock> ReportingApplication<R, C> {
                 {
                     return Err(RepositoryError::Invalid);
                 }
-                report.change_key(key);
-                Ok(())
+                report.change_key(key)
             }
         };
         result.map_err(|_| RepositoryError::Invalid)?;

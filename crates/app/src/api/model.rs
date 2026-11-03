@@ -15,3 +15,5 @@ pub struct PreparedStorage {
 }
 
 pub use crate::build_info::{BuildInformation, BuildInformationError, BuildKind, BuildTarget};
+
+pub use crate::receipt_lookup::{HttpAdmissionFailure, ReceiptLookupOutcome};

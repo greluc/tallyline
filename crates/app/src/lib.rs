@@ -23,3 +23,22 @@ mod manual_reviews;
 mod build_info;
 
 mod build_entry;
+
+mod dependency_diagnostics;
+mod http_client;
+mod http_driver;
+mod http_protocol;
+
+mod receipt_lookup;
+
+mod response_worker;
+
+mod submission_slot;
+
+mod credential_queue;
+
+mod submission_controller;
+
+mod submission_bridge;
+
+mod release_reference;

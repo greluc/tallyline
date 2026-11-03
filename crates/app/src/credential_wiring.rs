@@ -4,43 +4,24 @@
 //! Platform credential composition on the bounded credential worker.
 
 use std::sync::mpsc::{Receiver, SyncSender};
-use tallyline_submission::api::CredentialValidator;
 #[cfg(target_os = "linux")]
 use tallyline_submission::api::model::StorageFailure;
-use tallyline_submission::api::model::{CredentialFailure, CredentialValues, ValidatedAccount};
 use tallyline_ui::api::model::{BackgroundEvent, CredentialCommand};
-
-struct Validator;
-impl CredentialValidator for Validator {
-    async fn validate(
-        &self,
-        values: &CredentialValues,
-    ) -> Result<ValidatedAccount, CredentialFailure> {
-        let information = tallyline_app::api::compiled_build_information()
-            .map_err(|_| CredentialFailure::Unavailable)?;
-        let settings = tallyline_adapter_uex::api::ReaderSettings::new(
-            "https://api.uexcorp.uk/2.0/",
-            tallyline_adapter_uex::api::ClientIdentity::new("tallyline", information.version()),
-        )
-        .map_err(|_| CredentialFailure::Unavailable)?;
-        let reader = tallyline_adapter_uex::api::UexReader::new(&settings)
-            .map_err(|_| CredentialFailure::Unavailable)?;
-        reader.validate(values).await
-    }
-}
 pub(crate) fn start(
     credential_directory: std::path::PathBuf,
     incoming: Receiver<CredentialCommand>,
     outgoing: SyncSender<BackgroundEvent>,
     context: egui::Context,
+    client: tallyline_app::api::HttpClient,
+    queues: Receiver<Box<dyn tallyline_app::api::CredentialQueue>>,
 ) -> std::io::Result<tallyline_app::api::CredentialWorker> {
-    tallyline_app::api::CredentialWorker::start(
+    tallyline_app::api::CredentialWorker::start_with_queue(
         move || initialise(credential_directory),
-        Validator,
+        client,
         crate::update_wiring::SystemClock,
         None,
-        incoming,
-        outgoing,
+        (incoming, outgoing),
+        queues,
         move || tallyline_ui::api::wake_up(&context),
     )
 }

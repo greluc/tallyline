@@ -29,31 +29,8 @@ impl<R: ReportRepository, C: Clock> ReportingApplication<R, C> {
         snapshot: &ReferenceSnapshot,
         tolerance: ScuTolerance,
     ) -> Vec<StockAssessment> {
-        let now = self.clock.now();
-        let staleness = snapshot.effective_staleness(None);
-        report
-            .rows()
-            .iter()
-            .filter_map(|row| {
-                let value = row.stock()?;
-                let prior = snapshot
-                    .terminal_priors(report.key().terminal())
-                    .and_then(|priors| {
-                        priors.rows().iter().find(|prior| {
-                            prior.commodity() == row.commodity()
-                                && prior.side() == report.key().side()
-                        })
-                    });
-                Some(StockAssessment::assess(
-                    row.id(),
-                    value,
-                    prior,
-                    tolerance,
-                    now,
-                    staleness,
-                ))
-            })
-            .collect()
+        self.manual_reviewer()
+            .stock_assessments(report, snapshot, self.clock.now(), tolerance)
     }
 }
 

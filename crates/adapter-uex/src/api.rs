@@ -348,6 +348,36 @@ impl UexSubmitter {
 }
 
 impl UexReader {
+    /// Builds a shared client whose response parsing uses the application's bounded CPU worker.
+    ///
+    /// # Errors
+    /// Returns the same TLS or client initialisation failure as the standalone constructor.
+    pub fn new_with_processor(
+        settings: &ReaderSettings,
+        processor: ResponseProcessor,
+    ) -> Result<Self, BuildError> {
+        Ok(Self {
+            transport: Transport::new(settings)?.with_processor(processor),
+        })
+    }
+    /// Adds shared response-date tracking without replacing the injected processing boundary.
+    #[must_use]
+    pub fn with_server_time(mut self, tracker: model::ServerTimeTracker) -> Self {
+        self.transport = self.transport.with_server_time(tracker);
+        self
+    }
+    /// Builds the shared client with an owned injected-clock response-date tracker.
+    ///
+    /// # Errors
+    /// Returns the same TLS or client initialisation failure as the ordinary constructor.
+    pub fn new_with_server_time(
+        settings: &ReaderSettings,
+        tracker: model::ServerTimeTracker,
+    ) -> Result<Self, BuildError> {
+        Ok(Self {
+            transport: Transport::new(settings)?.with_server_time(tracker),
+        })
+    }
     /// Builds the client with the `aws-lc-rs` crypto provider and the platform verifier.
     ///
     /// # Errors
@@ -367,7 +397,9 @@ impl UexReader {
             .transport
             .get("terminals/", &[("type", "commodity")], &[])
             .await?;
-        crate::reference_wire::terminals(data)
+        self.transport
+            .process(move || crate::reference_wire::terminals(data))
+            .await
     }
     /// Reads `GET /game_versions`: the current LIVE and PTU version.
     ///
@@ -376,7 +408,9 @@ impl UexReader {
     /// A [`ReadError`] for every answer other than a well-formed `ok` envelope.
     pub async fn game_versions(&self) -> Result<GameVersions, ReadError> {
         let data = self.transport.get("game_versions/", &[], &[]).await?;
-        wire::game_versions(data)
+        self.transport
+            .process(move || wire::game_versions(data))
+            .await
     }
 
     /// Reads `GET /commodities_status`: the status levels of each side.
@@ -386,7 +420,9 @@ impl UexReader {
     /// A [`ReadError`] for every answer other than a well-formed `ok` envelope.
     pub async fn commodity_status_levels(&self) -> Result<StatusLevels, ReadError> {
         let data = self.transport.get("commodities_status/", &[], &[]).await?;
-        wire::status_levels(data)
+        self.transport
+            .process(move || wire::status_levels(data))
+            .await
     }
 
     /// Reads `GET /commodities_prices?id_terminal=…`: the price rows of one terminal.
@@ -400,7 +436,7 @@ impl UexReader {
             .transport
             .get("commodities_prices/", &[("id_terminal", &terminal)], &[])
             .await?;
-        wire::price_rows(data)
+        self.transport.process(move || wire::price_rows(data)).await
     }
 
     /// Reads `GET /user` with the secret key alone and keeps only the account state.
@@ -415,7 +451,7 @@ impl UexReader {
             .transport
             .get("user/", &[], &[("secret-key", key.expose())])
             .await?;
-        wire::account(data)
+        self.transport.process(move || wire::account(data)).await
     }
 
     /// Reads `GET /data_info` for `username` with `limit=1` to check the app token and the key.
@@ -438,7 +474,9 @@ impl UexReader {
                 &[("authorization", &bearer), ("secret-key", key.expose())],
             )
             .await?;
-        wire::report_access(&data)
+        self.transport
+            .process(move || wire::report_access(&data))
+            .await
     }
 }
 
@@ -462,3 +500,7 @@ impl ReadError {
         }
     }
 }
+
+pub use crate::response_processing::{
+    ProcessingUnavailable, ResponseExecutor, ResponseProcessor, ResponseTask,
+};

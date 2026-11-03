@@ -44,7 +44,7 @@ impl ReportRepository for SqliteReferenceCache {
         let record: Option<(i64, String)> = self
             .connection
             .query_row(
-                "SELECT version,payload FROM reports WHERE id=?1",
+                "SELECT version,payload FROM reports WHERE id=?1 AND phase='draft'",
                 [sql_integer(id.0)?],
                 |row| Ok((row.get(0)?, row.get(1)?)),
             )
@@ -55,7 +55,7 @@ impl ReportRepository for SqliteReferenceCache {
             .transpose()
     }
     fn drafts(&mut self) -> Result<Vec<Report>, RepositoryError> {
-        let mut query = self.connection.prepare("SELECT r.id,r.version,r.payload FROM reports r JOIN report_recents o ON o.report_id=r.id ORDER BY o.changed_order DESC").map_err(unavailable)?;
+        let mut query = self.connection.prepare("SELECT r.id,r.version,r.payload FROM reports r JOIN report_recents o ON o.report_id=r.id WHERE r.phase='draft' ORDER BY o.changed_order DESC").map_err(unavailable)?;
         let rows = query
             .query_map([], |row| {
                 Ok((
@@ -80,14 +80,16 @@ impl ReportRepository for SqliteReferenceCache {
         report: &Report,
         expected_version: u64,
     ) -> Result<(), RepositoryError> {
-        if report.version() <= expected_version {
+        if report.state() != tallyline_reporting::api::model::ReportState::Draft
+            || report.version() <= expected_version
+        {
             return Err(RepositoryError::Invalid);
         }
         let payload = encode(report)?;
         let transaction = self.connection.transaction().map_err(unavailable)?;
         let changed = transaction
             .execute(
-                "UPDATE reports SET version=?1,payload=?2 WHERE id=?3 AND version=?4",
+                "UPDATE reports SET version=?1,payload=?2 WHERE id=?3 AND version=?4 AND phase='draft'",
                 (
                     sql_integer(report.version())?,
                     payload,
@@ -110,6 +112,7 @@ fn unavailable(_: rusqlite::Error) -> RepositoryError {
 #[derive(Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 struct Document {
+    lifecycle: crate::report_lifecycle::LifecycleDocument,
     terminal: u32,
     side: String,
     environment: String,
@@ -133,8 +136,9 @@ struct RowDocument {
     status_unreviewed: bool,
     status_confirmation_revoked: bool,
 }
-fn encode(report: &Report) -> Result<String, RepositoryError> {
+pub(crate) fn encode(report: &Report) -> Result<String, RepositoryError> {
     let document = Document {
+        lifecycle: report.stored_lifecycle().into(),
         attachment: report.attachment().map(AttachmentDocument::from),
         terminal: report.key().terminal().0,
         side: match report.key().side() {
@@ -193,7 +197,7 @@ fn encode(report: &Report) -> Result<String, RepositoryError> {
     };
     serde_json::to_string(&document).map_err(|_| RepositoryError::Invalid)
 }
-fn decode(id: ReportId, version: u64, payload: &str) -> Result<Report, RepositoryError> {
+pub(crate) fn decode(id: ReportId, version: u64, payload: &str) -> Result<Report, RepositoryError> {
     use tallyline_reporting::api::model::StoredRow;
     let document: Document = serde_json::from_str(payload).map_err(|_| RepositoryError::Invalid)?;
     let side = match document.side.as_str() {
@@ -266,6 +270,7 @@ fn decode(id: ReportId, version: u64, payload: &str) -> Result<Report, Repositor
         })
         .collect::<Result<Vec<_>, RepositoryError>>()?;
     Report::reconstitute(StoredReport {
+        lifecycle: document.lifecycle.restore()?,
         id,
         key,
         observed_at,
@@ -279,7 +284,9 @@ fn decode(id: ReportId, version: u64, payload: &str) -> Result<Report, Repositor
     })
     .map_err(|_| RepositoryError::Invalid)
 }
-fn environment_name(environment: tallyline_game::api::model::GameEnvironment) -> &'static str {
+pub(crate) fn environment_name(
+    environment: tallyline_game::api::model::GameEnvironment,
+) -> &'static str {
     use tallyline_game::api::model::GameEnvironment;
     match environment {
         GameEnvironment::Live => "live",
@@ -289,7 +296,7 @@ fn environment_name(environment: tallyline_game::api::model::GameEnvironment) ->
         GameEnvironment::TechPreview => "tech-preview",
     }
 }
-fn parse_environment(
+pub(crate) fn parse_environment(
     value: &str,
 ) -> Result<tallyline_game::api::model::GameEnvironment, RepositoryError> {
     use tallyline_game::api::model::GameEnvironment;

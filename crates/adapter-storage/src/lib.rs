@@ -15,3 +15,19 @@ mod reports;
 mod status_document;
 
 mod screenshot_policy;
+
+mod report_lifecycle;
+
+mod queue_document;
+
+mod queue;
+
+mod accepted_priors;
+
+mod receipt_enrichment;
+
+mod manual_dispatch;
+
+mod event_outbox;
+
+mod reference_consistency;

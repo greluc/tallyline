@@ -71,6 +71,7 @@ fn main() -> ExitCode {
     {
         ["check"] => run_check(&root),
         ["guard"] => run_guard(&root),
+        ["architecture"] => architecture_passes(&root).map(exit_status),
         ["build-code"] => run_build_code(&root),
         ["native-scope"] => run_native_scope(&root),
         ["sqlite-native"] => run_sqlite_native(&root),
@@ -97,7 +98,7 @@ fn main() -> ExitCode {
 fn usage() -> io::Result<ExitCode> {
     writeln!(
         io::stderr(),
-        "usage: cargo xtask check | guard | build-code | native-scope | sqlite-native | native-assembly [<approved.json>] | mutation [--in-diff <diff>] [--shard <k/n>] | mutation-aggregate <directory> <head> <run> <attempt> | dco <base> <head> | osv-gate <report.json> | vendor-hashes write | vendor-hashes verify | notices"
+        "usage: cargo xtask check | guard | architecture | build-code | native-scope | sqlite-native | native-assembly [<approved.json>] | mutation [--in-diff <diff>] [--shard <k/n>] | mutation-aggregate <directory> <head> <run> <attempt> | dco <base> <head> | osv-gate <report.json> | vendor-hashes write | vendor-hashes verify | notices"
     )?;
     Ok(ExitCode::FAILURE)
 }
@@ -407,7 +408,16 @@ fn architecture_passes(root: &Path) -> io::Result<bool> {
         root,
         &["metadata", "--locked", "--no-deps", "--format-version", "1"],
     )?;
-    let findings = architecture::violations(&metadata);
+    let mut findings = architecture::violations(&metadata);
+    let paths: Vec<_> = tracked::paths(root)?
+        .into_iter()
+        .filter(|path| path.starts_with("crates/") && path.ends_with(".rs"))
+        .collect();
+    findings.extend(
+        xtask::reconstitution::violations(&tracked::read_text(root, &paths)?)
+            .into_iter()
+            .map(architecture::Violation),
+    );
     for finding in &findings {
         writeln!(io::stderr(), "{}", finding.0)?;
     }

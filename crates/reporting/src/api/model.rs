@@ -38,3 +38,18 @@ pub use crate::stock_confirmation::{StockConfirmation, StoredStockDecision};
 pub use crate::stock_settings::{InvalidStockSettings, StockSettings};
 
 pub use crate::numeric_readiness::NumericBlock;
+
+pub use crate::report::{
+    ReportChange, ReportDelivery, ReportEvent, ReportEventKind, ReportFinding,
+    ReportReleaseBinding, ReportState, StoredReportLifecycle, StoredReportReleaseBinding,
+};
+pub use crate::submission_gate::{
+    ReleaseAccountStanding, ReleaseBlockReason, ReleaseContext, ReleaseScreenshotPolicy,
+    ReleaseWorkingCopy, SubmissionGate,
+};
+
+pub use crate::report::{
+    NewerObservationApproval, NewerObservationEvidence, StoredNewerObservationApproval,
+};
+
+pub use crate::observation_history::{ObservationHistoryAssessment, ObservationHistoryFinding};

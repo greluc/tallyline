@@ -13,6 +13,8 @@ impl Report {
     /// # Errors
     /// Refuses stale preview bindings and observation times later than the shown time.
     pub fn edit_attachment(&mut self, edit: AttachmentEdit) -> Result<(), InvalidReport> {
+        self.ensure_draft()?;
+        let previous_time = self.observed_at;
         match edit {
             AttachmentEdit::Select(binding, time) => {
                 if self.attachment.is_some_and(|old| old.binding == binding) {
@@ -51,6 +53,10 @@ impl Report {
             AttachmentEdit::Remove => {
                 self.attachment = None;
             }
+        }
+        if self.observed_at != previous_time {
+            self.revoke_observation_age();
+            self.revoke_all_newer_observations();
         }
         self.version += 1;
         Ok(())

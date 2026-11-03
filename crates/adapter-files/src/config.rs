@@ -63,7 +63,7 @@ impl ConfigFile {
             .get("schema_version")
             .and_then(serde_json::Value::as_u64)
         {
-            Some(schema @ 1..=5) => u32::try_from(schema).map_err(io::Error::other)?,
+            Some(schema @ 1..=6) => u32::try_from(schema).map_err(io::Error::other)?,
             _ => {
                 return Err(io::Error::new(
                     io::ErrorKind::InvalidData,
@@ -97,30 +97,12 @@ impl ConfigFile {
             Err(error) => return Err(error),
             Ok(_) => (),
         }
-        let mut document = self.read_document()?;
+        let document = self.read_document()?;
         if document
             .get("schema_version")
             .and_then(serde_json::Value::as_u64)
-            != Some(5)
+            != Some(6)
         {
-            if document
-                .get("schema_version")
-                .and_then(serde_json::Value::as_u64)
-                .is_some_and(|version| version < 3)
-                && let Some(app) = document
-                    .get_mut("app")
-                    .and_then(serde_json::Value::as_object_mut)
-            {
-                app.insert("update_checks".to_owned(), serde_json::json!(false));
-                for key in [
-                    "last_update_attempt_ms",
-                    "available_release",
-                    "dismissed_release",
-                ] {
-                    app.insert(key.to_owned(), serde_json::Value::Null);
-                }
-            }
-            crate::stock_config::migrate(&mut document);
             self.write_document(document)?;
         }
         Ok(())
@@ -158,7 +140,7 @@ impl ConfigFile {
             document
                 .get("schema_version")
                 .and_then(serde_json::Value::as_u64),
-            Some(1..=5)
+            Some(1..=6)
         ) {
             return Err(io::Error::new(
                 io::ErrorKind::InvalidData,
@@ -207,11 +189,14 @@ impl ConfigFile {
         };
         let (checks, attempt) = crate::update_config::load(&document, &mut errors);
         let (available, dismissed) = crate::update_config::notice(&document, &mut errors);
+        let (mode, age) = crate::submission_config::load(&document, &mut errors);
         Ok(LoadedSettings {
             settings: AppSettings::from_persisted(theme, onboarding)
                 .with_update_state(checks, attempt)
                 .with_release_notice(available, dismissed)
-                .with_stock_settings(crate::stock_config::load(&document, &mut errors)?),
+                .with_stock_settings(crate::stock_config::load(&document, &mut errors)?)
+                .with_submission_mode(mode)
+                .with_observation_age(age),
             errors,
         })
     }
@@ -220,27 +205,8 @@ impl ConfigFile {
 impl AppSettingsStore for ConfigFile {
     type Error = io::Error;
     fn save(&mut self, settings: &AppSettings) -> io::Result<()> {
-        let attempt = settings
-            .last_update_attempt()
-            .map(|time| u64::try_from(time.millis()))
-            .transpose()
-            .map_err(|_| {
-                io::Error::new(
-                    io::ErrorKind::InvalidData,
-                    "release-check time exceeds the settings range",
-                )
-            })?;
-        let theme = match settings.theme() {
-            Theme::System => "system",
-            Theme::Dark => "dark",
-            Theme::Light => "light",
-            Theme::HighContrast => "high_contrast",
-        };
         let mut document = self.read_document()?;
-        Self::object(&mut document)?.insert(
-            "app".to_owned(),
-            serde_json::json!({"stock_percent":settings.stock_settings().tolerance().percent().get(),"stock_minimum":settings.stock_settings().tolerance().minimum().to_string(),"theme":theme,"onboarding_complete":settings.onboarding_complete(), "update_checks": settings.update_checks() == tallyline_workflows::api::model::UpdateChecks::Enabled, "last_update_attempt_ms": attempt, "available_release": settings.available_release().map(|version| version.to_string()), "dismissed_release": settings.dismissed_release().map(|version| version.to_string())}),
-        );
+        Self::object(&mut document)?.insert("app".to_owned(), app_document(settings)?);
         self.write_document(document)
     }
 }
@@ -257,11 +223,11 @@ impl ConfigFile {
         })
     }
     pub(crate) fn read_document(&self) -> io::Result<serde_json::Value> {
-        let document: serde_json::Value = match fs::read(&self.path) {
+        let mut document: serde_json::Value = match fs::read(&self.path) {
             Ok(content) => serde_json::from_slice(&content)
                 .map_err(|_| io::Error::new(io::ErrorKind::InvalidData, "invalid settings JSON"))?,
             Err(error) if error.kind() == io::ErrorKind::NotFound => {
-                serde_json::json!({"schema_version":5})
+                serde_json::json!({"schema_version":6,"app":app_document(&AppSettings::default())?})
             }
             Err(error) => return Err(error),
         };
@@ -269,18 +235,19 @@ impl ConfigFile {
             document
                 .get("schema_version")
                 .and_then(serde_json::Value::as_u64),
-            Some(1..=5)
+            Some(1..=6)
         ) {
             return Err(io::Error::new(
                 io::ErrorKind::InvalidData,
                 "unsupported settings schema version",
             ));
         }
+        migrate_application(&mut document);
         Ok(document)
     }
 
     pub(crate) fn write_document(&mut self, mut document: serde_json::Value) -> io::Result<()> {
-        if let Some(previous @ 1..=4) = document
+        if let Some(previous @ 1..=5) = document
             .get("schema_version")
             .and_then(serde_json::Value::as_u64)
         {
@@ -292,7 +259,7 @@ impl ConfigFile {
                 &fs::read(&self.path)?,
             )?;
         }
-        Self::object(&mut document)?.insert("schema_version".to_owned(), serde_json::json!(5));
+        Self::object(&mut document)?.insert("schema_version".to_owned(), serde_json::json!(6));
         let content = serde_json::to_vec_pretty(&document)?;
         let temporary = self.path.with_extension("json.pending");
         let mut file = OpenOptions::new()
@@ -310,4 +277,53 @@ impl ConfigFile {
         }
         result
     }
+}
+
+fn app_document(settings: &AppSettings) -> io::Result<serde_json::Value> {
+    let attempt = settings
+        .last_update_attempt()
+        .map(|time| u64::try_from(time.millis()))
+        .transpose()
+        .map_err(|_| {
+            io::Error::new(
+                io::ErrorKind::InvalidData,
+                "release-check time exceeds the settings range",
+            )
+        })?;
+    let theme = match settings.theme() {
+        Theme::System => "system",
+        Theme::Dark => "dark",
+        Theme::Light => "light",
+        Theme::HighContrast => "high_contrast",
+    };
+    Ok(
+        serde_json::json!({"submission_mode":settings.submission_mode_override().map(|mode|match mode{tallyline_shared_kernel::api::model::SubmissionMode::DryRun=>"dry_run",tallyline_shared_kernel::api::model::SubmissionMode::Production=>"production"}),"observation_age_ms":settings.observation_age().maximum().as_millis(),"stock_percent":settings.stock_settings().tolerance().percent().get(),"stock_minimum":settings.stock_settings().tolerance().minimum().to_string(),"theme":theme,"onboarding_complete":settings.onboarding_complete(), "update_checks": settings.update_checks() == tallyline_workflows::api::model::UpdateChecks::Enabled, "last_update_attempt_ms": attempt, "available_release": settings.available_release().map(|version| version.to_string()), "dismissed_release": settings.dismissed_release().map(|version| version.to_string())}),
+    )
+}
+
+fn migrate_application(document: &mut serde_json::Value) {
+    let Some(version @ 1..=5) = document
+        .get("schema_version")
+        .and_then(serde_json::Value::as_u64)
+    else {
+        return;
+    };
+    if version < 3
+        && let Some(app) = document
+            .get_mut("app")
+            .and_then(serde_json::Value::as_object_mut)
+    {
+        app.insert("update_checks".to_owned(), serde_json::json!(false));
+        for key in [
+            "last_update_attempt_ms",
+            "available_release",
+            "dismissed_release",
+        ] {
+            app.insert(key.to_owned(), serde_json::Value::Null);
+        }
+    }
+    if version < 5 {
+        crate::stock_config::migrate(document);
+    }
+    crate::submission_config::migrate(document);
 }

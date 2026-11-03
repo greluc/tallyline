@@ -22,6 +22,8 @@ pub enum Theme {
 pub struct AppSettings {
     theme: Theme,
     stock_settings: tallyline_reporting::api::model::StockSettings,
+    submission_mode: Option<tallyline_shared_kernel::api::model::SubmissionMode>,
+    observation_age: tallyline_shared_kernel::api::model::ObservationAgeSettings,
     onboarding_complete: bool,
     update_checks: UpdateChecks,
     available_release: Option<ReleaseVersion>,
@@ -36,6 +38,9 @@ impl AppSettings {
         Self {
             theme,
             stock_settings: tallyline_reporting::api::model::StockSettings::baseline(),
+            submission_mode: None,
+            observation_age: tallyline_shared_kernel::api::model::ObservationAgeSettings::baseline(
+            ),
             onboarding_complete,
             update_checks: UpdateChecks::Disabled,
             available_release: None,
@@ -222,6 +227,62 @@ impl AppSettings {
         settings: tallyline_reporting::api::model::StockSettings,
     ) -> Self {
         self.stock_settings = settings;
+        self
+    }
+}
+
+impl AppSettings {
+    /// Returns the explicit global mode, or absence for the caller's checked build default.
+    #[must_use]
+    pub const fn submission_mode_override(
+        &self,
+    ) -> Option<tallyline_shared_kernel::api::model::SubmissionMode> {
+        self.submission_mode
+    }
+    /// Resolves the explicit preference against a build/onboarding default supplied by the app.
+    #[must_use]
+    pub const fn submission_mode(
+        &self,
+        fallback: tallyline_shared_kernel::api::model::SubmissionMode,
+    ) -> tallyline_shared_kernel::api::model::SubmissionMode {
+        match self.submission_mode {
+            Some(mode) => mode,
+            None => fallback,
+        }
+    }
+    /// Returns the validated tighten-only observation-age and confirmation lifetime.
+    #[must_use]
+    pub const fn observation_age(
+        &self,
+    ) -> tallyline_shared_kernel::api::model::ObservationAgeSettings {
+        self.observation_age
+    }
+    /// Selects a global mode for future releases without changing already queued snapshots.
+    #[must_use]
+    pub fn with_submission_mode(
+        mut self,
+        mode: Option<tallyline_shared_kernel::api::model::SubmissionMode>,
+    ) -> Self {
+        self.submission_mode = mode;
+        self
+    }
+    /// Replaces the observation-age limit with an independently validated tightening.
+    #[must_use]
+    pub fn with_observation_age(
+        mut self,
+        age: tallyline_shared_kernel::api::model::ObservationAgeSettings,
+    ) -> Self {
+        self.observation_age = age;
+        self
+    }
+}
+impl AppSettings {
+    pub(crate) fn with_theme(mut self, theme: Theme) -> Self {
+        self.theme = theme;
+        self
+    }
+    pub(crate) fn with_completed_onboarding(mut self) -> Self {
+        self.onboarding_complete = true;
         self
     }
 }

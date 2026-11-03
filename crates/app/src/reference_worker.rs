@@ -21,6 +21,10 @@ use tallyline_shared_kernel::api::Clock;
 use tallyline_shared_kernel::api::model::{TerminalId, Timestamp};
 use tallyline_ui::api::model::{BackgroundEvent, ReferenceCommand, ReferenceDiagnostic};
 
+type HistoryReader = Box<
+    dyn FnMut() -> io::Result<tallyline_reference_data::api::model::AcceptedPriorHistory> + Send,
+>;
+
 const CONTROL_POLL: Duration = Duration::from_millis(100);
 const RETRY_CHECK: Duration = Duration::from_secs(60);
 
@@ -50,18 +54,107 @@ impl ReferenceWorker {
         C: Clock + Send + 'static,
         F: ReferenceDataFetcher<Error = ReadError>,
     {
+        Self::start_configured(
+            store,
+            clock,
+            (incoming, outgoing),
+            make_fetcher,
+            wake,
+            (None, None),
+        )
+    }
+    /// Publishes actual durable local acceptance history on the verified below-normal owner.
+    /// An unavailable history refuses publication instead of substituting empty reference data.
+    ///
+    /// # Errors
+    /// Returns thread creation failure; cache, priority and history failures surface on join.
+    pub fn start_with_history<S, C, F, E>(
+        store: S,
+        clock: C,
+        channels: (Receiver<ReferenceCommand>, SyncSender<BackgroundEvent>),
+        make_fetcher: impl FnMut() -> Result<F, E> + Send + 'static,
+        history: impl FnMut() -> io::Result<tallyline_reference_data::api::model::AcceptedPriorHistory>
+        + Send
+        + 'static,
+        wake: impl Fn() + Send + 'static,
+    ) -> io::Result<Self>
+    where
+        S: ReferenceDataCache + Send + 'static,
+        S::Error: std::fmt::Display,
+        C: Clock + Send + 'static,
+        F: ReferenceDataFetcher<Error = ReadError>,
+    {
+        Self::start_configured(
+            store,
+            clock,
+            channels,
+            make_fetcher,
+            wake,
+            (Some(Box::new(history)), None),
+        )
+    }
+    /// Acknowledges release refresh attempts after each required response or offline failure.
+    ///
+    /// # Errors
+    /// Returns thread creation failure; worker failures close the completion capability.
+    pub fn start_with_history_and_refresh<S, C, F, E>(
+        store: S,
+        clock: C,
+        channels: (Receiver<ReferenceCommand>, SyncSender<BackgroundEvent>),
+        make_fetcher: impl FnMut() -> Result<F, E> + Send + 'static,
+        history: impl FnMut() -> io::Result<tallyline_reference_data::api::model::AcceptedPriorHistory>
+        + Send
+        + 'static,
+        refresh: crate::api::ReleaseReferenceOwner,
+        wake: impl Fn() + Send + 'static,
+    ) -> io::Result<Self>
+    where
+        S: ReferenceDataCache + Send + 'static,
+        S::Error: std::fmt::Display,
+        C: Clock + Send + 'static,
+        F: ReferenceDataFetcher<Error = ReadError>,
+    {
+        Self::start_configured(
+            store,
+            clock,
+            channels,
+            make_fetcher,
+            wake,
+            (Some(Box::new(history)), Some(refresh)),
+        )
+    }
+    fn start_configured<S, C, F, E>(
+        store: S,
+        clock: C,
+        channels: (Receiver<ReferenceCommand>, SyncSender<BackgroundEvent>),
+        make_fetcher: impl FnMut() -> Result<F, E> + Send + 'static,
+        wake: impl Fn() + Send + 'static,
+        mut release: (
+            Option<HistoryReader>,
+            Option<crate::api::ReleaseReferenceOwner>,
+        ),
+    ) -> io::Result<Self>
+    where
+        S: ReferenceDataCache + Send + 'static,
+        S::Error: std::fmt::Display,
+        C: Clock + Send + 'static,
+        F: ReferenceDataFetcher<Error = ReadError>,
+    {
+        let (incoming, outgoing) = channels;
         let stop = Arc::new(AtomicBool::new(false));
         let stopping = Arc::clone(&stop);
         let worker = crate::executor::spawn("tallyline-reference", move || {
-            let result = run(
-                store,
-                clock,
-                &incoming,
-                &outgoing,
-                make_fetcher,
-                &wake,
-                &stopping,
-            );
+            let result = tallyline_adapter_platform::api::lower_worker_priority().and_then(|_| {
+                run(
+                    store,
+                    clock,
+                    (&incoming, &outgoing),
+                    make_fetcher,
+                    &wake,
+                    &stopping,
+                    &mut release,
+                )
+            });
             if let Err(error) = &result {
                 if outgoing
                     .try_send(BackgroundEvent::Failure(error.to_string()))
@@ -111,12 +204,14 @@ impl<C: Clock> Clock for BorrowedClock<'_, C> {
 }
 #[derive(Default)]
 struct Pending {
+    publish: bool,
     refresh: bool,
     terminal: Option<TerminalId>,
 }
 impl Pending {
     fn receive(&mut self, command: ReferenceCommand) {
         match command {
+            ReferenceCommand::PublishCached => self.publish = true,
             ReferenceCommand::Refresh => self.refresh = true,
             ReferenceCommand::OpenTerminal(id) => self.terminal = Some(id),
         }
@@ -125,11 +220,14 @@ impl Pending {
 fn run<S, C, F, E>(
     store: S,
     clock: C,
-    incoming: &Receiver<ReferenceCommand>,
-    outgoing: &SyncSender<BackgroundEvent>,
+    channels: (&Receiver<ReferenceCommand>, &SyncSender<BackgroundEvent>),
     mut make_fetcher: impl FnMut() -> Result<F, E>,
     wake: &impl Fn(),
     stop: &AtomicBool,
+    release: &mut (
+        Option<HistoryReader>,
+        Option<crate::api::ReleaseReferenceOwner>,
+    ),
 ) -> io::Result<()>
 where
     S: ReferenceDataCache,
@@ -137,9 +235,11 @@ where
     C: Clock,
     F: ReferenceDataFetcher<Error = ReadError>,
 {
+    let (incoming, outgoing) = channels;
+    let (history, refresh) = release;
     let mut application = ReferenceApplication::load(store, BorrowedClock(&clock))
         .map_err(|error| io::Error::other(error.to_string()))?;
-    if !snapshot(&application, &clock, outgoing, wake, stop) {
+    if !snapshot(&application, &clock, outgoing, wake, stop, history)? {
         return Ok(());
     }
     let runtime = tokio::runtime::Builder::new_current_thread()
@@ -158,6 +258,12 @@ where
             Ok(command) => pending.receive(command),
             Err(TryRecvError::Empty) => (),
             Err(TryRecvError::Disconnected) => return Ok(()),
+        }
+        if pending.publish {
+            pending.publish = false;
+            if !snapshot(&application, &clock, outgoing, wake, stop, history)? {
+                return Ok(());
+            }
         }
         if pending.refresh {
             work = VecDeque::from([
@@ -179,9 +285,12 @@ where
                 if !work.contains(&endpoint) {
                     work.push_front(endpoint);
                 }
-            } else if !snapshot(&application, &clock, outgoing, wake, stop) {
+            } else if !snapshot(&application, &clock, outgoing, wake, stop, history)? {
                 return Ok(());
             }
+        }
+        if let Some(refresh) = refresh {
+            refresh.schedule(&mut work);
         }
         if let Some(endpoint) = work.pop_front() {
             if fetcher.is_none() {
@@ -232,10 +341,17 @@ where
                 application.refresh_failed(endpoint);
                 for endpoint in work.drain(..) {
                     application.refresh_failed(endpoint);
+                    if let Some(refresh) = refresh {
+                        refresh.attempted(endpoint);
+                    }
                 }
             }
-            if !snapshot(&application, &clock, outgoing, wake, stop) {
+            if !snapshot(&application, &clock, outgoing, wake, stop, history)? {
                 return Ok(());
+            }
+            if let Some(refresh) = refresh {
+                refresh.attempted(endpoint);
+                refresh.acknowledge();
             }
             next_check = Instant::now() + RETRY_CHECK;
             continue;
@@ -284,17 +400,29 @@ fn snapshot<S: ReferenceDataCache, C: Clock>(
     outgoing: &SyncSender<BackgroundEvent>,
     wake: &impl Fn(),
     stop: &AtomicBool,
-) -> bool {
-    deliver(
+    history: &mut Option<HistoryReader>,
+) -> io::Result<bool> {
+    let mut live = application.snapshot(UexEnvironment::Live);
+    let mut ptu = application.snapshot(UexEnvironment::Ptu);
+    if let Some(read) = history {
+        let history = read()?;
+        live = live
+            .with_local_priors(&history.active(UexEnvironment::Live))
+            .map_err(|_| io::Error::other("local reference projection is invalid"))?;
+        ptu = ptu
+            .with_local_priors(&history.active(UexEnvironment::Ptu))
+            .map_err(|_| io::Error::other("local reference projection is invalid"))?;
+    }
+    Ok(deliver(
         BackgroundEvent::ReferenceUpdated {
-            live: application.snapshot(UexEnvironment::Live),
-            ptu: application.snapshot(UexEnvironment::Ptu),
+            live,
+            ptu,
             observed_at: clock.now(),
         },
         outgoing,
         wake,
         stop,
-    )
+    ))
 }
 fn deliver(
     mut event: BackgroundEvent,

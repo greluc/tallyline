@@ -15,7 +15,7 @@ pub(crate) fn load(
         document
             .get("schema_version")
             .and_then(serde_json::Value::as_u64),
-        Some(3..=5)
+        Some(3..=6)
     ) {
         return (UpdateChecks::Disabled, None);
     }
@@ -60,7 +60,7 @@ pub(crate) fn notice(
         document
             .get("schema_version")
             .and_then(serde_json::Value::as_u64),
-        Some(3..=5)
+        Some(3..=6)
     ) {
         return (None, None);
     }

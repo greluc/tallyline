@@ -202,6 +202,7 @@ async fn r_api_7__known_invalid_current_credentials_remain_blocked_after_offline
         Err(CredentialFailure::InvalidKey)
     );
     let mut restored = CredentialApplication::load(&mut store).await.unwrap();
+    assert_eq!(restored.release_account(), None);
     let request = restored.begin_revalidation().unwrap();
     assert_eq!(
         restored
@@ -447,4 +448,293 @@ async fn r_api_7_r_ui_16__startup_revalidation_persists_only_without_interaction
             .state(),
         &AccountState::Rejected(CredentialFailure::InvalidKey)
     );
+}
+
+#[tokio::test]
+#[expect(
+    non_snake_case,
+    reason = "Requirement tags use a double underscore separator."
+)]
+async fn r_sub_8_r_sub_12__submission_credentials_are_borrowed_only_for_the_exact_accepted_account()
+{
+    let mut application = CredentialApplication::default();
+    let mut store = MemoryStore::default();
+    assert!(application.credentials_for("dummy-a").is_none());
+    assert_ne!(application.release_account(), Some("dummy-a"));
+    let request = application.begin(CredentialCandidate::new(
+        CredentialValues::new("dummy-key-a".to_owned(), Some("dummy-token".to_owned())).unwrap(),
+        Persistence::Session,
+    ));
+    application
+        .accept(
+            request,
+            Ok(ValidatedAccount::new("dummy-a".to_owned())),
+            Timestamp::from_seconds(10),
+            &mut store,
+        )
+        .await
+        .unwrap();
+    assert_eq!(
+        application
+            .credentials_for("dummy-a")
+            .map(CredentialValues::secret_key),
+        Some("dummy-key-a")
+    );
+    assert!(application.credentials_for("dummy-b").is_none());
+    let request = application.begin(CredentialCandidate::new(
+        CredentialValues::new("dummy-key-b".to_owned(), Some("dummy-token".to_owned())).unwrap(),
+        Persistence::Session,
+    ));
+    assert!(application.credentials_for("dummy-a").is_none());
+    assert_ne!(application.release_account(), Some("dummy-a"));
+    application
+        .accept(
+            request,
+            Ok(ValidatedAccount::new("dummy-b".to_owned())),
+            Timestamp::from_seconds(20),
+            &mut store,
+        )
+        .await
+        .unwrap();
+    assert!(application.credentials_for("dummy-a").is_none());
+    assert_ne!(application.release_account(), Some("dummy-a"));
+    assert_eq!(
+        application
+            .credentials_for("dummy-b")
+            .map(CredentialValues::secret_key),
+        Some("dummy-key-b")
+    );
+    let request = application.begin_revalidation().unwrap();
+    assert_eq!(
+        application
+            .accept(
+                request,
+                Err(CredentialFailure::InvalidKey),
+                Timestamp::from_seconds(30),
+                &mut store
+            )
+            .await,
+        Err(CredentialFailure::InvalidKey)
+    );
+    assert!(application.credentials_for("dummy-b").is_none());
+    assert!(store.credentials.is_none());
+}
+
+#[tokio::test]
+#[expect(
+    non_snake_case,
+    reason = "Requirement tags use a double underscore separator."
+)]
+async fn r_sub_8_r_api_7__restored_identity_needs_session_validation_before_submission() {
+    let mut store = MemoryStore::default();
+    let mut original = CredentialApplication::default();
+    let request = original.begin(candidate(Persistence::Durable).unwrap());
+    original
+        .accept(
+            request,
+            Ok(ValidatedAccount::new("dummy-runner".to_owned())),
+            Timestamp::from_seconds(10),
+            &mut store,
+        )
+        .await
+        .unwrap();
+    let mut application = CredentialApplication::load(&mut store).await.unwrap();
+    assert_eq!(application.state(), original.state());
+    assert!(application.credentials_for("dummy-runner").is_none());
+    let request = application.begin_revalidation().unwrap();
+    application
+        .accept(
+            request,
+            Ok(ValidatedAccount::new("dummy-runner".to_owned())),
+            Timestamp::from_seconds(20),
+            &mut store,
+        )
+        .await
+        .unwrap();
+    assert!(application.credentials_for("dummy-runner").is_some());
+    let previous = application.state().clone();
+    let request = application.begin_revalidation().unwrap();
+    assert_eq!(
+        application
+            .accept(
+                request,
+                Err(CredentialFailure::Unavailable),
+                Timestamp::from_seconds(30),
+                &mut store
+            )
+            .await,
+        Err(CredentialFailure::Unavailable)
+    );
+    assert_eq!(application.state(), &previous);
+    assert!(application.credentials_for("dummy-runner").is_none());
+}
+#[tokio::test]
+#[expect(
+    non_snake_case,
+    reason = "Requirement tags use a double underscore separator."
+)]
+async fn r_sub_8_r_api_7__only_current_success_can_restore_send_authority() {
+    let mut application = CredentialApplication::default();
+    let mut store = MemoryStore::default();
+    let request = application.begin(candidate(Persistence::Session).unwrap());
+    application
+        .accept(
+            request,
+            Ok(ValidatedAccount::new("dummy-runner".to_owned())),
+            Timestamp::from_seconds(10),
+            &mut store,
+        )
+        .await
+        .unwrap();
+    let request = application.begin(candidate(Persistence::Session).unwrap());
+    assert_eq!(
+        application
+            .accept(
+                request,
+                Err(CredentialFailure::InvalidKey),
+                Timestamp::from_seconds(20),
+                &mut store
+            )
+            .await,
+        Err(CredentialFailure::InvalidKey)
+    );
+    assert!(application.credentials_for("dummy-runner").is_none());
+    let stale = application.begin_revalidation().unwrap();
+    assert!(application.credentials_for("dummy-runner").is_none());
+    let current = application.begin(candidate(Persistence::Session).unwrap());
+    assert_eq!(
+        application
+            .accept(
+                stale,
+                Ok(ValidatedAccount::new("dummy-runner".to_owned())),
+                Timestamp::from_seconds(30),
+                &mut store
+            )
+            .await,
+        Err(CredentialFailure::Superseded)
+    );
+    assert!(application.credentials_for("dummy-runner").is_none());
+    application
+        .accept(
+            current,
+            Ok(ValidatedAccount::new("dummy-new".to_owned())),
+            Timestamp::from_seconds(40),
+            &mut store,
+        )
+        .await
+        .unwrap();
+    assert!(application.credentials_for("dummy-runner").is_none());
+    assert!(application.credentials_for("dummy-new").is_some());
+    let stale = application.begin_revalidation().unwrap();
+    let current = application.begin(candidate(Persistence::Session).unwrap());
+    application
+        .accept(
+            current,
+            Ok(ValidatedAccount::new("dummy-new".to_owned())),
+            Timestamp::from_seconds(50),
+            &mut store,
+        )
+        .await
+        .unwrap();
+    assert_eq!(
+        application
+            .accept(
+                stale,
+                Err(CredentialFailure::InvalidKey),
+                Timestamp::from_seconds(60),
+                &mut store
+            )
+            .await,
+        Err(CredentialFailure::Superseded)
+    );
+    assert!(application.credentials_for("dummy-new").is_some());
+    let request = application.begin_revalidation().unwrap();
+    assert_eq!(
+        application
+            .accept(
+                request,
+                Err(CredentialFailure::MissingToken),
+                Timestamp::from_seconds(70),
+                &mut store
+            )
+            .await,
+        Err(CredentialFailure::MissingToken)
+    );
+    assert!(application.credentials_for("dummy-new").is_none());
+    assert!(
+        matches!(application.state(), AccountState::Validated { username, .. } if username == "dummy-new")
+    );
+}
+
+#[tokio::test]
+#[expect(
+    non_snake_case,
+    reason = "Requirement tags use a double underscore separator."
+)]
+async fn r_api_7_r_sub_8_r_sub_12__candidate_failure_keeps_saved_identity_but_cannot_keep_old_send_authority()
+ {
+    for failure in [
+        CredentialFailure::Unavailable,
+        CredentialFailure::InvalidKey,
+        CredentialFailure::InvalidToken,
+        CredentialFailure::NotAllowed,
+        CredentialFailure::MissingToken,
+    ] {
+        let mut application = CredentialApplication::default();
+        let mut store = MemoryStore::default();
+        let first = application.begin(candidate(Persistence::Durable).unwrap());
+        application
+            .accept(
+                first,
+                Ok(ValidatedAccount::new("dummy-runner".to_owned())),
+                Timestamp::from_seconds(10),
+                &mut store,
+            )
+            .await
+            .unwrap();
+        let previous = application.state().clone();
+        assert!(application.credentials_for("dummy-runner").is_some());
+        assert_eq!(application.release_account(), Some("dummy-runner"));
+        let request = application.begin(CredentialCandidate::new(
+            CredentialValues::new("dummy-key-b".to_owned(), Some("dummy-token".to_owned()))
+                .unwrap(),
+            Persistence::Durable,
+        ));
+        assert_eq!(application.state(), &previous);
+        assert_eq!(application.release_account(), None);
+        assert!(
+            application.credentials_for("dummy-runner").is_none(),
+            "a pending candidate must close old-account dispatch"
+        );
+        assert_eq!(
+            application
+                .accept(
+                    request,
+                    Err(failure),
+                    Timestamp::from_seconds(20),
+                    &mut store
+                )
+                .await,
+            Err(failure)
+        );
+        assert_eq!(application.state(), &previous);
+        assert_eq!(application.release_account(), None);
+        assert!(application.credentials_for("dummy-runner").is_none());
+        let saved = store.load().await.unwrap().unwrap();
+        assert_eq!(saved.username(), "dummy-runner");
+        assert_eq!(saved.values().secret_key(), "dummy-key");
+        let revalidated = application.begin_revalidation().unwrap();
+        assert_eq!(application.release_account(), None);
+        application
+            .accept(
+                revalidated,
+                Ok(ValidatedAccount::new("dummy-runner".to_owned())),
+                Timestamp::from_seconds(30),
+                &mut store,
+            )
+            .await
+            .unwrap();
+        assert!(application.credentials_for("dummy-runner").is_some());
+        assert_eq!(application.release_account(), Some("dummy-runner"));
+    }
 }

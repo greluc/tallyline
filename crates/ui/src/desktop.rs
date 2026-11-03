@@ -18,6 +18,7 @@ pub struct DesktopShell {
     reference_commands: Option<SyncSender<crate::api::model::ReferenceCommand>>,
     manual_commands: Option<SyncSender<crate::api::model::ManualCommand>>,
     credential_commands: Option<SyncSender<crate::api::model::CredentialCommand>>,
+    submission_commands: Option<SyncSender<crate::api::model::SubmissionControl>>,
     events: Receiver<BackgroundEvent>,
     theme: Option<UiTheme>,
     window_commands: Option<Receiver<crate::api::model::WindowCommand>>,
@@ -43,6 +44,7 @@ impl DesktopShell {
             reference_commands: None,
             manual_commands: None,
             credential_commands: None,
+            submission_commands: None,
             events,
             theme: None,
             window_commands: None,
@@ -142,6 +144,15 @@ impl eframe::App for DesktopShell {
                 self.state.credentials_mut().failed_delivery();
             }
         }
+        if let Some(command) = self.state.take_submission_command() {
+            let sent = self
+                .submission_commands
+                .as_ref()
+                .is_some_and(|sender| sender.try_send(command).is_ok());
+            if !sent {
+                self.state.submission_delivery_failed();
+            }
+        }
         for command in commands {
             if let Some(sender) = &self.commands
                 && sender.try_send(command).is_err()
@@ -162,6 +173,7 @@ impl Drop for DesktopShell {
         drop(self.reference_commands.take());
         drop(self.manual_commands.take());
         drop(self.credential_commands.take());
+        drop(self.submission_commands.take());
     }
 }
 
@@ -194,6 +206,18 @@ impl DesktopShell {
     #[must_use]
     pub fn with_build_presentation(mut self, build: crate::api::model::BuildPresentation) -> Self {
         self.state.set_build_presentation(build);
+        self
+    }
+}
+
+impl DesktopShell {
+    /// Attaches the bounded queue channel owned by the existing session credential worker.
+    #[must_use]
+    pub fn with_submission_commands(
+        mut self,
+        commands: SyncSender<crate::api::model::SubmissionControl>,
+    ) -> Self {
+        self.submission_commands = Some(commands);
         self
     }
 }

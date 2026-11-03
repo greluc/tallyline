@@ -24,3 +24,12 @@ pub use crate::manual_views::show_manual_editor;
 pub use crate::reference_views::show_reference_browser;
 
 pub use crate::attachment_views::show_manual_attachment_editor;
+pub use crate::submission_queue::{show_submission_mode, show_submission_queue};
+
+pub use crate::submission_controls::show_submission_controls;
+
+pub use crate::submission_settings::show_submission_settings;
+
+pub use crate::submission_wake::wake_submission;
+
+pub use crate::submission_accounts::show_submission_account_choice;

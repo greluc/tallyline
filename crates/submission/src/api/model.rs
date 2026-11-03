@@ -258,3 +258,39 @@ pub enum ScreenshotPolicy {
         observed_at: Timestamp,
     },
 }
+
+pub use crate::budget::{AccountAttempt, RowBudgetDecision};
+pub use crate::job::NotProcessed;
+pub use crate::job::SubmissionResult;
+pub use crate::job::SubmissionReturnReason;
+pub use crate::job::{
+    AttemptOutcome, JobId, JobPhase, PayloadHash, QueueRefusal, SubmissionAttempt, SubmissionJob,
+};
+pub use crate::preflight::{
+    SendHoldReason, SendReadiness, SendReferenceState, SendReturnReason, SubmissionAcceptance,
+};
+pub use crate::receipt::VerifiedUexReport;
+pub use crate::request::{InvalidSubmission, SubmissionRow};
+pub use crate::request::{SubmissionHeader, SubmissionRequest};
+
+/// A preparation refusal before any network dispatch.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum PreparationFailure {
+    /// The immutable request cannot be represented as the documented payload.
+    InvalidPayload,
+}
+pub use crate::application::{SubmissionApplicationError, SubmissionRepositoryError};
+pub use crate::events::{CancellationReason, SubmissionReturn};
+pub use crate::events::{
+    SubmissionChange, SubmissionCommand, SubmissionEvent, SubmissionEventKind,
+};
+pub use crate::job::{StoredSubmissionAttempt, StoredSubmissionJob};
+pub use crate::request::NewerObservationConfirmation;
+pub use crate::schedule::ScheduleDecision;
+pub use crate::server_time::ServerTimeEstimate;
+
+pub use crate::receipt_mapping::VerifiedReceiptMapping;
+
+pub use crate::observation_order::ObservationOrderBlock;
+
+pub use crate::queue_wait::{SubmissionWait, SubmissionWaitReason};

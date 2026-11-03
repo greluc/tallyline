@@ -25,33 +25,8 @@ impl<R: ReportRepository, C: Clock> ReportingApplication<R, C> {
         report: &Report,
         snapshot: &ReferenceSnapshot,
     ) -> Vec<crate::api::model::StatusAssessment> {
-        let priors = snapshot.terminal_priors(report.key().terminal());
-        report
-            .rows()
-            .iter()
-            .filter_map(|row| {
-                let value = row.status()?;
-                let prior = priors.and_then(|priors| {
-                    priors.rows().iter().find(|prior| {
-                        prior.commodity() == row.commodity() && prior.side() == report.key().side()
-                    })
-                });
-                let reference = prior.and_then(|prior| prior.values().status);
-                let age = prior.filter(|_| reference.is_some()).and_then(|prior| {
-                    self.clock
-                        .now()
-                        .millis()
-                        .checked_sub(prior.provenance().modified_at.millis())
-                });
-                Some(crate::api::model::StatusAssessment::assess(
-                    row.id(),
-                    value,
-                    reference,
-                    age,
-                    snapshot.effective_staleness(None).days(),
-                ))
-            })
-            .collect()
+        self.manual_reviewer()
+            .status_assessments(report, snapshot, self.clock.now())
     }
 }
 

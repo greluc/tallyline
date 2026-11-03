@@ -15,6 +15,7 @@ pub struct ReferenceSnapshot {
     environment: UexEnvironment,
     state: ReferenceState,
     entries: Vec<CachedReference>,
+    local_priors: Vec<crate::api::model::AcceptedLocalPrior>,
 }
 
 impl ReferenceSnapshot {
@@ -62,7 +63,22 @@ impl ReferenceSnapshot {
             environment,
             state,
             entries,
+            local_priors: Vec::new(),
         }
+    }
+
+    /// Compares current persisted UEX references with this snapshot's exact projected data.
+    ///
+    /// Successful refreshes change the comparison even when their values are equal.
+    /// Local accepted-row projections remain a separate history/version comparison.
+    #[must_use]
+    pub fn matches_cached_references(&self, entries: &[CachedReference]) -> bool {
+        let current = Self::new(self.environment, self.state, entries);
+        self.entries.len() == current.entries.len()
+            && self
+                .entries
+                .iter()
+                .all(|entry| current.entries.contains(entry))
     }
 
     /// Returns the mapped UEX environment, independent of the launcher's channel name.
@@ -234,5 +250,67 @@ impl ReferenceSnapshot {
             | EndpointData::TerminalPriors(_) => None,
         });
         crate::api::model::PriceTolerance::from_reference(reference, override_percent)
+    }
+}
+
+impl ReferenceSnapshot {
+    /// Attaches the current active local projection, never promoting any PTU record to a price reference.
+    ///
+    /// Persistence must discard an environment's active projection on its next successful reference
+    /// snapshot refresh. Historical accepted records remain separate from this active projection.
+    ///
+    /// # Errors
+    /// Refuses duplicate active LIVE row keys rather than choosing an arbitrary accepted record.
+    pub fn with_local_priors(
+        mut self,
+        records: &[crate::api::model::AcceptedLocalPrior],
+    ) -> Result<Self, crate::api::model::InvalidPrior> {
+        self.local_priors.clear();
+        if self.environment == UexEnvironment::Live {
+            let mut keys = std::collections::BTreeSet::new();
+            for record in records
+                .iter()
+                .filter(|record| record.context().environment == UexEnvironment::Live)
+            {
+                let context = record.context();
+                let side = match context.side {
+                    TradeSide::Buy => 0,
+                    TradeSide::Sell => 1,
+                };
+                if !keys.insert((context.terminal, record.commodity(), side)) {
+                    return Err(crate::api::model::InvalidPrior);
+                }
+                self.local_priors.push(record.clone());
+            }
+        }
+        Ok(self)
+    }
+    /// Selects an active LIVE local acceptance or the exact matching UEX row, preserving source provenance.
+    #[must_use]
+    pub fn prior_reference(
+        &self,
+        terminal: tallyline_shared_kernel::api::model::TerminalId,
+        commodity: tallyline_shared_kernel::api::model::CommodityId,
+        side: TradeSide,
+    ) -> Option<crate::api::model::PriorReference<'_>> {
+        use crate::api::model::PriorReference;
+        if self.environment == UexEnvironment::Ptu {
+            return None;
+        }
+        self.local_priors
+            .iter()
+            .find(|record| {
+                record.context().terminal == terminal
+                    && record.context().side == side
+                    && record.commodity() == commodity
+            })
+            .map(PriorReference::AcceptedLocal)
+            .or_else(|| {
+                self.terminal_priors(terminal)?
+                    .rows()
+                    .iter()
+                    .find(|row| row.commodity() == commodity && row.side() == side)
+                    .map(PriorReference::Uex)
+            })
     }
 }

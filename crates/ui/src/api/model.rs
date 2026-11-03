@@ -26,3 +26,9 @@ pub use crate::manual_review::{
 };
 
 pub use crate::build_presentation::BuildPresentation;
+
+pub use crate::submission_queue::{QueueCommand, SubmissionQueue};
+
+pub use crate::submission_control::{
+    SubmissionControl, SubmissionFeedback, SubmissionIntent, SubmissionUpdate,
+};

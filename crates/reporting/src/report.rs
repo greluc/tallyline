@@ -137,6 +137,7 @@ pub struct Report {
     version: u64,
     rows: Vec<ReportRow>,
     attachment: Option<ManualAttachment>,
+    lifecycle: lifecycle::ReportLifecycle,
 }
 impl Report {
     /// Creates an empty manual Draft at its observation time.
@@ -160,6 +161,7 @@ impl Report {
             version: 0,
             rows: Vec::new(),
             attachment: None,
+            lifecycle: lifecycle::ReportLifecycle::default(),
         })
     }
     /// Adds an empty row without copying any reference value.
@@ -167,6 +169,7 @@ impl Report {
     /// # Errors
     /// Refuses a zero or duplicate commodity identity or exhausted row identity.
     pub fn add_commodity(&mut self, commodity: CommodityId) -> Result<RowId, InvalidReport> {
+        self.ensure_draft()?;
         if commodity.0 == 0 || self.rows.iter().any(|row| row.commodity == commodity) {
             return Err(InvalidReport);
         }
@@ -196,7 +199,11 @@ impl Report {
         Ok(id)
     }
     /// Changes the Draft key without changing user values or observation time.
-    pub fn change_key(&mut self, key: ReportKey) {
+    ///
+    /// # Errors
+    /// Refuses context changes after release.
+    pub fn change_key(&mut self, key: ReportKey) -> Result<(), InvalidReport> {
+        self.ensure_draft()?;
         if self.key != key {
             if self.key.environment != key.environment {
                 self.game_version = None;
@@ -209,9 +216,11 @@ impl Report {
                 row.status_unreviewed = false;
                 row.status_confirmation_revoked = false;
             }
+            self.revoke_all_newer_observations();
             self.key = key;
             self.version += 1;
         }
+        Ok(())
     }
     /// Sets or clears an explicitly entered price.
     ///
@@ -222,14 +231,19 @@ impl Report {
         row: RowId,
         value: Option<PricePerScu>,
     ) -> Result<(), InvalidReport> {
+        self.ensure_draft()?;
         if value.is_some_and(PricePerScu::is_zero) {
             return Err(InvalidReport);
         }
         let field = self.row_mut(row)?;
-        if field.price != value {
+        let changed = field.price != value;
+        if changed {
             field.price_decision = crate::price_confirmation::PriceDecision::default();
         }
         field.price = value;
+        if changed {
+            self.revoke_newer_observation(row);
+        }
         self.version += 1;
         Ok(())
     }
@@ -242,11 +256,16 @@ impl Report {
         row: RowId,
         value: Option<ScuQuantity>,
     ) -> Result<(), InvalidReport> {
+        self.ensure_draft()?;
         let field = self.row_mut(row)?;
-        if field.stock != value {
+        let changed = field.stock != value;
+        if changed {
             field.stock_decision = crate::stock_confirmation::StockDecision::default();
         }
         field.stock = value;
+        if changed {
+            self.revoke_newer_observation(row);
+        }
         self.version += 1;
         Ok(())
     }
@@ -259,14 +278,19 @@ impl Report {
         row: RowId,
         value: Option<std::num::NonZeroU8>,
     ) -> Result<(), InvalidReport> {
+        self.ensure_draft()?;
         let field = self.row_mut(row)?;
-        if field.status != value {
+        let changed = field.status != value;
+        if changed {
             field.status_confirmation = None;
             field.status_deviation = None;
             field.status_unreviewed = false;
             field.status_confirmation_revoked = false;
         }
         field.status = value;
+        if changed {
+            self.revoke_newer_observation(row);
+        }
         self.version += 1;
         Ok(())
     }
@@ -325,6 +349,8 @@ pub struct StoredReport {
     pub rows: Vec<StoredRow>,
     /// Selected attachment metadata without original pixels.
     pub attachment: Option<StoredAttachment>,
+    /// Validated lifecycle and fixed release metadata.
+    pub lifecycle: StoredReportLifecycle,
 }
 
 /// Persistence-only state of a manual row.
@@ -436,6 +462,12 @@ impl Report {
             return Err(InvalidReport);
         }
         report.version = stored.version;
+        report.lifecycle = lifecycle::ReportLifecycle::restore(
+            stored.lifecycle,
+            stored.version,
+            stored.observed_at,
+            &report,
+        )?;
         Ok(report)
     }
 }
@@ -447,3 +479,14 @@ mod attachment;
 mod price;
 
 mod stock;
+
+mod lifecycle;
+pub use lifecycle::{
+    ReportChange, ReportDelivery, ReportEvent, ReportEventKind, ReportFinding,
+    ReportReleaseBinding, ReportState, StoredReportLifecycle, StoredReportReleaseBinding,
+};
+
+mod newer_observation;
+pub use newer_observation::{
+    NewerObservationApproval, NewerObservationEvidence, StoredNewerObservationApproval,
+};

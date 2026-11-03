@@ -10,6 +10,8 @@ use tallyline_shared_kernel::api::model::{CommodityId, TerminalId, Timestamp};
 /// An explicit reference-data request handled outside the UI thread.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum ReferenceCommand {
+    /// Publish committed local projection with cached records, without requesting network data.
+    PublishCached,
     /// Request refreshed public reference data.
     Refresh,
     /// Request the verified terminal price endpoint for this UEX identity.

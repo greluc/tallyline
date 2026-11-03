@@ -4,12 +4,10 @@
 //! Read-only manual price review application commands.
 
 use super::ReportingApplication;
-use crate::api::model::{PriceAssessment, Report, ReportId, ReportKey, RowId};
+use crate::api::model::{PriceAssessment, Report, ReportId, RowId};
 use crate::api::{ReportRepository, RepositoryError};
-use crate::price_assessment::PriceReference;
 use tallyline_reference_data::api::model::ReferenceSnapshot;
 use tallyline_shared_kernel::api::Clock;
-use tallyline_shared_kernel::api::model::CommodityId;
 
 impl<R: ReportRepository, C: Clock> ReportingApplication<R, C> {
     /// Assesses entered prices without rounding tolerance decisions or changing Draft values.
@@ -29,48 +27,9 @@ impl<R: ReportRepository, C: Clock> ReportingApplication<R, C> {
         report: &Report,
         snapshot: &ReferenceSnapshot,
     ) -> Vec<PriceAssessment> {
-        let tolerance = snapshot.effective_price_tolerance(self.price_tolerance_override);
-        let staleness = snapshot.effective_staleness(None);
-        let now = self.clock.now();
-        report
-            .rows()
-            .iter()
-            .filter_map(|row| {
-                let value = row.price()?;
-                Some(PriceAssessment::assess(
-                    row.id(),
-                    value,
-                    reference_price(snapshot, report.key(), row.commodity()),
-                    tolerance,
-                    now,
-                    staleness,
-                ))
-            })
-            .collect()
+        self.manual_reviewer()
+            .price_assessments(report, snapshot, self.clock.now())
     }
-}
-fn reference_price(
-    snapshot: &ReferenceSnapshot,
-    key: ReportKey,
-    commodity: CommodityId,
-) -> Option<PriceReference> {
-    snapshot
-        .terminal_priors(key.terminal())
-        .and_then(|priors| {
-            priors
-                .rows()
-                .iter()
-                .find(|prior| prior.commodity() == commodity && prior.side() == key.side())
-        })
-        .map(PriceReference::terminal)
-        .or_else(|| {
-            snapshot
-                .commodities("")
-                .into_iter()
-                .find(|item| item.id() == commodity)
-                .and_then(|item| item.average_price(snapshot.environment(), key.side()))
-                .map(PriceReference::average)
-        })
 }
 
 impl<R: ReportRepository, C: Clock> ReportingApplication<R, C> {

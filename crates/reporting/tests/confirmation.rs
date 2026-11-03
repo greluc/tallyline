@@ -207,13 +207,13 @@ fn r_ui_12_q_manual__status_approvals_survive_equal_edits_but_never_a_changed_re
         ReportKey::new(TerminalId(11), TradeSide::Buy, GameEnvironment::Ptu).unwrap(),
     ] {
         let mut changed = confirmed.clone();
-        changed.change_key(context);
+        changed.change_key(context).unwrap();
         assert!(changed.rows()[0].status_confirmation().is_none());
         assert_eq!(changed.rows()[0].status().unwrap().get(), 5);
         assert_eq!(changed.rows()[0].status_deviation(), None);
     }
     let mut equal = confirmed.clone();
-    equal.change_key(confirmed.key());
+    equal.change_key(confirmed.key()).unwrap();
     equal.set_status(row, std::num::NonZeroU8::new(5)).unwrap();
     assert_eq!(
         equal.rows()[0].status_confirmation(),

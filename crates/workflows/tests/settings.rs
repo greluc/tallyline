@@ -138,3 +138,54 @@ fn r_nf_5_r_val_2_q_manual__stock_settings_save_before_apply_and_survive_other_p
     assert_eq!(app.settings().stock_settings(), tightened);
     assert_eq!(app.into_store().0.unwrap().stock_settings(), tightened);
 }
+
+#[test]
+#[expect(
+    non_snake_case,
+    reason = "Requirement tags use a double underscore separator."
+)]
+fn r_nf_5_r_sub_8_r_val_6__submission_preferences_save_before_apply_and_failed_saves_keep_active_policy()
+ {
+    use tallyline_shared_kernel::api::model::{ObservationAgeSettings, SubmissionMode};
+    let age = ObservationAgeSettings::new(std::time::Duration::from_secs(30)).unwrap();
+    let original = AppSettings::from_persisted(Theme::Dark, true);
+    assert_eq!(
+        original.submission_mode(SubmissionMode::DryRun),
+        SubmissionMode::DryRun
+    );
+    assert_eq!(
+        original.submission_mode(SubmissionMode::Production),
+        SubmissionMode::Production
+    );
+    let mut application = SettingsApplication::new(original.clone(), MemorySettings::default());
+    application
+        .change_submission_mode(Some(SubmissionMode::Production))
+        .unwrap();
+    application.change_observation_age(age).unwrap();
+    application.complete_onboarding().unwrap();
+    application.change_theme(Theme::HighContrast).unwrap();
+    assert_eq!(
+        application.settings().submission_mode_override(),
+        Some(SubmissionMode::Production)
+    );
+    assert_eq!(application.settings().observation_age(), age);
+    assert!(application.settings().onboarding_complete());
+    let saved = application.into_store().0.unwrap();
+    assert_eq!(
+        saved.submission_mode_override(),
+        Some(SubmissionMode::Production)
+    );
+    assert_eq!(saved.observation_age(), age);
+    assert_eq!(saved.theme(), Theme::HighContrast);
+    let mut failed = SettingsApplication::new(original.clone(), FailedSettings);
+    assert_eq!(
+        failed.change_submission_mode(Some(SubmissionMode::Production)),
+        Err("directory is read-only")
+    );
+    assert_eq!(failed.settings(), &original);
+    assert_eq!(
+        failed.change_observation_age(age),
+        Err("directory is read-only")
+    );
+    assert_eq!(failed.settings(), &original);
+}

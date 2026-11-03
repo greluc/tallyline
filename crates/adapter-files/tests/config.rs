@@ -265,7 +265,7 @@ fn r_ocr_20_r_nf_5__version_one_preferences_migrate_with_explicit_opt_in_and_pre
     );
     let document: serde_json::Value =
         serde_json::from_slice(&std::fs::read(&path).unwrap()).unwrap();
-    assert_eq!(document.get("schema_version"), Some(&serde_json::json!(5)));
+    assert_eq!(document.get("schema_version"), Some(&serde_json::json!(6)));
     store.change_game_channel("another-channel").unwrap();
     assert_eq!(
         store.load_game_preferences().unwrap().settings.witness,
@@ -361,7 +361,7 @@ fn r_nf_11_r_nf_7__migration_requires_backup_and_preserves_exact_old_bytes_on_fa
     assert_eq!(std::fs::read(backup).unwrap(), old);
     let current: serde_json::Value =
         serde_json::from_slice(&std::fs::read(&path).unwrap()).unwrap();
-    assert_eq!(current.get("schema_version"), Some(&serde_json::json!(5)));
+    assert_eq!(current.get("schema_version"), Some(&serde_json::json!(6)));
     assert_eq!(current.get("other"), Some(&serde_json::json!({"value":42})));
 }
 
@@ -708,7 +708,7 @@ fn r_cap_3a__schema_four_game_mapping_persists_independently_of_witness_preferen
     assert_eq!(reopened.load_game_preferences().unwrap().settings, changed);
     let document: serde_json::Value =
         serde_json::from_slice(&std::fs::read(path).unwrap()).unwrap();
-    assert_eq!(document["schema_version"], 5);
+    assert_eq!(document["schema_version"], 6);
     store.change_game_channel("another-channel").unwrap();
     let loaded = store.load_game_preferences().unwrap();
     assert_eq!(loaded.settings.witness, WitnessMode::Off);
@@ -808,7 +808,7 @@ fn r_nf_11__backup_source_preserves_exact_known_bytes_and_refuses_unknown_schema
     let source = store.backup_source().unwrap().unwrap();
     assert_eq!(source.schema, 3);
     assert_eq!(source.bytes, previous);
-    for invalid in [br#"{"schema_version":6}"#.as_slice(), br#"not JSON"#] {
+    for invalid in [br#"{"schema_version":7}"#.as_slice(), br#"not JSON"#] {
         std::fs::write(&path, invalid).unwrap();
         assert!(store.backup_source().is_err());
         assert_eq!(std::fs::read(&path).unwrap(), invalid);
@@ -940,6 +940,133 @@ fn r_nf_11_r_nf_5__schema_four_stock_defaults_follow_exact_config_backup() {
     );
     let document: serde_json::Value =
         serde_json::from_slice(&std::fs::read(&path).unwrap()).unwrap();
-    assert_eq!(document["schema_version"], 5);
+    assert_eq!(document["schema_version"], 6);
     assert_eq!(document["game"]["environment_mapping"]["hotfix"], "ptu");
+}
+
+#[test]
+#[expect(
+    non_snake_case,
+    reason = "Requirement tags use a double underscore separator."
+)]
+fn r_nf_5_r_sub_8_r_val_6__submission_mode_and_tightened_observation_age_survive_reopening() {
+    use tallyline_shared_kernel::api::model::{ObservationAgeSettings, SubmissionMode};
+    let directory = TestDirectory::new().unwrap();
+    let path = directory.0.join("settings.json");
+    let mut store = ConfigFile::new(path.clone());
+    let age = ObservationAgeSettings::new(std::time::Duration::from_millis(30_000)).unwrap();
+    let chosen = AppSettings::from_persisted(Theme::Dark, true)
+        .with_submission_mode(Some(SubmissionMode::Production))
+        .with_observation_age(age);
+    store.save(&chosen).unwrap();
+    let loaded = ConfigFile::new(path.clone()).load().unwrap();
+    assert_eq!(
+        loaded.settings.submission_mode_override(),
+        Some(SubmissionMode::Production)
+    );
+    assert_eq!(loaded.settings.observation_age(), age);
+    assert_eq!(loaded.settings, chosen);
+    assert!(loaded.errors.is_empty());
+    let mut document: serde_json::Value =
+        serde_json::from_slice(&std::fs::read(&path).unwrap()).unwrap();
+    document["app"]["submission_mode"] = serde_json::json!("unsupported");
+    document["app"]["observation_age_ms"] = serde_json::json!(3_600_001);
+    std::fs::write(&path, serde_json::to_vec(&document).unwrap()).unwrap();
+    let loaded = ConfigFile::new(path).load().unwrap();
+    assert_eq!(
+        loaded.settings.submission_mode_override(),
+        Some(SubmissionMode::DryRun)
+    );
+    assert_eq!(
+        loaded.settings.observation_age().maximum(),
+        std::time::Duration::from_secs(3600)
+    );
+    assert_eq!(loaded.errors.len(), 2);
+    assert_eq!(loaded.settings.theme(), Theme::Dark);
+    assert!(loaded.settings.onboarding_complete());
+}
+#[test]
+#[expect(
+    non_snake_case,
+    reason = "Requirement tags use a double underscore separator."
+)]
+fn r_nf_11_r_nf_5_r_sub_8__schema_five_submission_defaults_require_exact_backup_and_ignore_unknown_old_mode_fields()
+ {
+    use tallyline_shared_kernel::api::model::SubmissionMode;
+    use tallyline_workflows::api::model::UpdateChecks;
+    let directory = TestDirectory::new().unwrap();
+    let path = directory.0.join("settings.json");
+    let previous=br#"{ "schema_version":5,"app":{"theme":"light","onboarding_complete":true,"stock_percent":10,"stock_minimum":"8","update_checks":true,"last_update_attempt_ms":123000,"available_release":"v9.8.7","submission_mode":"production","observation_age_ms":1},"game":{"environment_mapping":{"hotfix":"ptu"}}}"#;
+    std::fs::write(&path, previous).unwrap();
+    let old = ConfigFile::new(path.clone()).load().unwrap();
+    assert_eq!(old.settings.submission_mode_override(), None);
+    assert!(ConfigFile::new(path.clone()).migrate().is_err());
+    assert_eq!(std::fs::read(&path).unwrap(), previous);
+    let mut failed = ConfigFile::new(path.clone())
+        .with_migration_backup(|_, _| Err(std::io::Error::other("recorded backup failure")));
+    assert!(failed.migrate().is_err());
+    assert_eq!(std::fs::read(&path).unwrap(), previous);
+    backed_store(path.clone()).migrate().unwrap();
+    assert_eq!(
+        std::fs::read(path.with_extension("backup.json")).unwrap(),
+        previous
+    );
+    let loaded = ConfigFile::new(path.clone()).load().unwrap();
+    assert!(loaded.errors.is_empty());
+    assert_eq!(loaded.settings.submission_mode_override(), None);
+    assert_eq!(
+        loaded.settings.submission_mode(SubmissionMode::DryRun),
+        SubmissionMode::DryRun
+    );
+    assert_eq!(
+        loaded.settings.observation_age().maximum(),
+        std::time::Duration::from_secs(3600)
+    );
+    assert_eq!(
+        loaded.settings.stock_settings().tolerance().percent().get(),
+        10
+    );
+    assert_eq!(
+        loaded
+            .settings
+            .stock_settings()
+            .tolerance()
+            .minimum()
+            .to_string(),
+        "8"
+    );
+    assert_eq!(loaded.settings.theme(), Theme::Light);
+    assert!(loaded.settings.onboarding_complete());
+    assert_eq!(loaded.settings.update_checks(), UpdateChecks::Enabled);
+    assert_eq!(
+        loaded.settings.last_update_attempt(),
+        Some(tallyline_shared_kernel::api::model::Timestamp::from_millis(
+            123000
+        ))
+    );
+    let document: serde_json::Value =
+        serde_json::from_slice(&std::fs::read(path).unwrap()).unwrap();
+    assert_eq!(document["schema_version"], 6);
+    assert_eq!(document["game"]["environment_mapping"]["hotfix"], "ptu");
+}
+
+#[test]
+#[expect(
+    non_snake_case,
+    reason = "Requirement tags use a double underscore separator."
+)]
+fn r_nf_5_r_sub_8__first_game_preference_write_keeps_complete_safe_application_defaults() {
+    use tallyline_game::api::GameSettingsStore;
+    let directory = TestDirectory::new().unwrap();
+    let path = directory.0.join("settings.json");
+    let mut store = ConfigFile::new(path.clone());
+    store
+        .save_game_settings(&tallyline_game::api::model::GameSettings::default())
+        .unwrap();
+    let loaded = ConfigFile::new(path).load().unwrap();
+    assert!(
+        loaded.errors.is_empty(),
+        "A normal first context save must not create an invalid current-schema application document"
+    );
+    assert_eq!(loaded.settings, AppSettings::default());
 }

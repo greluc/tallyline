@@ -20,6 +20,8 @@ pub enum View {
     Reference,
     /// Persistent keyboard-driven manual Report entry.
     Manual,
+    /// Durable fixed-mode submission history and explicit unsent cancellation.
+    Queue,
     /// Application preferences.
     Settings,
 }
@@ -27,6 +29,8 @@ pub enum View {
 /// A worker result that never requests a dialog or window command.
 #[derive(Debug)]
 pub enum BackgroundEvent {
+    /// Committed queue state and passive feedback from the session owner.
+    SubmissionUpdated(Box<crate::api::model::SubmissionUpdate>),
     /// Source-scale selected region delivered only for the exact current Report version.
     AttachmentPreview {
         /// Stable Report identity.
@@ -132,6 +136,7 @@ pub enum BackgroundEvent {
 /// Owned shell state shared by drawn and windowless tests.
 #[derive(Default)]
 pub struct ShellState {
+    pub(crate) submission: crate::submission_controls::SubmissionControlState,
     credentials: crate::credentials::CredentialSetup,
     pub(crate) stock_settings_editor: crate::stock_settings::StockSettingsEditor,
     view: View,
@@ -199,6 +204,8 @@ impl ShellState {
         }
         self.busy = true;
         Some(match action {
+            UserAction::ChangeSubmissionMode(mode) => SettingsCommand::ChangeSubmissionMode(mode),
+            UserAction::ChangeObservationAge(age) => SettingsCommand::ChangeObservationAge(age),
             UserAction::ChangeEnvironmentMapping(channel, environment) => {
                 SettingsCommand::ChangeEnvironmentMapping(channel, environment)
             }
@@ -217,6 +224,38 @@ impl ShellState {
     /// Applies a worker result without changing the view or window state.
     pub fn receive(&mut self, event: BackgroundEvent) {
         match event {
+            BackgroundEvent::SubmissionUpdated(update) => {
+                self.submission.background_feedback = update.background_feedback;
+                self.submission.queue.received(update.jobs);
+                self.submission.queue.received_waiting(update.waiting);
+                self.submission
+                    .accounts
+                    .refresh(self.credentials.account(), self.submission.queue.jobs());
+                for mapping in update.mappings {
+                    self.submission.queue.received_mapping(mapping);
+                }
+                if update.completed {
+                    self.submission.busy = false;
+                    self.manual.busy = false;
+                    if let Some((id, expected)) = self.submission.cancel.take()
+                        && update.feedback.is_some()
+                    {
+                        let failure = match &update.feedback {
+                            Some(crate::api::model::SubmissionFeedback::Refused(reason)) => tallyline_submission::api::model::SubmissionApplicationError::Refused(*reason),
+                            Some(crate::api::model::SubmissionFeedback::Changed) => tallyline_submission::api::model::SubmissionApplicationError::Repository(tallyline_submission::api::model::SubmissionRepositoryError::Conflict),
+                            Some(crate::api::model::SubmissionFeedback::Blocked(_) | crate::api::model::SubmissionFeedback::Held(_) | crate::api::model::SubmissionFeedback::Returned(_) | crate::api::model::SubmissionFeedback::Unavailable | crate::api::model::SubmissionFeedback::AttachmentUnavailable) | None => tallyline_submission::api::model::SubmissionApplicationError::Repository(tallyline_submission::api::model::SubmissionRepositoryError::Unavailable),
+                        };
+                        self.submission.queue.failed(id, expected, failure);
+                    }
+                }
+                if update.completed || update.feedback.is_some() {
+                    self.submission.feedback = update.feedback;
+                }
+                self.receive(BackgroundEvent::ReportsLoaded {
+                    reports: update.reports,
+                    selected: None,
+                });
+            }
             BackgroundEvent::AttachmentPreview {
                 id,
                 expected,
@@ -243,14 +282,21 @@ impl ShellState {
                 failure,
                 available_token,
                 fallback_available,
-            } => self
-                .credentials
-                .updated(account, failure, available_token, fallback_available),
+            } => {
+                self.submission
+                    .accounts
+                    .changed(self.credentials.account(), &account);
+                self.credentials
+                    .updated(account, failure, available_token, fallback_available);
+                self.submission
+                    .accounts
+                    .refresh(self.credentials.account(), self.submission.queue.jobs());
+            }
             BackgroundEvent::ReferenceDiagnostic(diagnostic) => {
                 self.references.report_diagnostic(diagnostic)
             }
             BackgroundEvent::ReportsLoaded { reports, selected } => {
-                self.manual.loaded(reports, selected)
+                self.receive_drafts(reports, selected)
             }
             BackgroundEvent::ReportReviewed {
                 expected,
@@ -361,6 +407,11 @@ impl ShellState {
 
 /// A direct user request that requires durable preferences.
 pub enum UserAction {
+    /// Select the global mode for future releases only.
+    ChangeSubmissionMode(Option<tallyline_shared_kernel::api::model::SubmissionMode>),
+    /// Tighten observation age and confirmation lifetime without changing the fixed hard limit.
+    ChangeObservationAge(tallyline_shared_kernel::api::model::ObservationAgeSettings),
+
     /// Persist independently tighten-only stock bands.
     ChangeStockSettings(tallyline_reporting::api::model::StockSettings),
     /// Persist an independent UEX environment for one game channel.
@@ -387,6 +438,11 @@ pub enum UserAction {
 /// A settings operation handled outside the UI thread.
 #[derive(Clone, PartialEq, Eq)]
 pub enum SettingsCommand {
+    /// Select the global mode for future releases only.
+    ChangeSubmissionMode(Option<tallyline_shared_kernel::api::model::SubmissionMode>),
+    /// Tighten observation age and confirmation lifetime without changing the fixed hard limit.
+    ChangeObservationAge(tallyline_shared_kernel::api::model::ObservationAgeSettings),
+
     /// Persist independently tighten-only stock bands.
     ChangeStockSettings(tallyline_reporting::api::model::StockSettings),
     /// Persist an independent UEX environment for one game channel.
@@ -413,6 +469,14 @@ pub enum SettingsCommand {
 impl std::fmt::Debug for SettingsCommand {
     fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
+            Self::ChangeSubmissionMode(mode) => formatter
+                .debug_tuple("ChangeSubmissionMode")
+                .field(mode)
+                .finish(),
+            Self::ChangeObservationAge(age) => formatter
+                .debug_tuple("ChangeObservationAge")
+                .field(age)
+                .finish(),
             Self::ChangeEnvironmentMapping(channel, environment) => formatter
                 .debug_tuple("ChangeEnvironmentMapping")
                 .field(channel)
@@ -484,6 +548,21 @@ mod manual_review;
 impl ShellState {
     /// Injects validated build display data without deriving a version from UI package metadata.
     pub fn set_build_presentation(&mut self, build: crate::api::model::BuildPresentation) {
+        self.submission.release_build =
+            matches!(build, crate::api::model::BuildPresentation::Release { .. });
         self.dialogs.set_build_presentation(build);
     }
 }
+
+impl ShellState {
+    pub(crate) fn show_queue_view(&mut self) {
+        self.view = View::Queue;
+    }
+    pub(crate) fn return_to_setup(&mut self) {
+        if !self.settings.onboarding_complete() {
+            self.view = View::Onboarding;
+        }
+    }
+}
+
+mod submission_projection;

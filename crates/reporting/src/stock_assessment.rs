@@ -4,7 +4,7 @@
 //! Read-only SCU assessment with explicitly supplied tolerance bands.
 
 use crate::api::model::{AssessmentUnavailable, Deviation};
-use tallyline_reference_data::api::model::{EffectiveStaleness, PricePrior, ScuTolerance};
+use tallyline_reference_data::api::model::{EffectiveStaleness, PriorReference, ScuTolerance};
 use tallyline_shared_kernel::api::model::{
     Delta, PrecisionUnavailable, RowId, ScuQuantity, Timestamp,
 };
@@ -24,7 +24,7 @@ impl StockAssessment {
     pub(crate) fn assess(
         row: RowId,
         value: ScuQuantity,
-        prior: Option<&PricePrior>,
+        prior: Option<PriorReference<'_>>,
         tolerance: ScuTolerance,
         now: Timestamp,
         staleness: EffectiveStaleness,
@@ -55,10 +55,8 @@ impl StockAssessment {
                 ),
             },
         };
-        let reference_age_millis = prior.and_then(|prior| {
-            now.millis()
-                .checked_sub(prior.provenance().modified_at.millis())
-        });
+        let reference_age_millis =
+            prior.and_then(|prior| now.millis().checked_sub(prior.modified_at().millis()));
         Self {
             row,
             reference,

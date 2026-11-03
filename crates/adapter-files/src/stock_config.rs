@@ -28,7 +28,7 @@ pub(crate) fn load(
     let current = document
         .get("schema_version")
         .and_then(serde_json::Value::as_u64)
-        == Some(5);
+        .is_some_and(|version| version >= 5);
     let percent = app.and_then(|app| app.get("stock_percent"));
     let minimum = app.and_then(|app| app.get("stock_minimum"));
     let percent = match percent

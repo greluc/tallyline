@@ -27,3 +27,5 @@ mod private_artifact;
 mod working_copies;
 
 mod stock_config;
+
+mod submission_config;
