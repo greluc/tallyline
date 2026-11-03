@@ -124,7 +124,7 @@ files = [{ repository = "LICENSES/LicenseRef-Fankit-Agreement.txt" }, { reposito
 [component.catalogue]
 version = "Fankit_2025_11_19"
 licence = "LicenseRef-Fankit-Agreement"
-source = "https://github.com/greluc/tallyline/blob/main/NOTICE"
+source = "https://github.com/tallyline-sc/tallyline/blob/main/NOTICE"
 copyright = ["Cloud Imperium Rights LLC and Cloud Imperium Rights Ltd."]
 
 [[component]]

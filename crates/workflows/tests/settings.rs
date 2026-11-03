@@ -92,7 +92,7 @@ fn r_nf_7__release_versions_follow_numeric_stable_tag_order() {
     assert!(ReleaseVersion::parse("v1.10.0").unwrap() > ReleaseVersion::parse("v1.9.9").unwrap());
     assert_eq!(
         ReleaseVersion::parse("v2.0.1").unwrap().release_url(),
-        "https://github.com/greluc/tallyline/releases/tag/v2.0.1"
+        "https://github.com/tallyline-sc/tallyline/releases/tag/v2.0.1"
     );
     assert_eq!(
         ReleaseVersion::parse("v0.0.0").unwrap().to_string(),

@@ -18,7 +18,7 @@ env:
 jobs:
   public-contract:
     if: >-
-      github.repository == 'greluc/tallyline' &&
+      github.repository == 'tallyline-sc/tallyline' &&
       github.ref == 'refs/heads/main' &&
       (github.event_name == 'workflow_dispatch' || vars.TALLYLINE_UEX_DRIFT_ENABLED == 'true')
     runs-on: ubuntu-24.04

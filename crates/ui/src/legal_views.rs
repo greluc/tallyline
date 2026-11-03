@@ -83,13 +83,13 @@ pub(crate) fn show_about_view_with_build(
     }
     let (source, release) = match build {
         crate::api::model::BuildPresentation::Release { tag, commit, .. } => (
-            format!("https://github.com/greluc/tallyline/tree/{commit}"),
-            format!("https://github.com/greluc/tallyline/releases/tag/{tag}"),
+            format!("https://github.com/tallyline-sc/tallyline/tree/{commit}"),
+            format!("https://github.com/tallyline-sc/tallyline/releases/tag/{tag}"),
         ),
         crate::api::model::BuildPresentation::Development { .. }
         | crate::api::model::BuildPresentation::Unavailable => (
-            "https://github.com/greluc/tallyline".to_owned(),
-            "https://github.com/greluc/tallyline/releases".to_owned(),
+            "https://github.com/tallyline-sc/tallyline".to_owned(),
+            "https://github.com/tallyline-sc/tallyline/releases".to_owned(),
         ),
     };
     ui.hyperlink_to(catalogue.text("about.source"), source);

@@ -4,6 +4,8 @@ All notable changes are recorded here.
 
 ## [Unreleased]
 
+- Follow the project repository transfer to `tallyline-sc/tallyline` for optional release checks, About source/release links and packaging source information (R-NF-7, R-UI-18, R-DOC-4).
+
 - Allow a previously validated account to release reviewed Reports to the persistent queue while offline. Sending waits for validation in the current session, and replacement credentials close release and sending until accepted (R-API-7, R-SUB-2).
 - Extend the optional Game.log witness to the exact MIC-L2 Long Forest Station and Orbituary terminal pairs and Astatine, Carbon, Copper, Diamond, Potassium, Scrap and Waste. The same validated build and default-off privacy boundary apply; the log supplies no reported prices, quantities or status values (R-OCR-20).
 

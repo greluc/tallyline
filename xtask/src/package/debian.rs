@@ -44,7 +44,7 @@ pub(super) fn build(
         "identifier":"org.tallyline.client", "formats":["deb"], "outDir":packager,
         "binariesDir":stage.join("payload"), "binaries":[{"path":"tallyline","main":true}],
         "targetTriple":"x86_64-unknown-linux-gnu", "description":"Star Citizen commodity terminal data client",
-        "homepage":"https://github.com/greluc/tallyline", "authors":["Tallyline contributors <lucas.greuloch@gmail.com>"],
+        "homepage":"https://github.com/tallyline-sc/tallyline", "authors":["Tallyline contributors <lucas.greuloch@gmail.com>"],
         "licenseFile":stage.join("payload/LICENSE"), "resources":resources,
         "beforePackagingCommand":null,"beforeEachPackageCommand":null,
         "linux":{"generateDesktopEntry":false},

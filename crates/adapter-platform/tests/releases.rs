@@ -20,7 +20,7 @@ use wiremock::{
 )]
 async fn r_nf_7__latest_standard_release_is_actionable_without_sending_credentials() {
     let server = MockServer::start().await;
-    Mock::given(method("GET")).and(path("/repos/greluc/tallyline/releases/latest"))
+    Mock::given(method("GET")).and(path("/repos/tallyline-sc/tallyline/releases/latest"))
         .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({"tag_name":"v2.0.1","draft":false,"prerelease":false,"html_url":"https://untrusted.invalid/","assets":[{"browser_download_url":"https://untrusted.invalid/code"}]})))
         .mount(&server).await;
     let client = ReleaseClient::loopback(server.address().port(), "0.0.0-dev").unwrap();
@@ -30,7 +30,7 @@ async fn r_nf_7__latest_standard_release_is_actionable_without_sending_credentia
     };
     assert_eq!(
         version.release_url(),
-        "https://github.com/greluc/tallyline/releases/tag/v2.0.1"
+        "https://github.com/tallyline-sc/tallyline/releases/tag/v2.0.1"
     );
     let requests = server.received_requests().await.unwrap();
     assert_eq!(requests.len(), 1);

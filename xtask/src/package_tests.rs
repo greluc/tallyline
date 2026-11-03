@@ -654,6 +654,10 @@ fn r_doc_3__debian_copyright_preserves_terms_and_reviewed_source_scopes() {
         rows[0]["Format"],
         "https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/"
     );
+    assert_eq!(
+        rows[0]["Source"],
+        "https://github.com/tallyline-sc/tallyline"
+    );
     let native = rows
         .iter()
         .find(|row| {

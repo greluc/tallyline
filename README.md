@@ -2,7 +2,7 @@
 
 Tallyline is a cross-platform desktop client (Windows + Linux) for Star Citizen DataRunners. It captures commodity terminal data – **manually or via screenshot OCR** – and submits it to [UEX Corp](https://uexcorp.space). Current UEX data serves as default values and plausibility bounds for recognition.
 
-> Corrected 2026-11-01: the GitHub repository is now [greluc/tallyline](https://github.com/greluc/tallyline).
+> Corrected 2026-11-03: the GitHub repository has transferred to [tallyline-sc/tallyline](https://github.com/tallyline-sc/tallyline).
 
 While the game is running, lightweight local OCR does the work. Optional local AI can re-check results once the game is closed. The planned installation supplies its selected recognition runtime and models without a separate Ollama installation; the engine and model combinations are still being evaluated. Images are never sent to cloud or LAN inference services ([ADR-0012](docs/adr/0012-strictly-local-recognition-delivery.md)).
 

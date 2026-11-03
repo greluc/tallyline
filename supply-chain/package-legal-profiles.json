@@ -3,7 +3,7 @@
   "source_inputs": {
     "Cargo.lock": "bcfeb7c6a9e85eb5f99cb7bae55305d1a75db65889f59cfcae659aa700b02b0f",
     "NOTICE": "f1da83e717a3ccb48753deb68ac25c82945af3af499f6ba57f2fd87a1b954bc0",
-    "supply-chain/notices.toml": "bd9ab530690cb560e3881ae9e91972dd16d528bbb2a1ebd0ea6e929351bfc496",
+    "supply-chain/notices.toml": "1fc82dc70e75d4316f53685320018d13bb8cdad5640796d8b7d9971c2a30cd81",
     "Cargo.toml": "d6535db04900b06e68721b0a1c8fa95854a766ba0e4fe13af677263003ee5f07",
     "crates/adapter-files/Cargo.toml": "a1b47d81c64d797149d68d9b9a6f8fc359144cc317fbdc435d0c32e0071a4aa8",
     "crates/adapter-ocr/Cargo.toml": "be7c86c279822954cf8b6610d79bc631d1e7bbb57702f2178e8ee0384ee6b435",
@@ -27,12 +27,12 @@
   "targets": {
     "windows": {
       "target": "x86_64-pc-windows-msvc",
-      "catalogue_sha256": "62d886ee7350a0d5abcf0c749901512b2d78a3c470b0699a4c1114f58e071fb5",
+      "catalogue_sha256": "362221920a5bbcf75bef699db2bcce4df58d64c3e1351525d4139d3bf4ce8006",
       "components": 217
     },
     "linux": {
       "target": "x86_64-unknown-linux-gnu",
-      "catalogue_sha256": "1254db6de5be4d0291aaef437e87d0018af9fc2613d5c752aa8807894cff538b",
+      "catalogue_sha256": "fb49f3e50e24a17f51e283e2744848cc978ac3e29537a60841a3dee3b1acda15",
       "components": 271
     }
   }

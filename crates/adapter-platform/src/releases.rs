@@ -10,7 +10,7 @@ use tallyline_workflows::api::{
     model::{ReleaseVersion, UpdateFailure},
 };
 
-const RELEASE_PATH: &str = "/repos/greluc/tallyline/releases/latest";
+const RELEASE_PATH: &str = "/repos/tallyline-sc/tallyline/releases/latest";
 const BODY_LIMIT: usize = 65_536;
 
 /// A credential-free client restricted to the Tallyline release endpoint.

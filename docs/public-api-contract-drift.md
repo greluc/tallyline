@@ -23,7 +23,7 @@ A subsequent actual local `contract-check` completed with exit code 0 and report
 
 ## Opt-in workflow
 
-`.github/workflows/api-contract-drift.yml` schedules a weekly observation on Monday at 06:31 UTC. Its job requires the original `greluc/tallyline` repository, `refs/heads/main` and repository variable `TALLYLINE_UEX_DRIFT_ENABLED` equal to `true`. An explicitly approved `workflow_dispatch` on `main` can run without that variable. There is no pull-request or push trigger, and a dispatch selecting another ref skips the job. GitHub schedules may run later than their nominal time.
+`.github/workflows/api-contract-drift.yml` schedules a weekly observation on Monday at 06:31 UTC. Its job requires the `tallyline-sc/tallyline` repository, `refs/heads/main` and repository variable `TALLYLINE_UEX_DRIFT_ENABLED` equal to `true`. An explicitly approved `workflow_dispatch` on `main` can run without that variable. There is no pull-request or push trigger, and a dispatch selecting another ref skips the job. GitHub schedules may run later than their nominal time.
 
 The workflow has only `contents: read`, does not request secrets, disables persisted checkout credentials, uses the existing full-SHA checkout pin and installs/verifies the exact Rust toolchain in `rust-toolchain.toml`. It builds the existing spike and publishes its value-free diagnostic output in the job log and step summary; it does not upload response dumps, rewrite the baseline, create an issue or make a UEX write. Its whole-job timeout is 15 minutes. Enabling the repository variable or dispatching it remains an owner-controlled external action under `CLAUDE.md`; this implementation does neither. Hosted execution is pending until the workflow reaches `main` and is intentionally activated.
 

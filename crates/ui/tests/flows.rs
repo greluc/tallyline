@@ -213,6 +213,16 @@ fn r_ui_18__about_identifies_the_fixed_development_version_and_platform() -> Out
         harness.query_by_label(&expected).is_some(),
         "About must identify {expected}"
     );
+    assert_opened_link(
+        &mut harness,
+        "Source code",
+        "https://github.com/tallyline-sc/tallyline",
+    );
+    assert_opened_link(
+        &mut harness,
+        "Release and source archives",
+        "https://github.com/tallyline-sc/tallyline/releases",
+    );
     Ok(())
 }
 
@@ -326,7 +336,7 @@ fn r_nf_7_r_ui_16__release_notice_is_passive_actionable_and_dismissible() -> Out
                 | egui::OutputCommand::CopyImage(_)
                 | egui::OutputCommand::TextSelectionSettled(_) => None,
             }),
-        Some("https://github.com/greluc/tallyline/releases/tag/v2.0.1")
+        Some("https://github.com/tallyline-sc/tallyline/releases/tag/v2.0.1")
     );
     harness.get_by_label("Dismiss update notice").click();
     harness.run();
@@ -485,5 +495,34 @@ fn r_ui_18_r_nf_11__about_uses_the_injected_release_identity_instead_of_cargo_me
             .query_by_label("Development build 0.1.0 · windows/x86_64")
             .is_none()
     );
+    for (label, expected) in [
+        (
+            "Source code",
+            "https://github.com/tallyline-sc/tallyline/tree/0123456789abcdef0123456789abcdef01234567",
+        ),
+        (
+            "Release and source archives",
+            "https://github.com/tallyline-sc/tallyline/releases/tag/v9.8.7",
+        ),
+    ] {
+        assert_opened_link(&mut harness, label, expected);
+    }
     Ok(())
+}
+
+fn assert_opened_link(harness: &mut Harness<'_, Fixture>, label: &str, expected: &str) {
+    harness.get_by_label(label).click_accesskit();
+    harness.step();
+    assert!(
+        harness
+            .output()
+            .platform_output
+            .commands
+            .iter()
+            .any(|command| {
+                matches!(command, egui::OutputCommand::OpenUrl(url) if url.url == expected)
+            }),
+        "expected {expected}, received {:?}",
+        harness.output().platform_output.commands
+    );
 }

@@ -5,7 +5,7 @@
       "name": "Star Citizen Fan Kit artwork and notices",
       "version": "Fankit_2025_11_19",
       "licence": "LicenseRef-Fankit-Agreement",
-      "source": "https://github.com/greluc/tallyline/blob/main/NOTICE",
+      "source": "https://github.com/tallyline-sc/tallyline/blob/main/NOTICE",
       "patterns": [
         "project/docs/images/fankit/made-by-the-community.png",
         "project/docs/images/fankit/MadeByTheCommunity_White.png"

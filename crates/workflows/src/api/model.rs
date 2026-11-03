@@ -120,7 +120,7 @@ impl ReleaseVersion {
     /// Returns the fixed release-page URL for this version.
     #[must_use]
     pub fn release_url(self) -> String {
-        format!("https://github.com/greluc/tallyline/releases/tag/{self}")
+        format!("https://github.com/tallyline-sc/tallyline/releases/tag/{self}")
     }
 }
 
