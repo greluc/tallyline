@@ -122,7 +122,7 @@ fn r_man_5_r_sub_7__dated_requirement_and_full_size_preview_have_explicit_clear_
         readiness: Err(ManualAttachmentBlock::PreviewUnconfirmed),
     });
     let catalogue = Catalogue::english().unwrap();
-    let mut fonts = Some(font_files());
+    let mut fonts = Some(font_files().unwrap());
     let mut harness = Harness::builder()
         .with_size(egui::vec2(1000.0, 1000.0))
         .build_ui_state(
@@ -173,8 +173,13 @@ fn r_man_5_r_sub_7__dated_requirement_and_full_size_preview_have_explicit_clear_
     );
 }
 
-fn font_files() -> tallyline_ui::api::model::FontFiles {
-    tallyline_ui::api::model::FontFiles {
+fn font_files() -> Result<tallyline_ui::api::model::FontFiles, &'static str> {
+    Ok(tallyline_ui::api::model::FontFiles {
+        material_symbols: include_bytes!(
+            "../assets/fonts/material-symbols/MaterialSymbolsRounded-Tallyline.ttf"
+        )
+        .to_vec()
+        .try_into()?,
         plex_regular: include_bytes!("../assets/fonts/ibm-plex/IBMPlexSans-Regular.ttf").to_vec(),
         plex_semibold: include_bytes!("../assets/fonts/ibm-plex/IBMPlexSans-SemiBold.ttf").to_vec(),
         plex_bold: include_bytes!("../assets/fonts/ibm-plex/IBMPlexSans-Bold.ttf").to_vec(),
@@ -182,7 +187,7 @@ fn font_files() -> tallyline_ui::api::model::FontFiles {
             .to_vec(),
         mono_bold: include_bytes!("../assets/fonts/jetbrains-mono/JetBrainsMonoNL-Bold.ttf")
             .to_vec(),
-    }
+    })
 }
 
 struct Empty;
@@ -239,7 +244,7 @@ fn r_man_5_r_sub_7_q_manual_r_ui_16__passive_other_draft_commit_preserves_unfini
     });
     references(&mut state).unwrap();
     let catalogue = Catalogue::english().unwrap();
-    let mut fonts = Some(font_files());
+    let mut fonts = Some(font_files().unwrap());
     let mut harness = Harness::builder()
         .with_size(egui::vec2(1200.0, 1400.0))
         .build_ui_state(
@@ -303,7 +308,7 @@ fn r_man_5_r_sub_7_q_manual_r_ui_16__older_draft_result_cannot_clear_a_newer_att
     });
     references(&mut state).unwrap();
     let catalogue = Catalogue::english().unwrap();
-    let mut fonts = Some(font_files());
+    let mut fonts = Some(font_files().unwrap());
     let mut harness = Harness::builder()
         .with_size(egui::vec2(1200.0, 1400.0))
         .build_ui_state(
@@ -388,7 +393,7 @@ fn r_man_5_r_sub_7_q_manual__recovered_same_version_preview_retires_only_its_own
         selected: Some(report.id()),
     });
     let catalogue = Catalogue::english().unwrap();
-    let mut fonts = Some(font_files());
+    let mut fonts = Some(font_files().unwrap());
     let mut harness = Harness::builder()
         .with_size(egui::vec2(1200.0, 1200.0))
         .build_ui_state(
@@ -472,7 +477,7 @@ fn r_man_5_r_sub_7_q_manual__manual_view_uses_only_the_current_accepted_account_
         readiness: Err(ManualAttachmentBlock::ImageRequired),
     });
     let catalogue = Catalogue::english().unwrap();
-    let mut fonts = Some(font_files());
+    let mut fonts = Some(font_files().unwrap());
     let mut harness = Harness::builder()
         .with_size(egui::vec2(1200.0, 1200.0))
         .build_ui_state(

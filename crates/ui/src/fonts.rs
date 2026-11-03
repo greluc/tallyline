@@ -1,13 +1,17 @@
 // SPDX-FileCopyrightText: 2026 Lucas Greuloch
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Unmodified static font resources approved by ADR-0004.
+//! Separately shipped font resources approved by ADR-0004 and O-112.
 
 use egui::{FontData, FontDefinitions, FontFamily};
-use tallyline_egui::FontFace;
+use tallyline_egui::{FontFace, symbols};
+
+use crate::material_symbols_font::MaterialSymbolsFont;
 
 /// The approved font files loaded by the composition root.
 pub struct FontFiles {
+    /// Exact approved modified Material Symbols Rounded subset.
+    pub material_symbols: MaterialSymbolsFont,
     /// IBM Plex Sans Regular.
     pub plex_regular: Vec<u8>,
     /// IBM Plex Sans SemiBold.
@@ -20,7 +24,7 @@ pub struct FontFiles {
     pub mono_bold: Vec<u8>,
 }
 
-/// Installs the approved fonts from their separately shipped, unmodified files.
+/// Installs the approved fonts from their separately shipped files.
 pub fn configure_fonts(context: &egui::Context, files: FontFiles) {
     let mut fonts = FontDefinitions::empty();
     for (face, bytes) in [
@@ -42,5 +46,13 @@ pub fn configure_fonts(context: &egui::Context, files: FontFiles) {
     fonts
         .families
         .insert(FontFamily::Monospace, vec!["JetBrains Mono NL".to_owned()]);
+    fonts.font_data.insert(
+        symbols::FAMILY.to_owned(),
+        FontData::from_owned(files.material_symbols.into_bytes()).into(),
+    );
+    fonts.families.insert(
+        FontFamily::Name(symbols::FAMILY.into()),
+        vec![symbols::FAMILY.to_owned()],
+    );
     context.set_fonts(fonts);
 }

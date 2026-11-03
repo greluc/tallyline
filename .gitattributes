@@ -46,3 +46,5 @@ supply-chain/notices/onnxruntime-linux/* -text whitespace=-blank-at-eol,-blank-a
 supply-chain/wix/tool-manifest.json -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
 
 supply-chain/wix/wix7-self-compiled.patch whitespace=-blank-at-eol
+
+crates/ui/assets/fonts/material-symbols/LICENSE -text

@@ -876,3 +876,7 @@ Thinnest ink: `hdr_off` and `hdr_on` 0.73 px, `rule_settings` 0.79 px, `fiber_ne
 ## Drawn egui foundation checkpoint (2026-11-03)
 
 Corrected 2026-11-03: the recreated crate had no `tests/contrast.rs` despite the earlier note. Drawn contracts observe token colours, custom widget geometry, keyboard button focus, muted text, selection and dialog surfaces across three themes and two densities. Actual installed/shaped faces are checked against the DTCG ramp. A public confirmation-dialog contract observes its scrim; exact-decimal review contracts inspect Mono text. These are egui paint contracts, not measured pixel contrast or native/manual acceptance. Historical token contrast results stand; the native scale/text-size protocol and independent TextEdit focus remain open. See [component adoption](components.md).
+
+## Restored font contract coverage — 2026-11-03
+
+Corrected 2026-11-03: the exact historically approved Material Symbols subset is restored; it is no longer unavailable. Headless egui contracts draw the nine semantic state icons as their named glyphs across Dark, Light and High contrast at 100, 125 and 150 percent, and compare actual atlas areas of all 156 named symbols with the missing-glyph box. A successful glyph lookup alone is not the oracle. This checks resource loading and absence of missing boxes; it does not establish O-107 manual magnified legibility or native/wgpu acceptance. Those checks remain open, including the named thin-feature candidates above.

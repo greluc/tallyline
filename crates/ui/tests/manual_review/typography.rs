@@ -8,7 +8,7 @@ use super::{ManualReviewState, paint_text, support};
 #[test]
 fn actual_review_and_confirmation_draw_semantic_heading_emphasis_and_value_roles() {
     let context = egui::Context::default();
-    tallyline_ui::api::configure_fonts(&context, support::fonts());
+    tallyline_ui::api::configure_fonts(&context, support::fonts().unwrap());
     tallyline_egui::apply_theme(
         &context,
         tallyline_egui::Theme::Dark,
@@ -130,7 +130,7 @@ fn current_price_and_stock_draw_exact_values_in_the_strong_mono_role() {
         },
     ] {
         let context = egui::Context::default();
-        tallyline_ui::api::configure_fonts(&context, support::fonts());
+        tallyline_ui::api::configure_fonts(&context, support::fonts().unwrap());
         tallyline_egui::apply_theme(
             &context,
             tallyline_egui::Theme::Dark,

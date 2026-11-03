@@ -10,7 +10,19 @@ use std::io::{self, Read, Seek, SeekFrom};
 use std::path::Path;
 
 const MAX_PINNED_ASSET_BYTES: u64 = 32 * 1024 * 1024;
-const ASSETS: [(&str, &str); 12] = [
+const ASSETS: [(&str, &str); 15] = [
+    (
+        "assets/fonts/material-symbols/MaterialSymbolsRounded-Tallyline.ttf",
+        "40c8c3a472c6978cedd5028194fa174b2c63edae4165f7686d88fbf174602234",
+    ),
+    (
+        "assets/fonts/material-symbols/LICENSE",
+        "58d1e17ffe5109a7ae296caafcadfdbe6a7d176f0bc4ab01e12a689b0499d8bd",
+    ),
+    (
+        "assets/fonts/material-symbols/NOTICE",
+        "b8f97f88268442a9c60afa6f8defbdd6b7ab568707621f4fb9264d887ea5ccc6",
+    ),
     (
         "assets/branding/tallyline-icon-256.png",
         "d0ed9a91e6e5fd79633352b1f319e8f2c96c0ff1159c371a9354857ab5d8108f",
@@ -100,6 +112,15 @@ pub(super) fn verify(root: &Path, target: Target) -> io::Result<()> {
         return Err(io::Error::other(
             "project licence or notice differs from the delivered legal material",
         ));
+    }
+    for name in ["LICENSE", "NOTICE"] {
+        if fs::read(root.join("assets/fonts/material-symbols").join(name))?
+            != fs::read(root.join("legal/material-symbols").join(name))?
+        {
+            return Err(io::Error::other(
+                "icon licence or modification notice differs from its bundled legal notice",
+            ));
+        }
     }
     for family in ["ibm-plex", "jetbrains-mono"] {
         if fs::read(root.join("assets/fonts").join(family).join("OFL.txt"))?

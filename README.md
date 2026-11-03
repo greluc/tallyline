@@ -61,6 +61,8 @@ The [desktop guide](docs/user/desktop.md) covers settings, storage, portable mod
 
 The **Line** mark, slate-blue surfaces, sky accent, IBM Plex Sans and JetBrains Mono NL follow the owner-selected Tallyline design system. Dark, light and high-contrast themes share the same state language.
 
+State indicators use the approved Material Symbols Rounded glyphs alongside their existing text. The separate icon font is hash-checked on startup; its Apache licence and modification notice appear in the offline licence catalogue. Magnified icon and native acceptance remain open.
+
 The [branding folder](branding/README.md) contains ready-to-use GitHub avatars, social previews, outlined SVG wordmarks and app icons. Use the avatar for the organisation and the 1280 × 640 social preview for repository sharing. Logo colours are fixed within each exported variant.
 
 Reference-browser headings, manual review/confirmation, action labels and existing widgets use semantic typography with explicit line heights; exact review values use Mono. The [design adoption reference](docs/design-system/components.md) tracks the supplied archives, accepted decisions and implementation coverage. The complete shell, review-table composition and rendered native acceptance remain in progress.

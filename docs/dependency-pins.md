@@ -1,6 +1,6 @@
 # Dependency pins
 
-> **Doc type:** Living reference — current. Last reviewed: 2026-11-02.
+> **Doc type:** Living reference — current. Last reviewed: 2026-11-03.
 
 This file records what the pins in `.github/` cannot say themselves: the tag each pinned GitHub Action resolves to, the version and checksum of every CI tool that a workflow downloads or installs outside the crate dependency graph, and those of the native libraries that ship with the app without coming through Cargo. Rust crates are pinned elsewhere: in `Cargo.toml`, `Cargo.lock`, the `cargo vendor` directory and the `cargo-vet` records (S-3 to S-6). Amended 2026-10-12: the Gradle-based pins were replaced by the Cargo-based ones when the implementation language changed to Rust ([ADR-0005](adr/0005-rust-and-egui.md)).
 
@@ -111,3 +111,8 @@ Corrected 2026-11-02: the IBM Plex source-specific OFL file had been normalised 
 
 
 Verified 2026-11-02 for corresponding-source duties: ONNX Runtime 1.31.0 commit 402979ac1bef89dcd55add41eaa7277c407599eb retains Eigen revision 1d8b82b0740839c0de7f1242a3585e3390ff5f33. The exact ORT-pinned source ZIP matches legacy SHA-1 05b19b49e6fbb91246be711d801160528c135e34; its newly computed SHA-256 is 6a60d76351f97132669daeeb721d6bf14b008101883ad2d687a3201c5c461eb0. All 1891 archive files match primary Git tree 3de9ea2629ae2b4833ef3fb3844cd7a2e32f7020, including the original COPYING files; no symlinks, missing or changed blobs. The source-duty record is supply-chain/source-archives.json. This is not a publisher SHA-256 signature or a new native version/activation.
+
+
+## Material Symbols historical artefact restoration — 2026-11-03
+
+The owner-delivered 30,960-byte MaterialSymbolsRounded-Tallyline.ttf matches the exact approved SHA-256 already recorded on 2026-10-12: 40c8c3a472c6978cedd5028194fa174b2c63edae4165f7686d88fbf174602234. O-112 and S-7 preserve that existing approval; no replacement font version is selected. Its standalone Apache licence is fetched from immutable google/material-design-icons commit 49d4db35df873165d6bd6ba09b063c7dafbac2f4, SHA-256 58d1e17ffe5109a7ae296caafcadfdbe6a7d176f0bc4ab01e12a689b0499d8bd. The adjacent modification notice and NOTICE §2.13 record the archive identity, 156 names, version-2.975 metadata comparison and explicit reproducibility/geometry limits. Version 2.975 is not the latest eligible upstream version. The font is separately shipped and hash-checked before registration, without fallback to a text family.

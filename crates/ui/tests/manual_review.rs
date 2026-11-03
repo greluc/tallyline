@@ -124,6 +124,12 @@ fn r_ui_11_q_manual_r_ui_12_q_manual__drawn_review_shows_exact_reference_deltas_
     state.received(review, snapshot);
     let catalogue = Catalogue::english().unwrap();
     let mut fonts = Some(tallyline_ui::api::model::FontFiles {
+        material_symbols: include_bytes!(
+            "../assets/fonts/material-symbols/MaterialSymbolsRounded-Tallyline.ttf"
+        )
+        .to_vec()
+        .try_into()
+        .unwrap(),
         plex_regular: include_bytes!("../assets/fonts/ibm-plex/IBMPlexSans-Regular.ttf").to_vec(),
         plex_semibold: include_bytes!("../assets/fonts/ibm-plex/IBMPlexSans-SemiBold.ttf").to_vec(),
         plex_bold: include_bytes!("../assets/fonts/ibm-plex/IBMPlexSans-Bold.ttf").to_vec(),
@@ -225,7 +231,7 @@ fn r_ui_11_q_manual_r_ui_12_q_manual__confirmation_dialog_requires_a_separate_ex
         presenter.open_manual_confirmation(&state, field);
         assert!(presenter.manual_confirmation_open());
         let catalogue = Catalogue::english().unwrap();
-        let mut fonts = Some(support::fonts());
+        let mut fonts = Some(support::fonts().unwrap());
         let mut harness =
             Harness::builder()
                 .with_size(egui::vec2(1000.0, 850.0))
@@ -298,7 +304,7 @@ fn r_ui_12_q_manual_r_ui_16__cancel_or_invalidated_review_closes_the_dialog_with
     let mut presenter = DialogPresenter::default();
     presenter.open_manual_confirmation(&state, field);
     let catalogue = Catalogue::english().unwrap();
-    let mut fonts = Some(support::fonts());
+    let mut fonts = Some(support::fonts().unwrap());
     let mut harness = Harness::builder()
         .with_size(egui::vec2(1000.0, 850.0))
         .build_ui_state(
@@ -347,7 +353,7 @@ fn r_val_2a_q_manual_r_ui_11_q_manual__missing_prior_is_informational_and_never_
     let mut state = ManualReviewState::default();
     state.received(review, snapshot);
     let catalogue = Catalogue::english().unwrap();
-    let mut fonts = Some(support::fonts());
+    let mut fonts = Some(support::fonts().unwrap());
     let mut harness = Harness::builder()
         .with_size(egui::vec2(1000.0, 850.0))
         .build_ui_state(
@@ -400,7 +406,7 @@ fn r_ui_11_q_manual_r_ui_12_q_manual__drawn_stock_review_shows_bands_and_navigat
     let mut state = ManualReviewState::default();
     state.received(review, snapshot);
     let catalogue = Catalogue::english().unwrap();
-    let mut fonts = Some(support::fonts());
+    let mut fonts = Some(support::fonts().unwrap());
     let mut harness = Harness::builder()
         .with_size(egui::vec2(1100.0, 1400.0))
         .build_ui_state(
@@ -467,7 +473,7 @@ fn drawn_price_details_preserve_large_exact_decimals_and_signed_display_conventi
         ),
     ] {
         let context = egui::Context::default();
-        tallyline_ui::api::configure_fonts(&context, support::fonts());
+        tallyline_ui::api::configure_fonts(&context, support::fonts().unwrap());
         tallyline_egui::apply_theme(
             &context,
             tallyline_egui::Theme::Dark,
@@ -524,7 +530,7 @@ fn requested_value_confirmation_paints_the_theme_scrim_without_dispatching_appro
         ),
     ] {
         let context = egui::Context::default();
-        tallyline_ui::api::configure_fonts(&context, support::fonts());
+        tallyline_ui::api::configure_fonts(&context, support::fonts().unwrap());
         tallyline_egui::apply_theme(
             &context,
             theme,

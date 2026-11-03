@@ -11,6 +11,7 @@ mod state;
 mod catalogue;
 mod fan_kit;
 mod fonts;
+mod material_symbols_font;
 
 mod shell;
 

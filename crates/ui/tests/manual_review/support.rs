@@ -100,8 +100,13 @@ pub fn review_prices(
     ))
 }
 
-pub fn fonts() -> tallyline_ui::api::model::FontFiles {
-    tallyline_ui::api::model::FontFiles {
+pub fn fonts() -> Result<tallyline_ui::api::model::FontFiles, &'static str> {
+    Ok(tallyline_ui::api::model::FontFiles {
+        material_symbols: include_bytes!(
+            "../../assets/fonts/material-symbols/MaterialSymbolsRounded-Tallyline.ttf"
+        )
+        .to_vec()
+        .try_into()?,
         plex_regular: include_bytes!("../../assets/fonts/ibm-plex/IBMPlexSans-Regular.ttf")
             .to_vec(),
         plex_semibold: include_bytes!("../../assets/fonts/ibm-plex/IBMPlexSans-SemiBold.ttf")
@@ -113,7 +118,7 @@ pub fn fonts() -> tallyline_ui::api::model::FontFiles {
         .to_vec(),
         mono_bold: include_bytes!("../../assets/fonts/jetbrains-mono/JetBrainsMonoNL-Bold.ttf")
             .to_vec(),
-    }
+    })
 }
 
 pub fn without_prior() -> Result<(ManualReview, ReferenceSnapshot), Box<dyn std::error::Error>> {
@@ -171,7 +176,7 @@ pub fn harness(
 ) -> Result<egui_kittest::Harness<'static, tallyline_ui::api::ShellState>, Box<dyn std::error::Error>>
 {
     let catalogue = tallyline_ui::api::Catalogue::english()?;
-    let mut fonts = Some(fonts());
+    let mut fonts = Some(fonts()?);
     Ok(egui_kittest::Harness::builder()
         .with_size(egui::vec2(1200.0, 1900.0))
         .build_ui_state(

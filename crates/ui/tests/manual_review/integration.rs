@@ -32,7 +32,7 @@ fn r_ui_10_q_manual_r_ui_11_q_manual_r_ui_12_q_manual_r_ui_16__manual_editor_pas
         observed_at: Timestamp::from_seconds(1000),
     });
     let catalogue = Catalogue::english().unwrap();
-    let mut fonts = Some(support::fonts());
+    let mut fonts = Some(support::fonts().unwrap());
     let mut harness = Harness::builder()
         .with_size(egui::vec2(1200.0, 1900.0))
         .build_ui_state(

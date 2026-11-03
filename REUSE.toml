@@ -167,3 +167,9 @@ path = "branding/**"
 precedence = "override"
 SPDX-FileCopyrightText = "2026 Lucas Greuloch"
 SPDX-License-Identifier = "GPL-3.0-or-later"
+
+[[annotations]]
+path = "crates/ui/assets/fonts/material-symbols/**"
+precedence = "closest"
+SPDX-FileCopyrightText = "2026 Google LLC"
+SPDX-License-Identifier = "Apache-2.0"

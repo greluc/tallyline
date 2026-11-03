@@ -216,3 +216,7 @@ Database schema 9 and settings schema 6 supersede the earlier schema description
 The source-level VLM transcription contract can parse recorded Markdown answers and explicitly retry a token-limited answer once. It is not connected to desktop recognition: no model is selected, no screenshot is sent and no report field is replaced by this contract (R-VLM-5, R-VLM-10).
 
 The desktop uses approved IBM Plex Sans weights and explicit line heights for reference-browser headings, manual-review headings, required-decision text, action labels and existing widgets. Current exact price/SCU values use strong JetBrains Mono, confirmation values use large Mono, and reference/delta details use regular Mono. Prices and SCU comparisons show English digit grouping, positive delta signs, a minus sign and percentages without a separating space; values retain exact domain precision. Existing themes use small corners, strong field outlines and visible keyboard button focus. Full shell/table adoption and native display-scale acceptance remain in progress (R-UI-7, R-UI-10, R-UI-11, R-UI-17).
+
+## State icons
+
+The confidence and deviation states use the approved Material Symbols Rounded glyphs alongside their existing text. The separate icon font is checked against its approved identity before startup; a changed or incomplete file is refused. Its Apache licence and modification notice are included in **Open-source licences**. Magnified icon legibility and installed-app acceptance remain under review.

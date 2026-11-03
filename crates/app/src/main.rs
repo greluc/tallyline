@@ -185,6 +185,9 @@ fn font_files() -> std::io::Result<tallyline_ui::api::model::FontFiles> {
     };
     let read = |name: &str| std::fs::read(root.join(name));
     Ok(tallyline_ui::api::model::FontFiles {
+        material_symbols: read("material-symbols/MaterialSymbolsRounded-Tallyline.ttf")?
+            .try_into()
+            .map_err(std::io::Error::other)?,
         plex_regular: read("ibm-plex/IBMPlexSans-Regular.ttf")?,
         plex_semibold: read("ibm-plex/IBMPlexSans-SemiBold.ttf")?,
         plex_bold: read("ibm-plex/IBMPlexSans-Bold.ttf")?,

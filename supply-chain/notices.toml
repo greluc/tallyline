@@ -222,3 +222,14 @@ version = "Line export 2026-11-03"
 licence = "GPL-3.0-or-later"
 source = "https://github.com/tallyline-sc/tallyline/tree/main/branding"
 copyright = ["Copyright 2026 Lucas Greuloch"]
+
+[[component]]
+directory = "material-symbols"
+name = "Material Symbols Rounded Tallyline modified subset"
+shipped = "always"
+files = [{ repository = "crates/ui/assets/fonts/material-symbols/LICENSE" }, { repository = "crates/ui/assets/fonts/material-symbols/NOTICE" }]
+[component.catalogue]
+version = "Owner-approved 156-icon subset; metadata 2.975"
+licence = "Apache-2.0"
+source = "https://github.com/tallyline-sc/tallyline/blob/7304ffeb0a949d7238fd5f469489a088e26e0d25/NOTICE"
+copyright = ["Copyright 2026 Google LLC.  All Rights Reserved."]

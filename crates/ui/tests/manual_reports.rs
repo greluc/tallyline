@@ -81,7 +81,7 @@ fn r_man_3_r_ui_2__resumed_draft_keeps_empty_inputs_until_keyboard_entry_and_que
         observed_at: Timestamp::from_seconds(120),
     });
     let catalogue = Catalogue::english().unwrap();
-    let mut fonts = Some(font_files());
+    let mut fonts = Some(font_files().unwrap());
     let mut harness = Harness::builder()
         .with_size(egui::vec2(1200.0, 900.0))
         .build_ui_state(
@@ -132,8 +132,13 @@ fn r_man_3_r_ui_2__resumed_draft_keeps_empty_inputs_until_keyboard_entry_and_que
     ));
 }
 
-fn font_files() -> tallyline_ui::api::model::FontFiles {
-    tallyline_ui::api::model::FontFiles {
+fn font_files() -> Result<tallyline_ui::api::model::FontFiles, &'static str> {
+    Ok(tallyline_ui::api::model::FontFiles {
+        material_symbols: include_bytes!(
+            "../assets/fonts/material-symbols/MaterialSymbolsRounded-Tallyline.ttf"
+        )
+        .to_vec()
+        .try_into()?,
         plex_regular: include_bytes!("../assets/fonts/ibm-plex/IBMPlexSans-Regular.ttf").to_vec(),
         plex_semibold: include_bytes!("../assets/fonts/ibm-plex/IBMPlexSans-SemiBold.ttf").to_vec(),
         plex_bold: include_bytes!("../assets/fonts/ibm-plex/IBMPlexSans-Bold.ttf").to_vec(),
@@ -141,7 +146,7 @@ fn font_files() -> tallyline_ui::api::model::FontFiles {
             .to_vec(),
         mono_bold: include_bytes!("../assets/fonts/jetbrains-mono/JetBrainsMonoNL-Bold.ttf")
             .to_vec(),
-    }
+    })
 }
 
 #[test]
@@ -169,7 +174,7 @@ fn r_man_2_r_ui_16__repository_failures_render_actionable_passive_notices_withou
         selected: Some(report.id()),
     });
     let catalogue = Catalogue::english().unwrap();
-    let mut fonts = Some(font_files());
+    let mut fonts = Some(font_files().unwrap());
     let mut harness = Harness::builder()
         .with_size(egui::vec2(1200.0, 900.0))
         .build_ui_state(
@@ -258,7 +263,7 @@ fn r_man_1__all_ambiguous_terminal_results_remain_selectable_beyond_twelve_match
         observed_at: Timestamp::from_seconds(120),
     });
     let catalogue = Catalogue::english().unwrap();
-    let mut fonts = Some(font_files());
+    let mut fonts = Some(font_files().unwrap());
     let mut harness = Harness::builder()
         .with_size(egui::vec2(1200.0, 900.0))
         .build_ui_state(

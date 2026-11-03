@@ -5,3 +5,6 @@
 The unmodified upstream OFL texts retain their original line endings and
 trailing space. Their narrowly scoped Git whitespace attributes preserve
 these legal source bytes; application source formatting is unchanged.
+
+
+The fonts/material-symbols/ directory additionally holds the exact historically approved modified Material Symbols Rounded subset, its upstream Apache licence and explicit modification notice. This font is the O-112 exception to the unmodified text-font rule. Startup checks its fixed hash before registration; NOTICE §2.13 records its source and derivation limits.

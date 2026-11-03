@@ -13,6 +13,7 @@ mod style;
 mod type_style;
 mod widgets;
 
+pub mod symbols;
 pub mod tokens;
 
 pub use button_text::button_text;

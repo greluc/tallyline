@@ -123,6 +123,15 @@
         "project/branding/*",
         "project/LICENSE"
       ]
+    },
+    {
+      "name": "Material Symbols Rounded Tallyline modified subset",
+      "version": "Owner-approved 156-icon subset; metadata 2.975",
+      "licence": "Apache-2.0",
+      "source": "https://github.com/tallyline-sc/tallyline/blob/7304ffeb0a949d7238fd5f469489a088e26e0d25/NOTICE",
+      "patterns": [
+        "project/crates/ui/assets/fonts/material-symbols/*"
+      ]
     }
   ]
 }

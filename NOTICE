@@ -374,14 +374,34 @@ Source code
   immutable upstream sources and every TTF matches its previously recorded
   hash. The earlier adoption and source-comparison placeholders are closed.
 2.13 Icons
-  Source        the Tallyline state icons are drawn from egui primitives in
-                crates/egui/src/icon.rs; no third-party icon font
-                or font file is distributed.
-  Change        amended 2026-11-01: the previously planned modified
-                Material Symbols subset was not present in the repository or
-                available crate source. Its claimed font hash could not be
-                verified, so that binary is not included. The replacement
-                icons are newly implemented as Rust drawing code.
+  Set           Material Symbols Rounded, owner-delivered modified subset;
+                156 glyphs, FILL 1, wght 400, GRAD 0, opsz 48
+  Copyright     Copyright 2026 Google LLC.  All Rights Reserved.
+  Licence       Apache-2.0; exact upstream LICENSE ships beside the font.
+  Location      assets/fonts/material-symbols/ in the app image;
+                crates/ui/assets/fonts/material-symbols/ in the source tree
+  SHA-256       MaterialSymbolsRounded-Tallyline.ttf (30,960 bytes)
+                40c8c3a472c6978cedd5028194fa174b2c63edae4165f7686d88fbf174602234
+                LICENSE
+                58d1e17ffe5109a7ae296caafcadfdbe6a7d176f0bc4ab01e12a689b0499d8bd
+  Modification  The static subset maps codepoints to filled glyphs and removes
+                GSUB, as described by the supplied unexecuted generator.
+                The full modification notice and 156-name list ship in the
+                adjacent NOTICE. Generator/tool versions and reproducible
+                derivation remain unproved; this restoration changes no font
+                bytes and makes no glyph-geometry equivalence claim.
+  Source        Owner-delivered tallyline-egui.zip, SHA-256
+                787c87a0ac63b0a7a393a8fa8aadcc499026c778de3a2e0d1cef99ca6b66b90f;
+                exact font hash recorded in NOTICE of commit
+                7304ffeb0a949d7238fd5f469489a088e26e0d25 on 2026-10-12 and
+                approved by O-112. Upstream comparison and licence source:
+                google/material-design-icons commit
+                49d4db35df873165d6bd6ba09b063c7dafbac2f4 (version 2.975).
+  Corrected 2026-11-03: the original approved subset is available and its
+  historical hash matches. Its dedicated family replaces the recreated
+  primitive state drawings. The magnified egui icon review remains open.
+  Version 2.975 is not described as latest; the exact historical artefact is
+  restored under the existing O-112 approval.
   Amended 2026-10-12 (ADR-0005): replaces the line-icon set (Lucide under
   ISC, plus MIT for the icons derived from Feather) and the path-data
   extraction of the earlier plan.

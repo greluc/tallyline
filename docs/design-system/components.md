@@ -18,7 +18,7 @@ Corrected 2026-11-03: both archives are available as references; earlier absence
 - O-83/O-112 retain D1–D11, including concept (c), Line. The archive's unselected caption is stale. AppShell specifies no logo inside the application shell; native icon and external brand exports are delivered separately in [branding](../../branding/README.md).
 - Preserve the Fan Kit unit, exact notice bytes, placements, original files and pinning tests.
 - The five archive TTFs match existing approved hashes in NOTICE §2.12. Reuse the repository's unchanged font files and source-specific OFL texts; the differing archive JetBrains licence file is not adopted.
-- O-112 already approves the modified Material Symbols approach. The supplied binary still needs immutable upstream provenance, exact mapping checks, notices and packaging/rendering acceptance. No icon-font bytes are adopted here.
+- O-112 already approves the modified Material Symbols approach. Corrected 2026-11-03: the supplied binary matches its exact historical approved hash and is restored without rebuilding. Its upstream comparison, modification notice, exact name/codepoint checks and package pins are recorded in NOTICE §2.13. Reproducible derivation, geometry equivalence and native/magnified acceptance remain unproved.
 
 ## Delivered and remaining components
 
@@ -30,7 +30,7 @@ Corrected 2026-11-03: both archives are available as references; earlier absence
 | NumericField, ConfirmationControl | Exact current price/SCU values use strong Mono, confirmation values use large Mono, and references/deltas use regular Mono, English grouping, explicit positive delta signs, U+2212 and adjacent percent sign; precision and zero-reference handling retained | Remaining numerical displays and complete editable field |
 | AppShell, TopBar, StatusBar, Tabs, SettingsSection | Existing actions receive weighted labels | Persistent topbar/sidebar-or-rail/content/status shell and responsive navigation |
 | ReviewTable, TableRow, TableCell, SummaryHeader, DetailStrip, ScreenshotPane | Current manual review commands, focus and explicit confirmations retained | Fixed-height table, sticky summary/header, separate selection/gate slots, cell navigation/editing, readable crops and overlays |
-| Icon, AppIconConcepts, FanKitUnit, AboutDialog, OpenSourceLicencesView | Existing primitive state icons and legal placements retained | Material Symbols evidence and rendering, and full reference-screen composition; Line branding/native icons are delivered separately in [branding](../../branding/README.md) |
+| Icon, AppIconConcepts, FanKitUnit, AboutDialog, OpenSourceLicencesView | Exact approved 156-icon subset, dedicated hash-checked font family, all named codepoints and compatible nine state glyph consumers; legal placements retained | O-107 magnified rendering acceptance and full reference-screen composition; Line branding/native icons are delivered separately in [branding](../../branding/README.md) |
 | QueueRow, HistoryRow, StateChip, Banner and workflow components | Existing behaviour retained | Component-specific layouts/state matrices; no unfinished OCR/VLM capability is implied |
 
 Every component name below resolves to `tallyline-design-system/components/<name>/README.md` in the hash-bound archive. This inventory is a reference set, not evidence that these components exist in the app.
