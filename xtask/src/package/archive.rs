@@ -48,7 +48,12 @@ fn tar_stream(source: &Path, writer: impl Write, source_files: bool) -> io::Resu
         .mtime(0)
         .operating_system(3)
         .write(writer, flate2::Compression::default());
-    append(&mut gzip, source, "tallyline", source_files)?;
+    let mode: fn(&Path, &fs::Metadata) -> u32 = if source_files {
+        |_, _: &fs::Metadata| 0o644
+    } else {
+        file_mode
+    };
+    append(&mut gzip, source, "tallyline", mode)?;
     gzip.write_all(&[0; TAR_BLOCK * 2])?;
     gzip.finish()?;
     Ok(())
@@ -58,7 +63,7 @@ fn append(
     writer: &mut impl Write,
     source: &Path,
     name: &str,
-    source_files: bool,
+    mode: fn(&Path, &fs::Metadata) -> u32,
 ) -> io::Result<()> {
     let metadata = fs::symlink_metadata(source)?;
     if metadata.file_type().is_symlink() {
@@ -69,21 +74,12 @@ fn append(
     if metadata.is_dir() {
         writer.write_all(&header(&format!("{name}/"), DIRECTORY_MODE, 0, b'5')?)?;
         for (child, filename) in children(source)? {
-            append(
-                writer,
-                &child.path(),
-                &format!("{name}/{filename}"),
-                source_files,
-            )?;
+            append(writer, &child.path(), &format!("{name}/{filename}"), mode)?;
         }
     } else if metadata.is_file() {
         writer.write_all(&header(
             name,
-            if source_files {
-                0o644
-            } else {
-                file_mode(source, &metadata)
-            },
+            mode(source, &metadata),
             metadata.len(),
             b'0',
         )?)?;
@@ -114,12 +110,9 @@ fn file_mode(source: &Path, metadata: &fs::Metadata) -> u32 {
         if source
             .extension()
             .is_some_and(|extension| extension == "exe")
-            || source.file_name().is_some_and(|filename| {
-                matches!(
-                    filename.to_str(),
-                    Some("tallyline" | "libonnxruntime.so.1.31.0")
-                )
-            })
+            || source
+                .file_name()
+                .is_some_and(|filename| filename == "tallyline")
         {
             0o755
         } else {
@@ -332,7 +325,12 @@ pub(super) fn portable_name(name: &str) -> bool {
         && !reserved_device(name)
 }
 
-pub(super) fn tree_gzip(source: &Path, file: File, link: Option<(&str, &str)>) -> io::Result<()> {
+pub(super) fn tree_gzip(
+    source: &Path,
+    file: File,
+    link: Option<(&str, &str)>,
+    mode: fn(&Path, &fs::Metadata) -> u32,
+) -> io::Result<()> {
     if link.is_some_and(|pair| pair != ("usr/bin/tallyline", "../lib/tallyline/tallyline")) {
         return Err(io::Error::other("unapproved Debian archive link"));
     }
@@ -341,7 +339,7 @@ pub(super) fn tree_gzip(source: &Path, file: File, link: Option<(&str, &str)>) -
         .operating_system(3)
         .write(file, flate2::Compression::default());
     for (child, name) in children(source)? {
-        append(&mut gzip, &child.path(), &name, false)?;
+        append(&mut gzip, &child.path(), &name, mode)?;
     }
     if let Some((name, target)) = link {
         if source.join(name).try_exists()? {
