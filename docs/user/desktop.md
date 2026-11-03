@@ -224,3 +224,5 @@ The desktop uses approved IBM Plex Sans weights and explicit line heights for re
 ## State icons
 
 The confidence and deviation states use the approved Material Symbols Rounded glyphs alongside their existing text. The separate icon font is checked against its approved identity before startup; a changed or incomplete file is refused. Its Apache licence and modification notice are included in **Open-source licences**. Magnified icon legibility and installed-app acceptance remain under review.
+
+Manual price/SCU and stock-tolerance inputs use right-aligned JetBrains Mono values with muted aUEC/SCU, SCU or % suffixes. Their accessible names include the unit. Reference values stay beside empty manual inputs until explicitly taken over. Manual values still commit on leaving a field; tolerance settings still require **Save SCU tolerance**. Whole input groups wrap within narrow views. Native display-scale and text-size acceptance remains pending.

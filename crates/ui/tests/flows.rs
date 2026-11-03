@@ -431,19 +431,21 @@ fn r_nf_7_r_ui_16__daily_setting_waits_for_save_and_disabled_results_remain_hidd
 )]
 fn r_nf_5_r_val_2_q_manual__drawn_stock_settings_reject_loose_input_and_save_explicit_valid_choice()
 -> Outcome {
+    use egui_kittest::kittest::NodeT;
     let mut harness = harness()?;
     harness.state_mut().shell.show_settings();
     harness.run();
     harness.get_by_label("SCU review tolerance").click();
     harness.run();
     harness
-        .get_by_role_and_label(egui::Role::TextInput, "SCU percentage (0 to 20)")
+        .get_by_role_and_label(egui::Role::TextInput, "SCU percentage (0 to 20) (%)")
         .focus();
     harness.run();
     harness
-        .get_by_role_and_label(egui::Role::TextInput, "SCU percentage (0 to 20)")
+        .get_by_role_and_label(egui::Role::TextInput, "SCU percentage (0 to 20) (%)")
         .type_text("5000");
     harness.run();
+    assert!(harness.state().commands.is_empty());
     harness.get_by_label("Save SCU tolerance").click();
     harness.run();
     assert!(harness.query_by_label("Enter a whole percentage from 0 to 20 and an exact SCU minimum from 0 to 16. Looser or invalid values are not applied.").is_some());
@@ -454,6 +456,7 @@ fn r_nf_5_r_val_2_q_manual__drawn_stock_settings_reject_loose_input_and_save_exp
         .shell
         .receive(BackgroundEvent::SettingsLoaded(AppSettings::default()));
     harness.run();
+    assert!(harness.state().commands.is_empty());
     harness.get_by_label("Save SCU tolerance").click();
     harness.run();
     assert_eq!(
@@ -461,6 +464,18 @@ fn r_nf_5_r_val_2_q_manual__drawn_stock_settings_reject_loose_input_and_save_exp
         vec![SettingsCommand::ChangeStockSettings(Default::default())]
     );
     assert!(harness.state().shell.busy());
+    harness.run();
+    for label in [
+        "SCU percentage (0 to 20) (%)",
+        "Absolute SCU minimum (0 to 16) (SCU)",
+    ] {
+        assert!(
+            harness
+                .get_by_role_and_label(egui::Role::TextInput, label)
+                .accesskit_node()
+                .is_disabled()
+        );
+    }
     Ok(())
 }
 

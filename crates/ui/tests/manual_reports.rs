@@ -3,7 +3,10 @@
 
 //! Keyboard-driven manual Report entry contracts.
 
-use egui_kittest::{Harness, kittest::Queryable};
+use egui_kittest::{
+    Harness,
+    kittest::{NodeT, Queryable},
+};
 use tallyline_game::api::model::GameEnvironment;
 use tallyline_reporting::api::model::{Report, ReportId, ReportKey};
 use tallyline_shared_kernel::api::model::{CommodityId, TerminalId, Timestamp, TradeSide};
@@ -38,9 +41,10 @@ fn r_man_3_r_ui_2__resumed_draft_keeps_empty_inputs_until_keyboard_entry_and_que
         ) -> Result<Vec<tallyline_reference_data::api::model::CachedReference>, Self::Error>
         {
             use tallyline_reference_data::api::model::{
-                CachedReference, Commodity, CommodityAverages, EndpointData,
+                CachedReference, Commodity, CommodityAverages, EndpointData, PricePrior,
+                PriorProvenance, PriorValues, TerminalPriors,
             };
-            Ok(vec![CachedReference::new(
+            let mut data = vec![CachedReference::new(
                 Timestamp::from_seconds(100),
                 EndpointData::Commodities(vec![
                     Commodity::new(
@@ -58,7 +62,34 @@ fn r_man_3_r_ui_2__resumed_draft_keeps_empty_inputs_until_keyboard_entry_and_que
                         CommodityAverages::new(None, None),
                     ),
                 ]),
-            )])
+            )];
+            data.push(CachedReference::new(
+                Timestamp::from_seconds(100),
+                EndpointData::TerminalPriors(
+                    TerminalPriors::new(
+                        TerminalId(11),
+                        vec![
+                            PricePrior::new(
+                                CommodityId(42),
+                                TradeSide::Buy,
+                                PriorValues {
+                                    price: "999.875".parse().unwrap(),
+                                    stock: "77.5".parse().unwrap(),
+                                    status: std::num::NonZeroU8::new(3),
+                                    container_sizes: vec![],
+                                },
+                                PriorProvenance {
+                                    game_version: "4.10.2".to_owned(),
+                                    modified_at: Timestamp::from_seconds(100),
+                                },
+                            )
+                            .unwrap(),
+                        ],
+                    )
+                    .unwrap(),
+                ),
+            ));
+            Ok(data)
         }
         fn replace(
             &mut self,
@@ -114,22 +145,95 @@ fn r_man_3_r_ui_2__resumed_draft_keeps_empty_inputs_until_keyboard_entry_and_que
     );
     assert!(harness.state_mut().manual_mut().take_command().is_none());
     harness
-        .get_by_role_and_label(egui::Role::TextInput, "Price per SCU for commodity 42")
+        .get_by_label("Take over UEX values explicitly")
+        .click();
+    harness.run();
+    assert!(matches!(
+        harness.state_mut().manual_mut().take_command(),
+        Some(ManualCommand::Edit {
+            edit: tallyline_reporting::api::ManualEdit::TakeOver(_),
+            ..
+        })
+    ));
+    harness.state_mut().receive(BackgroundEvent::ReportFailed(
+        tallyline_reporting::api::RepositoryError::Unavailable,
+    ));
+    harness.run();
+    for label in [
+        "Price per SCU for commodity 42 (aUEC/SCU)",
+        "SCU for commodity 42 (SCU)",
+    ] {
+        assert_eq!(
+            harness
+                .get_by_role_and_label(egui::Role::TextInput, label)
+                .accesskit_node()
+                .value()
+                .as_deref(),
+            Some("")
+        );
+    }
+    harness
+        .get_by_role_and_label(
+            egui::Role::TextInput,
+            "Price per SCU for commodity 42 (aUEC/SCU)",
+        )
         .focus();
     harness.run();
     harness
-        .get_by_role_and_label(egui::Role::TextInput, "Price per SCU for commodity 42")
-        .type_text("123.45");
+        .get_by_role_and_label(
+            egui::Role::TextInput,
+            "Price per SCU for commodity 42 (aUEC/SCU)",
+        )
+        .type_text("12345678901234567890.125");
     harness.run();
+    assert!(harness.state_mut().manual_mut().take_command().is_none());
     harness.key_press(egui::Key::Tab);
     harness.run();
     assert!(matches!(
         harness.state_mut().manual_mut().take_command(),
         Some(ManualCommand::Edit {
-            edit: tallyline_reporting::api::ManualEdit::Price(_, Some(_)),
+            edit: tallyline_reporting::api::ManualEdit::Price(_, Some(price)),
             ..
-        })
+        }) if price.to_string() == "12345678901234567890.125"
     ));
+    harness.run();
+    assert!(
+        harness
+            .get_by_role_and_label(
+                egui::Role::TextInput,
+                "Price per SCU for commodity 42 (aUEC/SCU)"
+            )
+            .accesskit_node()
+            .is_disabled()
+    );
+    harness.state_mut().receive(BackgroundEvent::ReportFailed(
+        tallyline_reporting::api::RepositoryError::Unavailable,
+    ));
+    harness.run();
+    harness
+        .get_by_role_and_label(
+            egui::Role::TextInput,
+            "Price per SCU for commodity 42 (aUEC/SCU)",
+        )
+        .focus();
+    harness.run();
+    harness.key_press_modifiers(egui::Modifiers::CTRL, egui::Key::A);
+    harness.run();
+    harness
+        .get_by_role_and_label(
+            egui::Role::TextInput,
+            "Price per SCU for commodity 42 (aUEC/SCU)",
+        )
+        .type_text("-");
+    harness.run();
+    harness.key_press(egui::Key::Tab);
+    harness.run();
+    assert!(harness.state_mut().manual_mut().take_command().is_none());
+    assert!(
+        harness
+            .query_by_label("Enter a valid non-negative number; a traded price must be positive.")
+            .is_some()
+    );
 }
 
 fn font_files() -> Result<tallyline_ui::api::model::FontFiles, &'static str> {
@@ -286,3 +390,6 @@ fn r_man_1__all_ambiguous_terminal_results_remain_selectable_beyond_twelve_match
             .is_some()
     );
 }
+
+#[path = "manual_reports/numeric_fields.rs"]
+mod numeric_fields;

@@ -39,22 +39,25 @@ pub(crate) fn show(
     let editor = &mut state.stock_settings_editor;
     let candidate = ui
         .add_enabled_ui(enabled, |ui| {
-            for (key, salt, value) in [
+            for (key, salt, unit, value) in [
                 (
                     "settings.stock_percent",
                     "settings-stock-percent",
+                    tallyline_egui::NumericUnit::Percent,
                     &mut editor.percent,
                 ),
                 (
                     "settings.stock_minimum",
                     "settings-stock-minimum",
+                    tallyline_egui::NumericUnit::Scu,
                     &mut editor.minimum,
                 ),
             ] {
-                ui.label(catalogue.text(key));
-                let response = ui.add(egui::TextEdit::singleline(value).id_salt(salt));
-                response.widget_info(|| {
-                    egui::WidgetInfo::labeled(egui::Role::TextInput, enabled, catalogue.text(key))
+                let response = ui.add(tallyline_egui::NumericField {
+                    id_salt: salt,
+                    label: catalogue.text(key),
+                    value,
+                    unit,
                 });
                 crate::control_focus::reveal(ui, &response);
             }

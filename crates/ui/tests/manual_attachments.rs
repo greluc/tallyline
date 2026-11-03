@@ -258,11 +258,17 @@ fn r_man_5_r_sub_7_q_manual_r_ui_16__passive_other_draft_commit_preserves_unfini
         );
     harness.run();
     harness
-        .get_by_role_and_label(egui::Role::TextInput, "Price per SCU for commodity 42")
+        .get_by_role_and_label(
+            egui::Role::TextInput,
+            "Price per SCU for commodity 42 (aUEC/SCU)",
+        )
         .focus();
     harness.run();
     harness
-        .get_by_role_and_label(egui::Role::TextInput, "Price per SCU for commodity 42")
+        .get_by_role_and_label(
+            egui::Role::TextInput,
+            "Price per SCU for commodity 42 (aUEC/SCU)",
+        )
         .type_text("123.45");
     harness.run();
     first

@@ -155,9 +155,10 @@ pub(crate) fn show(
                 ui.label(catalogue.text("manual.no_reference"));
             }
             ui.horizontal_wrapped(|ui| {
-                if field(
+                if numeric_field(
                     ui,
                     &mut row.price,
+                    tallyline_egui::NumericUnit::AuecPerScu,
                     format!("{} {}", catalogue.text("manual.price_for"), row.commodity.0),
                 ) {
                     match optional(&row.price) {
@@ -165,9 +166,10 @@ pub(crate) fn show(
                         Err(()) => invalid = true,
                     }
                 }
-                if field(
+                if numeric_field(
                     ui,
                     &mut row.stock,
+                    tallyline_egui::NumericUnit::Scu,
                     format!("{} {}", catalogue.text("manual.scu_for"), row.commodity.0),
                 ) {
                     match optional(&row.stock) {
@@ -242,6 +244,21 @@ fn field(ui: &mut egui::Ui, input: &mut String, label: String) -> bool {
         },
     )
     .inner
+}
+fn numeric_field(
+    ui: &mut egui::Ui,
+    input: &mut String,
+    unit: tallyline_egui::NumericUnit,
+    label: String,
+) -> bool {
+    let response = ui.add(tallyline_egui::NumericField {
+        id_salt: &label,
+        label: &label,
+        value: input,
+        unit,
+    });
+    crate::control_focus::reveal(ui, &response);
+    response.lost_focus()
 }
 fn optional<T: std::str::FromStr>(text: &str) -> Result<Option<T>, ()> {
     if text.trim().is_empty() {

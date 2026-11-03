@@ -390,11 +390,11 @@ fn r_val_7_q_manual_r_ui_16__invalid_uncommitted_optional_input_delays_passive_r
         });
     harness.run();
     harness
-        .get_by_role_and_label(egui::Role::TextInput, "SCU for commodity 42")
+        .get_by_role_and_label(egui::Role::TextInput, "SCU for commodity 42 (SCU)")
         .focus();
     harness.run();
     harness
-        .get_by_role_and_label(egui::Role::TextInput, "SCU for commodity 42")
+        .get_by_role_and_label(egui::Role::TextInput, "SCU for commodity 42 (SCU)")
         .type_text("invalid");
     harness.run();
     let keyboard = harness.ctx.memory(|memory| memory.focused());

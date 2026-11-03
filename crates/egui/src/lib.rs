@@ -8,6 +8,7 @@
 mod button_text;
 mod font_face;
 mod icon;
+mod numeric_field;
 mod semantic_tone;
 mod style;
 mod type_style;
@@ -19,6 +20,7 @@ pub mod tokens;
 pub use button_text::button_text;
 pub use font_face::FontFace;
 pub use icon::{Icon, IconGlyph};
+pub use numeric_field::{NumericField, NumericUnit};
 pub use semantic_tone::SemanticTone;
 pub use style::{Density, Motion, Theme, apply_theme};
 pub use type_style::TypeStyle;

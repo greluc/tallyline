@@ -65,7 +65,7 @@ State indicators use the approved Material Symbols Rounded glyphs alongside thei
 
 The [branding folder](branding/README.md) contains ready-to-use GitHub avatars, social previews, outlined SVG wordmarks and app icons. Use the avatar for the organisation and the 1280 × 640 social preview for repository sharing. Logo colours are fixed within each exported variant.
 
-Reference-browser headings, manual review/confirmation, action labels and existing widgets use semantic typography with explicit line heights; exact review values use Mono. The [design adoption reference](docs/design-system/components.md) tracks the supplied archives, accepted decisions and implementation coverage. The desktop shell provides a persistent top bar, responsive navigation, scrollable pages and bottom status while retaining setup, account and update actions. Review-table composition and rendered native acceptance remain in progress.
+Reference-browser headings, manual review/confirmation, action labels and existing widgets use semantic typography with explicit line heights; exact review values use Mono. Manual price/SCU and stock-tolerance inputs use right-aligned exact-string Mono numerals, muted aUEC/SCU, SCU and % unit suffixes and accessible names including their units. The [design adoption reference](docs/design-system/components.md) tracks the supplied archives, accepted decisions and implementation coverage. The desktop shell provides a persistent top bar, responsive navigation, scrollable pages and bottom status while retaining setup, account and update actions. Review-table composition and rendered native acceptance remain in progress.
 
 <details>
 <summary>Implementation details and acceptance boundaries</summary>
