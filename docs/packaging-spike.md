@@ -1,6 +1,6 @@
 # Offline prebuilt packaging spike
 
-> **Doc type:** Living reference — in progress. Last reviewed: 2026-11-03.
+> **Doc type:** Living reference — in progress. Last reviewed: 2026-11-04.
 
 Issue #97 covers R-NF-2:installers, R-DOC-3, R-DOC-4, R-SEC-8 and R-NF-4. This new branch starts from the public M1–M5 integration, preserves Rust 1.99.0 and imports no held toolchain/dependency/native records. The owner-selected MSI direction is [ADR-0011](adr/0011-source-compiled-wix-packaging.md). Earlier Rust 1.99.1 packaging experiments are historical research; their outputs are not current package evidence.
 
@@ -73,6 +73,8 @@ Package source-verify PAYLOAD ARCHIVE checks the map against the real compressed
 Package inject STAGE SEAL FIXTURE and package verify-injected STAGE SEAL FIXTURE verify immutable helper, tool, payload and source-map bindings before fixture access. Insertion creates only payload/tallyline-app-token and scans for exact bare and wide bytes outside that path. The harmless fixture must fit the current application's ASCII-graphic, 1–1024-byte token envelope; this is not a verified claim about the real UEX token format. A bad seal is rejected before attempting to open even a missing fixture. These commands do not implement or prove MSI/Debian assembly.
 
 The normal cargo xtask check now checks canonical Cargo.lock, NOTICE and supply-chain/notices.toml against the compiled legal source bindings before quality build/test work. Package source-bindings SOURCE-ROOT exposes that same bounded data-only check. A graph-neutral lockfile comment still invalidates the exact source binding. Rebinding requires regeneration and independent comparison of both target catalogue bytes; unchanged graphs alone do not justify retaining their hashes.
+
+Corrected 2026-11-04: the offline OCR evaluator's direct internal recognition/shared-kernel dependencies require fresh lockfile and evaluator-manifest bindings. Both target catalogues were regenerated with the public notices generator from current Cargo shipped graphs and vendor sources matching the committed hash inventory, then independently compared byte for byte with the retained catalogues. The 219-component Windows and 273-component Linux catalogues are unchanged. This source-only rebind does not establish application launch, installer or release acceptance.
 
 Corrected 2026-11-02: fresh schema-seven Windows PE and Linux ELF application builds are retained without launching either app. Their earlier source bases are recorded in external receipts; the pending final combined source/helper/app/legal freeze must rebuild or independently establish applicable unchanged inputs after integration. Neither those builds nor source-scope contracts complete #97, installed acceptance or #98 publication.
 

@@ -2673,6 +2673,8 @@ dependencies = [
  "serde_json",
  "sha2",
  "tallyline-adapter-files",
+ "tallyline-recognition",
+ "tallyline-shared-kernel",
 ]
 
 [[package]]

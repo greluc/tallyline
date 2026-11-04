@@ -10,6 +10,8 @@ publish.workspace = true
 [dependencies]
 serde_json.workspace = true
 sha2.workspace = true
+tallyline-recognition.workspace = true
+tallyline-shared-kernel.workspace = true
 
 [lints]
 workspace = true

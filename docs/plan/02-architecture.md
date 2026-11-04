@@ -127,7 +127,7 @@ workflows      → capture, recognition, reporting, submission, reference-data, 
 ui             → workflows + public application API of the context modules
 adapter-*      → the context modules whose ports they implement   (adapters are leaves)
 app            → all                                  (wires; contains no logic)
-tools/ocr-eval → recognition, reference-data, adapter-ocr, adapter-vlm, adapter-files, adapter-uex   (a second composition root – the only other module allowed to depend on adapters; adapter-uex only replays the corpus' recorded reference data, never HTTP, 07 §4)
+tools/ocr-eval → shared-kernel, recognition, reference-data, adapter-ocr, adapter-vlm, adapter-files, adapter-uex   (a second composition root – the only other module allowed to depend on adapters; adapter-uex only replays the corpus' recorded reference data, never HTTP, 07 §4)
 ```
 
 - Each context crate has exactly two public modules: `api` (application services, commands, read models, events, ports as traits) and `api::model` (aggregates and value objects that ports and other contexts must name, e.g. `Report` for `ReportRepository`). Domain services, policies and helpers stay in `pub(crate)` modules. (An earlier version hid the whole model in `internal`; then adapters could not implement repository ports – they cannot name non-exported types.)
@@ -178,6 +178,8 @@ Safety thresholds can only be made stricter (R-NF-5): the send threshold, the di
 - Use cases are **testable without egui, network and database**, using fakes of the ports.
 - A technology change (OCR model, secret store, UI) affects exactly one adapter.
 - The disadvantages (more crates, explicit translation between contexts, more expensive re-cuts, shared-kernel growth) and their handling are documented in ADR-0002.
+
+Corrected 2026-11-04: the offline `ocr-eval` composition root declares direct internal dependencies on `recognition` and `shared-kernel` for forthcoming typed supplied-panel preparation. This wiring introduces no command or geometry behaviour, registry package, version, feature or native-code scope; the existing file adapter remains responsible for decoding and private output.
 
 Crate names (O-122, decided 2026-10-13): every workspace member's package name is the directory name above with the prefix `tallyline-` (`tallyline-game`, `tallyline-adapter-uex`, …), so that no workspace crate can be mistaken for a registry crate of the same name; the directories under `crates/` carry no prefix. The binary is `tallyline`. `xtask` and `tools/ocr-eval` keep their names.
 

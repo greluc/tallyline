@@ -183,6 +183,7 @@ fn allowed_edges(name: &str) -> Option<BTreeSet<&'static str>> {
             "tallyline-adapter-platform",
         ],
         "ocr-eval" => &[
+            "tallyline-shared-kernel",
             "tallyline-recognition",
             "tallyline-reference-data",
             "tallyline-adapter-ocr",
@@ -265,6 +266,27 @@ mod tests {
             }
             _ => String::new(),
         }
+    }
+
+    #[test]
+    fn eval_composes_shared_values_without_allowing_reverse_core_dependencies() {
+        let mut metadata = serde_json::json!({
+            "workspace_members": ["eval", "kernel"],
+            "packages": [
+                {"id": "eval", "name": "ocr-eval", "dependencies": [
+                    {"name": "tallyline-shared-kernel", "kind": null}
+                ]},
+                {"id": "kernel", "name": "tallyline-shared-kernel", "dependencies": []}
+            ]
+        });
+        assert!(violations(&metadata.to_string()).is_empty());
+        metadata["packages"][1]["dependencies"] = serde_json::json!([
+            {"name": "ocr-eval", "kind": null}
+        ]);
+        assert!(violations(&metadata.to_string()).iter().any(|item| {
+            item.0
+                .contains("tallyline-shared-kernel has dependency outside the context map")
+        }));
     }
 
     #[test]
