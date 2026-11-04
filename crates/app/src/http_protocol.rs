@@ -8,6 +8,9 @@ use tallyline_adapter_uex::api::{ReadError, UexReader};
 use tallyline_reference_data::api::ReferenceDataFetcher;
 use tallyline_reference_data::api::model::{Endpoint, EndpointData, TerminalPriors};
 use tallyline_shared_kernel::api::model::TerminalId;
+use tallyline_submission::api::SubmissionUnknownReceiptVerifier;
+use tallyline_submission::api::model::SubmissionJob;
+use tallyline_submission::api::model::VerifiedUexReport;
 use tallyline_submission::api::model::{
     CredentialFailure, CredentialValues, SubmissionResult, ValidatedAccount,
 };
@@ -40,6 +43,15 @@ pub trait HttpBackend: Send + Sync {
         values: CredentialValues,
         release_token: Option<String>,
     ) -> impl Future<Output = Option<Vec<tallyline_submission::api::model::VerifiedUexReport>>> + Send;
+    /// Reads positive unknown-origin identities independently of the submission permit.
+    fn verify_unknown_receipts(
+        &self,
+        _job: SubmissionJob,
+        _values: CredentialValues,
+        _release_token: Option<String>,
+    ) -> impl Future<Output = Option<Vec<VerifiedUexReport>>> + Send {
+        async { None }
+    }
     /// Repeats only a held refusal's read-only receipt safety check.
     fn recheck_refusal(
         &self,
@@ -82,6 +94,20 @@ impl HttpBackend for UexReader {
         SubmissionReceiptVerifier::verify_receipts(self, &job, &values, release_token.as_deref())
             .await
     }
+    async fn verify_unknown_receipts(
+        &self,
+        job: SubmissionJob,
+        values: CredentialValues,
+        release_token: Option<String>,
+    ) -> Option<Vec<VerifiedUexReport>> {
+        SubmissionUnknownReceiptVerifier::verify_unknown_receipts(
+            self,
+            &job,
+            &values,
+            release_token.as_deref(),
+        )
+        .await
+    }
     async fn recheck_refusal(
         &self,
         job: tallyline_submission::api::model::SubmissionJob,
@@ -102,6 +128,12 @@ impl HttpBackend for UexReader {
 }
 
 pub(crate) enum Command {
+    VerifyUnknownReceipts(
+        SubmissionJob,
+        CredentialValues,
+        Option<String>,
+        Sender<Option<Vec<VerifiedUexReport>>>,
+    ),
     RecheckRefusal(
         tallyline_submission::api::model::SubmissionJob,
         CredentialValues,

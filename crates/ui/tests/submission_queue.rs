@@ -604,3 +604,6 @@ fn safe_code_presentation() -> Result<(), Box<dyn std::error::Error>> {
     }
     Ok(())
 }
+
+#[path = "submission_queue/unknown_resolution.rs"]
+mod unknown_resolution;

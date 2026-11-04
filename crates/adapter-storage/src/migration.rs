@@ -225,3 +225,8 @@ pub(crate) fn schema_ten(connection: &Connection) -> Result<(), StorageError> {
     connection.pragma_update(None, "user_version", 10)?;
     Ok(())
 }
+
+pub(crate) fn schema_eleven(connection: &Connection) -> Result<(), StorageError> {
+    connection.pragma_update(None, "user_version", 11)?;
+    Ok(())
+}

@@ -9,6 +9,7 @@ use std::sync::mpsc::{Receiver, SyncSender, TrySendError};
 use tallyline_shared_kernel::api::model::Timestamp;
 use tallyline_submission::api::CredentialApplication;
 use tallyline_submission::api::model::{AccountState, ReleaseToken};
+use tallyline_ui::api::model::UnknownQueueAction;
 use tallyline_ui::api::model::{
     BackgroundEvent, SubmissionControl, SubmissionFeedback, SubmissionIntent, SubmissionUpdate,
 };
@@ -67,6 +68,7 @@ impl SubmissionQueueBridge {
         &mut self,
         command: SubmissionControl,
         application: &CredentialApplication,
+        token: Option<&ReleaseToken>,
     ) -> Result<bool, SubmissionControlError> {
         if let SubmissionControl::Release {
             id,
@@ -94,7 +96,7 @@ impl SubmissionQueueBridge {
             self.release_pending = Some(command);
             Ok(false)
         } else {
-            self.command(command, application).map(|()| true)
+            self.command(command, application, token).map(|()| true)
         }
     }
     fn finish_release(
@@ -121,7 +123,7 @@ impl SubmissionQueueBridge {
                     .release_pending
                     .take()
                     .ok_or(SubmissionControlError::Invalid)?;
-                self.command(command, application).map(|()| true)
+                self.command(command, application, None).map(|()| true)
             }
             Err(error) => {
                 self.release_pending = None;
@@ -188,8 +190,26 @@ impl SubmissionQueueBridge {
         &mut self,
         command: SubmissionControl,
         application: &CredentialApplication,
+        token: Option<&ReleaseToken>,
     ) -> Result<(), SubmissionControlError> {
         match command {
+            SubmissionControl::Unknown {
+                id,
+                expected,
+                action,
+            } => match action {
+                UnknownQueueAction::Decide(decision) => self
+                    .controller
+                    .decide_unknown(id, expected, decision)
+                    .map(|_| ()),
+                UnknownQueueAction::CheckReceipt => {
+                    self.controller
+                        .check_unknown(id, expected, application, token)
+                }
+                UnknownQueueAction::DuplicateAsDraft => {
+                    self.controller.duplicate_unknown(id, expected).map(|_| ())
+                }
+            },
             SubmissionControl::Release {
                 id,
                 expected,
@@ -270,7 +290,7 @@ impl CredentialQueue for SubmissionQueueBridge {
             && let Ok(command) = self.incoming.try_recv()
         {
             changed = true;
-            match self.begin_command(command, application) {
+            match self.begin_command(command, application, token) {
                 Ok(done) => completed = done,
                 Err(error) => {
                     completed = true;

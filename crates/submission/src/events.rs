@@ -3,6 +3,7 @@
 
 //! Submission commands and durable outcome envelopes.
 
+use crate::api::model::UnknownResolutionAction;
 use crate::api::model::{JobPhase, PayloadHash, QueueRefusal, SubmissionJob, SubmissionResult};
 use tallyline_shared_kernel::api::model::{EventId, EventSource, ReportId, Timestamp};
 
@@ -41,6 +42,8 @@ pub enum SubmissionCommand {
         /// The confirmed refusal or partial-acceptance outcome.
         result: SubmissionResult,
     },
+    /// Records explicit evidence without replaying an uncertain attempt.
+    ResolveUnknown(UnknownResolutionAction),
     /// Records the result of exactly one dispatched attempt.
     Complete {
         /// The closed adapter result.
@@ -131,6 +134,7 @@ impl SubmissionJob {
     pub fn apply(&self, command: SubmissionCommand) -> Result<SubmissionChange, QueueRefusal> {
         let account_check = matches!(&command, SubmissionCommand::ResolveAccountCheck(_));
         let state = match command {
+            SubmissionCommand::ResolveUnknown(action) => self.resolve_unknown(action)?,
             SubmissionCommand::ResolveAccountCheck(reason) => self.resolve_account_check(reason)?,
             SubmissionCommand::Begin {
                 at,

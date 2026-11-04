@@ -492,3 +492,5 @@ mod newer_observation;
 pub use newer_observation::{
     NewerObservationApproval, NewerObservationEvidence, StoredNewerObservationApproval,
 };
+
+mod duplicate_as_draft;

@@ -4,11 +4,17 @@
 //! Exact-row observation ordering independent of global dispatch scheduling.
 
 use crate::api::model::{JobId, JobPhase, SubmissionJob, SubmissionRequest};
+use crate::duplicate_evidence::SubmissionEvidence;
 use tallyline_shared_kernel::api::model::{RowId, Timestamp};
 
 /// A row's unresolved ordering decision before release or sending.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum ObservationOrderBlock {
+    /// Positive original receipt evidence closes release of this explicit duplicate.
+    ResolvedDuplicateOrigin {
+        /// The original uncertain submission with positive evidence.
+        submission: JobId,
+    },
     /// An exact-row decision against this newer accepted observation is missing.
     NeedsConfirmation {
         /// The older candidate's local row identity.
@@ -39,6 +45,11 @@ impl ObservationOrder {
         history: &[SubmissionJob],
     ) -> Vec<ObservationOrderBlock> {
         let header = request.header();
+        if let Some(submission) =
+            SubmissionEvidence::resolved_duplicate_origin(header.report, history)
+        {
+            return vec![ObservationOrderBlock::ResolvedDuplicateOrigin { submission }];
+        }
         let mut blocks = Vec::new();
         for row in request.rows() {
             let mut accepted = None;

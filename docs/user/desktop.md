@@ -246,3 +246,11 @@ Account refusal and receipt uncertainty may be shown together. Retry now can ack
 A pending read-only account check is shown explicitly. It must complete before Retry now becomes available. A successful or unavailable check keeps the queue paused; the check itself never sends or retries a Report.
 
 Corrected 2026-11-04: an unavailable read-only account check can later succeed or require re-authentication without making the saved queue unreadable after restart. Receipt checks and explicit queue acknowledgement retain their separate safeguards. A permanently rejected captured game version requires a new capture; the safe technical code remains visible.
+
+## Resolve an unknown submission
+
+An interrupted or uncertain send remains in the queue with its original attempt history. Expand **Inspect original attempt** to see the fixed target, side, game version, entered row values, actual attempted observation date and recorded times. **Check UEX evidence** performs a bounded read-only check for the original validated account. Verified IDs are shown with their returned dates; missing evidence leaves the outcome unresolved. A later duplicate response is evidence, not proof.
+
+Choose **Mark received** only as your explicit statement: the Report becomes Submitted, while the original uncertain attempt and your decision remain visible. This creates no remote IDs or withdrawal permission. **Mark not received** retains OutcomeUnknown. It enables the separate **Duplicate as new Draft** action, which creates one new Report with the original observation time, game version and entered values. Review it fully, renew any attachment preview and working copy, and release it through the normal checks. The original cannot be resent or edited. Later positive evidence can still be attached to the original, including after duplication. If it proves received rows, the separate duplicate cannot be released or dispatched; inspect the original history. Cooldowns and independent queue holds remain in force.
+
+Schema 11 requires the coordinated database/settings backup on upgrade; settings stay at schema 6. Withdrawal, detailed failed-row correction, selective cooldown splitting and daily-quota reset scheduling retain their separate acceptance gates.

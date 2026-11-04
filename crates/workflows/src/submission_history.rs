@@ -33,6 +33,9 @@ pub fn assess_release_observation_history(
     let mut findings = ObservationOrder::assess(&request, history)
         .into_iter()
         .map(|block| match block {
+            ObservationOrderBlock::ResolvedDuplicateOrigin { submission } => {
+                ObservationHistoryFinding::ResolvedDuplicateOrigin { submission }
+            }
             ObservationOrderBlock::NeedsConfirmation { row, observed_at } => {
                 ObservationHistoryFinding::NewerAccepted { row, observed_at }
             }
@@ -112,6 +115,11 @@ pub fn confirm_older_observation(
     let mut matched = false;
     for finding in ObservationOrder::assess(&unconfirmed, history) {
         match finding {
+            ObservationOrderBlock::ResolvedDuplicateOrigin { submission } => {
+                return Err(ManualReleaseError::Blocked(vec![
+                    ReleaseBlockReason::ResolvedDuplicateOrigin { submission },
+                ]));
+            }
             ObservationOrderBlock::NeedsConfirmation {
                 row: candidate,
                 observed_at,

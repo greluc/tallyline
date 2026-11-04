@@ -500,3 +500,43 @@ impl Report {
         self.lifecycle.age_confirmation = None;
     }
 }
+
+impl Report {
+    /// Applies explicit receipt resolution for the exact immutable owning job.
+    ///
+    /// # Errors
+    /// Refuses another job, ordinary delivery events and conflicting final outcomes.
+    pub fn resolve_unknown(
+        &self,
+        job: SubmissionJobId,
+        delivery: ReportDelivery,
+    ) -> Result<ReportChange, InvalidReport> {
+        if self.release_binding().and_then(ReportReleaseBinding::job) != Some(job) {
+            return Err(InvalidReport);
+        }
+        let state = match delivery {
+            ReportDelivery::FullAcceptance => ReportState::Submitted,
+            ReportDelivery::PartialAcceptance => ReportState::PartiallyAccepted,
+            ReportDelivery::Unknown
+            | ReportDelivery::Rejected
+            | ReportDelivery::Return(_)
+            | ReportDelivery::Cooldown(_) => return Err(InvalidReport),
+        };
+        if self.state() == state {
+            return ReportChange::new(self.version, self.clone(), None);
+        }
+        if !matches!(
+            self.state(),
+            ReportState::OutcomeUnknown | ReportState::PartiallyAccepted
+        ) {
+            return Err(InvalidReport);
+        }
+        let mut next = self.advanced()?;
+        next.lifecycle.state = state;
+        ReportChange::new(
+            self.version,
+            next,
+            (state == ReportState::Submitted).then_some(ReportEventKind::Submitted),
+        )
+    }
+}

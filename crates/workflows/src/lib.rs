@@ -26,3 +26,5 @@ mod receipt_enrichment;
 mod manual_dispatch;
 
 mod event_outbox;
+
+mod unknown_draft;

@@ -3,6 +3,7 @@
 
 //! Reference cache contracts against real temporary SQLite files.
 
+use rusqlite::Connection;
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicU64, Ordering};
 use tallyline_adapter_storage::api::SqliteReferenceCache;
@@ -89,15 +90,15 @@ fn r_nf_11__future_database_is_refused_without_modifying_its_bytes() {
     let path = directory.0.join("future.db");
     {
         let database = rusqlite::Connection::open(&path).unwrap();
-        database.pragma_update(None, "user_version", 11).unwrap();
+        database.pragma_update(None, "user_version", 12).unwrap();
     }
     let before = std::fs::read(&path).unwrap();
     assert!(matches!(
         SqliteReferenceCache::open(&path),
         Err(
             tallyline_adapter_storage::api::StorageError::UnsupportedSchema {
-                found: 11,
-                supported: 10
+                found: 12,
+                supported: 11
             }
         )
     ));
@@ -250,7 +251,7 @@ fn r_nf_11__sqlite_backup_includes_uncheckpointed_wal_and_a_restore_marker() {
     let taken_at = Timestamp::from_millis(123_456_789);
     assert_eq!(
         cache.backup_into(&destination, taken_at, Some(3)).unwrap(),
-        10
+        11
     );
     let mut backup = SqliteReferenceCache::open(&destination).unwrap();
     assert_eq!(backup.load().unwrap(), vec![entry.clone()]);
@@ -258,7 +259,7 @@ fn r_nf_11__sqlite_backup_includes_uncheckpointed_wal_and_a_restore_marker() {
         backup.backup_metadata().unwrap(),
         Some(BackupMetadata {
             taken_at,
-            from_schema: 10,
+            from_schema: 11,
             configuration_schema: Some(3)
         })
     );
@@ -474,7 +475,7 @@ fn r_nf_11_r_api_6__schema_one_requires_backup_and_drops_ambiguous_legacy_averag
                 Some(4)
             )
             .unwrap(),
-        10
+        11
     );
     drop(migrated);
     assert!(SqliteReferenceCache::open(&path).is_ok());
@@ -599,67 +600,100 @@ fn r_api_5__prior_cache_refuses_a_terminal_key_that_disagrees_with_its_record() 
     non_snake_case,
     reason = "Requirement tags use a double underscore separator."
 )]
-fn r_nf_11_r_sub_11__recovery_format_uses_schema_ten_and_backs_up_schema_nine_before_migration() {
+fn r_nf_11_r_sub_11__recovery_format_backs_up_source_bound_schema_nine_before_migration() {
     let legacy = TestDirectory::new().unwrap();
     legacy_recovery_fixture::verify(&legacy.0).unwrap();
-    let directory = TestDirectory::new().unwrap();
-    let path = directory.0.join("recovery.db");
-    let entry = CachedReference::new(
-        Timestamp::from_seconds(1234),
-        EndpointData::Commodities(vec![]),
-    );
-    let mut cache = SqliteReferenceCache::open(&path).unwrap();
-    cache.replace(&entry).unwrap();
-    drop(cache);
-    let connection = rusqlite::Connection::open(&path).unwrap();
-    let current: u32 = connection
-        .pragma_query_value(None, "user_version", |row| row.get(0))
-        .unwrap();
-    assert_eq!(current, 10);
-    connection
-        .execute_batch("DROP TABLE submission_service_fences;")
-        .unwrap();
-    connection.pragma_update(None, "user_version", 9).unwrap();
-    drop(connection);
-    let before = std::fs::read(&path).unwrap();
-    assert!(matches!(
-        SqliteReferenceCache::open(&path),
-        Err(tallyline_adapter_storage::api::StorageError::MigrationBackupRequired)
-    ));
-    assert_eq!(std::fs::read(&path).unwrap(), before);
-    let backup = directory.0.join("backup.db");
-    let mut migrated = SqliteReferenceCache::open_with_migration_backup(&path, |cache, schema| {
-        assert_eq!(schema, 9);
-        assert_eq!(
-            cache.backup_into(&backup, Timestamp::from_seconds(1500), Some(6))?,
-            9
-        );
-        Ok(())
-    })
-    .unwrap();
-    assert_eq!(migrated.load().unwrap(), vec![entry]);
-    drop(migrated);
-    let connection = rusqlite::Connection::open(&path).unwrap();
-    assert_eq!(
-        connection
-            .pragma_query_value(None, "user_version", |row| row.get::<_, u32>(0))
-            .unwrap(),
-        10
-    );
-    let backup = rusqlite::Connection::open(&backup).unwrap();
-    assert_eq!(
-        backup
-            .pragma_query_value(None, "user_version", |row| row.get::<_, u32>(0))
-            .unwrap(),
-        9
-    );
-    assert_eq!(
-        backup
-            .pragma_query_value(None, "integrity_check", |row| row.get::<_, String>(0))
-            .unwrap(),
-        "ok"
-    );
 }
 
 #[path = "support/legacy_recovery_fixture.rs"]
 mod legacy_recovery_fixture;
+
+#[test]
+#[expect(
+    non_snake_case,
+    reason = "Requirement tags use a double underscore separator."
+)]
+fn r_nf_11_r_sub_9__unknown_resolution_format_requires_schema_eleven() {
+    let directory = TestDirectory::new().unwrap();
+    let path = directory.0.join("resolution.db");
+    drop(SqliteReferenceCache::open(&path).unwrap());
+    let database = Connection::open(&path).unwrap();
+    let version: u32 = database
+        .pragma_query_value(None, "user_version", |row| row.get(0))
+        .unwrap();
+    assert_eq!(
+        version, 11,
+        "unknown-resolution history must have an explicit older-reader format gate"
+    );
+}
+
+#[path = "support/schema_ten_reader.rs"]
+mod schema_ten_reader;
+
+#[test]
+#[expect(
+    non_snake_case,
+    reason = "Requirement tags use a double underscore separator."
+)]
+fn r_nf_11_r_sub_9__schema_ten_requires_exact_backup_and_its_reader_refuses_resolution_format() {
+    use tallyline_adapter_storage::api::StorageError;
+    let directory = TestDirectory::new().unwrap();
+    let path = directory.0.join("schema-ten.db");
+    let backup = directory.0.join("schema-ten-backup.db");
+    let connection = rusqlite::Connection::open(&path).unwrap();
+    connection
+        .execute_batch(include_str!("fixtures/schema-nine.sql"))
+        .unwrap();
+    connection
+        .execute_batch(include_str!("fixtures/schema-ten-extension.sql"))
+        .unwrap();
+    drop(connection);
+    schema_ten_reader::open(&path).unwrap();
+    let original = std::fs::read(&path).unwrap();
+    assert!(matches!(
+        SqliteReferenceCache::open(&path),
+        Err(StorageError::MigrationBackupRequired)
+    ));
+    assert_eq!(std::fs::read(&path).unwrap(), original);
+    assert!(
+        SqliteReferenceCache::open_with_migration_backup(&path, |_, _| Err(
+            StorageError::InvalidBackup
+        ))
+        .is_err()
+    );
+    assert_eq!(std::fs::read(&path).unwrap(), original);
+    let cache = SqliteReferenceCache::open_with_migration_backup(&path, |cache, schema| {
+        assert_eq!(schema, 10);
+        assert_eq!(
+            cache.backup_into(&backup, Timestamp::from_seconds(1500), Some(6))?,
+            10
+        );
+        Ok(())
+    })
+    .unwrap();
+    drop(cache);
+    assert!(matches!(
+        schema_ten_reader::open(&path),
+        Err(StorageError::UnsupportedSchema {
+            found: 11,
+            supported: 10
+        })
+    ));
+    let migrated = Connection::open(&path).unwrap();
+    assert_eq!(
+        migrated
+            .pragma_query_value(None, "user_version", |row| row.get::<_, u32>(0))
+            .unwrap(),
+        11
+    );
+    let backed_up = Connection::open(&backup).unwrap();
+    assert_eq!(
+        backed_up
+            .pragma_query_value(None, "user_version", |row| row.get::<_, u32>(0))
+            .unwrap(),
+        10
+    );
+    drop(backed_up);
+    drop(migrated);
+    drop(SqliteReferenceCache::open(&path).unwrap());
+}

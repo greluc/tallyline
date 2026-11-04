@@ -88,7 +88,7 @@ impl ReceiptEnrichment {
                 .and_then(PendingReceiptVerification::poll_result)
             {
                 Some(ReceiptLookupOutcome::Verified(mapping)) => {
-                    work.mapping = Some(mapping);
+                    work.mapping = Some(*mapping);
                     work.pending = None;
                 }
                 Some(ReceiptLookupOutcome::Unavailable) => {

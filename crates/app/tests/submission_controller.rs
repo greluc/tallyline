@@ -2205,3 +2205,6 @@ mod repeated_account;
 
 #[path = "submission_controller/permanent_refusal.rs"]
 mod permanent_refusal;
+
+#[path = "submission_controller/unknown_resolution.rs"]
+mod unknown_resolution;

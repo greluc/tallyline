@@ -4,6 +4,8 @@ All notable changes are recorded here.
 
 ## [Unreleased]
 
+- Resolve unknown submissions through explicit received/not-received decisions or verified read-only evidence while keeping the original uncertain attempt. A separate new-Draft action preserves the original observation and values for complete review; schema 11 requires the coordinated upgrade backup (R-SUB-9, R-UI-1:reports, R-SUB-4).
+
 - Record the 2026-11-04 owner verification of all seven existing public corpus transcriptions. Values, clipped-card boundaries and images are unchanged; historical experiments retain their original verification state and hashes, and recognition accuracy remains unmeasured (R-QA-1, R-QA-3).
 
 - Save manual field commits together with explicit takeover, Add commodity and context changes so one interaction cannot lose another row's input. Preserve unrelated invalid text and bind save results to their exact request across Draft selection and retries; a refused batch saves nothing (R-MAN-2, R-MAN-3, R-UI-16).

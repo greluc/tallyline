@@ -3,6 +3,7 @@
 
 //! Complete manual release checks tied to real numeric review and exact context.
 
+use crate::api::model::ObservationHistoryFinding;
 use crate::api::model::{
     AttachmentBinding, AttachmentTime, ImageHash, ManualReview, NumericBlock, Report,
     ReportReleaseBinding, ReportState,
@@ -10,6 +11,7 @@ use crate::api::model::{
 use crate::api::{ManualReviewer, RepositoryError};
 use tallyline_game::api::model::GameEnvironment;
 use tallyline_reference_data::api::model::ReferenceSnapshot;
+use tallyline_shared_kernel::api::model::SubmissionJobId;
 use tallyline_shared_kernel::api::model::{
     AgeValidity, ObservationAgeSettings, RowId, SubmissionMode, Timestamp, TradeSide,
     UexEnvironment,
@@ -85,6 +87,11 @@ impl ReleaseContext {
 /// An actionable reason preventing manual release.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum ReleaseBlockReason {
+    /// Positive original receipt evidence prevents releasing this existing duplicate.
+    ResolvedDuplicateOrigin {
+        /// The original uncertain submission with positive evidence.
+        submission: SubmissionJobId,
+    },
     /// The gate belongs to another exact Report snapshot.
     StaleReview,
     /// The Report phase cannot perform this command.
@@ -270,6 +277,9 @@ impl SubmissionGate {
             {
                 for finding in history.findings() {
                     blocks.push(match *finding {
+                        ObservationHistoryFinding::ResolvedDuplicateOrigin { submission } => {
+                            ReleaseBlockReason::ResolvedDuplicateOrigin { submission }
+                        }
                         crate::api::model::ObservationHistoryFinding::NewerAccepted {
                             row,
                             observed_at,

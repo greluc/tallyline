@@ -3,6 +3,7 @@
 
 //! Private typed proxies whose HTTP work belongs to one long-lived driver.
 
+use crate::api::model::HttpAdmissionFailure;
 use crate::http_protocol::Command;
 use tallyline_adapter_uex::api::ReadError;
 use tallyline_adapter_uex::api::model::{PreparedUexSubmission, ServerTimeTracker};
@@ -17,6 +18,8 @@ use tallyline_submission::api::model::{
     JobPhase, SubmissionAccountCheck, SubmissionJob, SubmissionPauseReason, VerifiedUexReport,
 };
 use tallyline_submission::api::{CredentialValidator, SubmissionGateway};
+use tokio::sync::mpsc::error::TrySendError;
+use tokio::sync::oneshot::Receiver;
 use tokio::sync::{mpsc, oneshot};
 
 /// A bounded private handle without secret, body or query diagnostics.
@@ -243,6 +246,30 @@ impl HttpClient {
             .map_err(|error| match error {
                 mpsc::error::TrySendError::Full(_) => HttpAdmissionFailure::Busy,
                 mpsc::error::TrySendError::Closed(_) => HttpAdmissionFailure::Stopped,
+            })?;
+        Ok(result)
+    }
+}
+
+impl HttpClient {
+    pub(crate) fn begin_unknown_receipt_verification(
+        &self,
+        job: &SubmissionJob,
+        values: &CredentialValues,
+        release_token: Option<&str>,
+    ) -> Result<Receiver<Option<Vec<VerifiedUexReport>>>, HttpAdmissionFailure> {
+        use crate::api::model::HttpAdmissionFailure;
+        let (reply, result) = oneshot::channel();
+        self.requests
+            .try_send(Command::VerifyUnknownReceipts(
+                job.clone(),
+                values.clone(),
+                release_token.map(str::to_owned),
+                reply,
+            ))
+            .map_err(|error| match error {
+                TrySendError::Full(_) => HttpAdmissionFailure::Busy,
+                TrySendError::Closed(_) => HttpAdmissionFailure::Stopped,
             })?;
         Ok(result)
     }

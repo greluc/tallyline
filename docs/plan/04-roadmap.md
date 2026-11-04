@@ -1,6 +1,6 @@
 # Roadmap
 
-> **Doc type:** Living plan — active. Last reviewed: 2026-11-03.
+> **Doc type:** Living plan — active. Last reviewed: 2026-11-04.
 
 Corrected 2026-11-04: the owner marked all seven existing public corpus entries verified; see [current corpus status](../../corpus/README.md#offline-inspection). Earlier checkpoint verification states and inspection results below remain historical; this decision supplies no missing metadata, frozen reference snapshot, class coverage or recognition accuracy measurement.
 
@@ -282,3 +282,7 @@ Issue #86 now composes durable manual release, fixed account/mode, actual pre-re
 The `recognition` and `adapter-vlm` source crates provide the pure shared number parser, typed raw fields, versioned Markdown answer parser and injected-answer retry contract ([02](02-architecture.md#versioned-transcription-source-contract--2026-11-03)). This checkpoint does not complete M5: actual redacted-crop requests, layout matching, fusion, report preservation, queue/lifecycle, runtime/model selection, native and installed-profile acceptance remain open. A parser contract is not an evaluated-model result and never establishes confidence.
 
 Corrected 2026-11-03 (issue #87): the manual recovery slice now covers typed actionable classes for R-SUB-6/R-SUB-11, bounded proven-unprocessed retry and exact attempt history for R-SUB-2, and receipt-check/unknown safety for R-SUB-9 through the existing R-API-3/R-API-7 transport. Local HTTP, real SQLite and drawn UI contracts distinguish connect refusal from received timeout/504, preserve whole-queue pauses and explicit retry, and refuse ambiguous negative receipt evidence. Schema 10/config 6 retain coordinated backups. This does not complete the M1 boxes or whole R-SUB-9/R-SUB-11 coverage: unknown/partial row resolution (#88/#89), daily-quota reset scheduling (#90), native/provider acceptance, an approved real-service dry run and valid complete mutation evidence retain their gates.
+
+## M1 unknown resolution source checkpoint — 2026-11-04
+
+Corrected 2026-11-04 (issue #88): R-SUB-9, R-UI-1 `:reports` and R-SUB-4 now have explicit received/not-received history, positive read-only exact-wire receipt association, resolved Report projections and the required narrow separate new-Draft action. Schema 11/config 6 retain coordinated migration backups and older-reader refusal. Interrupted attempts remain unknown and permanently closed to replay, with conservative provisional cooldowns across restart. Local decisions do not grant IDs, priors, withdrawal or account/fence authority. [The queue record](../submission-queue.md) documents source contracts and limits. M1 remains open: #89 row dispositions, #90 selective cooldown/quota/split policy, #92 lifecycle/general duplication, canonical/mutation evidence and native/provider/approved real-service acceptance retain their own gates.

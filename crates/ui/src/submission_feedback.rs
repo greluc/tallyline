@@ -68,6 +68,7 @@ fn block_key(block: ReleaseBlockReason) -> &'static str {
         ReleaseBlockReason::EnvironmentUnconfirmed => "release.environment",
         ReleaseBlockReason::ObservationHistoryUnavailable => "release.history",
         ReleaseBlockReason::NewerObservationSent { .. } => "release.newer",
+        ReleaseBlockReason::ResolvedDuplicateOrigin { .. } => "release.resolved_duplicate_origin",
         ReleaseBlockReason::UnresolvedNewerObservation { .. } => "release.unknown_newer",
         ReleaseBlockReason::StaleObservationDecision(_) => "release.changed",
     }

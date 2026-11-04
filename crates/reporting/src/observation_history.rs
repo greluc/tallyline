@@ -11,6 +11,11 @@ use tallyline_shared_kernel::api::model::{
 /// A durable-history finding that independently prevents release.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum ObservationHistoryFinding {
+    /// Positive origin evidence prevents release of its existing explicit duplicate.
+    ResolvedDuplicateOrigin {
+        /// The original uncertain submission with positive evidence.
+        submission: SubmissionJobId,
+    },
     /// This exact older row lacks a decision against the newest accepted observation.
     NewerAccepted {
         /// Candidate local row.

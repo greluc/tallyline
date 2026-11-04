@@ -3,8 +3,9 @@
 
 //! Duplicate evidence bound to an earlier uncertain same-account row key.
 
+use crate::api::model::UnknownResolutionAction;
 use crate::api::model::{JobId, JobPhase, SubmissionJob};
-use tallyline_shared_kernel::api::model::Timestamp;
+use tallyline_shared_kernel::api::model::{ReportId, Timestamp};
 
 const EVIDENCE_MILLIS: u128 = 2 * 5 * 60 * 1000;
 
@@ -43,5 +44,17 @@ impl SubmissionEvidence {
             })
             .max()
             .map(|(_, id)| id)
+    }
+}
+
+impl SubmissionEvidence {
+    /// Finds positive origin evidence that closes release of its already created duplicate.
+    #[must_use]
+    pub fn resolved_duplicate_origin(report: ReportId, history: &[SubmissionJob]) -> Option<JobId> {
+        history.iter().find(|job| {
+            job.unknown_receipts().next().is_some() && job.unknown_actions().iter().any(|action| {
+                matches!(action, UnknownResolutionAction::Duplicated { report: duplicate, .. } if *duplicate == report)
+            })
+        }).map(SubmissionJob::id)
     }
 }

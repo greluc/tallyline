@@ -5,10 +5,13 @@
 
 pub mod model;
 
+use model::SubmissionJob;
+use model::VerifiedUexReport;
 use model::{
     AccountState, CredentialCandidate, CredentialFailure, CredentialValues, Persistence,
     SavedCredentials, StorageFailure, ValidatedAccount,
 };
+use std::future::Future;
 use tallyline_shared_kernel::api::model::Timestamp;
 
 /// Performs read-only account and selected-token validation.
@@ -317,3 +320,14 @@ pub trait SubmissionReceiptVerifier {
 pub use crate::duplicate_evidence::SubmissionEvidence;
 pub use crate::observation_order::ObservationOrder;
 pub use crate::service_fence::SubmissionServiceFenceRepository;
+
+/// Reads positive identities for an uncertain production attempt without inferring non-receipt.
+pub trait SubmissionUnknownReceiptVerifier {
+    /// Returns positively matched rows; empty or unavailable windows establish no negative proof.
+    fn verify_unknown_receipts(
+        &self,
+        job: &SubmissionJob,
+        credentials: &CredentialValues,
+        release_token: Option<&str>,
+    ) -> impl Future<Output = Option<Vec<VerifiedUexReport>>> + Send;
+}

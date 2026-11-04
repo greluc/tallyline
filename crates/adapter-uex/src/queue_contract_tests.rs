@@ -1573,3 +1573,6 @@ async fn early_account_answer() -> Result<(), Box<dyn std::error::Error>> {
     server.verify().await;
     Ok(())
 }
+
+#[path = "queue_contract_tests/unknown_receipts.rs"]
+mod unknown_receipts;

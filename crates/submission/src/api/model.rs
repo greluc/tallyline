@@ -304,3 +304,5 @@ pub use crate::uex_error_code::UexErrorCode;
 
 pub use crate::submission_account_evidence::{SubmissionAccountCheck, SubmissionAccountEvidence};
 pub use crate::submission_rejection::{SubmissionCorrection, SubmissionRejection};
+
+pub use crate::unknown_resolution::{UnknownDecision, UnknownResolutionAction};

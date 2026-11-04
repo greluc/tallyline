@@ -1,6 +1,6 @@
 # Domain-Driven Design and Test-Driven Development
 
-> **Doc type:** Living spec — binding. Last reviewed: 2026-11-03.
+> **Doc type:** Living spec — binding. Last reviewed: 2026-11-04.
 
 Corrected 2026-11-04: the owner marked all seven existing public corpus entries verified; see [current corpus status](../../corpus/README.md#offline-inspection). Earlier checkpoint verification states and inspection results below remain historical; this decision supplies no missing metadata, frozen reference snapshot, class coverage or recognition accuracy measurement.
 
@@ -354,3 +354,9 @@ SubmissionRetrySettings defaults to three automatic attempts, 5/10-second expone
 Corrected 2026-11-03: account refusal contracts separate the global account cause from the existing Held/partial/unknown receipt result. Public controller contracts use a fake HTTP owner with real SQLite; separate local HTTP contracts verify the gateway's actual response translation. The pending GET/explicit acknowledgement race has a failing regression before identity-bound rebinding. The schema-nine fixture is synthetic, source-bound and populated independently of the current writer; it does not claim an old binary run. Scope and remaining gates are explicit in [the queue reference](../submission-queue.md#recovery-scope-and-compatibility-evidence).
 
 Account durability 2026-11-03: the real local HTTP regression holds the receipt GET pending and requires the account answer to return before that GET starts. The public controller/fake-HTTP contract independently holds account/receipt reads pending and reopens real SQLite to observe the already committed cause and fence; injected initial-save failure starts no read. Typed account-check completion remains separate from receipt_checked and requires explicit subsequent user action before any eligible retry.
+
+## Unknown resolution implementation checkpoint — 2026-11-04
+
+Corrected 2026-11-04: the source slice of R-SUB-9/R-UI-1:reports/R-SUB-4 implements A3's explicit OutcomeUnknown resolution. An original SubmissionJob keeps its immutable unknown phase/result/attempt while typed dated user decisions, positive exact-snapshot row proofs and a separate new-Draft link retain their provenance. Reporting's explicit owning-job operation permits Submitted/PartiallyAccepted; ordinary delivery events retain their terminal-state refusal. A not-received statement retains OutcomeUnknown, and only its separate atomic copying action creates one unreviewed Draft with fresh identity and original observation/version/values. It never changes the original into editable or dispatchable work.
+
+Positive-only `data_info` evidence and a user statement are distinct facts. Neither absence in a read window nor later duplicate evidence proves non-receipt. No statement fabricates remote IDs, priors, withdrawal eligibility, account authority or a cleared fence. Later positive evidence remains attributable after a decision or duplication. Overlapping windows retain unique consistent row proofs, and an asynchronous completion must match the complete originating immutable snapshot. Schema 11 validates/replays the action history independently of preserved account-check actions; settings stay at schema 6. Public context/workflow, real SQLite, local HTTP and drawn keyboard/paint contracts cover this slice. Full canonical/mutation/native/real-service gates and the separate #89/#90/#92 behaviour remain open; no milestone completion is claimed.

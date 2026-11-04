@@ -258,15 +258,17 @@ impl ShellState {
                 if update.completed {
                     self.submission.busy = false;
                     self.manual.busy = false;
-                    if let Some((id, expected)) = self.submission.cancel.take()
-                        && update.feedback.is_some()
-                    {
-                        let failure = match &update.feedback {
+                    if let Some((id, expected)) = self.submission.cancel.take() {
+                        if update.feedback.is_some() {
+                            let failure = match &update.feedback {
                             Some(crate::api::model::SubmissionFeedback::Refused(reason)) => tallyline_submission::api::model::SubmissionApplicationError::Refused(*reason),
                             Some(crate::api::model::SubmissionFeedback::Changed) => tallyline_submission::api::model::SubmissionApplicationError::Repository(tallyline_submission::api::model::SubmissionRepositoryError::Conflict),
                             Some(crate::api::model::SubmissionFeedback::Blocked(_) | crate::api::model::SubmissionFeedback::Held(_) | crate::api::model::SubmissionFeedback::Returned(_) | crate::api::model::SubmissionFeedback::Unavailable | crate::api::model::SubmissionFeedback::AttachmentUnavailable) | None => tallyline_submission::api::model::SubmissionApplicationError::Repository(tallyline_submission::api::model::SubmissionRepositoryError::Unavailable),
                         };
-                        self.submission.queue.failed(id, expected, failure);
+                            self.submission.queue.failed(id, expected, failure);
+                        } else {
+                            self.submission.queue.completed(id, expected);
+                        }
                     }
                 }
                 if update.completed || update.feedback.is_some() {

@@ -95,6 +95,12 @@ pub(crate) fn load_report(
     connection: &Connection,
     id: ReportId,
 ) -> Result<Report, SubmissionRepositoryError> {
+    load_report_optional(connection, id)?.ok_or(SubmissionRepositoryError::Invalid)
+}
+pub(crate) fn load_report_optional(
+    connection: &Connection,
+    id: ReportId,
+) -> Result<Option<Report>, SubmissionRepositoryError> {
     let record: Option<(i64, String, String)> = connection
         .query_row(
             "SELECT version,phase,payload FROM reports WHERE id=?1",
@@ -103,12 +109,14 @@ pub(crate) fn load_report(
         )
         .optional()
         .map_err(unavailable)?;
-    let (version, phase, payload) = record.ok_or(SubmissionRepositoryError::Invalid)?;
+    let Some((version, phase, payload)) = record else {
+        return Ok(None);
+    };
     let report = crate::reports::decode(id, unsigned(version)?, &payload).map_err(invalid)?;
     if crate::report_lifecycle::phase_name(report.state()) != phase {
         return Err(SubmissionRepositoryError::Invalid);
     }
-    Ok(report)
+    Ok(Some(report))
 }
 pub(crate) fn save_report(
     connection: &Connection,

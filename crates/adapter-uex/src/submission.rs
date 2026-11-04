@@ -258,7 +258,7 @@ impl SubmissionReceiptVerifier for UexReader {
             }
             Some(receipts)
         };
-        tokio::time::timeout(std::time::Duration::from_secs(30), verification)
+        tokio::time::timeout(crate::receipt_window::TIMEOUT, verification)
             .await
             .ok()
             .flatten()

@@ -1,6 +1,6 @@
 # UEX API 2.0 – working notes
 
-> **Doc type:** Living spec — binding. Last reviewed: 2026-11-02.
+> **Doc type:** Living spec — binding. Last reviewed: 2026-11-04.
 
 > **Sources.** Corrected 2026-10-09: the earlier notes were written without access to the official documentation and rested on search snippets, third-party copies and open-source clients ([3P]). On 2026-10-09 the official documentation and the live API were checked. Tags:
 >
@@ -325,3 +325,7 @@ The adapter maps only an actual rejected response with the exact documented `scr
 Corrected 2026-11-03: O-142 was decided on 2026-11-01; the historical open-point-30 wording above is superseded by its recorded choice. The manual gateway uses the documented before-storage list and retains row/error metadata without positional receipt mapping. Unlisted production refusals keep the data_info safety check; full, malformed or unavailable lookup windows cannot prove absence. A later read-only check never adds another POST attempt. Local-mock timeout and HTTP-504 contracts each receive exactly one POST and remain OutcomeUnknown; these are fault contracts, not live UEX observations. No new service field or error-code observation is claimed. Daily-quota reset parsing/scheduling and detailed row resolution retain their owning gates.
 
 Client recovery handling 2026-11-03 (R-SUB-6, R-SUB-9, R-SUB-11): unlisted bounded ASCII alphanumeric/underscore/hyphen identifiers retain exact case. Account refusal provenance remains independent of receipt certainty; unsafe echoed codes are absent while HTTP401/403 still retain typed account action. These are synthetic local contract cases, not new live UEX field/code observations. See [recovery scope](../submission-queue.md#recovery-scope-and-compatibility-evidence).
+
+## Client use of existing data-info evidence — 2026-11-04
+
+Corrected 2026-11-04: an explicit unknown-origin check reuses the documented bounded account/terminal/type-filtered `data_info` GET, limit 100 and the existing terminal/commodity/ID/returned-date association against the exact attempted wire date. This is client policy over the already verified fields, not a new live-service observation or independent verification of returned prices/statuses. There is no new ordering, paging, time filter or tolerance assumption. Only positive non-conflicting matches supply unknown-resolution evidence; absence in any window never proves an unknown POST unprocessed. The existing refusal safety path retains its separate documented complete-short-window negative-presence policy. No real-service mutation was performed for this slice.

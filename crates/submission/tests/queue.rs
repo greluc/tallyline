@@ -1136,3 +1136,49 @@ fn r_val_8_r_sub_2__release_observation_order_is_independent_of_other_inflight_w
         );
     }
 }
+
+#[test]
+#[expect(
+    non_snake_case,
+    reason = "Requirement tags use a double underscore separator."
+)]
+fn r_sub_9__received_decision_retains_unknown_attempt_without_replay_authority() {
+    use tallyline_submission::api::model::{
+        JobId, JobPhase, PayloadHash, SubmissionCommand, SubmissionJob, SubmissionResult,
+        UnknownDecision, UnknownResolutionAction,
+    };
+    let mut production = header();
+    production.mode = SubmissionMode::Production;
+    let request = SubmissionRequest::new(production, vec![row().unwrap()]).unwrap();
+    let unknown = SubmissionJob::queued(JobId(88), request)
+        .unwrap()
+        .begin(Timestamp::from_seconds(110), PayloadHash::new([8; 32]))
+        .unwrap()
+        .complete(SubmissionResult::Unknown, Timestamp::from_seconds(120))
+        .unwrap();
+    let resolved = unknown.apply(SubmissionCommand::ResolveUnknown(
+        UnknownResolutionAction::Decision {
+            decision: UnknownDecision::Received,
+            at: Timestamp::from_seconds(130),
+        },
+    ));
+    assert!(
+        resolved.is_ok(),
+        "a user can record received without fabricating remote acceptance: {resolved:?}"
+    );
+    let resolved = resolved.unwrap().into_state();
+    assert_eq!(resolved.phase(), JobPhase::OutcomeUnknown);
+    assert_eq!(resolved.attempts(), unknown.attempts());
+    assert_eq!(resolved.result(), Some(&SubmissionResult::Unknown));
+    assert_eq!(resolved.revision(), unknown.revision() + 1);
+    assert!(resolved.retry().is_err());
+    assert!(resolved.cancel().is_err());
+    assert!(
+        resolved
+            .begin(Timestamp::from_seconds(140), PayloadHash::new([9; 32]))
+            .is_err()
+    );
+}
+
+#[path = "queue/unknown_resolution.rs"]
+mod unknown_resolution;

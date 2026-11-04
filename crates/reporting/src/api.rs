@@ -67,3 +67,12 @@ pub use crate::application::{ManualEdit, ReportingApplication};
 pub use crate::attachment::AttachmentEdit;
 
 pub use crate::manual_reviewer::ManualReviewer;
+
+/// Reads retained Reports, including immutable delivery history.
+pub trait ReportHistoryRepository {
+    /// Loads a retained Report without requiring it to remain editable.
+    ///
+    /// # Errors
+    /// Refuses unavailable storage and invalid persisted state.
+    fn retained_report(&mut self, id: ReportId) -> Result<Option<Report>, RepositoryError>;
+}

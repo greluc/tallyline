@@ -20,7 +20,7 @@ pub enum HttpAdmissionFailure {
 /// A completed optional lookup, still requiring persistence before UI publication.
 pub enum ReceiptLookupOutcome {
     /// Every accepted identity has an exact released-row proof.
-    Verified(VerifiedReceiptMapping),
+    Verified(Box<VerifiedReceiptMapping>),
     /// The read failed, stopped or could not establish a complete consistent mapping.
     Unavailable,
 }
@@ -53,7 +53,7 @@ impl PendingReceiptVerification {
             match receipts
                 .and_then(|receipts| VerifiedReceiptMapping::new(&self.accepted, receipts).ok())
             {
-                Some(mapping) => ReceiptLookupOutcome::Verified(mapping),
+                Some(mapping) => ReceiptLookupOutcome::Verified(Box::new(mapping)),
                 None => ReceiptLookupOutcome::Unavailable,
             },
         )

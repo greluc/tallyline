@@ -58,3 +58,5 @@ mod uex_error_code;
 
 mod submission_account_evidence;
 mod submission_rejection;
+
+mod unknown_resolution;

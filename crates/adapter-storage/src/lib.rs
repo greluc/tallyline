@@ -37,3 +37,9 @@ mod event_outbox;
 mod reference_consistency;
 
 mod queue_account_evidence;
+
+mod unknown_resolution_document;
+
+mod unknown_draft;
+
+mod report_history;

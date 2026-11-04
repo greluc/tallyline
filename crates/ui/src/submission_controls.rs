@@ -3,6 +3,7 @@
 
 //! Explicit full-gate release controls; the worker owns all readiness decisions.
 
+use crate::api::model::QueueCommand;
 use crate::api::model::{SubmissionControl, SubmissionIntent};
 use crate::api::{Catalogue, ShellState};
 use tallyline_shared_kernel::api::model::SubmissionMode;
@@ -66,6 +67,19 @@ impl ShellState {
             return;
         }
         let (id, expected_revision, control) = match command {
+            QueueCommand::Unknown {
+                id,
+                expected_revision,
+                action,
+            } => (
+                id,
+                expected_revision,
+                SubmissionControl::Unknown {
+                    id,
+                    expected: expected_revision,
+                    action,
+                },
+            ),
             crate::api::model::QueueCommand::Cancel {
                 id,
                 expected_revision,

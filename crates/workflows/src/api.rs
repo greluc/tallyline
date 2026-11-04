@@ -262,3 +262,5 @@ impl<S: AppSettingsStore> SettingsApplication<S> {
 pub use crate::event_outbox::{
     EventOutbox, OUTBOX_BATCH_LIMIT, OutboxError, OutboxEvent, OutboxKind, dispatch_pending_events,
 };
+
+pub use crate::unknown_draft::{UnknownDraft, UnknownDraftStore};

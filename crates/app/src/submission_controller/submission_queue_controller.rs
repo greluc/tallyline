@@ -9,6 +9,7 @@ use super::dispatch_state::{DispatchProgress, DispatchState};
 use super::queue_state::QueueState;
 use super::receipt_enrichment::ReceiptEnrichment;
 use super::release_control::{ReleaseControl, ReleaseKind};
+use super::unknown_resolution::UnknownResolution;
 use super::{SubmissionControlError, SubmissionQueuePreferences};
 use crate::api::HttpClient;
 use tallyline_adapter_files::api::ManualWorkingCopies;
@@ -37,6 +38,7 @@ pub struct SubmissionQueueController {
     client_version: Option<tallyline_shared_kernel::api::model::ReleaseVersion>,
     receipt: ReceiptEnrichment,
     recovery: super::refusal_recovery::RefusalRecovery,
+    unknown: UnknownResolution,
 }
 impl SubmissionQueueController {
     /// Recovers interrupted work before accepting any new release or dispatch.
@@ -97,6 +99,7 @@ impl SubmissionQueueController {
             client_version,
             receipt: ReceiptEnrichment::new(mappings),
             recovery: super::refusal_recovery::RefusalRecovery::default(),
+            unknown: UnknownResolution::default(),
         })
     }
 
@@ -283,6 +286,9 @@ impl SubmissionQueueController {
         credentials: &CredentialApplication,
         token: Option<&ReleaseToken>,
     ) -> Result<bool, SubmissionControlError> {
+        let resolved =
+            self.unknown
+                .advance(&mut self.store, &mut self.queue, &*self.clock, credentials)?;
         let recovered = self.recovery.advance(
             &mut self.store,
             &self.client,
@@ -296,7 +302,7 @@ impl SubmissionQueueController {
         let refreshed = self.queue.refresh_waiting(credentials, &*self.clock);
         let progress = result?;
         refreshed?;
-        Ok(recovered || progress || previous != self.queue.waiting())
+        Ok(resolved || recovered || progress || previous != self.queue.waiting())
     }
     fn advance(
         &mut self,
@@ -380,3 +386,5 @@ impl SubmissionQueueController {
         self.store.mark_delivered(event)
     }
 }
+
+mod unknown_control;

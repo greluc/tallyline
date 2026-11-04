@@ -82,3 +82,7 @@ mod response_processing;
 
 #[cfg(test)]
 mod processing_contract_tests;
+
+mod unknown_receipts;
+
+mod receipt_window;

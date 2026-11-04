@@ -222,3 +222,7 @@ The logo, the trademark line of the Fan Kit Guidelines §2b and the notice of th
 ## Disclaimer
 
 Independent community project, not made or endorsed by UEX Corp and not affiliated with UEX Corp or Cloud Imperium Games / Roberts Space Industries.
+
+### Unknown submission resolution
+
+The manual queue can inspect an unknown attempt, record an explicit received or not-received decision and request a bounded read-only UEX evidence check. Not received retains the original unknown history; **Duplicate as new Draft** creates one separate unreviewed Report with the original observation time, game version and entered values. All release and send checks still apply. Database schema 11 requires the coordinated backup before migration; settings remain schema 6. See [the queue record](docs/submission-queue.md) for safeguards and open acceptance gates.

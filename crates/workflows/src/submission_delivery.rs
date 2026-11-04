@@ -8,6 +8,7 @@ use tallyline_reporting::api::model::{
 };
 use tallyline_submission::api::model::{
     JobPhase, SendReturnReason, SubmissionJob, SubmissionResult, SubmissionReturnReason,
+    UnknownDecision,
 };
 
 /// Translates a committed job outcome for its exact owning Report and release binding.
@@ -27,6 +28,18 @@ pub fn apply_submission_delivery(
         || header.environment != binding.environment()
     {
         return Err(InvalidReport);
+    }
+    let verified = job.unknown_receipts().count();
+    let received = job.unknown_decision() == Some(UnknownDecision::Received);
+    if received || verified == job.request().rows().len() {
+        return report
+            .resolve_unknown(job.id(), ReportDelivery::FullAcceptance)
+            .map(Some);
+    }
+    if verified > 0 {
+        return report
+            .resolve_unknown(job.id(), ReportDelivery::PartialAcceptance)
+            .map(Some);
     }
     let delivery = match job.phase() {
         JobPhase::Queued | JobPhase::Sending | JobPhase::Held | JobPhase::Paused => None,

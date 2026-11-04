@@ -3,13 +3,18 @@
 
 //! Manual application behaviour at its public persistence and reference boundaries.
 
+use std::error::Error;
+use std::path::Path;
+use tallyline_adapter_storage::api::SqliteReferenceCache;
 use tallyline_reference_data::api::model::{
     CachedReference, Commodity, CommodityAverages, EndpointData, GameVersions, PricePrior,
     PriorProvenance, PriorValues, ReferenceSnapshot, StatusLevel, StatusLevels, Terminal,
     TerminalPriors, TerminalText, UexEnvironment,
 };
 use tallyline_reference_data::api::{ReferenceApplication, ReferenceDataCache};
+use tallyline_reporting::api::model::SubmissionGate;
 use tallyline_shared_kernel::api::Clock;
+use tallyline_shared_kernel::api::model::SubmissionMode;
 use tallyline_shared_kernel::api::model::{CommodityId, TerminalId, Timestamp, TradeSide};
 
 pub struct Fixed;
@@ -85,7 +90,7 @@ pub fn records() -> Result<Vec<CachedReference>, Box<dyn std::error::Error>> {
 pub fn snapshot(
     environment: UexEnvironment,
 ) -> Result<ReferenceSnapshot, Box<dyn std::error::Error>> {
-    Ok(ReferenceApplication::load(Cache(records()?), Fixed)?.snapshot(environment))
+    snapshot_records(records()?, environment)
 }
 
 pub fn stored_gate(
@@ -97,14 +102,20 @@ pub fn stored_gate(
     ),
     Box<dyn std::error::Error>,
 > {
-    use tallyline_adapter_storage::api::SqliteReferenceCache;
+    stored_gate_with_mode(path, SubmissionMode::DryRun)
+}
+
+pub fn stored_gate_with_mode(
+    path: &Path,
+    mode: SubmissionMode,
+) -> Result<(SqliteReferenceCache, SubmissionGate), Box<dyn Error>> {
     use tallyline_game::api::model::{EnvironmentMapping, GameEnvironment};
     use tallyline_reporting::api::model::{
         ReleaseAccountStanding, ReleaseContext, ReleaseScreenshotPolicy, ReleaseWorkingCopy,
         ReportKey, StockSettings,
     };
     use tallyline_reporting::api::{ManualReviewer, ReportRepository};
-    use tallyline_shared_kernel::api::model::{ObservationAgeSettings, SubmissionMode};
+    use tallyline_shared_kernel::api::model::ObservationAgeSettings;
     let mut store = SqliteReferenceCache::open(path)?;
     for record in records()? {
         store.replace(&record)?;
@@ -129,7 +140,7 @@ pub fn stored_gate(
         &snapshot(UexEnvironment::Live)?,
         ReleaseContext::new(
             ReleaseAccountStanding::Accepted("dummy-a".to_owned()),
-            SubmissionMode::DryRun,
+            mode,
             ReleaseScreenshotPolicy::Unknown,
             ReleaseWorkingCopy::Absent,
         ),
@@ -140,4 +151,11 @@ pub fn stored_gate(
         .map_err(|_| std::io::Error::other("fixture history unavailable"))?;
     let gate = tallyline_workflows::api::assess_release_observation_history(&gate, Some(&history));
     Ok((store, gate))
+}
+
+pub fn snapshot_records(
+    records: Vec<CachedReference>,
+    environment: UexEnvironment,
+) -> Result<ReferenceSnapshot, Box<dyn Error>> {
+    Ok(ReferenceApplication::load(Cache(records), Fixed)?.snapshot(environment))
 }

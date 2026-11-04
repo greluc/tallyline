@@ -310,27 +310,7 @@ impl UexReader {
         let date_added = context.date_added;
         self.transport
             .process(move || {
-                if records.len() > 100
-                    || records.iter().any(|record| {
-                        record.get("type").and_then(serde_json::Value::as_str) != Some("commodity")
-                            || record
-                                .get("id")
-                                .and_then(crate::submission::number)
-                                .is_none_or(|id| id == 0)
-                            || record
-                                .get("id_terminal")
-                                .and_then(crate::submission::number)
-                                != Some(u64::from(request.header().terminal.0))
-                            || record
-                                .get("id_commodity")
-                                .and_then(crate::submission::number)
-                                .is_none_or(|id| id == 0 || u32::try_from(id).is_err())
-                            || record
-                                .get("date_added")
-                                .and_then(crate::submission::number)
-                                .is_none()
-                    })
-                {
+                if !crate::receipt_window::valid(&records, &request) {
                     return Ok(None);
                 }
                 let found = records.iter().any(|record| {
@@ -342,7 +322,7 @@ impl UexReader {
                 });
                 Ok(if found {
                     Some(true)
-                } else if records.len() < 100 {
+                } else if records.len() < crate::receipt_window::LIMIT {
                     Some(false)
                 } else {
                     None

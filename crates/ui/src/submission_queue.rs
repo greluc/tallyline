@@ -4,6 +4,7 @@
 //! Fixed-mode queue presentation and version-bound cancellation intent.
 
 use crate::api::Catalogue;
+use crate::submission_unknown::UnknownQueueAction;
 use tallyline_shared_kernel::api::model::SubmissionMode;
 use tallyline_submission::api::model::{
     JobId, JobPhase, SubmissionApplicationError, SubmissionJob, SubmissionRepositoryError,
@@ -18,6 +19,15 @@ use tallyline_submission::api::model::{
 /// An explicit queue action without credentials or mutable report values.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum QueueCommand {
+    /// Resolves only the exact unknown origin explicitly inspected by the user.
+    Unknown {
+        /// Stable local submission identity.
+        id: JobId,
+        /// The committed version displayed before the action.
+        expected_revision: u64,
+        /// The explicit action without transport authority.
+        action: UnknownQueueAction,
+    },
     /// Retries only the eligible exact version explicitly shown to the user.
     Retry {
         /// Stable local submission identity.
@@ -37,6 +47,11 @@ pub enum QueueCommand {
 impl QueueCommand {
     fn identity(self) -> (JobId, u64) {
         match self {
+            Self::Unknown {
+                id,
+                expected_revision,
+                ..
+            } => (id, expected_revision),
             Self::Cancel {
                 id,
                 expected_revision,
@@ -252,6 +267,7 @@ pub fn show_submission_queue(
         };
         ui.label(catalogue.text(key));
     }
+    let mut unknown_action = None;
     let mut cancel = None;
     let mut retry = None;
     for job in &state.jobs {
@@ -288,6 +304,15 @@ pub fn show_submission_queue(
                     ui.label(catalogue.text(review_reason_key(reason)));
                 }
                 show_result(ui, job, state.verified_receipts(job.id()), catalogue);
+                if let Some(action) = crate::submission_unknown::show(
+                    ui,
+                    job,
+                    &state.jobs,
+                    catalogue,
+                    state.busy.is_none(),
+                ) {
+                    unknown_action = Some((job.id(), action));
+                }
                 let retry_policy = SubmissionRetrySettings::default();
                 if let Some(at) = retry_policy.automatic_retry_at(job) {
                     ui.label(format!(
@@ -347,6 +372,9 @@ pub fn show_submission_queue(
                 }
             });
         });
+    }
+    if let Some((id, action)) = unknown_action {
+        state.request_unknown(id, action);
     }
     if let Some(id) = cancel {
         state.request_cancel(id);
@@ -614,5 +642,37 @@ pub(crate) fn review_reason_key(reason: SendReturnReason) -> &'static str {
         SendReturnReason::ObservationAgeUnconfirmed => "queue.age_unconfirmed",
         SendReturnReason::ObservationTooOld => "queue.observation_too_old",
         SendReturnReason::ObservationInFuture => "queue.observation_in_future",
+    }
+}
+
+impl SubmissionQueue {
+    /// Queues one explicit resolution action against the exact displayed unknown origin.
+    pub fn request_unknown(&mut self, id: JobId, action: UnknownQueueAction) -> bool {
+        if self.busy.is_some() {
+            return false;
+        }
+        let Some(job) = self
+            .jobs
+            .iter()
+            .find(|job| job.id() == id && action.eligible(job))
+        else {
+            return false;
+        };
+        let command = QueueCommand::Unknown {
+            id,
+            expected_revision: job.revision(),
+            action,
+        };
+        self.pending = Some(command);
+        self.busy = Some(command);
+        self.failure = None;
+        true
+    }
+
+    pub(crate) fn completed(&mut self, id: JobId, expected_revision: u64) {
+        if self.busy.map(QueueCommand::identity) == Some((id, expected_revision)) {
+            self.busy = None;
+            self.pending = None;
+        }
     }
 }

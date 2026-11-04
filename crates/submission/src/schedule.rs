@@ -4,6 +4,7 @@
 //! Whole-report cooldown and observation-order checks over durable jobs.
 
 use crate::api::model::{JobPhase, SubmissionJob, SubmissionResult};
+use crate::duplicate_evidence::SubmissionEvidence;
 use std::time::Duration;
 use tallyline_shared_kernel::api::model::Timestamp;
 
@@ -42,6 +43,14 @@ impl SubmissionSchedule {
         now: Timestamp,
     ) -> ScheduleDecision {
         if candidate.phase() != JobPhase::Queued {
+            return ScheduleDecision::Unavailable;
+        }
+        if SubmissionEvidence::resolved_duplicate_origin(
+            candidate.request().header().report,
+            history,
+        )
+        .is_some()
+        {
             return ScheduleDecision::Unavailable;
         }
         if history
