@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 Lucas Greuloch
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Versioned settings, owner-only directories and explicit private exports.
+//! Versioned settings, bounded image codecs, owner-only directories and private exports.
 
 #![forbid(unsafe_code)]
 
@@ -30,4 +30,5 @@ mod working_copies;
 
 mod stock_config;
 
+mod png_output;
 mod submission_config;

@@ -5,7 +5,7 @@
 
 use crate::api::model::{ImageIntake, ImageIntakeSettings, SetAsideReason};
 use sha2::{Digest, Sha256};
-use std::io::{Read, Write};
+use std::io::Read;
 use std::path::Path;
 use tallyline_reporting::api::model::{
     AttachmentBinding, AttachmentRegion, AttachmentTime, ImageHash, Report,
@@ -243,55 +243,25 @@ pub fn encode_manual_attachment(
     } else {
         image::imageops::resize(&image, width, height, image::imageops::FilterType::Triangle)
     };
-    let mut output = BoundedOutput {
-        bytes: Vec::new(),
-        maximum: settings.max_base64_bytes / 4 * 3,
-    };
-    {
-        let mut encoder = png::Encoder::new(&mut output, width, height);
-        encoder.set_color(png::ColorType::Rgb);
-        encoder.set_depth(png::BitDepth::Eight);
-        encoder.set_source_srgb(png::SrgbRenderingIntent::Perceptual);
-        let mut writer = encoder
-            .write_header()
-            .map_err(|_| AttachmentImageError::EncodingLimit)?;
-        writer
-            .write_image_data(image.as_raw())
-            .map_err(|_| AttachmentImageError::EncodingLimit)?;
-        writer
-            .finish()
-            .map_err(|_| AttachmentImageError::EncodingLimit)?;
-    }
-    let base64 = base64(&output.bytes);
+    let output = crate::png_output::encode_rgb_png(
+        width,
+        height,
+        image.as_raw(),
+        settings.max_base64_bytes / 4 * 3,
+    )
+    .map_err(|_| AttachmentImageError::EncodingLimit)?;
+    let base64 = base64(&output);
     if base64.len() > settings.max_base64_bytes {
         return Err(AttachmentImageError::EncodingLimit);
     }
     Ok(EncodedAttachment {
         request: tallyline_workflows::api::AttachmentRequest::new(report)
             .ok_or(AttachmentImageError::Unconfirmed)?,
-        png: output.bytes,
+        png: output,
         base64,
     })
 }
 
-struct BoundedOutput {
-    bytes: Vec<u8>,
-    maximum: usize,
-}
-impl Write for BoundedOutput {
-    fn write(&mut self, bytes: &[u8]) -> std::io::Result<usize> {
-        if bytes.len() > self.maximum.saturating_sub(self.bytes.len()) {
-            return Err(std::io::Error::other(
-                "encoded attachment exceeds its byte bound",
-            ));
-        }
-        self.bytes.extend_from_slice(bytes);
-        Ok(bytes.len())
-    }
-    fn flush(&mut self) -> std::io::Result<()> {
-        Ok(())
-    }
-}
 fn base64(bytes: &[u8]) -> String {
     const ALPHABET: &[u8; 64] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
     let character =

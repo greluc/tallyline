@@ -37,11 +37,12 @@ fn run(arguments: &[String]) -> Result<String, String> {
         ["scu-policy", "--public", public] => serde_json::to_string_pretty(&ocr_eval::scu_policy::analyse(Path::new(public))?).map_err(|_| "policy output could not be encoded".to_owned()),
         ["inspect"] => inspect(&default_public, private.as_deref()),
         ["inspect", "--public", public] => inspect(Path::new(public), private.as_deref()),
+        ["prepare-panels", "--image", image, "--geometry", geometry, "--output", output] => serde_json::to_string_pretty(&ocr_eval::panel_dump::prepare(Path::new(image),Path::new(geometry),Path::new(output))?).map_err(|_|"panel receipt encoding failed".to_owned()),
         ["annotate", expected, anchors, proposal] => {
             ocr_eval::corpus::annotate(Path::new(expected), Path::new(anchors), Path::new(proposal))?;
             Ok("Unverified proposal written; expected.json is unchanged.".to_owned())
         }
-        _ => Err("usage: ocr-eval witness --channel <directory> | inspect [--public <directory>] | scu-policy --public <directory> | reader-replay --public <directory> --packet <file> --sha256 <digest> | annotate <expected.json> <anchors.json> <proposal.json>".to_owned()),
+        _ => Err("usage: ocr-eval witness --channel <directory> | inspect [--public <directory>] | scu-policy --public <directory> | reader-replay --public <directory> --packet <file> --sha256 <digest> | prepare-panels --image <file> --geometry <manifest.json> --output <new-directory> | annotate <expected.json> <anchors.json> <proposal.json>".to_owned()),
     }
 }
 

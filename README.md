@@ -100,6 +100,8 @@ The [support-export foundation](docs/diagnostics-export.md) supplies masked prev
 
 Use the offline [corpus capture and annotation guide](docs/user/corpus-capture.md) and `cargo run -p ocr-eval --locked -- inspect` to inspect conditions, expected values and sample readiness. Recognition metrics are not implemented yet.
 
+The model-free [supplied panel tool](docs/panel-preparation.md) prepares upright safe shop/location crops with source transforms from independently supplied geometry. `ocr-eval prepare-panels` masks the full-width region above the supplied header boundary before filtering and writes an exclusive bounded dump; automatic locate, text/tone measurements, corpus-wide crop review and recognition remain open.
+
 Corrected 2026-11-03: game preferences persist independent channel-to-UEX mappings in settings schema 6, preserving witness and release-check choices across migration; the browsing controls save these mappings before applying them.
 
 Startup config migration coordinates existing SQLite and exact settings bytes in one verified backup set, and refuses processing if the backup fails.

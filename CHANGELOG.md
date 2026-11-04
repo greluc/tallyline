@@ -4,6 +4,8 @@ All notable changes are recorded here.
 
 ## [Unreleased]
 
+- Add an offline supplied-geometry panel tool with upright perspective crops, source transforms and conservative full-width header-and-upper-region masking before filtering. Dumps are bounded and exclusive; automatic locate and calibrated text/tone analysis remain open (R-OCR-2, R-CAP-7, R-SUB-7).
+
 - Resolve unknown submissions through explicit received/not-received decisions or verified read-only evidence while keeping the original uncertain attempt. A separate new-Draft action preserves the original observation and values for complete review; schema 11 requires the coordinated upgrade backup (R-SUB-9, R-UI-1:reports, R-SUB-4).
 
 - Record the 2026-11-04 owner verification of all seven existing public corpus transcriptions. Values, clipped-card boundaries and images are unchanged; historical experiments retain their original verification state and hashes, and recognition accuracy remains unmeasured (R-QA-1, R-QA-3).

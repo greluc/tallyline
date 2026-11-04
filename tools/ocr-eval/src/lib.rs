@@ -7,6 +7,7 @@
 
 pub mod corpus;
 
+pub mod panel_dump;
 pub mod reader_replay;
 #[cfg(test)]
 mod scratch;

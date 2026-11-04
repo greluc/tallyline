@@ -12,3 +12,5 @@ pub trait Clock {
     /// Returns the current time.
     fn now(&self) -> Timestamp;
 }
+pub use crate::area_sample::sample_area;
+pub use crate::projective_map::sample_bilinear;

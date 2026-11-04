@@ -1,6 +1,6 @@
 # Engineering Principles: Modularisation, Maintainability, Clean Code
 
-> **Doc type:** Living spec — binding. Last reviewed: 2026-11-03.
+> **Doc type:** Living spec — binding. Last reviewed: 2026-11-04.
 
 This document makes "best practices" **verifiable**: every rule states *how* it is enforced. Where possible this happens automatically (compiler, the Cargo crate graph, Clippy, `cargo-deny`, `xtask`, CI), otherwise via the review checklist and the Definition of Done.
 
@@ -61,6 +61,7 @@ The `unsafe` code of the platform adapter is registered here too. Corrected 2026
 
 | Location | Rule | Reason | Date | Revisit when |
 |---|---|---|---|---|
+| `crates/recognition/tests/panel_preparation.rs` and `tools/ocr-eval/tests/panel_dump_cli.rs`, requirement-tagged public preparation contracts | `non_snake_case`, local `#[expect]` per tagged test | Required traceability tags contain a double underscore | 2026-11-04 | the requirement-tag grammar changes |
 | `.gitleaksignore`, exact commit `1a70a40766669fe1df71a85f4198d8f6a916e141`, `crates/workflows/tests/diagnostics.rs:62` | gitleaks `generic-api-key`, commit/file/rule/line fingerprint | Synthetic diagnostic privacy marker; current fixture uses a low-entropy marker, while reachable history is retained (see [verification](../diagnostics-export.md#verification-and-remaining-work)) | 2026-11-03 | The pinned scanner or retained commit identity changes |
 | `crates/reference-data/tests/local_priors.rs` and its `local_priors/` modules | `non_snake_case`, local `#[expect]` per tagged test | The required traceability grammar contains a double underscore | 2026-11-03 | the tag grammar changes or rustc accepts consecutive underscores |
 | `crates/app/tests/submission_controller.rs` and its `submission_controller/` modules, `crates/submission/tests/credentials.rs` | `non_snake_case`, local `#[expect]` per tagged test | The required traceability grammar contains a double underscore | 2026-11-03 | the tag grammar changes or rustc accepts consecutive underscores |

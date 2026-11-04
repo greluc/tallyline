@@ -33,4 +33,5 @@ pub use crate::manual_attachment::{
     AttachmentEncodingSettings, AttachmentImageError, AttachmentPreview, EncodedAttachment,
 };
 
+pub use crate::png_output::PngOutputError;
 pub use crate::private_artifact::PrivateArtifactError;
