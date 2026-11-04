@@ -37,7 +37,7 @@ Settings presents existing theme, SCU tolerance, submission/age, updates, enviro
 Recognition is designed to run locally and without per-use inference charges. While the game runs, lightweight OCR is intended to handle extraction; optional local AI can cross-check results when resources are available. Model and engine combinations are still being evaluated.
 
 - Images are never sent to cloud or LAN inference services.
-- The planned installation supplies its selected runtime and models without a separate Ollama or Python installation.
+- Planned recognition prefers a supplied runtime and models. If custom integration becomes excessive, local Ollama and requested model downloads are permitted; user installation is a last resort if bundled delivery cannot be implemented acceptably. AI remains optional, local and free of per-use inference fees; no engine or setup route is selected yet ([delivery policy](docs/adr/0013-conditional-ollama-delivery.md)).
 - Confirmed screenshot regions stay in private application storage with integrity checks; original frames are not persisted.
 - The optional Game log witness is off by default and never fills Report prices, quantities or statuses.
 

@@ -33,7 +33,8 @@
 | [`local-vision-first-campaign.md`](local-vision-first-campaign.md) | Completed 310-response local VLM experiment: exact inputs, structural coverage failures, separately labelled exploratory discrepancies and evidence limits; no validated accuracy or backend selection |
 | [`local-vision-small-model-campaign.md`](local-vision-small-model-campaign.md) | Completed author-bound 2B CPU/GPU smoke and a separate literal-field development condition, with raw-value discrepancies, structural failures and independent cleanup evidence |
 | [`local-vision-ministral3b-experiment.md`](local-vision-ministral3b-experiment.md) | Completed author-bound Ministral 3 3B development smoke: fixed-parser field concordance, paired 2B comparison, shared tab error, geometry and independent cleanup evidence |
-| [`adr/0012-strictly-local-recognition-delivery.md`](adr/0012-strictly-local-recognition-delivery.md) | Owner-required local-only inference and complete initial recognition profiles; engine choice and the Windows OCR prerequisite remain under evaluation |
+| [`adr/0012-strictly-local-recognition-delivery.md`](adr/0012-strictly-local-recognition-delivery.md) | Owner-required local-only inference and recognition evaluation; its complete-initial-profile delivery promise is qualified by ADR-0013; engine choice and the separate Windows OCR prerequisite remain open |
+| [`adr/0013-conditional-ollama-delivery.md`](adr/0013-conditional-ollama-delivery.md) | Conditional local Ollama and explicitly requested first/additional model downloads if custom integration becomes excessive; user installation only if bundled delivery cannot be implemented acceptably; no engine or payload selected |
 | [`cla-signatures.md`](cla-signatures.md) | The public roster of CLA signatures |
 
 Diagrams are Mermaid or plain-text trees, never binary files. Images in `docs/` are only redacted user-guide screenshots and the Fan Kit logo files.

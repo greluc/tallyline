@@ -151,7 +151,7 @@ Implementation 2026-11-01 (R-NF-10): the app elects before writable startup; ada
 Requires M3 (shared resolution, validation and stitching). Can run in parallel to M4 if there is capacity.
 
 - [ ] `adapter-platform`: `GameProcessMonitor` hysteresis and AI-run interval (R-VLM-2); process and channel detection come with M4, or are built here if M5 runs before M4 (then with the test-first case and the A7 verification listed in M4)
-- [ ] `adapter-vlm`: select and supply a verified local engine/profile without a separate programme or later installation (ADR-0012, R-VLM-6/7). Compare bundled library/private-worker and bundled-Ollama candidates before choosing. If HTTP is used, loopback only with proxying/redirects off; reject all remote/cloud models and fail closed. Verify model/prompt/runtime identities, cancellation and unloading. The Windows OCR prerequisite remains a delivery blocker until a separately reviewed replacement is verified. Tests:
+- [ ] `adapter-vlm`: select and supply a verified local engine/profile under ADR-0012/0013 and R-VLM-6/7. Compare library/private-worker and private-Ollama candidates before choosing; prefer bundled delivery. If custom integration becomes excessive, requested Ollama model downloads are permitted, and user installation only if bundled delivery cannot be implemented acceptably. Record the fallback evidence and exact source/native/licence/profile admission; verify isolated owned child/store/endpoint and installed-executable drift handling. If HTTP is used, loopback only with proxying/redirects off; reject all remote/cloud models and fail closed. Verify model/prompt/runtime identities, cancellation and unloading. The Windows OCR prerequisite remains a delivery blocker until a separately reviewed replacement is verified. Tests:
   - recorded `/api/tags` and `/api/show` responses: a local model, `name:cloud`, `name:120b-cloud`, and a custom-named model with `remote_host`;
   - host cases for any HTTP route: allow literal loopback only; refuse `localhost.example.com`, `0.0.0.0`, LAN hosts and remote/cloud models without an override; reject unavailable metadata before sending crops.
 - [ ] Prompt v1 plus deterministic answer parser (golden tests with recorded answers, without Ollama in CI; the example answer in 07 §2.7 yields quantity 333 and price 3237; a literal `?` yields `Unreadable`)
@@ -166,7 +166,7 @@ Requires M3 (shared resolution, validation and stitching). Can run in parallel t
 **Acceptance criteria:**
 
 - Game start aborts an AI run within ≤ 5 s (2 s interval during a run plus abort) and unloads the model (test with simulated process).
-- A selected initial recognition profile works without a separate Ollama/Python installation or later setup; absent/disabled optional AI causes no startup error.
+- Prefer a complete offline-ready initial profile. Under ADR-0013, verify explicitly requested first-model acquisition and, only if bundled delivery is unacceptable, user-installed Ollama with private child ownership; document setup/offline limits honestly. No route may require Python, a cloud account or inference fees. Absent/disabled/incompatible optional AI causes no startup error and preserves manual/classic OCR.
 - The fusion measurably lowers "silently wrong" and "flagged" on the corpus compared with "OCR only". **If that is not the case, the feature is not shipped** (assumption A8).
 
 ## Requirement coverage
@@ -182,7 +182,7 @@ Amended 2026-10-12 (ADR-0005): R-UI-17 is split. R-UI-17 (contrast, keyboard ope
 | M2 | R-OCR-1, R-OCR-2 (locate), R-OCR-5, R-OCR-20 (Game.log witness), R-OCR-17, R-OCR-18, R-CAP-8, R-QA-2 `:started` (ladders started), R-QA-3 (eval CLI), R-QA-4, R-SEC-7, R-NF-12, R-NF-13 |
 | M3 | R-CAP-1, R-CAP-1a, R-CAP-1b, R-CAP-1c, R-CAP-1d, R-CAP-1e, R-CAP-2, R-CAP-5, R-CAP-7, R-OCR-3, R-OCR-4, R-OCR-6, R-OCR-7 `:uex-names`, R-OCR-8, R-OCR-11…14, R-OCR-16, R-OCR-19, R-OCR-21, R-VAL-2b, R-VAL-5, R-UI-1 `:captures` (capture states), R-UI-3, R-UI-4, R-UI-5, R-UI-6, R-UI-14, R-QA-5; OCR path (`:ocr`): R-VAL-1, R-VAL-2, R-VAL-2a, R-VAL-3, R-VAL-4, R-VAL-6, R-VAL-7, R-UI-10…12, R-SUB-7, R-CAP-3b (version history at capture time); R-CAP-3 `:folder` (environment from the folder path) |
 | M4 | R-CAP-4, R-CAP-6, R-CAP-9, R-CAP-10, R-OCR-7 `:localized`, R-OCR-9, R-OCR-10, R-OCR-15, R-L10N-2, R-UI-7 `:hidpi` (display scale 100–250 %, mixed-scale monitors), R-UI-17 `:automated` (contrast in every theme including high contrast, colour not the only signal, target size, focus rules), R-UI-17 `:manual` (keyboard walkthrough, 200 % text, HiDPI), R-NF-1 (Linux X11 and native Wayland tests), R-NF-3, R-NF-7, R-NF-9, R-DOC-1, R-QA-2 `:required` (required classes, 1.0 criteria) |
-| M5 | R-VLM-1…11, R-UI-1 `:ai` (AI job states) |
+| M5 | R-VLM-1…11, R-VLM-12 (conditional delivery/acquisition, no-startup-error and non-AI acceptance; M1 optionality remains), R-UI-1 `:ai` (AI job states) |
 | later | R-UI-9, R-UI-17a (Could, no gate), R-L10N-3, R-SCOPE-2 `:ui`, R-SEC-9 |
 
 **Verified outside the test suite** (formerly "Verified outside JUnit"; read by the traceability report; each check must exist once its milestone is completed):

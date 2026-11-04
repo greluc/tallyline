@@ -4,6 +4,8 @@ All notable changes are recorded here.
 
 ## [Unreleased]
 
+- Amend planned recognition delivery: permit conditional local Ollama and explicitly requested first/additional model downloads; user installation is a last resort if bundled delivery cannot be implemented acceptably. Local-only inference, optional AI, private child ownership and exact admission gates remain; no backend or download feature is implemented by this policy change (R-VLM-6/7/12; ADR-0013).
+
 - Show the immutable target, row values and attempted observation date through **Inspect original attempt** for partial submissions before recording row decisions (R-SUB-9, R-UI-1:reports).
 
 - Resolve partial submissions row by row with exact positive receipt proofs, typed failure provenance and preserved original transport history. Explicitly copy only resolved not-accepted rows into a separate unreviewed Draft; row-specific ordering and accepted priors commit atomically with history. Schema 12 requires the coordinated database/settings backup; settings remain schema 6 (R-SUB-9, R-SUB-11, R-UI-1:reports, R-VAL-7).
@@ -159,7 +161,7 @@ All notable changes are recorded here.
 - Repository checks and generators support external Cargo output directories, preserve invocation-relative paths and isolate mutation builds per source copy. Owned-output checks refuse replacement of foreign directories (R-SEC-1).
 
 
-- Require strictly local optional AI and an initially complete recognition profile without a separately installed Ollama. Runtime, complementary OCR and hardware-specific model selection remain under evaluation; the existing Windows OCR prerequisite still needs a verified replacement (R-VLM-6, R-VLM-7, R-VLM-11; ADR-0012).
+- Require strictly local optional AI and prefer a complete supplied recognition profile. Corrected 2026-11-04: ADR-0013 qualifies the earlier absolute no-separate-Ollama/no-later-setup promise with the owner-authorised conditional fallback and requested model acquisition. Runtime/model/hardware selection and the separate Windows OCR prerequisite remain open (R-VLM-6/7/11/12).
 
 - Refresh the desktop UI, TLS and async dependencies to eligible stable releases while preserving the approved native boundaries and complete legal notices (R-SEC-1, R-SEC-10).
 

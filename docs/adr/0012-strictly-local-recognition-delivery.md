@@ -2,7 +2,7 @@
 
 > **Doc type:** Decision record — Accepted product constraints; runtime selection and delivery proof pending. Last reviewed: 2026-11-01.
 
-- **Status:** Accepted constraints (2026-11-01); implementation and measured model selection remain open
+- **Status:** Accepted constraints (2026-11-01); delivery clauses partially superseded by ADR-0013 (2026-11-04); locality, evaluation and remaining OCR delivery proof stay binding
 - **Decider:** @greluc, in chat: no separately installed recognition programme, no later installation prerequisite, strictly local inference for privacy and without inference fees; compare complementary models and OCR readers on weak and strong hardware
 - **Supersedes:** the remote-host/cloud consent option and user-installed Ollama prerequisite in R-VLM-6/7 and O-65
 - **Related:** ADR-0005, ADR-0007–0009; R-VLM-5–12, R-NF-12/13; [runtime research](../local-vision-runtime-research.md)
