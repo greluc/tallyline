@@ -174,3 +174,5 @@ impl EventId {
         self.version
     }
 }
+
+pub use crate::release_version::ReleaseVersion;

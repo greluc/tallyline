@@ -27,6 +27,7 @@ struct ActiveSubmission {
 pub(super) struct DispatchState {
     reservation: Option<(JobId, PendingSubmissionReservation)>,
     active: Option<ActiveSubmission>,
+    client_version: Option<tallyline_shared_kernel::api::model::ReleaseVersion>,
 }
 pub(super) enum DispatchProgress {
     Idle,
@@ -34,6 +35,14 @@ pub(super) enum DispatchProgress {
     Scheduled,
 }
 impl DispatchState {
+    pub(super) fn new(
+        client_version: Option<tallyline_shared_kernel::api::model::ReleaseVersion>,
+    ) -> Self {
+        Self {
+            client_version,
+            ..Self::default()
+        }
+    }
     pub(super) fn is_active(&self) -> bool {
         self.active.is_some()
     }
@@ -127,18 +136,38 @@ impl DispatchState {
             self.active = Some(active);
             return Ok(None);
         };
+        let result = if matches!(
+            result,
+            SubmissionResult::Paused(
+                tallyline_submission::api::model::SubmissionPauseReason::UpdateRequired
+            )
+        ) {
+            SubmissionResult::VersionLockedOut(self.client_version)
+        } else if matches!(
+            result,
+            SubmissionResult::Held(
+                tallyline_submission::api::model::SubmissionHoldReason::Cooldown
+            )
+        ) {
+            tallyline_submission::api::SubmissionEvidence::duplicate_after_unknown(
+                &active.sending,
+                queue.jobs(),
+                *at,
+            )
+            .map_or_else(|| result.clone(), SubmissionResult::DuplicateEvidence)
+        } else {
+            result.clone()
+        };
         let change = active
             .sending
-            .apply(SubmissionCommand::Complete {
-                result: result.clone(),
-                at: *at,
-            })
+            .apply(SubmissionCommand::Complete { result, at: *at })
             .map_err(|_| SubmissionControlError::Invalid)?;
         if let Err(error) = SubmissionJobRepository::save(store, &change) {
             self.active = Some(active);
             return Err(SubmissionControlError::Repository(error));
         }
         let committed = change.into_state();
+        super::failure_diagnostics::record(&committed);
         queue.update(committed.clone());
         Ok(Some(committed))
     }

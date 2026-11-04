@@ -21,6 +21,11 @@ All notable changes are recorded here.
 
 - Follow the project repository transfer to `tallyline-sc/tallyline` for optional release checks, About source/release links and packaging source information (R-NF-7, R-UI-18, R-DOC-4).
 
+- Preserve successive read-only account-check results across SQLite reopen and restart, including independent receipt checks and queue acknowledgement. Permanent refusals retain a typed correction action and their safe technical code (R-SUB-2, R-SUB-9, R-SUB-11).
+
+- Preserve safe unknown UEX codes and account pauses independently of unavailable or partial receipt evidence. Explicit queue acknowledgement does not replay the originating uncertain Report (R-SUB-6, R-SUB-9, R-SUB-11).
+
+
 - Allow a previously validated account to release reviewed Reports to the persistent queue while offline. Sending waits for validation in the current session, and replacement credentials close release and sending until accepted (R-API-7, R-SUB-2).
 - Extend the optional Game.log witness to the exact MIC-L2 Long Forest Station and Orbituary terminal pairs and Astatine, Carbon, Copper, Diamond, Potassium, Scrap and Waste. The same validated build and default-off privacy boundary apply; the log supplies no reported prices, quantities or status values (R-OCR-20).
 
@@ -34,6 +39,8 @@ All notable changes are recorded here.
 - Added bounded headless `--build-info` before native bootstrap. About, logs, UEX identity and update comparison share fixed Development `0.0.0` or complete compile-time tag metadata; invalid or partial metadata refuses startup. Bounded source-job receipts bind compiled metadata and executable hashes into protected staging before fixture access; signed-tag/CI authentication and final package acceptance remain release gates (R-NF-11, R-API-7, R-UI-18, R-SEC-8).
 
 ### Added
+
+- Recover from UEX refusals with bounded safe retries, durable queue-wide account/API-change/quota fences, explicit strictly-newer-release version recovery and Retry now and report-fixable Draft findings. Production refusals with uncertain prior rows stay held for read-only receipt checks; schema 10 requires a coordinated backup, while partial-row resolution and daily-quota reset scheduling remain separate gates (R-SUB-2, R-SUB-6, R-SUB-9, R-SUB-11, R-API-7).
 
 - Release reviewed manual Reports through a durable serial queue with fixed account/mode, fresh checks, restart recovery, passive history and unsent cancellation. The onboarding test uses dry-run mode; database 9/settings 6 require coordinated backups, and uncertain sends never replay automatically. Native and approved real-service acceptance remain pending (R-SUB-1, R-SUB-2, R-SUB-3, R-SUB-8, R-SUB-9, R-VAL-7, R-UI-1:reports, R-API-7).
 

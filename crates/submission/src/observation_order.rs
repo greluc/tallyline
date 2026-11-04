@@ -58,7 +58,8 @@ impl ObservationOrder {
                 {
                     continue;
                 }
-                match job.phase() {
+                let phase = job.observation_order_phase();
+                match phase {
                     JobPhase::Succeeded => {
                         accepted = Some(
                             accepted
@@ -76,7 +77,9 @@ impl ObservationOrder {
                     JobPhase::Queued
                     | JobPhase::Returned
                     | JobPhase::Cancelled
-                    | JobPhase::Held => continue,
+                    | JobPhase::Held
+                    | JobPhase::Paused
+                    | JobPhase::Rejected => continue,
                 }
             }
             if let Some((observed_at, submission)) = unresolved {

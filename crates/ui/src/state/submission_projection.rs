@@ -30,6 +30,8 @@ impl ShellState {
                     JobPhase::Queued
                     | JobPhase::Sending
                     | JobPhase::Held
+                    | JobPhase::Paused
+                    | JobPhase::Rejected
                     | JobPhase::Succeeded
                     | JobPhase::PartiallyAccepted
                     | JobPhase::OutcomeUnknown => false,

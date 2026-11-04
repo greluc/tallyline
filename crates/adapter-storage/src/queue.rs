@@ -265,6 +265,9 @@ pub(crate) fn save_change(
         return Err(SubmissionRepositoryError::Invalid);
     }
     if next.phase() == JobPhase::Sending {
+        if !crate::submission_service_fences::load(transaction)?.is_empty() {
+            return Err(SubmissionRepositoryError::Conflict);
+        }
         let at = next
             .attempts()
             .last()
@@ -318,6 +321,7 @@ pub(crate) fn save_change(
         )
         .map_err(|_| SubmissionRepositoryError::Unavailable)?;
     }
+    crate::submission_service_fences::commit(transaction, &current, next)?;
     let accepted = tallyline_workflows::api::accepted_submission_priors(next).map_err(invalid)?;
     crate::accepted_priors::accepted(transaction, &accepted)
         .map_err(|_| SubmissionRepositoryError::Unavailable)?;
@@ -326,6 +330,7 @@ pub(crate) fn save_change(
             SubmissionEventKind::Succeeded(_) => "succeeded",
             SubmissionEventKind::PartiallyAccepted(_) => "partially_accepted",
             SubmissionEventKind::OutcomeUnknown => "outcome_unknown",
+            SubmissionEventKind::Rejected => "rejected",
             SubmissionEventKind::Deferred(_) => "deferred",
             SubmissionEventKind::Returned(_) => "returned",
             SubmissionEventKind::Cancelled(_) => "cancelled",
@@ -374,7 +379,7 @@ impl tallyline_workflows::api::SubmissionQueueStore for SqliteReferenceCache {
         for job in history(&transaction)? {
             if !matches!(
                 job.phase(),
-                JobPhase::Queued | JobPhase::Held | JobPhase::Sending
+                JobPhase::Queued | JobPhase::Held | JobPhase::Paused | JobPhase::Sending
             ) {
                 continue;
             }

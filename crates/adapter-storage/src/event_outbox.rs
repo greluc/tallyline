@@ -24,6 +24,7 @@ fn meaning(source: &str, kind: &str) -> Result<(EventSource, OutboxKind), Outbox
             OutboxKind::SubmissionOutcomeUnknown,
         )),
         ("submission", "deferred") => Ok((EventSource::Submission, OutboxKind::SubmissionDeferred)),
+        ("submission", "rejected") => Ok((EventSource::Submission, OutboxKind::SubmissionRejected)),
         ("submission", "returned") => Ok((EventSource::Submission, OutboxKind::SubmissionReturned)),
         ("submission", "cancelled") => {
             Ok((EventSource::Submission, OutboxKind::SubmissionCancelled))
@@ -40,6 +41,7 @@ fn names(kind: OutboxKind) -> (&'static str, &'static str) {
         OutboxKind::SubmissionPartiallyAccepted => ("submission", "partially_accepted"),
         OutboxKind::SubmissionOutcomeUnknown => ("submission", "outcome_unknown"),
         OutboxKind::SubmissionDeferred => ("submission", "deferred"),
+        OutboxKind::SubmissionRejected => ("submission", "rejected"),
         OutboxKind::SubmissionReturned => ("submission", "returned"),
         OutboxKind::SubmissionCancelled => ("submission", "cancelled"),
     }

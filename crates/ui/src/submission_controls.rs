@@ -65,14 +65,31 @@ impl ShellState {
         if self.submission.busy {
             return;
         }
-        let crate::api::model::QueueCommand::Cancel {
-            id,
-            expected_revision,
-        } = command;
-        self.submission.pending = Some(SubmissionControl::Cancel {
-            id,
-            expected: expected_revision,
-        });
+        let (id, expected_revision, control) = match command {
+            crate::api::model::QueueCommand::Cancel {
+                id,
+                expected_revision,
+            } => (
+                id,
+                expected_revision,
+                SubmissionControl::Cancel {
+                    id,
+                    expected: expected_revision,
+                },
+            ),
+            crate::api::model::QueueCommand::Retry {
+                id,
+                expected_revision,
+            } => (
+                id,
+                expected_revision,
+                SubmissionControl::Retry {
+                    id,
+                    expected: expected_revision,
+                },
+            ),
+        };
+        self.submission.pending = Some(control);
         self.submission.cancel = Some((id, expected_revision));
         self.submission.busy = true;
         self.submission.feedback = None;

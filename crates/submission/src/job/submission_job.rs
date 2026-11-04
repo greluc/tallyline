@@ -3,10 +3,12 @@
 
 //! Immutable submission phases and write-ahead attempts.
 
-use super::storage::StoredSubmissionJob;
-use crate::api::model::{
-    InvalidSubmission, SendReturnReason, SubmissionRequest, VerifiedUexReport,
+use super::submission_result::{
+    NotProcessed, SubmissionHoldReason, SubmissionPauseReason, SubmissionResult,
+    SubmissionReturnReason,
 };
+use crate::api::model::{InvalidSubmission, SendReturnReason, SubmissionRequest};
+use crate::api::model::{SubmissionAccountCheck, SubmissionAccountEvidence};
 use tallyline_shared_kernel::api::model::Timestamp;
 
 pub use tallyline_shared_kernel::api::model::SubmissionJobId as JobId;
@@ -40,10 +42,14 @@ pub enum JobPhase {
     Sending,
     /// Sending may have stored rows and must never be replayed automatically.
     OutcomeUnknown,
+    /// A permanent refusal ended this immutable release.
+    Rejected,
     /// The Report requires renewed release.
     Returned,
     /// The user cancelled before sending began.
     Cancelled,
+    /// An account or client-token refusal requires an explicit user action.
+    Paused,
     /// A known unprocessed attempt awaits an explicit scheduling decision.
     Held,
 }
@@ -62,16 +68,26 @@ pub enum QueueRefusal {
 /// The durable result of one started attempt.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum AttemptOutcome {
+    /// A production refusal awaits a read-only safety check.
+    OutcomeCheckRequired,
     /// Every production row was accepted, with any unverified identities kept unmapped.
     ProductionSucceeded,
     /// Processing cannot be excluded.
     Unknown,
+    /// UEX permanently refused the request.
+    Rejected,
     /// UEX validated a test request without storing any row.
     DryRunSucceeded,
     /// Some rows may have been stored without a complete mapping.
     Partial,
     /// The adapter established that no row could have been processed.
     NotProcessed(NotProcessed),
+    /// An account or client-token refusal requires an explicit user action.
+    Paused(SubmissionPauseReason),
+    /// UEX locked out this compiled stable release; absence is unverified provenance.
+    VersionLockedOut(Option<tallyline_shared_kernel::api::model::ReleaseVersion>),
+    /// A documented service gate holds dispatch without returning the Report.
+    Held(SubmissionHoldReason),
     /// A closed report-fixable refusal requires renewed release.
     Returned(SubmissionReturnReason),
 }
@@ -79,14 +95,35 @@ pub enum AttemptOutcome {
 /// A write-ahead record retained independently of restart recovery.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct SubmissionAttempt {
-    started_at: Timestamp,
-    rows: usize,
-    payload_hash: PayloadHash,
-    date_added: Timestamp,
-    ended_at: Option<Timestamp>,
-    outcome: Option<AttemptOutcome>,
+    pub(super) started_at: Timestamp,
+    pub(super) rows: usize,
+    pub(super) payload_hash: PayloadHash,
+    pub(super) date_added: Timestamp,
+    pub(super) ended_at: Option<Timestamp>,
+    pub(super) outcome: Option<AttemptOutcome>,
+    pub(super) receipt_checked: bool,
+    pub(super) account_checks: Vec<SubmissionPauseReason>,
+    pub(super) account_evidence: Option<SubmissionAccountEvidence>,
+    pub(super) client_update: Option<tallyline_shared_kernel::api::model::ReleaseVersion>,
 }
 impl SubmissionAttempt {
+    /// Borrows original account refusal evidence retained for this exact attempt.
+    #[must_use]
+    pub const fn account_evidence(&self) -> Option<&SubmissionAccountEvidence> {
+        self.account_evidence.as_ref()
+    }
+    /// Borrows changed account-check actions in their validated transition order.
+    #[must_use]
+    pub fn account_checks(&self) -> &[SubmissionPauseReason] {
+        &self.account_checks
+    }
+    /// Returns the newer compiled release that authorised a preceding version-lockout retry.
+    #[must_use]
+    pub const fn client_update(
+        &self,
+    ) -> Option<tallyline_shared_kernel::api::model::ReleaseVersion> {
+        self.client_update
+    }
     /// Returns the committed attempt start.
     #[must_use]
     pub const fn started_at(&self) -> Timestamp {
@@ -107,6 +144,11 @@ impl SubmissionAttempt {
     pub const fn date_added(&self) -> Timestamp {
         self.date_added
     }
+    /// Reports whether a held refusal was resolved by a later read-only receipt check.
+    #[must_use]
+    pub const fn receipt_checked(&self) -> bool {
+        self.receipt_checked
+    }
     /// Returns the recorded attempt completion time.
     #[must_use]
     pub const fn ended_at(&self) -> Option<Timestamp> {
@@ -122,13 +164,15 @@ impl SubmissionAttempt {
 /// A credential-free immutable submission and its durable attempts.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct SubmissionJob {
-    id: JobId,
-    revision: u64,
-    request: SubmissionRequest,
-    phase: JobPhase,
-    attempts: Vec<SubmissionAttempt>,
-    result: Option<SubmissionResult>,
-    review_reason: Option<SendReturnReason>,
+    pub(super) id: JobId,
+    pub(super) revision: u64,
+    pub(super) request: SubmissionRequest,
+    pub(super) phase: JobPhase,
+    pub(super) attempts: Vec<SubmissionAttempt>,
+    pub(super) result: Option<SubmissionResult>,
+    pub(super) review_reason: Option<SendReturnReason>,
+    pub(super) service_pause_acknowledged: bool,
+    pub(super) client_update: Option<tallyline_shared_kernel::api::model::ReleaseVersion>,
 }
 impl SubmissionJob {
     /// Creates a queued job for a valid released snapshot.
@@ -147,6 +191,8 @@ impl SubmissionJob {
             attempts: Vec::new(),
             result: None,
             review_reason: None,
+            service_pause_acknowledged: false,
+            client_update: None,
         })
     }
     /// Returns the stable local identity.
@@ -159,7 +205,7 @@ impl SubmissionJob {
     pub const fn revision(&self) -> u64 {
         self.revision
     }
-    fn advance(&self) -> Result<Self, QueueRefusal> {
+    pub(super) fn advance(&self) -> Result<Self, QueueRefusal> {
         let mut next = self.clone();
         next.revision = self
             .revision
@@ -176,6 +222,16 @@ impl SubmissionJob {
     #[must_use]
     pub const fn phase(&self) -> JobPhase {
         self.phase
+    }
+    pub(crate) fn observation_order_phase(&self) -> JobPhase {
+        if matches!(
+            self.result.as_ref().map(SubmissionResult::final_result),
+            Some(SubmissionResult::NeedsOutcomeCheck { .. })
+        ) {
+            JobPhase::OutcomeUnknown
+        } else {
+            self.phase
+        }
     }
     /// Borrows every write-ahead attempt.
     #[must_use]
@@ -220,7 +276,117 @@ impl SubmissionJob {
             date_added,
             ended_at: None,
             outcome: None,
+            receipt_checked: false,
+            account_checks: Vec::new(),
+            account_evidence: None,
+            client_update: self.client_update,
         });
+        Ok(next)
+    }
+    /// Reports whether the user acknowledged this retained recoverable service cause.
+    #[must_use]
+    pub const fn service_pause_acknowledged(&self) -> bool {
+        self.service_pause_acknowledged
+    }
+    /// Reports whether explicit queue retry can acknowledge a final recoverable service cause.
+    #[must_use]
+    pub fn can_acknowledge_service_pause(&self) -> bool {
+        if self.account_check_pending() {
+            return false;
+        }
+        if self.service_pause_acknowledged {
+            return false;
+        }
+        self.result
+            .as_ref()
+            .and_then(SubmissionResult::account_pause)
+            .is_some()
+            && matches!(
+                self.phase,
+                JobPhase::Held
+                    | JobPhase::PartiallyAccepted
+                    | JobPhase::OutcomeUnknown
+                    | JobPhase::Rejected
+            )
+            || matches!(self.phase, JobPhase::Cancelled | JobPhase::Returned)
+                && matches!(
+                    self.result.as_ref().map(SubmissionResult::final_result),
+                    Some(
+                        SubmissionResult::Held(SubmissionHoldReason::ApiChanged)
+                            | SubmissionResult::Paused(
+                                SubmissionPauseReason::AppToken
+                                    | SubmissionPauseReason::KeyChecked
+                                    | SubmissionPauseReason::Reauthenticate
+                                    | SubmissionPauseReason::KeyCheckUnavailable
+                            )
+                            | SubmissionResult::PausedCode {
+                                reason: SubmissionPauseReason::AppToken
+                                    | SubmissionPauseReason::KeyChecked
+                                    | SubmissionPauseReason::Reauthenticate
+                                    | SubmissionPauseReason::KeyCheckUnavailable,
+                                ..
+                            }
+                    )
+                )
+    }
+    fn account_check_pending(&self) -> bool {
+        matches!(
+            self.attempts
+                .last()
+                .and_then(|attempt| attempt.account_evidence.as_ref())
+                .map(|evidence| evidence.check()),
+            Some(SubmissionAccountCheck::Pending)
+        )
+    }
+    /// Reports whether explicit retry or queue acknowledgement is available.
+    #[must_use]
+    pub fn can_retry(&self) -> bool {
+        if self.service_pause_acknowledged {
+            return false;
+        }
+        if self.account_check_pending() {
+            return false;
+        }
+        self.can_acknowledge_service_pause()
+            || matches!(self.phase, JobPhase::Held | JobPhase::Paused)
+                && matches!(
+                    self.result.as_ref().map(SubmissionResult::final_result),
+                    Some(
+                        SubmissionResult::NotProcessed(_)
+                            | SubmissionResult::Held(_)
+                            | SubmissionResult::Paused(_)
+                            | SubmissionResult::RateLimitedCode(_)
+                            | SubmissionResult::PausedCode { .. }
+                    )
+                )
+                && !matches!(
+                    self.result.as_ref().map(SubmissionResult::final_result),
+                    Some(
+                        SubmissionResult::NotProcessed(NotProcessed::DailyQuota)
+                            | SubmissionResult::Paused(SubmissionPauseReason::UpdateRequired)
+                            | SubmissionResult::PausedCode {
+                                reason: SubmissionPauseReason::UpdateRequired,
+                                ..
+                            }
+                    )
+                )
+    }
+    /// Retries an eligible request or acknowledges only its global service cause.
+    ///
+    /// # Errors
+    /// Refuses origin replay after queue-only acknowledgement and ineligible outcomes.
+    pub fn retry(&self) -> Result<Self, QueueRefusal> {
+        if self.can_acknowledge_service_pause() {
+            let mut next = self.advance()?;
+            next.service_pause_acknowledged = true;
+            return Ok(next);
+        }
+        if !self.can_retry() {
+            return Err(QueueRefusal::InvalidTransition);
+        }
+        let mut next = self.advance()?;
+        next.phase = JobPhase::Queued;
+        next.result = None;
         Ok(next)
     }
     /// Cancels only a queued request.
@@ -228,14 +394,21 @@ impl SubmissionJob {
     /// # Errors
     /// Refuses sending and final phases.
     pub fn cancel(&self) -> Result<Self, QueueRefusal> {
+        if matches!(
+            self.result.as_ref().map(SubmissionResult::final_result),
+            Some(SubmissionResult::NeedsOutcomeCheck { .. })
+        ) {
+            return Err(QueueRefusal::InvalidTransition);
+        }
         match self.phase {
             JobPhase::Sending => Err(QueueRefusal::AlreadySending),
-            JobPhase::Queued | JobPhase::Held => {
+            JobPhase::Queued | JobPhase::Held | JobPhase::Paused => {
                 let mut next = self.advance()?;
                 next.phase = JobPhase::Cancelled;
                 Ok(next)
             }
             JobPhase::OutcomeUnknown
+            | JobPhase::Rejected
             | JobPhase::Returned
             | JobPhase::Cancelled
             | JobPhase::Succeeded
@@ -253,7 +426,7 @@ impl SubmissionJob {
     /// Refuses sending and final phases without changing attempts or the released snapshot.
     pub fn return_for_review(&self, reason: SendReturnReason) -> Result<Self, QueueRefusal> {
         match self.phase {
-            JobPhase::Queued | JobPhase::Held => {
+            JobPhase::Queued | JobPhase::Held | JobPhase::Paused => {
                 let mut next = self.advance()?;
                 next.phase = JobPhase::Returned;
                 next.review_reason = Some(reason);
@@ -261,6 +434,7 @@ impl SubmissionJob {
             }
             JobPhase::Sending => Err(QueueRefusal::AlreadySending),
             JobPhase::OutcomeUnknown
+            | JobPhase::Rejected
             | JobPhase::Returned
             | JobPhase::Cancelled
             | JobPhase::Succeeded
@@ -273,8 +447,14 @@ impl SubmissionJob {
     /// Refuses corrupt sending state without a write-ahead attempt.
     pub fn recover(&self, now: Timestamp) -> Result<Self, QueueRefusal> {
         let mut next = self.clone();
+        if matches!(
+            self.result.as_ref().map(SubmissionResult::final_result),
+            Some(SubmissionResult::NeedsOutcomeCheck { .. })
+        ) {
+            return Ok(next);
+        }
         match self.phase {
-            JobPhase::Queued | JobPhase::Held => {
+            JobPhase::Queued | JobPhase::Held | JobPhase::Paused => {
                 next = self.advance()?;
                 next.phase = JobPhase::Returned;
             }
@@ -290,209 +470,12 @@ impl SubmissionJob {
                 attempt.ended_at = Some(now);
             }
             JobPhase::OutcomeUnknown
+            | JobPhase::Rejected
             | JobPhase::Returned
             | JobPhase::Cancelled
             | JobPhase::Succeeded
             | JobPhase::PartiallyAccepted => return Ok(next),
         }
         Ok(next)
-    }
-}
-
-/// A closed transport result without speculative UEX row identities.
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub enum SubmissionResult {
-    /// Every positive remote identity was verified against its released row.
-    ProductionSucceeded(Vec<VerifiedUexReport>),
-    /// UEX accepted every row; positive returned identities remain unmapped until verified.
-    ProductionAccepted(Vec<tallyline_shared_kernel::api::model::UexReportId>),
-    /// Test validation succeeded and created no UEX reports.
-    DryRunSucceeded,
-    /// Rows may have been stored and need individual resolution.
-    Partial(Vec<tallyline_shared_kernel::api::model::UexReportId>),
-    /// The adapter established that no row could have been processed.
-    NotProcessed(NotProcessed),
-    /// A closed report-fixable refusal requires renewed release.
-    Returned(SubmissionReturnReason),
-    /// Processing cannot be excluded.
-    Unknown,
-}
-impl SubmissionJob {
-    /// Returns the completed result without inventing row identities.
-    #[must_use]
-    pub const fn result(&self) -> Option<&SubmissionResult> {
-        self.result.as_ref()
-    }
-    /// Closes one sending attempt exactly once.
-    ///
-    /// # Errors
-    /// Refuses a final job, invalid attempt state or dry-run success for production.
-    pub fn complete(&self, result: SubmissionResult, now: Timestamp) -> Result<Self, QueueRefusal> {
-        if self.phase != JobPhase::Sending {
-            return Err(QueueRefusal::InvalidTransition);
-        }
-        if result == SubmissionResult::DryRunSucceeded
-            && self.request.header().mode
-                != tallyline_shared_kernel::api::model::SubmissionMode::DryRun
-        {
-            return Err(QueueRefusal::InvalidTransition);
-        }
-        if self.request.header().mode == tallyline_shared_kernel::api::model::SubmissionMode::DryRun
-            && matches!(&result, SubmissionResult::Partial(ids) if !ids.is_empty())
-        {
-            return Err(QueueRefusal::InvalidTransition);
-        }
-        if let SubmissionResult::ProductionAccepted(ids) = &result {
-            let attempt = self
-                .attempts
-                .last()
-                .ok_or(QueueRefusal::InvalidTransition)?;
-            let mut seen = std::collections::BTreeSet::new();
-            if self.request.header().mode
-                != tallyline_shared_kernel::api::model::SubmissionMode::Production
-                || ids.len() != self.request.rows().len()
-                || ids
-                    .iter()
-                    .any(|id| id.date_added() != attempt.date_added() || !seen.insert(id.id()))
-            {
-                return Err(QueueRefusal::InvalidTransition);
-            }
-        }
-        if let SubmissionResult::ProductionSucceeded(receipts) = &result {
-            let sent_at = self
-                .attempts
-                .last()
-                .ok_or(QueueRefusal::InvalidTransition)?
-                .date_added();
-            let mut rows = std::collections::BTreeSet::new();
-            let mut ids = std::collections::BTreeSet::new();
-            if self.request.header().mode
-                != tallyline_shared_kernel::api::model::SubmissionMode::Production
-                || receipts.len() != self.request.rows().len()
-                || receipts.iter().any(|receipt| {
-                    !receipt.matches_at(&self.request, sent_at)
-                        || !rows.insert(receipt.row().0)
-                        || !ids.insert(receipt.id())
-                })
-            {
-                return Err(QueueRefusal::InvalidTransition);
-            }
-        }
-        let mut next = self.advance()?;
-        let attempt = next
-            .attempts
-            .last_mut()
-            .ok_or(QueueRefusal::InvalidTransition)?;
-        let (phase, outcome) = match &result {
-            SubmissionResult::DryRunSucceeded => {
-                (JobPhase::Succeeded, AttemptOutcome::DryRunSucceeded)
-            }
-            SubmissionResult::ProductionSucceeded(_) | SubmissionResult::ProductionAccepted(_) => {
-                (JobPhase::Succeeded, AttemptOutcome::ProductionSucceeded)
-            }
-            SubmissionResult::Partial(_) => (JobPhase::PartiallyAccepted, AttemptOutcome::Partial),
-            SubmissionResult::Unknown => (JobPhase::OutcomeUnknown, AttemptOutcome::Unknown),
-            SubmissionResult::NotProcessed(reason) => {
-                (JobPhase::Held, AttemptOutcome::NotProcessed(*reason))
-            }
-            SubmissionResult::Returned(reason) => {
-                (JobPhase::Returned, AttemptOutcome::Returned(*reason))
-            }
-        };
-        next.phase = phase;
-        next.result = Some(result);
-        attempt.outcome = Some(outcome);
-        attempt.ended_at = Some(now);
-        Ok(next)
-    }
-}
-
-/// Verified failures that precede storage of any Report row.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum NotProcessed {
-    /// Connection refusal or a connect-phase timeout before HTTP request writing.
-    ConnectFailure,
-}
-
-/// A report-fixable outcome that requires a new release decision.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum SubmissionReturnReason {
-    /// The account must attach confirmed private screenshot evidence.
-    ScreenshotRequired,
-    /// The application proved that final checks failed before any HTTP request started.
-    PreflightChanged,
-    /// UEX refused the encoded observation time; review the time and system clock.
-    InvalidObservationTime,
-}
-
-impl SubmissionJob {
-    /// Reconstitutes validated durable state for the persistence adapter.
-    ///
-    /// # Errors
-    /// Refuses missing, inconsistent or unsupported attempt history rather than inventing state.
-    pub fn reconstitute(stored: StoredSubmissionJob) -> Result<Self, InvalidSubmission> {
-        let mut job = Self::queued(stored.id, stored.request)?;
-        match stored.attempts.as_slice() {
-            [] => {
-                if stored.result.is_some() {
-                    return Err(InvalidSubmission);
-                }
-            }
-            [attempt] => {
-                if attempt.rows != job.request.rows().len() {
-                    return Err(InvalidSubmission);
-                }
-                job = job
-                    .begin_prepared(attempt.started_at, attempt.payload_hash, attempt.date_added)
-                    .map_err(|_| InvalidSubmission)?;
-                job = match (attempt.ended_at, attempt.outcome, stored.result.as_ref()) {
-                    (Some(ended_at), Some(_), Some(result)) => job
-                        .complete(result.clone(), ended_at)
-                        .map_err(|_| InvalidSubmission)?,
-                    (None, None, None) => job,
-                    _ => return Err(InvalidSubmission),
-                };
-            }
-            _ => return Err(InvalidSubmission),
-        }
-        if let Some(reason) = stored.review_reason {
-            job = job
-                .return_for_review(reason)
-                .map_err(|_| InvalidSubmission)?;
-        }
-        if job.phase != stored.phase {
-            job = match stored.phase {
-                JobPhase::Cancelled => job.cancel(),
-                JobPhase::Returned => job.recover(Timestamp::from_seconds(0)),
-                JobPhase::Queued
-                | JobPhase::Succeeded
-                | JobPhase::PartiallyAccepted
-                | JobPhase::Sending
-                | JobPhase::OutcomeUnknown
-                | JobPhase::Held => return Err(InvalidSubmission),
-            }
-            .map_err(|_| InvalidSubmission)?;
-        }
-        let attempts: Vec<_> = stored
-            .attempts
-            .into_iter()
-            .map(|attempt| SubmissionAttempt {
-                started_at: attempt.started_at,
-                rows: attempt.rows,
-                payload_hash: attempt.payload_hash,
-                date_added: attempt.date_added,
-                ended_at: attempt.ended_at,
-                outcome: attempt.outcome,
-            })
-            .collect();
-        if job.phase != stored.phase
-            || job.revision != stored.revision
-            || job.attempts != attempts
-            || job.result != stored.result
-            || job.review_reason != stored.review_reason
-        {
-            return Err(InvalidSubmission);
-        }
-        Ok(job)
     }
 }

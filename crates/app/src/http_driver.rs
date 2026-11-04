@@ -225,6 +225,12 @@ async fn route<B: HttpBackend + 'static>(
                 tracing::debug!("Reserved submission HTTP reply receiver closed");
             }
         }
+        Command::RecheckRefusal(job, values, token, reply) => {
+            let result = backend.recheck_refusal(job, values, token).await;
+            if reply.send(result).is_err() {
+                tracing::debug!("Refusal recheck reply receiver closed");
+            }
+        }
         Command::VerifyReceipts(job, values, token, reply) => {
             let result = backend.verify_receipts(job, values, token).await;
             if reply.send(result).is_err() {

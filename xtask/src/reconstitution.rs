@@ -29,7 +29,7 @@ pub fn violations(files: &[SourceFile]) -> Vec<String> {
         let definition = matches!(
             file.path.as_str(),
             "crates/reporting/src/report.rs"
-                | "crates/submission/src/job/submission_job.rs"
+                | "crates/submission/src/job/reconstitution.rs"
                 | "crates/reference-data/src/prior_history.rs"
         );
         for offset in reserved_identifiers(&file.text, definition) {

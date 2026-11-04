@@ -12,7 +12,7 @@ use tallyline_shared_kernel::api::model::{
 };
 use tallyline_submission::api::model::{
     CredentialValues, NotProcessed, PayloadHash, PreparationFailure, SubmissionRequest,
-    SubmissionResult, SubmissionReturnReason, VerifiedUexReport,
+    SubmissionResult, VerifiedUexReport,
 };
 use tallyline_submission::api::{SubmissionGateway, SubmissionReceiptVerifier};
 
@@ -58,6 +58,46 @@ impl SubmissionGateway for UexReader {
                 ],
             )
             .await;
+        if let Err(SubmissionPostFailure::Authentication(http_status)) = &response {
+            return self
+                .submission_refusal(
+                    crate::submission_refusal::RejectedSubmission {
+                        http_status: *http_status,
+                        code: String::new(),
+                        data: None,
+                    },
+                    crate::submission_refusal::RejectionContext {
+                        request: &request,
+                        date_added,
+                        credentials,
+                        token,
+                    },
+                )
+                .await;
+        }
+        if let Err(SubmissionPostFailure::Other(ReadError::Rejected {
+            http_status,
+            code,
+            data,
+            ..
+        })) = response
+        {
+            return self
+                .submission_refusal(
+                    crate::submission_refusal::RejectedSubmission {
+                        http_status,
+                        code,
+                        data,
+                    },
+                    crate::submission_refusal::RejectionContext {
+                        request: &request,
+                        date_added,
+                        credentials,
+                        token,
+                    },
+                )
+                .await;
+        }
         self.transport
             .process(move || {
                 Ok(match response {
@@ -75,20 +115,19 @@ impl SubmissionGateway for UexReader {
                             }
                         }
                     }
+                    Err(SubmissionPostFailure::RateLimited) => {
+                        SubmissionResult::NotProcessed(NotProcessed::RateLimited)
+                    }
+                    Err(SubmissionPostFailure::Authentication(_)) => SubmissionResult::Unknown,
                     Err(SubmissionPostFailure::Connect) => {
                         SubmissionResult::NotProcessed(NotProcessed::ConnectFailure)
                     }
-                    Err(SubmissionPostFailure::Other(ReadError::Rejected { code, .. })) => {
-                        match code.as_str() {
-                            "screenshot_required" => SubmissionResult::Returned(
-                                SubmissionReturnReason::ScreenshotRequired,
-                            ),
-                            "invalid_date" => SubmissionResult::Returned(
-                                SubmissionReturnReason::InvalidObservationTime,
-                            ),
-                            _ => SubmissionResult::Unknown,
-                        }
-                    }
+                    Err(SubmissionPostFailure::Other(ReadError::NotJson {
+                        http_status: 404,
+                        ..
+                    })) => SubmissionResult::Held(
+                        tallyline_submission::api::model::SubmissionHoldReason::ApiChanged,
+                    ),
                     Ok(_) | Err(SubmissionPostFailure::Other(_)) => SubmissionResult::Unknown,
                 })
             })
@@ -225,7 +264,7 @@ impl SubmissionReceiptVerifier for UexReader {
             .flatten()
     }
 }
-fn number(value: &Value) -> Option<u64> {
+pub(super) fn number(value: &Value) -> Option<u64> {
     value.as_u64().or_else(|| {
         let text = value.as_str()?;
         if text.is_empty() || !text.bytes().all(|byte| byte.is_ascii_digit()) {
@@ -234,7 +273,7 @@ fn number(value: &Value) -> Option<u64> {
         text.parse().ok()
     })
 }
-fn lookup(
+pub(super) fn lookup(
     record: &Value,
     id: u64,
     request: &SubmissionRequest,

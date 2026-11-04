@@ -50,12 +50,23 @@ impl SubmissionSchedule {
         {
             return ScheduleDecision::InFlight;
         }
+        if let Some(attempt) = candidate.attempts().last()
+            && attempt.outcome()
+                == Some(crate::api::model::AttemptOutcome::Held(
+                    crate::api::model::SubmissionHoldReason::Cooldown,
+                ))
+            && let Some(until) = attempt.ended_at().and_then(|at| at.checked_add(COOLDOWN))
+            && until > now
+        {
+            return ScheduleDecision::WaitingUntil(until);
+        }
         let request = candidate.request();
         let key = request.header();
         let mut waiting_until = None;
         let mut earlier = false;
         let mut unresolved_newer = false;
         for job in history.iter().filter(|job| job.id() != candidate.id()) {
+            let phase = job.observation_order_phase();
             let previous = job.request();
             let old = previous.header();
             if old.account != key.account || old.mode != key.mode || old.terminal != key.terminal {
@@ -72,7 +83,7 @@ impl SubmissionSchedule {
             }
             if old.side == key.side {
                 if old.observed_at > key.observed_at {
-                    match job.phase() {
+                    match phase {
                         JobPhase::Succeeded => {
                             let unconfirmed = request.rows().iter().any(|row| {
                                 previous
@@ -93,18 +104,27 @@ impl SubmissionSchedule {
                         | JobPhase::Sending
                         | JobPhase::Returned
                         | JobPhase::Cancelled
-                        | JobPhase::Held => continue,
+                        | JobPhase::Held
+                        | JobPhase::Paused
+                        | JobPhase::Rejected => continue,
                     }
                 }
-                if matches!(job.phase(), JobPhase::Queued | JobPhase::Held)
+                if matches!(phase, JobPhase::Queued | JobPhase::Held)
                     && (old.observed_at, job.id()) < (key.observed_at, candidate.id())
                 {
                     earlier = true;
                 }
             }
             if matches!(
-                job.phase(),
+                phase,
                 JobPhase::Succeeded | JobPhase::PartiallyAccepted | JobPhase::OutcomeUnknown
+            ) || matches!(
+                job.result()
+                    .map(crate::api::model::SubmissionResult::final_result),
+                Some(
+                    SubmissionResult::Held(crate::api::model::SubmissionHoldReason::Cooldown)
+                        | SubmissionResult::DuplicateEvidence(_)
+                )
             ) {
                 let Some(attempt) = job.attempts().last() else {
                     return ScheduleDecision::Unavailable;
@@ -118,12 +138,23 @@ impl SubmissionSchedule {
                         | SubmissionResult::ProductionAccepted(_),
                     ) => attempt.date_added(),
                     Some(
-                        SubmissionResult::DryRunSucceeded
+                        SubmissionResult::AccountRefusal { .. }
+                        | SubmissionResult::DryRunSucceeded
                         | SubmissionResult::Unknown
                         | SubmissionResult::Partial(_)
                         | SubmissionResult::NotProcessed(_)
-                        | SubmissionResult::Returned(_),
+                        | SubmissionResult::Returned(_)
+                        | SubmissionResult::Paused(_)
+                        | SubmissionResult::Held(_)
+                        | SubmissionResult::Rejected(_)
+                        | SubmissionResult::NeedsOutcomeCheck { .. }
+                        | SubmissionResult::PartialError { .. }
+                        | SubmissionResult::Rechecked { .. }
+                        | SubmissionResult::RateLimitedCode(_)
+                        | SubmissionResult::DuplicateEvidence(_)
+                        | SubmissionResult::PausedCode { .. },
                     )
+                    | Some(SubmissionResult::VersionLockedOut(_))
                     | None => ended_at,
                 };
                 let Some(until) = origin.checked_add(COOLDOWN) else {

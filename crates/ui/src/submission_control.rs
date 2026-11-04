@@ -19,6 +19,13 @@ pub enum SubmissionIntent {
 }
 /// Bounded explicit control without secret values or mutable row payloads.
 pub enum SubmissionControl {
+    /// Retry an eligible held job against its displayed revision.
+    Retry {
+        /// Stable job identity.
+        id: JobId,
+        /// Displayed committed concurrency revision.
+        expected: u64,
+    },
     /// Release the exact Draft for the account displayed when the action was requested.
     Release {
         /// Stable Draft identity.
@@ -77,6 +84,10 @@ pub enum SubmissionFeedback {
 /// One passive snapshot prepared on the dedicated CPU owner after persistence.
 #[derive(Debug)]
 pub struct SubmissionUpdate {
+    /// Immutable compiled stable release supplied by the queue owner.
+    pub client_version: Option<tallyline_shared_kernel::api::model::ReleaseVersion>,
+    /// Durable queue-wide service causes independent of Report phase.
+    pub service_fences: Vec<tallyline_submission::api::model::SubmissionServiceFence>,
     /// Actual committed jobs, including Sending after a failed outcome save.
     pub jobs: Vec<SubmissionJob>,
     /// Exact-version passive waits without changing durable job phases.

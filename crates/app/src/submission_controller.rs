@@ -6,9 +6,11 @@
 mod decision_control;
 mod dispatch_preparation;
 mod dispatch_state;
+mod failure_diagnostics;
 mod models;
 mod queue_state;
 mod receipt_enrichment;
+mod refusal_recovery;
 mod release_control;
 mod resources;
 mod submission_queue_controller;

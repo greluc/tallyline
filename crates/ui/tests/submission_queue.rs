@@ -13,6 +13,11 @@ use tallyline_shared_kernel::api::model::{
 use tallyline_submission::api::model::{
     JobId, PayloadHash, SubmissionHeader, SubmissionJob, SubmissionRequest, SubmissionRow,
 };
+use tallyline_submission::api::model::{
+    NotProcessed, SendReturnReason, SubmissionAccountCheck, SubmissionCorrection,
+    SubmissionPauseReason, SubmissionRejection, SubmissionResult, SubmissionServiceCause,
+    SubmissionServiceFence,
+};
 use tallyline_ui::api::model::{QueueCommand, SubmissionQueue};
 use tallyline_ui::api::{Catalogue, show_submission_queue};
 mod submission_support;
@@ -61,16 +66,14 @@ fn r_sub_2_r_sub_8_r_ui_16__drawn_queue_keeps_mode_account_and_sending_cancel_li
     let mut state = SubmissionQueue::default();
     let returned = queued(3, SubmissionMode::DryRun)
         .unwrap()
-        .return_for_review(tallyline_submission::api::model::SendReturnReason::GameVersionChanged)
+        .return_for_review(SendReturnReason::GameVersionChanged)
         .unwrap();
     let held = queued(4, SubmissionMode::Production)
         .unwrap()
         .begin(Timestamp::from_seconds(110), PayloadHash::new([1; 32]))
         .unwrap()
         .complete(
-            tallyline_submission::api::model::SubmissionResult::NotProcessed(
-                tallyline_submission::api::model::NotProcessed::ConnectFailure,
-            ),
+            SubmissionResult::NotProcessed(NotProcessed::ConnectFailure),
             Timestamp::from_seconds(115),
         )
         .unwrap();
@@ -100,7 +103,7 @@ fn r_sub_2_r_sub_8_r_ui_16__drawn_queue_keeps_mode_account_and_sending_cancel_li
     assert_eq!(harness.query_all_by_label("Dry run").count(), 2);
     assert_eq!(harness.query_all_by_label("Production").count(), 2);
     harness.get_by_label("Sending");
-    harness.get_by_label("The connection failed before sending. Cancel this submission to review and release the Report again.");
+    harness.get_by_label("The connection failed before sending. The queue retries with bounded backoff; Retry now is an explicit action.");
     harness.get_by_label(
         "The game version changed. Review the captured version before releasing the Report again.",
     );
@@ -326,6 +329,8 @@ fn r_sub_12_r_ui_16__account_switch_offers_keep_or_review_without_rebinding_jobs
     shell.receive(account("test-account", 1000));
     shell.receive(BackgroundEvent::SubmissionUpdated(Box::new(
         SubmissionUpdate {
+            client_version: None,
+            service_fences: vec![],
             jobs: vec![job.clone()],
             waiting: vec![],
             mappings: vec![],
@@ -372,4 +377,230 @@ fn r_sub_12_r_ui_16__account_switch_offers_keep_or_review_without_rebinding_jobs
     );
     assert_eq!(harness.state().view(), View::Queue);
     assert!(!harness.state().dialogs().about_open());
+}
+
+#[test]
+#[expect(
+    non_snake_case,
+    reason = "Requirement tags use a double underscore separator."
+)]
+fn r_sub_11_r_ui_16__held_job_offers_a_keyboard_retry_for_its_exact_displayed_revision() {
+    safe_code_presentation().unwrap();
+    let held = queued(1, SubmissionMode::DryRun)
+        .unwrap()
+        .begin(Timestamp::from_seconds(110), PayloadHash::new([1; 32]))
+        .unwrap()
+        .complete(
+            SubmissionResult::NotProcessed(NotProcessed::ServiceUnavailable),
+            Timestamp::from_seconds(115),
+        )
+        .unwrap();
+    let mut state = SubmissionQueue::default();
+    state.received(vec![held]);
+    let catalogue = Catalogue::english().unwrap();
+    let mut fonts = Some(font_files().unwrap());
+    let mut harness = Harness::builder()
+        .with_size(egui::vec2(900.0, 600.0))
+        .build_ui_state(
+            move |ui, state: &mut (SubmissionQueue, Vec<QueueCommand>)| {
+                if let Some(fonts) = fonts.take() {
+                    tallyline_ui::api::configure_fonts(ui.ctx(), fonts);
+                }
+                if let Some(command) = show_submission_queue(
+                    ui,
+                    &mut state.0,
+                    &catalogue,
+                    tallyline_egui::Theme::Light,
+                ) {
+                    state.1.push(command);
+                }
+            },
+            (state, Vec::new()),
+        );
+    harness.run();
+    harness.get_by_label("Next retry/check: 1970-01-01 00:02:00 UTC");
+    harness.get_by_label("Retry now 1").focus();
+    harness.key_press(egui::Key::Enter);
+    harness.run();
+    assert_eq!(
+        format!("{:?}", harness.state().1),
+        "[Retry { id: SubmissionJobId(1), expected_revision: 3 }]"
+    );
+    assert!(
+        harness
+            .get_by_label("Retry now 1")
+            .accesskit_node()
+            .is_disabled()
+    );
+    assert!(
+        harness
+            .output()
+            .viewport_output
+            .values()
+            .all(|output| output.commands.is_empty())
+    );
+}
+
+#[test]
+#[expect(
+    non_snake_case,
+    reason = "Requirement tags use a double underscore separator."
+)]
+fn r_sub_2_r_sub_11_r_ui_16__durable_global_quota_reason_is_visible_without_an_active_report() {
+    let mut state = SubmissionQueue::default();
+    state.received_service_fences(vec![
+        SubmissionServiceFence::new(SubmissionServiceCause::DailyQuota, JobId(17), 3).unwrap(),
+    ]);
+    let catalogue = Catalogue::english().unwrap();
+    let mut fonts = Some(font_files().unwrap());
+    let mut harness = Harness::builder()
+        .with_size(egui::vec2(1000.0, 500.0))
+        .build_ui_state(
+            move |ui, state: &mut SubmissionQueue| {
+                if let Some(fonts) = fonts.take() {
+                    tallyline_ui::api::configure_fonts(ui.ctx(), fonts);
+                }
+                show_submission_queue(ui, state, &catalogue, tallyline_egui::Theme::Light);
+            },
+            state,
+        );
+    harness.run();
+    harness
+        .get_by_label("All submissions are held: the shared daily app-token quota is exhausted.");
+    assert!(
+        harness
+            .output()
+            .viewport_output
+            .values()
+            .all(|output| output.commands.is_empty())
+    );
+}
+
+#[test]
+#[expect(
+    non_snake_case,
+    reason = "Requirement tags use a double underscore separator."
+)]
+fn r_sub_11_r_ui_16__updated_release_offers_queue_acknowledgement_without_replaying_cancelled_report()
+ {
+    let held = queued(1, SubmissionMode::DryRun)
+        .unwrap()
+        .begin(Timestamp::from_seconds(110), PayloadHash::new([1; 32]))
+        .unwrap()
+        .complete(
+            SubmissionResult::VersionLockedOut(
+                tallyline_shared_kernel::api::model::ReleaseVersion::parse("v1.2.0"),
+            ),
+            Timestamp::from_seconds(115),
+        )
+        .unwrap();
+    let mut state = SubmissionQueue::default();
+    state.received(vec![held.cancel().unwrap()]);
+    let catalogue = Catalogue::english().unwrap();
+    let mut fonts = Some(font_files().unwrap());
+    let mut harness = Harness::builder()
+        .with_size(egui::vec2(900.0, 600.0))
+        .build_ui_state(
+            move |ui, state: &mut (SubmissionQueue, Vec<QueueCommand>)| {
+                if let Some(fonts) = fonts.take() {
+                    tallyline_ui::api::configure_fonts(ui.ctx(), fonts);
+                }
+                if let Some(command) = show_submission_queue(
+                    ui,
+                    &mut state.0,
+                    &catalogue,
+                    tallyline_egui::Theme::Light,
+                ) {
+                    state.1.push(command);
+                }
+            },
+            (state, Vec::new()),
+        );
+    harness.run();
+    assert!(harness.query_by_label("Retry queue now 1").is_none());
+    harness.state_mut().0.received_client_version(
+        tallyline_shared_kernel::api::model::ReleaseVersion::parse("v1.2.1"),
+    );
+    harness.run();
+    harness.get_by_label("Retry queue now 1").focus();
+    harness.key_press(egui::Key::Enter);
+    harness.run();
+    assert_eq!(
+        format!("{:?}", harness.state().1),
+        "[Retry { id: SubmissionJobId(1), expected_revision: 4 }]"
+    );
+    assert!(
+        harness
+            .get_by_label("Retry queue now 1")
+            .accesskit_node()
+            .is_disabled()
+    );
+    assert!(
+        harness
+            .output()
+            .viewport_output
+            .values()
+            .all(|output| output.commands.is_empty())
+    );
+}
+
+fn safe_code_presentation() -> Result<(), Box<dyn std::error::Error>> {
+    use tallyline_submission::api::model::{SubmissionResult, UexErrorCode};
+    for (code, correction) in [
+        ("Future_Code", SubmissionCorrection::ReviewClient),
+        ("future-code", SubmissionCorrection::ReviewClient),
+        ("invalid_secret_key", SubmissionCorrection::ReviewClient),
+        ("invalid_game_version", SubmissionCorrection::NewCapture),
+        ("invalid_game_version", SubmissionCorrection::ReviewClient),
+    ] {
+        let rejected = queued(1, SubmissionMode::DryRun)
+            .ok_or("fixture job")?
+            .begin(Timestamp::from_seconds(110), PayloadHash::new([1; 32]))
+            .map_err(|error| std::io::Error::other(format!("{error:?}")))?
+            .complete(
+                if code == "invalid_secret_key" {
+                    SubmissionResult::AccountRefusal {
+                        code: UexErrorCode::new(code.to_owned()),
+                        http_status: 400,
+                        reason: SubmissionPauseReason::KeyCheckUnavailable,
+                        check: SubmissionAccountCheck::Pending,
+                        outcome: Box::new(SubmissionResult::Paused(
+                            SubmissionPauseReason::KeyCheckUnavailable,
+                        )),
+                    }
+                } else {
+                    SubmissionResult::Rejected(SubmissionRejection::new(
+                        UexErrorCode::new(code.to_owned()).ok_or("fixture code")?,
+                        correction,
+                    ))
+                },
+                Timestamp::from_seconds(115),
+            )
+            .map_err(|error| std::io::Error::other(format!("{error:?}")))?;
+        let mut state = SubmissionQueue::default();
+        state.received(vec![rejected]);
+        let catalogue = Catalogue::english()?;
+        let mut fonts = Some(font_files()?);
+        let mut harness = Harness::builder()
+            .with_size(egui::vec2(900.0, 600.0))
+            .build_ui_state(
+                move |ui, state: &mut SubmissionQueue| {
+                    if let Some(fonts) = fonts.take() {
+                        tallyline_ui::api::configure_fonts(ui.ctx(), fonts);
+                    }
+                    let _command =
+                        show_submission_queue(ui, state, &catalogue, tallyline_egui::Theme::Light);
+                },
+                state,
+            );
+        harness.run();
+        if code == "invalid_secret_key" {
+            harness.get_by_label("A read-only account check is pending. Sending remains paused.");
+        } else {
+            harness.get_by_label(&format!("UEX permanently refused this Report: {code}"));
+            harness.get_by_label(if correction == SubmissionCorrection::NewCapture { "UEX no longer accepts the captured game version. Capture a new observation with a valid game version. This Report cannot be retried or duplicated with its captured version." } else { "Update the app or report this technical code with the app version. Review the original data before preparing another Draft." });
+        }
+        assert!(harness.query_by_label("Retry now 1").is_none());
+    }
+    Ok(())
 }

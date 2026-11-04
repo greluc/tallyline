@@ -210,7 +210,7 @@ fn r_sub_2_r_nf_11__manual_release_commits_report_job_and_outbox_atomically_and_
         database
             .pragma_query_value(None, "user_version", |row| row.get::<_, u32>(0))
             .unwrap(),
-        9
+        10
     );
     drop(database);
     drop(reopened);
@@ -305,7 +305,12 @@ fn r_man_5_r_sub_2__screenshot_required_dry_run_returns_draft_and_remembers_only
     );
     assert_eq!(store.required_since("dummy-b").unwrap(), None);
     let report = store.load_draft(gate.source().id()).unwrap().unwrap();
-    assert_eq!(report.finding(), Some(ReportFinding::ScreenshotRequired));
+    assert_eq!(
+        report.finding(),
+        Some(ReportFinding::ReturnedForFix(
+            tallyline_reporting::api::model::FixableReason::ScreenshotRequired
+        ))
+    );
     assert_eq!(report.rows(), release.report().rows());
     drop(store);
     let mut reopened = tallyline_adapter_storage::api::SqliteReferenceCache::open(&path).unwrap();

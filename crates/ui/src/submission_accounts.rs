@@ -25,8 +25,10 @@ impl SubmissionAccountChoice {
         };
         if self.acknowledged.as_deref() != Some(current)
             && jobs.iter().any(|job| {
-                matches!(job.phase(), JobPhase::Queued | JobPhase::Held)
-                    && job.request().header().account != current
+                matches!(
+                    job.phase(),
+                    JobPhase::Queued | JobPhase::Held | JobPhase::Paused
+                ) && job.request().header().account != current
             })
         {
             self.prompt = Some(current.to_owned());

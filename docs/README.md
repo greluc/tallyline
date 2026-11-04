@@ -46,4 +46,4 @@ The [SCU policy evidence](scu-policy-calibration.md) records exact explicit-band
 The explicit `scu-policy --public <directory>` developer command analyses complete whole-SCU transcriptions without images or recognition. Its synthetic counts remain separate from golden accuracy and verification flags; [the calibration note](scu-policy-calibration.md) records the provisional starting-pair recommendation and limits.
 
 
-The [durable manual submission queue](submission-queue.md) records fixed release identity, actual refresh/send gates, transactional recovery/outbox delivery, schema 9/settings 6 and the remaining acceptance boundary.
+The [durable manual submission queue](submission-queue.md) records fixed release identity, actual refresh/send gates, transactional recovery/outbox delivery, schema 10/settings 6 and the remaining acceptance boundary.

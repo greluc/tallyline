@@ -13,6 +13,9 @@ use tallyline_submission::api::model::{
     CredentialFailure, CredentialValues, PayloadHash, PreparationFailure, SubmissionRequest,
     SubmissionResult, ValidatedAccount,
 };
+use tallyline_submission::api::model::{
+    JobPhase, SubmissionAccountCheck, SubmissionJob, SubmissionPauseReason, VerifiedUexReport,
+};
 use tallyline_submission::api::{CredentialValidator, SubmissionGateway};
 use tokio::sync::{mpsc, oneshot};
 
@@ -114,10 +117,10 @@ impl HttpClient {
 impl tallyline_submission::api::SubmissionReceiptVerifier for HttpClient {
     async fn verify_receipts(
         &self,
-        job: &tallyline_submission::api::model::SubmissionJob,
+        job: &SubmissionJob,
         values: &CredentialValues,
         release_token: Option<&str>,
-    ) -> Option<Vec<tallyline_submission::api::model::VerifiedUexReport>> {
+    ) -> Option<Vec<VerifiedUexReport>> {
         let (reply, result) = oneshot::channel();
         self.requests
             .send(Command::VerifyReceipts(
@@ -139,7 +142,7 @@ impl HttpClient {
     /// Refuses non-successful jobs, a full command queue or a stopped shared driver.
     pub fn begin_receipt_verification(
         &self,
-        job: &tallyline_submission::api::model::SubmissionJob,
+        job: &SubmissionJob,
         values: &CredentialValues,
         release_token: Option<&str>,
     ) -> Result<crate::api::PendingReceiptVerification, crate::api::model::HttpAdmissionFailure>
@@ -191,5 +194,56 @@ impl HttpClient {
         Ok(crate::submission_slot::PendingSubmissionReservation::new(
             result,
         ))
+    }
+}
+
+impl HttpClient {
+    pub(crate) fn begin_refusal_recheck(
+        &self,
+        job: &SubmissionJob,
+        values: &CredentialValues,
+        release_token: Option<&str>,
+    ) -> Result<oneshot::Receiver<Option<SubmissionResult>>, crate::api::model::HttpAdmissionFailure>
+    {
+        use crate::api::model::HttpAdmissionFailure;
+        let account = job
+            .attempts()
+            .last()
+            .and_then(|attempt| attempt.account_evidence())
+            .is_some_and(|evidence| {
+                matches!(
+                    evidence.check(),
+                    SubmissionAccountCheck::Pending
+                        | SubmissionAccountCheck::Completed(
+                            SubmissionPauseReason::KeyCheckUnavailable
+                        )
+                )
+            });
+        let receipt = job.phase() == JobPhase::Held
+            && matches!(
+                job.result().map(SubmissionResult::final_result),
+                Some(SubmissionResult::NeedsOutcomeCheck { .. })
+            );
+        if (!account && !receipt)
+            || matches!(
+                job.phase(),
+                JobPhase::Queued | JobPhase::Sending | JobPhase::Succeeded
+            )
+        {
+            return Err(HttpAdmissionFailure::InvalidJob);
+        }
+        let (reply, result) = oneshot::channel();
+        self.requests
+            .try_send(Command::RecheckRefusal(
+                job.clone(),
+                values.clone(),
+                release_token.map(str::to_owned),
+                reply,
+            ))
+            .map_err(|error| match error {
+                mpsc::error::TrySendError::Full(_) => HttpAdmissionFailure::Busy,
+                mpsc::error::TrySendError::Closed(_) => HttpAdmissionFailure::Stopped,
+            })?;
+        Ok(result)
     }
 }

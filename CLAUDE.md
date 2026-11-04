@@ -355,3 +355,7 @@ Corrected 2026-11-02: ADR-0011 supersedes historical WiX 3.11.2/candle/light and
 
 
 Corrected 2026-11-03: recognition and adapter-vlm provide only shared exact numeric parsing, typed raw observations, a strict versioned Markdown parser and injected-answer bounded retry. No image/request runtime, complete-card reader, fusion or report preservation is implemented by this slice. The approved numeric property profile uses proptest 1.12.0 as a development dependency only; [the source and approval record](supply-chain/property-testing.json) and [review scope](supply-chain/README.md#numeric-property-profile-2026-11-03) bind its seven exact testing packages and getrandom feature extension. ADR-0012 runtime/delivery acceptance remains open.
+
+## Manual refusal recovery correction — 2026-11-03
+
+Corrected 2026-11-03: the manual queue recovery format uses database schema 10 with configuration schema 6, superseding the schema-nine current-state descriptions above. Coordinated backups precede migration. Typed refused outcomes, bounded proven-unprocessed retries, explicit retry, account/API holds and repeated GET-only receipt checks are composed; pending safety checks survive restart without returning to Draft. See [the queue record](docs/submission-queue.md) for defaults, safeguards, public contracts and the still-open row/quota/native/real-service/mutation gates. No new external-write authority is granted.

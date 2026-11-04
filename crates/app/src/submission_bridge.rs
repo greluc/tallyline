@@ -211,6 +211,9 @@ impl SubmissionQueueBridge {
                 }
                 .map(|_| ())
             }
+            SubmissionControl::Retry { id, expected } => {
+                self.controller.retry_now(id, expected).map(|_| ())
+            }
             SubmissionControl::Cancel { id, expected } => {
                 self.controller.cancel(id, expected).map(|_| ())
             }
@@ -317,6 +320,10 @@ impl CredentialQueue for SubmissionQueueBridge {
             }
             self.pending = Some(BackgroundEvent::SubmissionUpdated(Box::new(
                 SubmissionUpdate {
+                    client_version: self.controller.client_version(),
+                    service_fences: self.controller.service_fences().map_err(|_| {
+                        io::Error::other("submission service-fence snapshot unavailable")
+                    })?,
                     jobs: self.controller.jobs().to_vec(),
                     mappings: self.controller.mappings().to_vec(),
                     waiting: self.controller.waiting().to_vec(),

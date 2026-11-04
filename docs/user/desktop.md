@@ -1,6 +1,6 @@
 # Desktop shell
 
-> **Doc type:** Living reference — M1 foundation. Last reviewed: 2026-11-03.
+> **Doc type:** Living reference — M1 foundation. Last reviewed: 2026-11-04.
 
 Tallyline starts with the onboarding welcome screen and its coupled Star Citizen Fan Kit unit. Choose **Continue** to acknowledge it and open the workspace. The workspace shows its empty capture state and keeps Settings and Help available. That acknowledgement and the selected theme survive a restart; subsequent starts open the workspace. **Done** or **Home** leaves Settings. If Settings was opened before the start-screen acknowledgement, Done returns to onboarding. The shell includes reviewed manual submission; capture and OCR workflows remain in progress. Account setup is available below the welcome acknowledgement and in Settings.
 
@@ -230,3 +230,19 @@ The desktop uses approved IBM Plex Sans weights and explicit line heights for re
 The confidence and deviation states use the approved Material Symbols Rounded glyphs alongside their existing text. The separate icon font is checked against its approved identity before startup; a changed or incomplete file is refused. Its Apache licence and modification notice are included in **Open-source licences**. Magnified icon legibility and installed-app acceptance remain under review.
 
 Manual price/SCU and stock-tolerance inputs use right-aligned JetBrains Mono values with muted aUEC/SCU, SCU or % suffixes. Their accessible names include the unit. Reference values stay beside empty manual inputs until explicitly taken over. Manual values still commit on leaving a field; tolerance settings still require **Save SCU tolerance**. Whole input groups wrap within narrow views. Native display-scale and text-size acceptance remains pending.
+
+## Recover a held or paused submission
+
+Corrected 2026-11-03: the queue shows the refusal reason, original fixed account/mode and the next retry/check time when one is scheduled. Proven unprocessed failures retry at most three times, after 5 and 10 seconds; the send timeout is 90 seconds. **Retry now** is an explicit exact-version action and repeats all current send checks. It never retries an uncertain or partially accepted request. Acceptance is checked again after 15 minutes; a first-row duplicate waits five minutes. A duplicate following a recent uncertain attempt returns for review with a link to that earlier submission.
+
+A key error first triggers a read-only account check. A passing check keeps the queue paused and offers Retry now; otherwise follow the shown re-authentication or availability action. App-token errors stop the whole queue; a version lockout requires a strictly newer stable app release, followed by explicit Retry now. Development builds, unknown originating versions and downgrades cannot clear it; startup never resumes it automatically. An API-changed hold requires an update or explicit retry. Fix a screenshot, time, row-limit or terminal refusal in the returned Draft and release it again. Rejected technical codes remain visible with an update/report recommendation; a rejected captured game version cannot be retried with the same version.
+
+A receipt-check wait may represent already stored rows. It remains held across restart, cannot be cancelled or resubmitted, blocks older shared-row releases and performs read-only checks. Sending timeouts and HTTP 504 stay unknown, without automatic replay. Daily-quota exhaustion holds the complete queue through cancellation and restart. Token-scoped reset and resumption remain unavailable until the quota-reset feature is implemented.
+
+Database schema 10 supersedes the schema-nine descriptions above; settings remain schema 6. Startup makes the coordinated database/settings backup before migrating older schemas, preserving original Report values, decisions, attachments and attempts. Native visual/provider checks and an explicitly approved real dry run remain open.
+
+Account refusal and receipt uncertainty may be shown together. Retry now can acknowledge the queue pause while leaving the original uncertain or partially accepted Report closed to resending. Acknowledgement does not prove that UEX received or rejected its rows. Detailed row resolution, quota reset and duplicate-as-new-Draft actions remain separate work.
+
+A pending read-only account check is shown explicitly. It must complete before Retry now becomes available. A successful or unavailable check keeps the queue paused; the check itself never sends or retries a Report.
+
+Corrected 2026-11-04: an unavailable read-only account check can later succeed or require re-authentication without making the saved queue unreadable after restart. Receipt checks and explicit queue acknowledgement retain their separate safeguards. A permanently rejected captured game version requires a new capture; the safe technical code remains visible.

@@ -72,6 +72,8 @@ mod public_contract_tests;
 #[cfg(test)]
 mod queue_contract_tests;
 mod submission;
+mod submission_account_recheck;
+mod submission_refusal;
 
 mod http_date;
 mod server_time;

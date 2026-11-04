@@ -11,3 +11,4 @@ mod decimal;
 mod delta;
 mod image_raster;
 mod observation_age;
+mod release_version;

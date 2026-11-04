@@ -34,7 +34,9 @@ pub struct SubmissionQueueController {
     clock: Box<dyn Clock + Send>,
     queue: QueueState,
     dispatch: DispatchState,
+    client_version: Option<tallyline_shared_kernel::api::model::ReleaseVersion>,
     receipt: ReceiptEnrichment,
+    recovery: super::refusal_recovery::RefusalRecovery,
 }
 impl SubmissionQueueController {
     /// Recovers interrupted work before accepting any new release or dispatch.
@@ -42,12 +44,30 @@ impl SubmissionQueueController {
     /// # Errors
     /// Refuses unavailable or inconsistent durable history without assuming an empty queue.
     pub fn new(
-        mut store: SqliteReferenceCache,
+        store: SqliteReferenceCache,
         client: HttpClient,
         preferences: impl FnMut() -> std::io::Result<SubmissionQueuePreferences> + Send + 'static,
         copies: Option<ManualWorkingCopies>,
         clock: impl Clock + Send + 'static,
     ) -> Result<Self, SubmissionControlError> {
+        let information = crate::api::compiled_build_information()
+            .map_err(|_| SubmissionControlError::Invalid)?;
+        Self::new_with_build_information(store, client, preferences, copies, clock, information)
+    }
+    /// Recovers interrupted work with one immutable validated compiled identity.
+    ///
+    /// # Errors
+    /// Refuses unavailable or inconsistent durable history.
+    pub fn new_with_build_information(
+        mut store: SqliteReferenceCache,
+        client: HttpClient,
+        preferences: impl FnMut() -> std::io::Result<SubmissionQueuePreferences> + Send + 'static,
+        copies: Option<ManualWorkingCopies>,
+        clock: impl Clock + Send + 'static,
+        information: crate::api::model::BuildInformation,
+    ) -> Result<Self, SubmissionControlError> {
+        let client_version = (information.kind() == crate::api::model::BuildKind::Release)
+            .then_some(information.update_baseline());
         store
             .recover_unfinished(clock.now())
             .map_err(SubmissionControlError::Repository)?;
@@ -73,11 +93,31 @@ impl SubmissionQueueController {
             copies,
             clock: Box::new(clock),
             queue: QueueState::new(jobs),
-            dispatch: DispatchState::default(),
+            dispatch: DispatchState::new(client_version),
+            client_version,
             receipt: ReceiptEnrichment::new(mappings),
+            recovery: super::refusal_recovery::RefusalRecovery::default(),
         })
     }
 
+    /// Returns the compiled stable release identity; development supplies no recovery evidence.
+    #[must_use]
+    pub const fn client_version(
+        &self,
+    ) -> Option<tallyline_shared_kernel::api::model::ReleaseVersion> {
+        self.client_version
+    }
+    /// Loads durable global service blocks independently of Report phases.
+    ///
+    /// # Errors
+    /// Refuses unavailable or corrupt service state without opening dispatch.
+    pub fn service_fences(
+        &mut self,
+    ) -> Result<Vec<tallyline_submission::api::model::SubmissionServiceFence>, SubmissionControlError>
+    {
+        tallyline_submission::api::SubmissionServiceFenceRepository::service_fences(&mut self.store)
+            .map_err(SubmissionControlError::Repository)
+    }
     /// Borrows only committed queue state; failed outcome saves remain Sending here.
     #[must_use]
     pub fn jobs(&self) -> &[SubmissionJob] {
@@ -168,6 +208,37 @@ impl SubmissionQueueController {
         Ok(committed)
     }
 
+    /// Commits an explicit exact-version retry through the complete send-time gate.
+    ///
+    /// # Errors
+    /// Refuses changed versions, uncertain or final outcomes, and failed persistence.
+    pub fn retry_now(
+        &mut self,
+        id: JobId,
+        expected: u64,
+    ) -> Result<SubmissionJob, SubmissionControlError> {
+        let job = SubmissionJobRepository::load(&mut self.store, id)
+            .map_err(SubmissionControlError::Repository)?
+            .ok_or(SubmissionControlError::Invalid)?;
+        if job.revision() != expected {
+            return Err(SubmissionControlError::Conflict);
+        }
+        let command = if job.can_retry_after_update(self.client_version) {
+            SubmissionCommand::RetryAfterUpdate {
+                version: self.client_version.ok_or(SubmissionControlError::Invalid)?,
+            }
+        } else {
+            SubmissionCommand::Retry
+        };
+        let change = job
+            .apply(command)
+            .map_err(SubmissionControlError::Refused)?;
+        SubmissionJobRepository::save(&mut self.store, &change)
+            .map_err(SubmissionControlError::Repository)?;
+        let committed = change.into_state();
+        self.queue.update(committed.clone());
+        Ok(committed)
+    }
     /// Records an explicit age confirmation against the exact displayed Draft and real clock.
     ///
     /// # Errors
@@ -212,12 +283,20 @@ impl SubmissionQueueController {
         credentials: &CredentialApplication,
         token: Option<&ReleaseToken>,
     ) -> Result<bool, SubmissionControlError> {
+        let recovered = self.recovery.advance(
+            &mut self.store,
+            &self.client,
+            &mut self.queue,
+            &*self.clock,
+            credentials,
+            token,
+        )?;
         let previous = self.queue.waiting().to_vec();
         let result = self.advance(credentials, token);
         let refreshed = self.queue.refresh_waiting(credentials, &*self.clock);
         let progress = result?;
         refreshed?;
-        Ok(progress || previous != self.queue.waiting())
+        Ok(recovered || progress || previous != self.queue.waiting())
     }
     fn advance(
         &mut self,
@@ -243,6 +322,26 @@ impl SubmissionQueueController {
             return Ok(committed.is_some() || enriched);
         }
         let enriched = self.receipt.poll_enrichment(&mut self.store);
+        let settings = tallyline_submission::api::model::SubmissionRetrySettings::default();
+        let due = self
+            .queue
+            .jobs()
+            .iter()
+            .filter(|job| {
+                settings
+                    .automatic_retry_at(job)
+                    .is_some_and(|at| at <= self.clock.now())
+            })
+            .cloned()
+            .collect::<Vec<_>>();
+        for job in due {
+            let change = job
+                .apply(SubmissionCommand::Retry)
+                .map_err(SubmissionControlError::Refused)?;
+            SubmissionJobRepository::save(&mut self.store, &change)
+                .map_err(SubmissionControlError::Repository)?;
+            self.queue.update(change.into_state());
+        }
         let context = DispatchPreparation::new(
             &mut self.store,
             &self.client,

@@ -29,6 +29,14 @@ pub fn fixture(
     mode: SubmissionMode,
     name: &str,
 ) -> Result<Fixture, Box<dyn std::error::Error>> {
+    fixture_with_clock(client, mode, name, super::support::Fixed)
+}
+pub fn fixture_with_clock(
+    client: HttpClient,
+    mode: SubmissionMode,
+    name: &str,
+    clock: impl tallyline_shared_kernel::api::Clock + Send + 'static,
+) -> Result<Fixture, Box<dyn std::error::Error>> {
     let path = std::env::temp_dir().join(format!(
         "tallyline-controller-{name}-{}.db",
         std::process::id()
@@ -83,7 +91,7 @@ pub fn fixture(
             })
         },
         None,
-        super::support::Fixed,
+        clock,
     )
     .map_err(|_| std::io::Error::other("fixture queue unavailable"))?;
     Ok(Fixture {
@@ -92,4 +100,30 @@ pub fn fixture(
         report: draft.source().clone(),
         path,
     })
+}
+
+pub fn open_with_build_information(
+    path: &std::path::Path,
+    client: HttpClient,
+    information: tallyline_app::api::model::BuildInformation,
+) -> Result<SubmissionQueueController, Box<dyn std::error::Error>> {
+    Ok(SubmissionQueueController::new_with_build_information(
+        tallyline_adapter_storage::api::SqliteReferenceCache::open(path)?,
+        client,
+        || {
+            Ok(SubmissionQueuePreferences {
+                reviewer: ManualReviewer::new(
+                    EnvironmentMapping::default(),
+                    StockSettings::default(),
+                    None,
+                ),
+                age: ObservationAgeSettings::default(),
+                mode: SubmissionMode::DryRun,
+            })
+        },
+        None,
+        super::support::Fixed,
+        information,
+    )
+    .map_err(|_| std::io::Error::other("fixture queue unavailable"))?)
 }

@@ -480,7 +480,9 @@ mod price;
 
 mod stock;
 
+mod fixable_reason;
 mod lifecycle;
+pub use fixable_reason::FixableReason;
 pub use lifecycle::{
     ReportChange, ReportDelivery, ReportEvent, ReportEventKind, ReportFinding,
     ReportReleaseBinding, ReportState, StoredReportLifecycle, StoredReportReleaseBinding,

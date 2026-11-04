@@ -26,6 +26,8 @@ pub enum OutboxKind {
     SubmissionDeferred,
     /// A submission returned to review.
     SubmissionReturned,
+    /// A submission was permanently refused.
+    SubmissionRejected,
     /// An unsent submission was cancelled.
     SubmissionCancelled,
 }
@@ -47,6 +49,7 @@ impl OutboxEvent {
             | OutboxKind::SubmissionPartiallyAccepted
             | OutboxKind::SubmissionOutcomeUnknown
             | OutboxKind::SubmissionDeferred
+            | OutboxKind::SubmissionRejected
             | OutboxKind::SubmissionReturned
             | OutboxKind::SubmissionCancelled => EventSource::Submission,
         };

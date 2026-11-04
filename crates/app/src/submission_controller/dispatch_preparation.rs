@@ -55,6 +55,12 @@ impl<'a> DispatchPreparation<'a> {
         id: JobId,
         credentials: &'credentials CredentialApplication,
     ) -> Result<Option<PreparedDispatch<'credentials>>, SubmissionControlError> {
+        if !tallyline_submission::api::SubmissionServiceFenceRepository::service_fences(self.store)
+            .map_err(SubmissionControlError::Repository)?
+            .is_empty()
+        {
+            return Ok(None);
+        }
         let job = SubmissionJobRepository::load(self.store, id)
             .map_err(SubmissionControlError::Repository)?
             .ok_or(SubmissionControlError::Invalid)?;
@@ -143,6 +149,12 @@ impl<'a> DispatchPreparation<'a> {
         &mut self,
         credentials: &CredentialApplication,
     ) -> Result<Option<(JobId, PendingSubmissionReservation)>, SubmissionControlError> {
+        if !tallyline_submission::api::SubmissionServiceFenceRepository::service_fences(self.store)
+            .map_err(SubmissionControlError::Repository)?
+            .is_empty()
+        {
+            return Ok(None);
+        }
         let attempts = self.queue.account_attempts()?;
         let mut candidates = self
             .queue

@@ -40,6 +40,15 @@ pub trait HttpBackend: Send + Sync {
         values: CredentialValues,
         release_token: Option<String>,
     ) -> impl Future<Output = Option<Vec<tallyline_submission::api::model::VerifiedUexReport>>> + Send;
+    /// Repeats only a held refusal's read-only receipt safety check.
+    fn recheck_refusal(
+        &self,
+        _job: tallyline_submission::api::model::SubmissionJob,
+        _values: CredentialValues,
+        _release_token: Option<String>,
+    ) -> impl Future<Output = Option<SubmissionResult>> + Send {
+        async { None }
+    }
     /// Dispatches one already encoded body without retrying uncertain writes.
     fn submit(
         &self,
@@ -73,6 +82,15 @@ impl HttpBackend for UexReader {
         SubmissionReceiptVerifier::verify_receipts(self, &job, &values, release_token.as_deref())
             .await
     }
+    async fn recheck_refusal(
+        &self,
+        job: tallyline_submission::api::model::SubmissionJob,
+        values: CredentialValues,
+        release_token: Option<String>,
+    ) -> Option<SubmissionResult> {
+        self.recheck_submission_refusal(&job, &values, release_token.as_deref())
+            .await
+    }
     async fn submit(
         &self,
         prepared: PreparedUexSubmission,
@@ -84,6 +102,12 @@ impl HttpBackend for UexReader {
 }
 
 pub(crate) enum Command {
+    RecheckRefusal(
+        tallyline_submission::api::model::SubmissionJob,
+        CredentialValues,
+        Option<String>,
+        Sender<Option<SubmissionResult>>,
+    ),
     ReserveSubmission(Sender<crate::api::SubmissionSlot>),
     VerifyReceipts(
         tallyline_submission::api::model::SubmissionJob,

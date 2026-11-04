@@ -3,17 +3,19 @@
 
 //! Validated queue persistence without credentials or encoded request bodies.
 
+use crate::queue_account_evidence::{AccountCheckDocument, AccountEvidenceDocument};
+use crate::queue_client_version::ClientVersionDocument;
+use crate::queue_outcome_document::{OutcomeDocument, ReceiptDocument, ResultDocument};
 use serde::{Deserialize, Serialize};
 use tallyline_shared_kernel::api::model::{
     CommodityId, ReportId, RowId, SubmissionMode, TerminalId, Timestamp, TradeSide, UexEnvironment,
-    UexReportId,
 };
 use tallyline_submission::api::model::SubmissionRepositoryError;
 use tallyline_submission::api::model::{
-    AttemptOutcome, JobId, JobPhase, NotProcessed, PayloadHash, SendReturnReason,
-    StoredSubmissionAttempt, StoredSubmissionJob, SubmissionHeader, SubmissionJob,
-    SubmissionRequest, SubmissionResult, SubmissionReturnReason, SubmissionRow, VerifiedUexReport,
+    JobId, JobPhase, PayloadHash, SendReturnReason, StoredSubmissionAttempt, StoredSubmissionJob,
+    SubmissionHeader, SubmissionJob, SubmissionRequest, SubmissionResult, SubmissionRow,
 };
+use tallyline_submission::api::model::{SubmissionAccountCheck, VerifiedReceiptMapping};
 
 #[derive(Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -25,6 +27,10 @@ struct JobDocument {
     attempts: Vec<AttemptDocument>,
     result: Option<ResultDocument>,
     review_reason: Option<ReturnDocument>,
+    #[serde(default)]
+    service_pause_acknowledged: bool,
+    #[serde(default)]
+    client_update: Option<ClientVersionDocument>,
 }
 #[derive(Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -57,48 +63,19 @@ struct AttemptDocument {
     date_added: String,
     ended_at: Option<String>,
     outcome: Option<OutcomeDocument>,
-}
-#[derive(Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-enum ResultDocument {
-    ProductionAccepted(Vec<IdDocument>),
-    ProductionSucceeded(Vec<ReceiptDocument>),
-    DryRunSucceeded,
-    Partial(Vec<IdDocument>),
-    ConnectFailure,
-    ScreenshotRequired,
-    InvalidObservationTime,
-    PreflightChanged,
-    Unknown,
-}
-#[derive(Serialize, Deserialize)]
-#[serde(deny_unknown_fields)]
-struct IdDocument {
-    id: u64,
-    date_added: String,
-}
-#[derive(Serialize, Deserialize)]
-#[serde(deny_unknown_fields)]
-struct ReceiptDocument {
-    id: u64,
-    row: u64,
-    date_added: String,
-}
-#[derive(Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-enum OutcomeDocument {
-    ProductionSucceeded,
-    Unknown,
-    DryRunSucceeded,
-    Partial,
-    ConnectFailure,
-    ScreenshotRequired,
-    InvalidObservationTime,
-    PreflightChanged,
+    #[serde(default)]
+    receipt_checked: bool,
+    #[serde(default)]
+    account_evidence: Option<AccountEvidenceDocument>,
+    #[serde(default)]
+    account_checks: Option<Vec<AccountCheckDocument>>,
+    #[serde(default)]
+    client_update: Option<ClientVersionDocument>,
 }
 #[derive(Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 enum PhaseDocument {
+    Rejected,
     Queued,
     Succeeded,
     PartiallyAccepted,
@@ -107,11 +84,13 @@ enum PhaseDocument {
     Returned,
     Cancelled,
     Held,
+    Paused,
 }
 impl From<JobPhase> for PhaseDocument {
     fn from(value: JobPhase) -> Self {
         match value {
             JobPhase::Queued => Self::Queued,
+            JobPhase::Rejected => Self::Rejected,
             JobPhase::Succeeded => Self::Succeeded,
             JobPhase::PartiallyAccepted => Self::PartiallyAccepted,
             JobPhase::Sending => Self::Sending,
@@ -119,6 +98,7 @@ impl From<JobPhase> for PhaseDocument {
             JobPhase::Returned => Self::Returned,
             JobPhase::Cancelled => Self::Cancelled,
             JobPhase::Held => Self::Held,
+            JobPhase::Paused => Self::Paused,
         }
     }
 }
@@ -126,6 +106,7 @@ impl From<PhaseDocument> for JobPhase {
     fn from(value: PhaseDocument) -> Self {
         match value {
             PhaseDocument::Queued => Self::Queued,
+            PhaseDocument::Rejected => Self::Rejected,
             PhaseDocument::Succeeded => Self::Succeeded,
             PhaseDocument::PartiallyAccepted => Self::PartiallyAccepted,
             PhaseDocument::Sending => Self::Sending,
@@ -133,6 +114,7 @@ impl From<PhaseDocument> for JobPhase {
             PhaseDocument::Returned => Self::Returned,
             PhaseDocument::Cancelled => Self::Cancelled,
             PhaseDocument::Held => Self::Held,
+            PhaseDocument::Paused => Self::Paused,
         }
     }
 }
@@ -240,137 +222,6 @@ fn invalid<T>(_: T) -> SubmissionRepositoryError {
 fn timestamp(value: &str) -> Result<Timestamp, SubmissionRepositoryError> {
     crate::reference_cache::timestamp(value).map_err(invalid)
 }
-fn id_document(value: &UexReportId) -> IdDocument {
-    IdDocument {
-        id: value.id(),
-        date_added: value.date_added().millis().to_string(),
-    }
-}
-fn restore_id(value: IdDocument) -> Result<UexReportId, SubmissionRepositoryError> {
-    UexReportId::new(value.id, timestamp(&value.date_added)?)
-        .ok_or(SubmissionRepositoryError::Invalid)
-}
-impl From<&SubmissionResult> for ResultDocument {
-    fn from(value: &SubmissionResult) -> Self {
-        match value {
-            SubmissionResult::ProductionAccepted(ids) => {
-                Self::ProductionAccepted(ids.iter().map(id_document).collect())
-            }
-            SubmissionResult::ProductionSucceeded(receipts) => Self::ProductionSucceeded(
-                receipts
-                    .iter()
-                    .map(|value| ReceiptDocument {
-                        id: value.id(),
-                        row: value.row().0,
-                        date_added: value.date_added().millis().to_string(),
-                    })
-                    .collect(),
-            ),
-            SubmissionResult::DryRunSucceeded => Self::DryRunSucceeded,
-            SubmissionResult::Partial(ids) => Self::Partial(ids.iter().map(id_document).collect()),
-            SubmissionResult::NotProcessed(NotProcessed::ConnectFailure) => Self::ConnectFailure,
-            SubmissionResult::Returned(SubmissionReturnReason::ScreenshotRequired) => {
-                Self::ScreenshotRequired
-            }
-            SubmissionResult::Returned(SubmissionReturnReason::InvalidObservationTime) => {
-                Self::InvalidObservationTime
-            }
-            SubmissionResult::Returned(SubmissionReturnReason::PreflightChanged) => {
-                Self::PreflightChanged
-            }
-            SubmissionResult::Unknown => Self::Unknown,
-        }
-    }
-}
-impl ResultDocument {
-    fn restore(
-        self,
-        request: &SubmissionRequest,
-        sent_at: Option<Timestamp>,
-    ) -> Result<SubmissionResult, SubmissionRepositoryError> {
-        Ok(match self {
-            Self::ProductionAccepted(ids) => SubmissionResult::ProductionAccepted(
-                ids.into_iter().map(restore_id).collect::<Result<_, _>>()?,
-            ),
-            Self::ProductionSucceeded(receipts) => SubmissionResult::ProductionSucceeded(
-                receipts
-                    .into_iter()
-                    .map(|value| {
-                        let row = request
-                            .rows()
-                            .iter()
-                            .find(|row| row.id().0 == value.row)
-                            .ok_or(SubmissionRepositoryError::Invalid)?;
-                        VerifiedUexReport::from_lookup_at(
-                            value.id,
-                            request.header().terminal,
-                            row.commodity(),
-                            timestamp(&value.date_added)?,
-                            request,
-                            sent_at.ok_or(SubmissionRepositoryError::Invalid)?,
-                        )
-                        .map_err(invalid)
-                    })
-                    .collect::<Result<_, _>>()?,
-            ),
-            Self::DryRunSucceeded => SubmissionResult::DryRunSucceeded,
-            Self::Partial(ids) => SubmissionResult::Partial(
-                ids.into_iter().map(restore_id).collect::<Result<_, _>>()?,
-            ),
-            Self::ConnectFailure => SubmissionResult::NotProcessed(NotProcessed::ConnectFailure),
-            Self::ScreenshotRequired => {
-                SubmissionResult::Returned(SubmissionReturnReason::ScreenshotRequired)
-            }
-            Self::InvalidObservationTime => {
-                SubmissionResult::Returned(SubmissionReturnReason::InvalidObservationTime)
-            }
-            Self::PreflightChanged => {
-                SubmissionResult::Returned(SubmissionReturnReason::PreflightChanged)
-            }
-            Self::Unknown => SubmissionResult::Unknown,
-        })
-    }
-}
-impl From<AttemptOutcome> for OutcomeDocument {
-    fn from(value: AttemptOutcome) -> Self {
-        match value {
-            AttemptOutcome::ProductionSucceeded => Self::ProductionSucceeded,
-            AttemptOutcome::Returned(SubmissionReturnReason::PreflightChanged) => {
-                Self::PreflightChanged
-            }
-            AttemptOutcome::Unknown => Self::Unknown,
-            AttemptOutcome::DryRunSucceeded => Self::DryRunSucceeded,
-            AttemptOutcome::Partial => Self::Partial,
-            AttemptOutcome::NotProcessed(NotProcessed::ConnectFailure) => Self::ConnectFailure,
-            AttemptOutcome::Returned(SubmissionReturnReason::ScreenshotRequired) => {
-                Self::ScreenshotRequired
-            }
-            AttemptOutcome::Returned(SubmissionReturnReason::InvalidObservationTime) => {
-                Self::InvalidObservationTime
-            }
-        }
-    }
-}
-impl From<OutcomeDocument> for AttemptOutcome {
-    fn from(value: OutcomeDocument) -> Self {
-        match value {
-            OutcomeDocument::ProductionSucceeded => Self::ProductionSucceeded,
-            OutcomeDocument::PreflightChanged => {
-                Self::Returned(SubmissionReturnReason::PreflightChanged)
-            }
-            OutcomeDocument::Unknown => Self::Unknown,
-            OutcomeDocument::DryRunSucceeded => Self::DryRunSucceeded,
-            OutcomeDocument::Partial => Self::Partial,
-            OutcomeDocument::ConnectFailure => Self::NotProcessed(NotProcessed::ConnectFailure),
-            OutcomeDocument::ScreenshotRequired => {
-                Self::Returned(SubmissionReturnReason::ScreenshotRequired)
-            }
-            OutcomeDocument::InvalidObservationTime => {
-                Self::Returned(SubmissionReturnReason::InvalidObservationTime)
-            }
-        }
-    }
-}
 pub(crate) fn encode(job: &SubmissionJob) -> Result<String, SubmissionRepositoryError> {
     let request = job.request();
     let header = request.header();
@@ -418,12 +269,30 @@ pub(crate) fn encode(job: &SubmissionJob) -> Result<String, SubmissionRepository
                 date_added: attempt.date_added().millis().to_string(),
                 ended_at: attempt.ended_at().map(|at| at.millis().to_string()),
                 outcome: attempt.outcome().map(Into::into),
+                receipt_checked: attempt.receipt_checked(),
+                account_evidence: attempt.account_evidence().map(Into::into),
+                account_checks: Some(
+                    attempt
+                        .account_checks()
+                        .iter()
+                        .map(|reason| {
+                            AccountCheckDocument::from(SubmissionAccountCheck::Completed(*reason))
+                        })
+                        .collect(),
+                ),
+                client_update: attempt.client_update().map(ClientVersionDocument),
             })
             .collect(),
         result: job.result().map(Into::into),
         review_reason: job.review_reason().map(Into::into),
+        service_pause_acknowledged: job.service_pause_acknowledged(),
+        client_update: job.client_update().map(ClientVersionDocument),
     };
-    serde_json::to_string(&document).map_err(invalid)
+    let payload = serde_json::to_string(&document).map_err(invalid)?;
+    if decode(job.id(), job.revision(), &payload)? != *job {
+        return Err(SubmissionRepositoryError::Invalid);
+    }
+    Ok(payload)
 }
 pub(crate) fn decode(
     id: JobId,
@@ -477,6 +346,33 @@ pub(crate) fn decode(
                 date_added: timestamp(&attempt.date_added)?,
                 ended_at: attempt.ended_at.map(|at| timestamp(&at)).transpose()?,
                 outcome: attempt.outcome.map(Into::into),
+                receipt_checked: attempt.receipt_checked,
+                account_checks: attempt
+                    .account_checks
+                    .map(|checks| {
+                        checks
+                            .into_iter()
+                            .map(|check| {
+                                match check
+                                    .restore(&request, Some(timestamp(&attempt.date_added)?))?
+                                {
+                                    SubmissionAccountCheck::Completed(reason) => Ok(reason),
+                                    SubmissionAccountCheck::NotRequired
+                                    | SubmissionAccountCheck::Pending => {
+                                        Err(SubmissionRepositoryError::Invalid)
+                                    }
+                                }
+                            })
+                            .collect::<Result<Vec<_>, _>>()
+                    })
+                    .transpose()?,
+                account_evidence: attempt
+                    .account_evidence
+                    .map(|evidence| {
+                        evidence.restore(&request, Some(timestamp(&attempt.date_added)?))
+                    })
+                    .transpose()?,
+                client_update: attempt.client_update.map(|version| version.0),
             })
         })
         .collect::<Result<Vec<_>, SubmissionRepositoryError>>()?;
@@ -492,12 +388,15 @@ pub(crate) fn decode(
         attempts,
         result,
         review_reason: document.review_reason.map(Into::into),
+        service_pause_acknowledged: document.service_pause_acknowledged,
+        client_update: document.client_update.map(|version| version.0),
     })
     .map_err(invalid)
 }
 pub(crate) const fn phase_name(phase: JobPhase) -> &'static str {
     match phase {
         JobPhase::Queued => "queued",
+        JobPhase::Rejected => "rejected",
         JobPhase::Succeeded => "succeeded",
         JobPhase::PartiallyAccepted => "partially_accepted",
         JobPhase::Sending => "sending",
@@ -505,11 +404,12 @@ pub(crate) const fn phase_name(phase: JobPhase) -> &'static str {
         JobPhase::Returned => "returned",
         JobPhase::Cancelled => "cancelled",
         JobPhase::Held => "held",
+        JobPhase::Paused => "paused",
     }
 }
 
 pub(crate) fn encode_mapping(
-    mapping: &tallyline_submission::api::model::VerifiedReceiptMapping,
+    mapping: &VerifiedReceiptMapping,
 ) -> Result<String, SubmissionRepositoryError> {
     let document: Vec<_> = mapping
         .receipts()
@@ -525,7 +425,7 @@ pub(crate) fn encode_mapping(
 pub(crate) fn decode_mapping(
     job: &SubmissionJob,
     payload: &str,
-) -> Result<tallyline_submission::api::model::VerifiedReceiptMapping, SubmissionRepositoryError> {
+) -> Result<VerifiedReceiptMapping, SubmissionRepositoryError> {
     let documents: Vec<ReceiptDocument> = serde_json::from_str(payload).map_err(invalid)?;
     let restored = ResultDocument::ProductionSucceeded(documents).restore(
         job.request(),
@@ -534,5 +434,5 @@ pub(crate) fn decode_mapping(
     let SubmissionResult::ProductionSucceeded(receipts) = restored else {
         return Err(SubmissionRepositoryError::Invalid);
     };
-    tallyline_submission::api::model::VerifiedReceiptMapping::new(job, receipts).map_err(invalid)
+    VerifiedReceiptMapping::new(job, receipts).map_err(invalid)
 }

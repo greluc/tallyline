@@ -16,9 +16,13 @@ mod status_document;
 
 mod screenshot_policy;
 
+mod report_fixable_reason;
 mod report_lifecycle;
 
+mod queue_client_version;
 mod queue_document;
+mod queue_outcome_document;
+mod submission_service_fences;
 
 mod queue;
 
@@ -31,3 +35,5 @@ mod manual_dispatch;
 mod event_outbox;
 
 mod reference_consistency;
+
+mod queue_account_evidence;

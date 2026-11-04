@@ -40,7 +40,7 @@ pub use crate::stock_settings::{InvalidStockSettings, StockSettings};
 pub use crate::numeric_readiness::NumericBlock;
 
 pub use crate::report::{
-    ReportChange, ReportDelivery, ReportEvent, ReportEventKind, ReportFinding,
+    FixableReason, ReportChange, ReportDelivery, ReportEvent, ReportEventKind, ReportFinding,
     ReportReleaseBinding, ReportState, StoredReportLifecycle, StoredReportReleaseBinding,
 };
 pub use crate::submission_gate::{

@@ -2181,3 +2181,27 @@ fn r_sub_2_r_sub_9_r_nf_11__startup_drains_multiple_notification_batches_without
 
 #[path = "submission_controller/offline_release.rs"]
 mod offline_release;
+
+#[path = "submission_controller/recovery.rs"]
+mod recovery;
+
+#[path = "submission_controller/global_holds.rs"]
+mod global_holds;
+
+#[path = "submission_controller/version_lockout.rs"]
+mod version_lockout;
+
+#[path = "submission_controller/fixable_returns.rs"]
+mod fixable_returns;
+
+#[path = "submission_controller/account_receipt.rs"]
+mod account_receipt;
+
+#[path = "submission_controller/blocked_read.rs"]
+mod blocked_read;
+
+#[path = "submission_controller/repeated_account.rs"]
+mod repeated_account;
+
+#[path = "submission_controller/permanent_refusal.rs"]
+mod permanent_refusal;

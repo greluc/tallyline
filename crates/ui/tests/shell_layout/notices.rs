@@ -73,6 +73,8 @@ fn concurrent_account_update_and_storage_notices_keep_actions_visible_at_double_
             .shell
             .receive(BackgroundEvent::SubmissionUpdated(Box::new(
                 SubmissionUpdate {
+                    client_version: None,
+                    service_fences: vec![],
                     jobs: vec![job],
                     mappings: vec![],
                     waiting: vec![],

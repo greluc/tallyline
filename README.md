@@ -84,7 +84,7 @@ The **Reference data** page lets you choose LIVE, HOTFIX, PTU, EPTU or TECH-PREV
 
 Onboarding and **Settings → UEX account** accept a masked secret key, use the packaged app token when available and offer an expert own-token override. Read-only validation precedes durable saving; an explicit session-only choice keeps credentials in memory. Linux offers an owner-only plaintext fallback only after Secret Service is unavailable and its warning is confirmed; unsupported filesystems retain the session-only option. Offline browsing and Drafts remain usable. Real OS-provider and native visual acceptance are still pending (R-API-4, R-API-7, R-NF-4).
 
-The manual editor offers **Release Report in shown mode** and **Send test through queue**. Test always fixes dry-run mode. Queue/history preserves the released account and mode, shows holds and permits cancellation before Sending; uncertain sends never replay automatically. See [the queue implementation and acceptance boundaries](docs/submission-queue.md).
+The manual editor offers **Release Report in shown mode** and **Send test through queue**. Test always fixes dry-run mode. Queue/history preserves the released account and mode, shows holds and permits cancellation before Sending; uncertain sends never replay automatically. Repeated unavailable account checks and their later results survive restart; a permanently rejected captured game version requires a new capture. See [the queue implementation and acceptance boundaries](docs/submission-queue.md).
 
 Settings also offers optional **daily release updates**, off by default. A newer standard GitHub release appears as a passive notice with release notes; offline checks never interrupt work or take focus, and failed settings validation preserves saved preferences. Settings backup retention also survives clock changes. Downloads and installation remain your choice (R-NF-7, R-UI-16).
 
@@ -145,6 +145,10 @@ Corrected 2026-11-03: remembered validated accounts can release reviewed Reports
 
 The source foundation also contains a versioned local-VLM transcription parser and bounded answer retry contract. It does not select or run an inference engine or change the desktop recognition flow (R-VLM-5, R-VLM-10).
 
+Corrected 2026-11-03: [manual submission recovery](docs/submission-queue.md) adds bounded retries only for proven unprocessed requests, persistent account and API-change pauses, explicit Retry now and actionable returned/rejected outcomes. A production refusal that still needs its receipt safety check remains held across restart and performs only read-only checks. Database schema 10 supersedes schema 9 after the coordinated database/settings backup; settings remain schema 6. Partial-row resolution, daily-quota reset scheduling, native acceptance and an approved real-service dry run remain separate gates (R-SUB-2, R-SUB-6, R-SUB-9, R-SUB-11).
+
+Held recovery work preserves safe unknown UEX identifiers and durable account pauses even when receipt evidence is unavailable or partial. Queue acknowledgement does not replay the uncertain Report; detailed resolution, quota reset and new-Draft duplication retain their separate implementation gates (R-SUB-6, R-SUB-9, R-SUB-11).
+
 </details>
 
 ## Documentation
@@ -198,7 +202,7 @@ Report vulnerabilities privately using the process in [.github/SECURITY.md](.git
 
 Tallyline is free software under **GPL-3.0-or-later**, without warranty; see [LICENSE](LICENSE). The licence covers project code and documentation. Screenshots and Fan Kit artwork retain their own licences, and the Code of Conduct uses CC-BY-SA-4.0. [REUSE.toml](REUSE.toml), [LICENSES/](LICENSES/) and [NOTICE](NOTICE) record those boundaries. Every release ships the required legal texts/notices and source archives for bundled copyleft components.
 
-The repository is [tallyline-sc/tallyline](https://github.com/tallyline-sc/tallyline). Corrected 2026-11-03: current persistence is SQLite schema 9 and settings schema 6, with coordinated backups before migration. The [open-points register](docs/adr/0000-open-points.md) tracks trademark, Fan Kit/screenshot permissions, icon review, runtime prerequisites and installer acceptance. Source and package foundations do not establish a completed release.
+The repository is [tallyline-sc/tallyline](https://github.com/tallyline-sc/tallyline). Corrected 2026-11-04: current persistence is SQLite schema 10 and settings schema 6, with coordinated backups before migration. The [open-points register](docs/adr/0000-open-points.md) tracks trademark, Fan Kit/screenshot permissions, icon review, runtime prerequisites and installer acceptance. Source and package foundations do not establish a completed release.
 
 ## Star Citizen fan content
 

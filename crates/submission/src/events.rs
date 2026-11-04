@@ -20,12 +20,26 @@ pub enum SubmissionCommand {
     },
     /// Cancels an unsent job at the user's request.
     Cancel,
+    /// Returns an eligible held request to the complete send-time gate.
+    Retry,
+    /// Retries or acknowledges a version lockout only from a strictly newer compiled release.
+    RetryAfterUpdate {
+        /// Immutable current release identity supplied by the application owner.
+        version: tallyline_shared_kernel::api::model::ReleaseVersion,
+    },
     /// Returns an unsent job to manual review without inventing an attempt.
     Return(crate::api::model::SendReturnReason),
     /// Closes interrupted work without replay.
     Recover {
         /// The injected recovery time.
         at: Timestamp,
+    },
+    /// Records a read-only account check without attesting receipt certainty.
+    ResolveAccountCheck(crate::api::model::SubmissionPauseReason),
+    /// Resolves a held refusal through a later read-only receipt check.
+    ResolveOutcomeCheck {
+        /// The confirmed refusal or partial-acceptance outcome.
+        result: SubmissionResult,
     },
     /// Records the result of exactly one dispatched attempt.
     Complete {
@@ -41,6 +55,8 @@ pub enum SubmissionCommand {
 pub enum SubmissionEventKind {
     /// A successful test or production attempt; the mode remains fixed in its job.
     Succeeded(SubmissionResult),
+    /// A permanent refusal ended the released delivery.
+    Rejected,
     /// Some rows may have been processed and automatic replay is closed.
     PartiallyAccepted(SubmissionResult),
     /// Processing cannot be excluded.
@@ -113,21 +129,31 @@ impl SubmissionJob {
     /// # Errors
     /// Refuses invalid phase transitions, payloads or exhausted persistence versions.
     pub fn apply(&self, command: SubmissionCommand) -> Result<SubmissionChange, QueueRefusal> {
+        let account_check = matches!(&command, SubmissionCommand::ResolveAccountCheck(_));
         let state = match command {
+            SubmissionCommand::ResolveAccountCheck(reason) => self.resolve_account_check(reason)?,
             SubmissionCommand::Begin {
                 at,
                 payload_hash,
                 date_added,
             } => self.begin_prepared(at, payload_hash, date_added)?,
             SubmissionCommand::Cancel => self.cancel()?,
+            SubmissionCommand::Retry => self.retry()?,
+            SubmissionCommand::RetryAfterUpdate { version } => self.retry_after_update(version)?,
+            SubmissionCommand::ResolveOutcomeCheck { result } => {
+                self.resolve_outcome_check(result)?
+            }
             SubmissionCommand::Return(reason) => self.return_for_review(reason)?,
             SubmissionCommand::Recover { at } => self.recover(at)?,
             SubmissionCommand::Complete { result, at } => self.complete(result, at)?,
         };
-        let event = if state.revision() == self.revision() {
+        let event = if account_check
+            || state.revision() == self.revision()
+            || (state.service_pause_acknowledged() && !self.service_pause_acknowledged())
+        {
             None
         } else {
-            let result = state.result().cloned();
+            let result = state.result().map(SubmissionResult::final_result).cloned();
             let kind = match state.phase() {
                 JobPhase::Queued | JobPhase::Sending => None,
                 JobPhase::Succeeded => Some(SubmissionEventKind::Succeeded(
@@ -137,10 +163,16 @@ impl SubmissionJob {
                     result.ok_or(QueueRefusal::InvalidTransition)?,
                 )),
                 JobPhase::OutcomeUnknown => Some(SubmissionEventKind::OutcomeUnknown),
-                JobPhase::Held => None,
+                JobPhase::Rejected => Some(SubmissionEventKind::Rejected),
+                JobPhase::Held | JobPhase::Paused => None,
                 JobPhase::Returned => Some(SubmissionEventKind::Returned(
                     match (state.review_reason(), result) {
                         (Some(reason), _) => SubmissionReturn::Preflight(reason),
+                        (None, Some(SubmissionResult::DuplicateEvidence(_))) => {
+                            SubmissionReturn::Response(
+                                crate::api::model::SubmissionReturnReason::PossiblyAlreadyReceived,
+                            )
+                        }
                         (None, Some(SubmissionResult::Returned(reason))) => {
                             SubmissionReturn::Response(reason)
                         }

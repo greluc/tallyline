@@ -93,6 +93,8 @@ fn r_sub_8_r_sub_9_r_ui_16__drawn_test_binds_displayed_account_and_passive_snaps
         .state_mut()
         .receive(BackgroundEvent::SubmissionUpdated(Box::new(
             SubmissionUpdate {
+                client_version: None,
+                service_fences: vec![],
                 jobs: vec![],
                 mappings: vec![],
                 waiting: vec![],
@@ -107,6 +109,8 @@ fn r_sub_8_r_sub_9_r_ui_16__drawn_test_binds_displayed_account_and_passive_snaps
         .state_mut()
         .receive(BackgroundEvent::SubmissionUpdated(Box::new(
             SubmissionUpdate {
+                client_version: None,
+                service_fences: vec![],
                 jobs: vec![],
                 mappings: vec![],
                 waiting: vec![],
@@ -186,6 +190,8 @@ fn r_val_8_r_sub_8_r_ui_16__older_row_choice_shows_exact_values_and_keeps_the_fa
         .state_mut()
         .receive(BackgroundEvent::SubmissionUpdated(Box::new(
             SubmissionUpdate {
+                client_version: None,
+                service_fences: vec![],
                 jobs: vec![],
                 mappings: vec![],
                 waiting: vec![],

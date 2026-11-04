@@ -3,6 +3,7 @@
 
 //! Exact credential-free Report lifecycle document mapping.
 
+use crate::report_fixable_reason::FixableDocument;
 use serde::{Deserialize, Serialize};
 use tallyline_reporting::api::RepositoryError;
 use tallyline_reporting::api::model::{
@@ -38,6 +39,8 @@ enum StateDocument {
 #[derive(Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 enum FindingDocument {
+    ReturnedForFix(FixableDocument),
+    PossiblyAlreadyReceived,
     AppRestart,
     ObservationAgeUnconfirmed,
     ObservationTooOld,
@@ -111,6 +114,7 @@ impl From<StoredReportLifecycle> for LifecycleDocument {
                 ]
             }),
             finding: value.finding.map(|finding| match finding {
+                ReportFinding::PossiblyAlreadyReceived => FindingDocument::PossiblyAlreadyReceived,
                 ReportFinding::AppRestart => FindingDocument::AppRestart,
                 ReportFinding::ObservationAgeUnconfirmed => {
                     FindingDocument::ObservationAgeUnconfirmed
@@ -121,6 +125,9 @@ impl From<StoredReportLifecycle> for LifecycleDocument {
                 ReportFinding::NewerObservationSent => FindingDocument::NewerObservationSent,
                 ReportFinding::ScreenshotRequired => FindingDocument::ScreenshotRequired,
                 ReportFinding::InvalidObservationTime => FindingDocument::InvalidObservationTime,
+                ReportFinding::ReturnedForFix(reason) => {
+                    FindingDocument::ReturnedForFix(reason.into())
+                }
                 ReportFinding::ReviewRequired => FindingDocument::ReviewRequired,
             }),
         }
@@ -175,6 +182,7 @@ impl LifecycleDocument {
                 })
                 .transpose()?,
             finding: self.finding.map(|finding| match finding {
+                FindingDocument::PossiblyAlreadyReceived => ReportFinding::PossiblyAlreadyReceived,
                 FindingDocument::AppRestart => ReportFinding::AppRestart,
                 FindingDocument::ObservationAgeUnconfirmed => {
                     ReportFinding::ObservationAgeUnconfirmed
@@ -185,6 +193,9 @@ impl LifecycleDocument {
                 FindingDocument::NewerObservationSent => ReportFinding::NewerObservationSent,
                 FindingDocument::ScreenshotRequired => ReportFinding::ScreenshotRequired,
                 FindingDocument::InvalidObservationTime => ReportFinding::InvalidObservationTime,
+                FindingDocument::ReturnedForFix(reason) => {
+                    ReportFinding::ReturnedForFix(reason.into())
+                }
                 FindingDocument::ReviewRequired => ReportFinding::ReviewRequired,
             }),
         })

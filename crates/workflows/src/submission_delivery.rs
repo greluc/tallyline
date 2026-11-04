@@ -29,13 +29,17 @@ pub fn apply_submission_delivery(
         return Err(InvalidReport);
     }
     let delivery = match job.phase() {
-        JobPhase::Queued | JobPhase::Sending | JobPhase::Held => None,
+        JobPhase::Queued | JobPhase::Sending | JobPhase::Held | JobPhase::Paused => None,
         JobPhase::Succeeded => Some(ReportDelivery::FullAcceptance),
         JobPhase::PartiallyAccepted => Some(ReportDelivery::PartialAcceptance),
         JobPhase::OutcomeUnknown => Some(ReportDelivery::Unknown),
+        JobPhase::Rejected => Some(ReportDelivery::Rejected),
         JobPhase::Cancelled => Some(ReportDelivery::Return(ReportFinding::ReviewRequired)),
         JobPhase::Returned => {
-            let finding = match (job.review_reason(), job.result()) {
+            let finding = match (
+                job.review_reason(),
+                job.result().map(SubmissionResult::final_result),
+            ) {
                 (Some(SendReturnReason::ReviewRequired), _) => ReportFinding::ReviewRequired,
                 (Some(SendReturnReason::GameVersionChanged), _) => {
                     ReportFinding::GameVersionChanged
@@ -50,17 +54,52 @@ pub fn apply_submission_delivery(
                 (
                     None,
                     Some(SubmissionResult::Returned(SubmissionReturnReason::ScreenshotRequired)),
-                ) => ReportFinding::ScreenshotRequired,
+                ) => ReportFinding::ReturnedForFix(
+                    tallyline_reporting::api::model::FixableReason::ScreenshotRequired,
+                ),
                 (
                     None,
                     Some(SubmissionResult::Returned(
                         SubmissionReturnReason::InvalidObservationTime,
                     )),
-                ) => ReportFinding::InvalidObservationTime,
+                ) => ReportFinding::ReturnedForFix(
+                    tallyline_reporting::api::model::FixableReason::InvalidObservationTime,
+                ),
+                (
+                    None,
+                    Some(SubmissionResult::Returned(SubmissionReturnReason::MaxRowsExceeded)),
+                ) => ReportFinding::ReturnedForFix(
+                    tallyline_reporting::api::model::FixableReason::TooManyRows,
+                ),
+                (
+                    None,
+                    Some(SubmissionResult::Returned(SubmissionReturnReason::TerminalNotFound)),
+                ) => ReportFinding::ReturnedForFix(
+                    tallyline_reporting::api::model::FixableReason::TerminalNotFound,
+                ),
+                (
+                    None,
+                    Some(SubmissionResult::Returned(SubmissionReturnReason::InvalidScreenshot)),
+                ) => ReportFinding::ReturnedForFix(
+                    tallyline_reporting::api::model::FixableReason::InvalidScreenshot,
+                ),
+                (
+                    None,
+                    Some(SubmissionResult::Returned(SubmissionReturnReason::ScreenshotTooLarge)),
+                ) => ReportFinding::ReturnedForFix(
+                    tallyline_reporting::api::model::FixableReason::ScreenshotTooLarge,
+                ),
                 (
                     None,
                     Some(SubmissionResult::Returned(SubmissionReturnReason::PreflightChanged)),
                 ) => ReportFinding::ReviewRequired,
+                (
+                    None,
+                    Some(
+                        SubmissionResult::DuplicateEvidence(_)
+                        | SubmissionResult::Returned(SubmissionReturnReason::PossiblyAlreadyReceived),
+                    ),
+                ) => ReportFinding::PossiblyAlreadyReceived,
                 (None, _) => ReportFinding::AppRestart,
             };
             Some(ReportDelivery::Return(finding))

@@ -69,6 +69,8 @@ fn r_sub_2_r_sub_9_r_ui_16__late_draft_lists_cannot_reopen_a_released_report_or_
     });
     shell.receive(BackgroundEvent::SubmissionUpdated(Box::new(
         SubmissionUpdate {
+            client_version: None,
+            service_fences: vec![],
             jobs: vec![job.clone()],
             mappings: vec![],
             waiting: vec![],
@@ -97,6 +99,8 @@ fn r_sub_2_r_sub_9_r_ui_16__late_draft_lists_cannot_reopen_a_released_report_or_
     assert!(renewed.version() > job.request().header().report_version);
     shell.receive(BackgroundEvent::SubmissionUpdated(Box::new(
         SubmissionUpdate {
+            client_version: None,
+            service_fences: vec![],
             jobs: vec![cancelled],
             mappings: vec![],
             waiting: vec![],

@@ -8,7 +8,7 @@ use tallyline_shared_kernel::api::model::{
 };
 use tallyline_submission::api::model::{
     JobId, JobPhase, PayloadHash, StoredSubmissionAttempt, StoredSubmissionJob, SubmissionHeader,
-    SubmissionJob, SubmissionRequest, SubmissionResult, SubmissionRow,
+    SubmissionJob, SubmissionPauseReason, SubmissionRequest, SubmissionResult, SubmissionRow,
 };
 
 fn queued() -> Option<SubmissionJob> {
@@ -49,6 +49,8 @@ fn stored(job: &SubmissionJob) -> StoredSubmissionJob {
         phase: job.phase(),
         result: job.result().cloned(),
         review_reason: job.review_reason(),
+        service_pause_acknowledged: job.service_pause_acknowledged(),
+        client_update: job.client_update(),
         attempts: job
             .attempts()
             .iter()
@@ -59,6 +61,10 @@ fn stored(job: &SubmissionJob) -> StoredSubmissionJob {
                 date_added: attempt.date_added(),
                 ended_at: attempt.ended_at(),
                 outcome: attempt.outcome(),
+                receipt_checked: attempt.receipt_checked(),
+                account_checks: Some(attempt.account_checks().to_vec()),
+                account_evidence: attempt.account_evidence().cloned(),
+                client_update: attempt.client_update(),
             })
             .collect(),
     }
@@ -105,6 +111,168 @@ fn r_sub_9__reconstituted_jobs_preserve_fixed_snapshots_and_interrupted_sending_
         unknown
     );
     assert!(restored.cancel().is_err());
+    let safe_code =
+        tallyline_submission::api::model::UexErrorCode::new("Future_Code".to_owned()).unwrap();
+    let pending = sending
+        .complete(
+            SubmissionResult::AccountRefusal {
+                check: tallyline_submission::api::model::SubmissionAccountCheck::NotRequired,
+                code: Some(safe_code.clone()),
+                http_status: 403,
+                reason: SubmissionPauseReason::KeyCheckUnavailable,
+                outcome: Box::new(SubmissionResult::NeedsOutcomeCheck {
+                    code: safe_code,
+                    http_status: 403,
+                }),
+            },
+            Timestamp::from_seconds(120),
+        )
+        .unwrap();
+    assert_eq!(
+        SubmissionJob::reconstitute(stored(&pending)).unwrap(),
+        pending
+    );
+    let mut corrupt_account = stored(&pending);
+    if let Some(SubmissionResult::AccountRefusal { code, .. }) = &mut corrupt_account.result {
+        *code = tallyline_submission::api::model::UexErrorCode::new("future-code".to_owned());
+    }
+    assert!(
+        SubmissionJob::reconstitute(corrupt_account).is_err(),
+        "contradictory account and receipt provenance must be rejected"
+    );
+    let account_retry = sending
+        .complete(
+            SubmissionResult::AccountRefusal {
+                check: tallyline_submission::api::model::SubmissionAccountCheck::NotRequired,
+                code: Some(
+                    tallyline_submission::api::model::UexErrorCode::new("Future_Code".to_owned())
+                        .unwrap(),
+                ),
+                http_status: 403,
+                reason: SubmissionPauseReason::KeyChecked,
+                outcome: Box::new(SubmissionResult::Paused(SubmissionPauseReason::KeyChecked)),
+            },
+            Timestamp::from_seconds(120),
+        )
+        .unwrap()
+        .retry()
+        .unwrap();
+    assert!(
+        format!("{:?}", account_retry.attempts()).contains("Future_Code"),
+        "an allowed retry must retain the original account refusal in its attempt"
+    );
+    let pending_key = sending
+        .complete(
+            SubmissionResult::AccountRefusal {
+                code: Some(
+                    tallyline_submission::api::model::UexErrorCode::new(
+                        "invalid_secret_key".to_owned(),
+                    )
+                    .unwrap(),
+                ),
+                http_status: 503,
+                reason: SubmissionPauseReason::KeyCheckUnavailable,
+                check: tallyline_submission::api::model::SubmissionAccountCheck::Pending,
+                outcome: Box::new(SubmissionResult::Paused(
+                    SubmissionPauseReason::KeyCheckUnavailable,
+                )),
+            },
+            Timestamp::from_seconds(120),
+        )
+        .unwrap();
+    assert!(
+        !pending_key.can_retry(),
+        "an unfinished account GET must not authorise a POST retry"
+    );
+    let checked = pending_key
+        .resolve_account_check(SubmissionPauseReason::KeyChecked)
+        .unwrap();
+    assert!(!checked.attempts()[0].receipt_checked());
+    assert_eq!(
+        checked.attempts()[0]
+            .account_evidence()
+            .unwrap()
+            .origin_revision(),
+        Some(3)
+    );
+    assert_eq!(
+        checked.attempts()[0]
+            .account_evidence()
+            .unwrap()
+            .original_action(),
+        SubmissionPauseReason::KeyCheckUnavailable
+    );
+    assert_eq!(
+        checked.attempts()[0].account_evidence().unwrap().check(),
+        tallyline_submission::api::model::SubmissionAccountCheck::Completed(
+            SubmissionPauseReason::KeyChecked
+        )
+    );
+    assert_eq!(
+        SubmissionJob::reconstitute(stored(&checked)).unwrap(),
+        checked
+    );
+    let unavailable = pending_key
+        .resolve_account_check(SubmissionPauseReason::KeyCheckUnavailable)
+        .unwrap();
+    let repeated = unavailable
+        .resolve_account_check(SubmissionPauseReason::KeyChecked)
+        .unwrap();
+    for final_job in [
+        repeated.clone(),
+        repeated.cancel().unwrap(),
+        repeated.recover(Timestamp::from_seconds(130)).unwrap(),
+        unavailable
+            .cancel()
+            .unwrap()
+            .resolve_account_check(SubmissionPauseReason::KeyChecked)
+            .unwrap(),
+    ] {
+        assert_eq!(
+            SubmissionJob::reconstitute(stored(&final_job)).unwrap(),
+            final_job
+        );
+    }
+    for actions in [
+        vec![],
+        vec![SubmissionPauseReason::KeyChecked],
+        vec![
+            SubmissionPauseReason::KeyCheckUnavailable,
+            SubmissionPauseReason::KeyCheckUnavailable,
+            SubmissionPauseReason::KeyChecked,
+        ],
+        vec![
+            SubmissionPauseReason::KeyChecked,
+            SubmissionPauseReason::Reauthenticate,
+        ],
+    ] {
+        let mut corrupt = stored(&repeated);
+        corrupt.attempts[0].account_checks = Some(actions);
+        assert!(SubmissionJob::reconstitute(corrupt).is_err());
+    }
+    let mut legacy = stored(&checked);
+    legacy.attempts[0].account_checks = None;
+    assert_eq!(SubmissionJob::reconstitute(legacy).unwrap(), checked);
+    let retried = checked.retry().unwrap();
+    assert_eq!(
+        SubmissionJob::reconstitute(stored(&retried)).unwrap(),
+        retried
+    );
+    assert!(format!("{:?}", retried.attempts()).contains("invalid_secret_key"));
+    let acknowledged = pending.retry().unwrap();
+    let settled = acknowledged
+        .resolve_outcome_check(SubmissionResult::Paused(
+            SubmissionPauseReason::KeyCheckUnavailable,
+        ))
+        .unwrap();
+    assert!(
+        !settled.can_retry(),
+        "queue-only acknowledgement must never become origin POST authority after a later receipt result"
+    );
+    assert_eq!(
+        SubmissionJob::reconstitute(stored(&settled)).unwrap(),
+        settled
+    );
     let snapshot = stored(&sending);
     let mut corrupt = snapshot.clone();
     corrupt.phase = JobPhase::Queued;

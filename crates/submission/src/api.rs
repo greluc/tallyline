@@ -314,4 +314,6 @@ pub trait SubmissionReceiptVerifier {
     ) -> impl std::future::Future<Output = Option<Vec<model::VerifiedUexReport>>> + Send;
 }
 
+pub use crate::duplicate_evidence::SubmissionEvidence;
 pub use crate::observation_order::ObservationOrder;
+pub use crate::service_fence::SubmissionServiceFenceRepository;

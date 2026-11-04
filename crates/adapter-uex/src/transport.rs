@@ -136,12 +136,31 @@ impl Transport {
         headers: &[(&str, &str)],
     ) -> Result<Value, SubmissionPostFailure> {
         let request = self
-            .post_bytes(resource, body, headers, Duration::from_secs(90))
+            .post_bytes(
+                resource,
+                body,
+                headers,
+                tallyline_submission::api::model::SubmissionRetrySettings::default().send_timeout(),
+            )
             .map_err(SubmissionPostFailure::Other)?;
         let response = request.send().await.map_err(submission_transport_error)?;
+        let http_status = response.status().as_u16();
         self.read_response(response, headers)
             .await
-            .map_err(SubmissionPostFailure::Other)
+            .map_err(|error| {
+                if matches!(
+                    error,
+                    ReadError::NotJson { .. } | ReadError::Malformed { .. }
+                ) {
+                    if matches!(http_status, 401 | 403) {
+                        return SubmissionPostFailure::Authentication(http_status);
+                    }
+                    if http_status == 429 {
+                        return SubmissionPostFailure::RateLimited;
+                    }
+                }
+                SubmissionPostFailure::Other(error)
+            })
     }
     async fn post_with_timeout<T: Serialize>(
         &self,
@@ -343,6 +362,8 @@ fn valid_ray(value: &str, credentials: &[(&str, &str)]) -> bool {
 }
 
 pub(crate) enum SubmissionPostFailure {
+    Authentication(u16),
+    RateLimited,
     Connect,
     Other(ReadError),
 }

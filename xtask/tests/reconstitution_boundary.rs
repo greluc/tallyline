@@ -38,7 +38,7 @@ fn commands_cannot_reconstitute_through_aliases_function_values_or_macros() {
 fn owning_definitions_do_not_allow_command_calls_in_the_same_file() {
     for path in [
         "crates/reporting/src/report.rs",
-        "crates/submission/src/job/submission_job.rs",
+        "crates/submission/src/job/reconstitution.rs",
         "crates/reference-data/src/prior_history.rs",
     ] {
         assert!(
@@ -53,6 +53,14 @@ fn owning_definitions_do_not_allow_command_calls_in_the_same_file() {
             1
         );
     }
+    assert_eq!(
+        violations(&[source(
+            "crates/submission/src/job/submission_job.rs",
+            "pub fn reconstitute(stored: Stored) -> Self { build(stored) }"
+        )])
+        .len(),
+        1
+    );
     assert_eq!(
         violations(&[source(
             "crates/workflows/src/release.rs",

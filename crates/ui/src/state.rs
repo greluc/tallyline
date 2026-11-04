@@ -242,6 +242,12 @@ impl ShellState {
             BackgroundEvent::SubmissionUpdated(update) => {
                 self.submission.background_feedback = update.background_feedback;
                 self.submission.queue.received(update.jobs);
+                self.submission
+                    .queue
+                    .received_client_version(update.client_version);
+                self.submission
+                    .queue
+                    .received_service_fences(update.service_fences);
                 self.submission.queue.received_waiting(update.waiting);
                 self.submission
                     .accounts

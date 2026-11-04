@@ -39,6 +39,10 @@ pub enum ReportState {
 /// A durable reason why a Report needs user attention after being returned.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum ReportFinding {
+    /// A concrete Report-owned correction action is required before renewed release.
+    ReturnedForFix(super::fixable_reason::FixableReason),
+    /// A duplicate provides evidence of an earlier uncertain receipt.
+    PossiblyAlreadyReceived,
     /// Restart closed unfinished work that was not sending.
     AppRestart,
     /// Observation age requires renewed explicit approval.

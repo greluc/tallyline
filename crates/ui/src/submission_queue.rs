@@ -9,10 +9,22 @@ use tallyline_submission::api::model::{
     JobId, JobPhase, SubmissionApplicationError, SubmissionJob, SubmissionRepositoryError,
     SubmissionResult, VerifiedReceiptMapping, VerifiedUexReport,
 };
+use tallyline_submission::api::model::{
+    NotProcessed, SendReturnReason, SubmissionAccountCheck, SubmissionCorrection,
+    SubmissionHoldReason, SubmissionPauseReason, SubmissionRetrySettings, SubmissionReturnReason,
+    SubmissionServiceCause, SubmissionServiceFence, SubmissionWait,
+};
 
 /// An explicit queue action without credentials or mutable report values.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum QueueCommand {
+    /// Retries only the eligible exact version explicitly shown to the user.
+    Retry {
+        /// Stable local submission identity.
+        id: JobId,
+        /// The committed version observed before the action.
+        expected_revision: u64,
+    },
     /// Cancels only the exact unsent job version shown to the user.
     Cancel {
         /// Stable local submission identity.
@@ -22,17 +34,41 @@ pub enum QueueCommand {
     },
 }
 
+impl QueueCommand {
+    fn identity(self) -> (JobId, u64) {
+        match self {
+            Self::Cancel {
+                id,
+                expected_revision,
+            }
+            | Self::Retry {
+                id,
+                expected_revision,
+            } => (id, expected_revision),
+        }
+    }
+}
+
 /// Current committed job views and one outstanding explicit cancellation.
 #[derive(Default)]
 pub struct SubmissionQueue {
+    client_version: Option<tallyline_shared_kernel::api::model::ReleaseVersion>,
+    service_fences: Vec<SubmissionServiceFence>,
     jobs: Vec<SubmissionJob>,
     mappings: Vec<VerifiedReceiptMapping>,
-    waiting: Vec<tallyline_submission::api::model::SubmissionWait>,
+    waiting: Vec<SubmissionWait>,
     pending: Option<QueueCommand>,
     busy: Option<QueueCommand>,
     failure: Option<SubmissionApplicationError>,
 }
 impl SubmissionQueue {
+    /// Publishes passive immutable compiled release context without dispatch authority.
+    pub fn received_client_version(
+        &mut self,
+        version: Option<tallyline_shared_kernel::api::model::ReleaseVersion>,
+    ) {
+        self.client_version = version;
+    }
     /// Retains the newest committed version of every received job.
     pub fn received(&mut self, jobs: Vec<SubmissionJob>) {
         for job in jobs {
@@ -47,10 +83,7 @@ impl SubmissionQueue {
         self.mappings
             .retain(|mapping| self.jobs.iter().any(|job| mapping.matches_job(job)));
         self.jobs.sort_by_key(|job| std::cmp::Reverse(job.id()));
-        if let Some(QueueCommand::Cancel {
-            id,
-            expected_revision,
-        }) = self.busy
+        if let Some((id, expected_revision)) = self.busy.map(QueueCommand::identity)
             && self
                 .jobs
                 .iter()
@@ -61,11 +94,22 @@ impl SubmissionQueue {
             self.failure = None;
         }
     }
+    /// Publishes durable global service reasons without granting dispatch authority.
+    pub fn received_service_fences(&mut self, fences: Vec<SubmissionServiceFence>) {
+        self.service_fences = fences
+            .into_iter()
+            .filter(|fence| {
+                self.jobs
+                    .iter()
+                    .find(|job| job.id() == fence.source())
+                    .is_none_or(|job| {
+                        job.revision() < fence.source_revision() || fence.matches_source(job)
+                    })
+            })
+            .collect();
+    }
     /// Retains waits only for the exact committed queued revision currently visible.
-    pub fn received_waiting(
-        &mut self,
-        waiting: Vec<tallyline_submission::api::model::SubmissionWait>,
-    ) {
+    pub fn received_waiting(&mut self, waiting: Vec<SubmissionWait>) {
         self.waiting = waiting
             .into_iter()
             .filter(|wait| {
@@ -111,7 +155,15 @@ impl SubmissionQueue {
     pub fn can_cancel(&self, id: JobId) -> bool {
         self.busy.is_none()
             && self.jobs.iter().any(|job| {
-                job.id() == id && matches!(job.phase(), JobPhase::Queued | JobPhase::Held)
+                job.id() == id
+                    && matches!(
+                        job.phase(),
+                        JobPhase::Queued | JobPhase::Held | JobPhase::Paused
+                    )
+                    && !matches!(
+                        job.result().map(SubmissionResult::final_result),
+                        Some(SubmissionResult::NeedsOutcomeCheck { .. })
+                    )
             })
     }
     /// Queues at most one explicit version-bound cancellation.
@@ -131,6 +183,25 @@ impl SubmissionQueue {
         self.failure = None;
         true
     }
+    /// Queues an explicit retry only for the exact eligible committed version.
+    pub fn request_retry(&mut self, id: JobId) -> bool {
+        if self.busy.is_some() {
+            return false;
+        }
+        let Some(job) = self.jobs.iter().find(|job| {
+            job.id() == id && (job.can_retry() || job.can_retry_after_update(self.client_version))
+        }) else {
+            return false;
+        };
+        let command = QueueCommand::Retry {
+            id,
+            expected_revision: job.revision(),
+        };
+        self.pending = Some(command);
+        self.busy = Some(command);
+        self.failure = None;
+        true
+    }
     /// Drains the bounded command for the application worker.
     pub fn take_command(&mut self) -> Option<QueueCommand> {
         self.pending.take()
@@ -142,12 +213,7 @@ impl SubmissionQueue {
         expected_revision: u64,
         failure: SubmissionApplicationError,
     ) {
-        if self.busy
-            == Some(QueueCommand::Cancel {
-                id,
-                expected_revision,
-            })
-        {
+        if self.busy.map(QueueCommand::identity) == Some((id, expected_revision)) {
             self.busy = None;
             self.pending = None;
             self.failure = Some(failure);
@@ -163,6 +229,13 @@ pub fn show_submission_queue(
     theme: tallyline_egui::Theme,
 ) -> Option<QueueCommand> {
     ui.heading(catalogue.text("queue.title"));
+    for fence in &state.service_fences {
+        ui.label(catalogue.text(match fence.cause() {
+            SubmissionServiceCause::DailyQuota => "queue.global_daily_quota",
+            SubmissionServiceCause::AccountPause => "queue.global_account_pause",
+            SubmissionServiceCause::ApiChanged => "queue.global_api_changed",
+        }));
+    }
     if state.jobs.is_empty() {
         ui.label(catalogue.text("queue.empty"));
     }
@@ -180,6 +253,7 @@ pub fn show_submission_queue(
         ui.label(catalogue.text(key));
     }
     let mut cancel = None;
+    let mut retry = None;
     for job in &state.jobs {
         ui.push_id(job.id().0, |ui| {
             let header = job.request().header();
@@ -214,6 +288,50 @@ pub fn show_submission_queue(
                     ui.label(catalogue.text(review_reason_key(reason)));
                 }
                 show_result(ui, job, state.verified_receipts(job.id()), catalogue);
+                let retry_policy = SubmissionRetrySettings::default();
+                if let Some(at) = retry_policy.automatic_retry_at(job) {
+                    ui.label(format!(
+                        "{} {}",
+                        catalogue.text("queue.next_retry"),
+                        crate::attachment_views::format_time(at)
+                    ));
+                } else if job.phase() == JobPhase::Held
+                    && job.can_retry()
+                    && matches!(
+                        job.result().map(SubmissionResult::final_result),
+                        Some(
+                            SubmissionResult::NotProcessed(_)
+                                | SubmissionResult::RateLimitedCode(_)
+                        )
+                    )
+                {
+                    ui.label(catalogue.text("queue.retries_exhausted"));
+                }
+                if (job.can_retry() || job.can_retry_after_update(state.client_version))
+                    && ui
+                        .add_enabled(
+                            state.busy.is_none(),
+                            egui::Button::new(tallyline_egui::button_text(format!(
+                                "{} {}",
+                                catalogue.text(
+                                    if job.can_acknowledge_service_pause()
+                                        || (matches!(
+                                            job.phase(),
+                                            JobPhase::Cancelled | JobPhase::Returned
+                                        ) && job.can_retry_after_update(state.client_version))
+                                    {
+                                        "queue.retry_queue"
+                                    } else {
+                                        "queue.retry_now"
+                                    }
+                                ),
+                                job.id().0
+                            ))),
+                        )
+                        .clicked()
+                {
+                    retry = Some(job.id());
+                }
                 if ui
                     .add_enabled(
                         state.can_cancel(job.id()),
@@ -232,6 +350,9 @@ pub fn show_submission_queue(
     }
     if let Some(id) = cancel {
         state.request_cancel(id);
+    }
+    if let Some(id) = retry {
+        state.request_retry(id);
     }
     state.take_command()
 }
@@ -269,6 +390,8 @@ fn phase_key(job: &SubmissionJob) -> &'static str {
         JobPhase::Queued => "queue.queued",
         JobPhase::Sending => "queue.sending",
         JobPhase::Held => "queue.held",
+        JobPhase::Rejected => "queue.rejected",
+        JobPhase::Paused => "queue.paused",
         JobPhase::Succeeded => match job.request().header().mode {
             SubmissionMode::DryRun => "queue.test_succeeded",
             SubmissionMode::Production => "queue.submitted",
@@ -292,7 +415,152 @@ fn show_result(
     let Some(result) = job.result() else {
         return;
     };
+    show_closed_result(ui, result, catalogue);
+}
+fn show_closed_result(ui: &mut egui::Ui, result: &SubmissionResult, catalogue: &Catalogue) {
     match result {
+        SubmissionResult::AccountRefusal {
+            code,
+            reason,
+            check,
+            outcome,
+            ..
+        } => {
+            if let Some(code) = code {
+                ui.label(code.as_str());
+            }
+            if matches!(check, SubmissionAccountCheck::Pending) {
+                ui.label(catalogue.text("queue.account_check_pending"));
+            } else {
+                show_closed_result(
+                    ui,
+                    &SubmissionResult::Paused(match check {
+                        SubmissionAccountCheck::Completed(action) => *action,
+                        SubmissionAccountCheck::Pending | SubmissionAccountCheck::NotRequired => {
+                            *reason
+                        }
+                    }),
+                    catalogue,
+                );
+            }
+            if !matches!(
+                outcome.as_ref(),
+                SubmissionResult::Paused(_) | SubmissionResult::PausedCode { .. }
+            ) {
+                show_closed_result(ui, outcome, catalogue);
+            }
+        }
+        SubmissionResult::PausedCode { code, reason } => {
+            ui.label(code.as_str());
+            show_closed_result(ui, &SubmissionResult::Paused(*reason), catalogue);
+        }
+        SubmissionResult::DuplicateEvidence(previous) => {
+            ui.label(format!(
+                "{} {}",
+                catalogue.text("queue.possibly_received"),
+                previous.0
+            ));
+        }
+        SubmissionResult::Returned(SubmissionReturnReason::PossiblyAlreadyReceived) => {
+            ui.label(catalogue.text("queue.possibly_received"));
+        }
+        SubmissionResult::RateLimitedCode(code) => {
+            ui.label(format!(
+                "{} {}",
+                catalogue.text("queue.rate_limited"),
+                code.as_str()
+            ));
+        }
+        SubmissionResult::NotProcessed(NotProcessed::RateLimited | NotProcessed::RowBudget) => {
+            ui.label(catalogue.text("queue.rate_limited"));
+        }
+        SubmissionResult::NotProcessed(NotProcessed::ImageUpload | NotProcessed::ImageStorage) => {
+            ui.label(catalogue.text("queue.image_unavailable"));
+        }
+        SubmissionResult::NotProcessed(NotProcessed::DailyQuota) => {
+            ui.label(catalogue.text("queue.daily_quota"));
+        }
+        SubmissionResult::Rechecked { code, outcome } => {
+            ui.label(format!(
+                "{} {}",
+                catalogue.text("queue.checked_code"),
+                code.as_str()
+            ));
+            show_closed_result(ui, outcome, catalogue);
+        }
+        SubmissionResult::PartialError { code, row } => {
+            ui.label(format!(
+                "{} {}",
+                catalogue.text("queue.partial_error"),
+                code.as_str()
+            ));
+            if let Some(row) = row {
+                ui.label(format!(
+                    "{} {}",
+                    catalogue.text("queue.failed_row"),
+                    row + 1
+                ));
+            }
+        }
+        SubmissionResult::NeedsOutcomeCheck { code, .. } => {
+            ui.label(format!(
+                "{} {}",
+                catalogue.text("queue.receipt_check_required"),
+                code.as_str()
+            ));
+        }
+        SubmissionResult::Rejected(refusal) => {
+            let code = refusal.code();
+            ui.label(format!(
+                "{} {}",
+                catalogue.text("queue.rejected_code"),
+                code.as_str()
+            ));
+            ui.label(catalogue.text(
+                if refusal.correction() == SubmissionCorrection::ReviewClient {
+                    "queue.permanent_action"
+                } else {
+                    "queue.invalid_game_version"
+                },
+            ));
+        }
+        SubmissionResult::Returned(SubmissionReturnReason::MaxRowsExceeded) => {
+            ui.label(catalogue.text("queue.max_rows_exceeded"));
+        }
+        SubmissionResult::Returned(SubmissionReturnReason::TerminalNotFound) => {
+            ui.label(catalogue.text("queue.terminal_not_found"));
+        }
+        SubmissionResult::Returned(
+            SubmissionReturnReason::InvalidScreenshot | SubmissionReturnReason::ScreenshotTooLarge,
+        ) => {
+            ui.label(catalogue.text("queue.invalid_screenshot"));
+        }
+        SubmissionResult::Held(reason) => {
+            ui.label(catalogue.text(match reason {
+                SubmissionHoldReason::AcceptanceClosed => "queue.acceptance_closed",
+                SubmissionHoldReason::Cooldown => "queue.duplicate_cooldown",
+                SubmissionHoldReason::ApiChanged => "queue.api_changed",
+            }));
+        }
+        SubmissionResult::VersionLockedOut(_) => {
+            show_closed_result(
+                ui,
+                &SubmissionResult::Paused(SubmissionPauseReason::UpdateRequired),
+                catalogue,
+            );
+        }
+        SubmissionResult::Paused(reason) => {
+            ui.label(catalogue.text(match reason {
+                SubmissionPauseReason::AppToken => "queue.app_token",
+                SubmissionPauseReason::UpdateRequired => "queue.update_required",
+                SubmissionPauseReason::KeyChecked => "queue.key_checked",
+                SubmissionPauseReason::Reauthenticate => "queue.reauthenticate",
+                SubmissionPauseReason::KeyCheckUnavailable => "queue.key_check_unavailable",
+            }));
+        }
+        SubmissionResult::NotProcessed(NotProcessed::ServiceUnavailable) => {
+            ui.label(catalogue.text("queue.service_unavailable"));
+        }
         SubmissionResult::DryRunSucceeded => {
             ui.label(catalogue.text("queue.no_uex_ids"));
         }
@@ -309,27 +577,19 @@ fn show_result(
                 ));
             }
         }
-        SubmissionResult::Returned(
-            tallyline_submission::api::model::SubmissionReturnReason::PreflightChanged,
-        ) => {
+        SubmissionResult::Returned(SubmissionReturnReason::PreflightChanged) => {
             ui.label(catalogue.text("queue.preflight_changed"));
         }
         SubmissionResult::Unknown => {
             ui.label(catalogue.text("queue.no_replay"));
         }
-        SubmissionResult::Returned(
-            tallyline_submission::api::model::SubmissionReturnReason::ScreenshotRequired,
-        ) => {
+        SubmissionResult::Returned(SubmissionReturnReason::ScreenshotRequired) => {
             ui.label(catalogue.text("queue.screenshot_required"));
         }
-        SubmissionResult::Returned(
-            tallyline_submission::api::model::SubmissionReturnReason::InvalidObservationTime,
-        ) => {
+        SubmissionResult::Returned(SubmissionReturnReason::InvalidObservationTime) => {
             ui.label(catalogue.text("queue.invalid_observation_time"));
         }
-        SubmissionResult::NotProcessed(
-            tallyline_submission::api::model::NotProcessed::ConnectFailure,
-        ) => {
+        SubmissionResult::NotProcessed(NotProcessed::ConnectFailure) => {
             ui.label(catalogue.text("queue.connect_failure"));
         }
     }
@@ -346,9 +606,7 @@ fn show_verified(ui: &mut egui::Ui, receipts: &[VerifiedUexReport], catalogue: &
     }
 }
 
-pub(crate) fn review_reason_key(
-    reason: tallyline_submission::api::model::SendReturnReason,
-) -> &'static str {
+pub(crate) fn review_reason_key(reason: SendReturnReason) -> &'static str {
     use tallyline_submission::api::model::SendReturnReason;
     match reason {
         SendReturnReason::ReviewRequired => "queue.review_required",

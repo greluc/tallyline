@@ -6,6 +6,7 @@
 use crate::api::model::{
     AttemptOutcome, JobId, JobPhase, PayloadHash, SubmissionRequest, SubmissionResult,
 };
+use crate::api::model::{SendReturnReason, SubmissionAccountEvidence, SubmissionPauseReason};
 use tallyline_shared_kernel::api::model::Timestamp;
 
 /// Persistence-only state of an attempt, without credentials or request bytes.
@@ -23,6 +24,14 @@ pub struct StoredSubmissionAttempt {
     pub ended_at: Option<Timestamp>,
     /// Absent while sending; consistent with the retained result when closed.
     pub outcome: Option<AttemptOutcome>,
+    /// A later read-only safety check resolved the stored refusal.
+    pub receipt_checked: bool,
+    /// Changed account-check actions; absent only in the legacy single-check format.
+    pub account_checks: Option<Vec<SubmissionPauseReason>>,
+    /// Original account refusal and independent account-read progress.
+    pub account_evidence: Option<SubmissionAccountEvidence>,
+    /// The compiled newer release that authorised this retried attempt.
+    pub client_update: Option<tallyline_shared_kernel::api::model::ReleaseVersion>,
 }
 
 /// Persistence-only state of one immutable released submission.
@@ -41,5 +50,9 @@ pub struct StoredSubmissionJob {
     /// Retained closed outcome, absent before completion.
     pub result: Option<SubmissionResult>,
     /// A preflight refusal retained independently of transport outcomes.
-    pub review_reason: Option<crate::api::model::SendReturnReason>,
+    pub review_reason: Option<SendReturnReason>,
+    /// Queue-only acknowledgement that never authorises replay of this job.
+    pub service_pause_acknowledged: bool,
+    /// The most recent explicit newer-release recovery decision.
+    pub client_update: Option<tallyline_shared_kernel::api::model::ReleaseVersion>,
 }

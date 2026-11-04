@@ -294,3 +294,13 @@ pub use crate::receipt_mapping::VerifiedReceiptMapping;
 pub use crate::observation_order::ObservationOrderBlock;
 
 pub use crate::queue_wait::{SubmissionWait, SubmissionWaitReason};
+
+pub use crate::job::SubmissionPauseReason;
+
+pub use crate::job::SubmissionHoldReason;
+pub use crate::retry::SubmissionRetrySettings;
+pub use crate::service_fence::{SubmissionServiceCause, SubmissionServiceFence};
+pub use crate::uex_error_code::UexErrorCode;
+
+pub use crate::submission_account_evidence::{SubmissionAccountCheck, SubmissionAccountEvidence};
+pub use crate::submission_rejection::{SubmissionCorrection, SubmissionRejection};
