@@ -5,7 +5,6 @@
 
 use super::support;
 use rusqlite::Connection;
-use std::num::NonZeroU8;
 use tallyline_adapter_storage::api::SqliteReferenceCache;
 use tallyline_game::api::model::EnvironmentMapping;
 use tallyline_reporting::api::ManualReviewer;
@@ -16,8 +15,7 @@ use tallyline_reporting::api::model::{
     ReportState, StockSettings,
 };
 use tallyline_shared_kernel::api::model::{
-    CommodityId, ObservationAgeSettings, SubmissionMode, TerminalId, Timestamp, TradeSide,
-    UexEnvironment,
+    CommodityId, ObservationAgeSettings, SubmissionMode, TerminalId, Timestamp, UexEnvironment,
 };
 
 #[test]
@@ -29,7 +27,7 @@ fn r_sub_9_r_nf_11__received_unknown_resolution_commits_and_reopens_without_rewr
     use tallyline_adapter_storage::api::SqliteReferenceCache;
     use tallyline_submission::api::SubmissionJobRepository;
     use tallyline_submission::api::model::{
-        PayloadHash, SubmissionCommand, UnknownDecision, UnknownResolutionAction,
+        PayloadHash, ReceiptDecision, SubmissionCommand, SubmissionResolutionAction,
     };
     use tallyline_workflows::api::ManualReleaseStore;
     let path = std::env::temp_dir().join(format!(
@@ -56,9 +54,9 @@ fn r_sub_9_r_nf_11__received_unknown_resolution_commits_and_reopens_without_rewr
     SubmissionJobRepository::save(&mut store, &unknown).unwrap();
     let received = unknown
         .state()
-        .apply(SubmissionCommand::ResolveUnknown(
-            UnknownResolutionAction::Decision {
-                decision: UnknownDecision::Received,
+        .apply(SubmissionCommand::ResolveDelivery(
+            SubmissionResolutionAction::Decision {
+                decision: ReceiptDecision::Received,
                 at: Timestamp::from_seconds(1002),
             },
         ))
@@ -95,7 +93,7 @@ fn r_sub_9_r_nf_11__received_unknown_resolution_commits_and_reopens_without_rewr
         .unwrap();
     assert_eq!(&job, received.state());
     assert_eq!(job.attempts(), unknown.state().attempts());
-    assert!(job.unknown_receipts().next().is_none());
+    assert!(job.verified_row_receipts().next().is_none());
     assert!(
         tallyline_workflows::api::accepted_submission_priors(&job)
             .unwrap()
@@ -122,9 +120,9 @@ fn r_sub_9__not_received_retains_origin_and_explicit_duplicate_creates_a_fresh_u
     use tallyline_reporting::api::{ReportHistoryRepository, ReportRepository};
     use tallyline_submission::api::SubmissionJobRepository;
     use tallyline_submission::api::model::{
-        PayloadHash, SubmissionCommand, UnknownDecision, UnknownResolutionAction,
+        PayloadHash, ReceiptDecision, SubmissionCommand, SubmissionResolutionAction,
     };
-    use tallyline_workflows::api::{ManualReleaseStore, UnknownDraftStore};
+    use tallyline_workflows::api::{ManualReleaseStore, ResolutionDraftStore};
     let path = std::env::temp_dir().join(format!(
         "tallyline-unknown-duplicate-{}.db",
         std::process::id()
@@ -149,7 +147,7 @@ fn r_sub_9__not_received_retains_origin_and_explicit_duplicate_creates_a_fresh_u
     SubmissionJobRepository::save(&mut store, &unknown).unwrap();
     assert!(
         store
-            .duplicate_unknown(
+            .duplicate_resolved(
                 unknown.state().id(),
                 unknown.state().revision(),
                 Timestamp::from_seconds(1002)
@@ -158,9 +156,9 @@ fn r_sub_9__not_received_retains_origin_and_explicit_duplicate_creates_a_fresh_u
     );
     let not_received = unknown
         .state()
-        .apply(SubmissionCommand::ResolveUnknown(
-            UnknownResolutionAction::Decision {
-                decision: UnknownDecision::NotReceived,
+        .apply(SubmissionCommand::ResolveDelivery(
+            SubmissionResolutionAction::Decision {
+                decision: ReceiptDecision::NotReceived,
                 at: Timestamp::from_seconds(1002),
             },
         ))
@@ -171,7 +169,7 @@ fn r_sub_9__not_received_retains_origin_and_explicit_duplicate_creates_a_fresh_u
     fault.execute_batch("CREATE TRIGGER fail_unknown_duplicate BEFORE INSERT ON domain_outbox WHEN NEW.event_source='submission' BEGIN SELECT RAISE(ABORT,'test duplicate rollback'); END;").unwrap();
     assert!(
         store
-            .duplicate_unknown(
+            .duplicate_resolved(
                 not_received.state().id(),
                 not_received.state().revision(),
                 Timestamp::from_seconds(1003)
@@ -189,7 +187,7 @@ fn r_sub_9__not_received_retains_origin_and_explicit_duplicate_creates_a_fresh_u
         .execute_batch("DROP TRIGGER fail_unknown_duplicate")
         .unwrap();
     drop(fault);
-    let duplicated = store.duplicate_unknown(
+    let duplicated = store.duplicate_resolved(
         not_received.state().id(),
         not_received.state().revision(),
         Timestamp::from_seconds(1003),
@@ -221,7 +219,7 @@ fn r_sub_9__not_received_retains_origin_and_explicit_duplicate_creates_a_fresh_u
     );
     assert!(
         store
-            .duplicate_unknown(
+            .duplicate_resolved(
                 duplicated.origin.id(),
                 duplicated.origin.revision(),
                 Timestamp::from_seconds(1004)
@@ -249,7 +247,7 @@ fn r_sub_9__not_received_retains_origin_and_explicit_duplicate_creates_a_fresh_u
 fn r_sub_9__verified_unknown_receipt_updates_report_and_reopens_without_fabricating_success() {
     use tallyline_submission::api::SubmissionJobRepository;
     use tallyline_submission::api::model::{
-        PayloadHash, SubmissionCommand, SubmissionResult, UnknownResolutionAction,
+        PayloadHash, SubmissionCommand, SubmissionResolutionAction, SubmissionResult,
         VerifiedUexReport,
     };
     use tallyline_workflows::api::ManualReleaseStore;
@@ -287,8 +285,8 @@ fn r_sub_9__verified_unknown_receipt_updates_report_and_reopens_without_fabricat
     .unwrap();
     let verified = unknown
         .state()
-        .apply(SubmissionCommand::ResolveUnknown(
-            UnknownResolutionAction::Verified {
+        .apply(SubmissionCommand::ResolveDelivery(
+            SubmissionResolutionAction::Verified {
                 receipts: vec![proof],
                 at: Timestamp::from_seconds(1002),
             },
@@ -311,7 +309,7 @@ fn r_sub_9__verified_unknown_receipt_updates_report_and_reopens_without_fabricat
     assert_eq!(&job, verified.state());
     assert_eq!(job.attempts(), unknown.state().attempts());
     assert_eq!(job.result(), Some(&SubmissionResult::Unknown));
-    assert_eq!(job.unknown_receipts().next().unwrap().id(), 718);
+    assert_eq!(job.verified_row_receipts().next().unwrap().id(), 718);
     assert!(!job.can_duplicate_unknown());
     let fault = Connection::open(&path).unwrap();
     let identity = i64::try_from(job.id().0).unwrap();
@@ -324,15 +322,15 @@ fn r_sub_9__verified_unknown_receipt_updates_report_and_reopens_without_fabricat
         .unwrap();
     for (expression, delta) in [
         (
-            "json_set(?2,'$.unknown_actions[0].verified.receipts[0][2]','900000')",
+            "json_set(?2,'$.resolution_actions[0].verified.receipts[0][2]','900000')",
             0,
         ),
         (
-            "json_insert(?2,'$.unknown_actions[#]',json_extract(?2,'$.unknown_actions[0]'))",
+            "json_insert(?2,'$.resolution_actions[#]',json_extract(?2,'$.resolution_actions[0]'))",
             1,
         ),
         (
-            "json_set(?2,'$.unknown_actions[0].verified.receipts[0][1]',0)",
+            "json_set(?2,'$.resolution_actions[0].verified.receipts[0][1]',0)",
             0,
         ),
     ] {
@@ -371,104 +369,19 @@ fn r_sub_9__verified_unknown_receipt_updates_report_and_reopens_without_fabricat
 fn r_sub_9__overlapping_three_row_windows_count_unique_coverage_and_preserve_partial_after_reopen()
 {
     use tallyline_adapter_storage::api::SqliteReferenceCache;
-    use tallyline_reference_data::api::ReferenceDataCache;
-    use tallyline_reference_data::api::model::{
-        CachedReference, Commodity, CommodityAverages, EndpointData, PricePrior, PriorProvenance,
-        PriorValues, TerminalPriors,
-    };
-    use tallyline_reporting::api::{ReportHistoryRepository, ReportRepository};
+
+    use tallyline_reporting::api::ReportHistoryRepository;
     use tallyline_submission::api::SubmissionJobRepository;
     use tallyline_submission::api::model::{
-        PayloadHash, SubmissionCommand, SubmissionJob, SubmissionResult, UnknownResolutionAction,
-        VerifiedUexReport,
+        PayloadHash, SubmissionCommand, SubmissionJob, SubmissionResolutionAction,
+        SubmissionResult, VerifiedUexReport,
     };
     use tallyline_workflows::api::ManualReleaseStore;
     let path = std::env::temp_dir().join(format!(
         "tallyline-overlapping-unknown-{}.db",
         std::process::id()
     ));
-    let (mut store, initial) =
-        support::stored_gate_with_mode(&path, SubmissionMode::Production).unwrap();
-    let commodities = [
-        (42, "Gold", "GOLD"),
-        (43, "Silver", "SILV"),
-        (44, "Iron", "IRON"),
-    ]
-    .into_iter()
-    .map(|(id, name, code)| {
-        Commodity::new(
-            CommodityId(id),
-            name,
-            code,
-            true,
-            CommodityAverages::new(None, None),
-        )
-    })
-    .collect();
-    store
-        .replace(&CachedReference::new(
-            Timestamp::from_seconds(950),
-            EndpointData::Commodities(commodities),
-        ))
-        .unwrap();
-    let priors = [42, 43, 44]
-        .into_iter()
-        .map(|id| {
-            PricePrior::new(
-                CommodityId(id),
-                TradeSide::Buy,
-                PriorValues {
-                    price: "123.45".parse().unwrap(),
-                    stock: "0".parse().unwrap(),
-                    status: NonZeroU8::new(3),
-                    container_sizes: vec![],
-                },
-                PriorProvenance {
-                    game_version: "4.10.2".to_owned(),
-                    modified_at: Timestamp::from_seconds(900),
-                },
-            )
-            .unwrap()
-        })
-        .collect();
-    store
-        .replace(&CachedReference::new(
-            Timestamp::from_seconds(950),
-            EndpointData::TerminalPriors(TerminalPriors::new(TerminalId(11), priors).unwrap()),
-        ))
-        .unwrap();
-    let mut report = initial.source().clone();
-    for id in [43, 44] {
-        let row = report.add_commodity(CommodityId(id)).unwrap();
-        report
-            .set_price(row, Some("123.45".parse().unwrap()))
-            .unwrap();
-        report.set_stock(row, Some("0".parse().unwrap())).unwrap();
-        report.set_status(row, NonZeroU8::new(3)).unwrap();
-    }
-    store
-        .save_draft(&report, initial.source().version())
-        .unwrap();
-    let records = ReferenceDataCache::load(&mut store).unwrap();
-    let snapshot = support::snapshot_records(records, UexEnvironment::Live).unwrap();
-    let reviewer = ManualReviewer::new(
-        EnvironmentMapping::default(),
-        StockSettings::default(),
-        None,
-    );
-    let gate = reviewer.submission_gate(
-        report,
-        &snapshot,
-        ReleaseContext::new(
-            ReleaseAccountStanding::Accepted("dummy-a".to_owned()),
-            SubmissionMode::Production,
-            ReleaseScreenshotPolicy::Unknown,
-            ReleaseWorkingCopy::Absent,
-        ),
-        ObservationAgeSettings::default(),
-        Timestamp::from_seconds(1000),
-    );
-    let gate = tallyline_workflows::api::assess_release_observation_history(&gate, Some(&[]));
+    let (mut store, gate) = super::three_rows::gate(&path).unwrap();
     let released = store.release_manual(&gate).unwrap();
     let sending = released
         .job()
@@ -511,8 +424,8 @@ fn r_sub_9__overlapping_three_row_windows_count_unique_coverage_and_preserve_par
     let third_proof = proof(unknown.state(), 720, 44);
     let first = unknown
         .state()
-        .apply(SubmissionCommand::ResolveUnknown(
-            UnknownResolutionAction::Verified {
+        .apply(SubmissionCommand::ResolveDelivery(
+            SubmissionResolutionAction::Verified {
                 receipts: vec![first_proof.clone()],
                 at: Timestamp::from_seconds(1002),
             },
@@ -521,8 +434,8 @@ fn r_sub_9__overlapping_three_row_windows_count_unique_coverage_and_preserve_par
     SubmissionJobRepository::save(&mut store, &first).unwrap();
     let overlap = first
         .state()
-        .apply(SubmissionCommand::ResolveUnknown(
-            UnknownResolutionAction::Verified {
+        .apply(SubmissionCommand::ResolveDelivery(
+            SubmissionResolutionAction::Verified {
                 receipts: vec![first_proof, second_proof],
                 at: Timestamp::from_seconds(1003),
             },
@@ -532,7 +445,7 @@ fn r_sub_9__overlapping_three_row_windows_count_unique_coverage_and_preserve_par
     assert_eq!(
         overlap
             .state()
-            .unknown_receipts()
+            .verified_row_receipts()
             .map(|receipt| receipt.row().0)
             .collect::<Vec<_>>(),
         vec![1, 2]
@@ -561,8 +474,8 @@ fn r_sub_9__overlapping_three_row_windows_count_unique_coverage_and_preserve_par
         ReportState::PartiallyAccepted
     );
     let complete = restored
-        .apply(SubmissionCommand::ResolveUnknown(
-            UnknownResolutionAction::Verified {
+        .apply(SubmissionCommand::ResolveDelivery(
+            SubmissionResolutionAction::Verified {
                 receipts: vec![third_proof],
                 at: Timestamp::from_seconds(1004),
             },
@@ -577,7 +490,7 @@ fn r_sub_9__overlapping_three_row_windows_count_unique_coverage_and_preserve_par
             .state(),
         ReportState::Submitted
     );
-    assert_eq!(complete.state().unknown_receipts().count(), 3);
+    assert_eq!(complete.state().verified_row_receipts().count(), 3);
     assert_eq!(complete.state().attempts(), unknown.state().attempts());
     assert_eq!(complete.state().result(), Some(&SubmissionResult::Unknown));
     drop(reopened);
@@ -592,9 +505,12 @@ fn r_sub_9__overlapping_three_row_windows_count_unique_coverage_and_preserve_par
 fn r_sub_9__late_positive_origin_evidence_blocks_release_of_its_existing_duplicate_draft() {
     use tallyline_submission::api::SubmissionJobRepository;
     use tallyline_submission::api::model::{
-        PayloadHash, SubmissionCommand, UnknownDecision, UnknownResolutionAction, VerifiedUexReport,
+        PayloadHash, ReceiptDecision, SubmissionCommand, SubmissionResolutionAction,
+        VerifiedUexReport,
     };
-    use tallyline_workflows::api::{ManualReleaseStore, SubmissionQueueStore, UnknownDraftStore};
+    use tallyline_workflows::api::{
+        ManualReleaseStore, ResolutionDraftStore, SubmissionQueueStore,
+    };
     let path = std::env::temp_dir().join(format!(
         "tallyline-unknown-duplicate-conflict-{}.db",
         std::process::id()
@@ -620,16 +536,16 @@ fn r_sub_9__late_positive_origin_evidence_blocks_release_of_its_existing_duplica
     SubmissionJobRepository::save(&mut store, &unknown).unwrap();
     let decided = unknown
         .state()
-        .apply(SubmissionCommand::ResolveUnknown(
-            UnknownResolutionAction::Decision {
-                decision: UnknownDecision::NotReceived,
+        .apply(SubmissionCommand::ResolveDelivery(
+            SubmissionResolutionAction::Decision {
+                decision: ReceiptDecision::NotReceived,
                 at: Timestamp::from_seconds(1002),
             },
         ))
         .unwrap();
     SubmissionJobRepository::save(&mut store, &decided).unwrap();
     let duplicate = store
-        .duplicate_unknown(
+        .duplicate_resolved(
             decided.state().id(),
             decided.state().revision(),
             Timestamp::from_seconds(1003),
@@ -646,8 +562,8 @@ fn r_sub_9__late_positive_origin_evidence_blocks_release_of_its_existing_duplica
     .unwrap();
     let verified = duplicate
         .origin
-        .apply(SubmissionCommand::ResolveUnknown(
-            UnknownResolutionAction::Verified {
+        .apply(SubmissionCommand::ResolveDelivery(
+            SubmissionResolutionAction::Verified {
                 receipts: vec![proof],
                 at: Timestamp::from_seconds(1004),
             },
@@ -691,10 +607,12 @@ fn r_sub_9__late_positive_origin_evidence_blocks_release_of_its_existing_duplica
 fn r_sub_9__late_positive_origin_evidence_refuses_write_ahead_for_an_already_queued_duplicate() {
     use tallyline_submission::api::SubmissionJobRepository;
     use tallyline_submission::api::model::{
-        JobPhase, PayloadHash, SubmissionCommand, UnknownDecision, UnknownResolutionAction,
+        JobPhase, PayloadHash, ReceiptDecision, SubmissionCommand, SubmissionResolutionAction,
         VerifiedUexReport,
     };
-    use tallyline_workflows::api::{ManualReleaseStore, SubmissionQueueStore, UnknownDraftStore};
+    use tallyline_workflows::api::{
+        ManualReleaseStore, ResolutionDraftStore, SubmissionQueueStore,
+    };
     let path = std::env::temp_dir().join(format!(
         "tallyline-unknown-queued-duplicate-conflict-{}.db",
         std::process::id()
@@ -720,16 +638,16 @@ fn r_sub_9__late_positive_origin_evidence_refuses_write_ahead_for_an_already_que
     SubmissionJobRepository::save(&mut store, &unknown).unwrap();
     let decided = unknown
         .state()
-        .apply(SubmissionCommand::ResolveUnknown(
-            UnknownResolutionAction::Decision {
-                decision: UnknownDecision::NotReceived,
+        .apply(SubmissionCommand::ResolveDelivery(
+            SubmissionResolutionAction::Decision {
+                decision: ReceiptDecision::NotReceived,
                 at: Timestamp::from_seconds(1002),
             },
         ))
         .unwrap();
     SubmissionJobRepository::save(&mut store, &decided).unwrap();
     let duplicate = store
-        .duplicate_unknown(
+        .duplicate_resolved(
             decided.state().id(),
             decided.state().revision(),
             Timestamp::from_seconds(1003),
@@ -767,8 +685,8 @@ fn r_sub_9__late_positive_origin_evidence_refuses_write_ahead_for_an_already_que
     .unwrap();
     let verified = duplicate
         .origin
-        .apply(SubmissionCommand::ResolveUnknown(
-            UnknownResolutionAction::Verified {
+        .apply(SubmissionCommand::ResolveDelivery(
+            SubmissionResolutionAction::Verified {
                 receipts: vec![proof],
                 at: Timestamp::from_seconds(1303),
             },
@@ -812,8 +730,8 @@ fn r_sub_9_r_sub_11__received_decision_preserves_account_fence_and_repeated_chec
     use tallyline_adapter_storage::api::SqliteReferenceCache;
     use tallyline_reporting::api::ReportHistoryRepository;
     use tallyline_submission::api::model::{
-        JobPhase, PayloadHash, SubmissionAccountCheck, SubmissionCommand, SubmissionPauseReason,
-        SubmissionResult, UnknownDecision, UnknownResolutionAction,
+        JobPhase, PayloadHash, ReceiptDecision, SubmissionAccountCheck, SubmissionCommand,
+        SubmissionPauseReason, SubmissionResolutionAction, SubmissionResult,
     };
     use tallyline_submission::api::{SubmissionJobRepository, SubmissionServiceFenceRepository};
     use tallyline_workflows::api::ManualReleaseStore;
@@ -858,9 +776,9 @@ fn r_sub_9_r_sub_11__received_decision_preserves_account_fence_and_repeated_chec
     SubmissionJobRepository::save(&mut store, &unavailable).unwrap();
     let received = unavailable
         .state()
-        .apply(SubmissionCommand::ResolveUnknown(
-            UnknownResolutionAction::Decision {
-                decision: UnknownDecision::Received,
+        .apply(SubmissionCommand::ResolveDelivery(
+            SubmissionResolutionAction::Decision {
+                decision: ReceiptDecision::Received,
                 at: Timestamp::from_seconds(1002),
             },
         ))
@@ -916,11 +834,118 @@ fn r_sub_9_r_sub_11__received_decision_preserves_account_fence_and_repeated_chec
     assert!(restored.service_pause_acknowledged());
     assert!(restored.retry().is_err());
     assert!(restored.cancel().is_err());
-    assert_eq!(restored.unknown_decision(), Some(UnknownDecision::Received));
+    assert_eq!(restored.unknown_decision(), Some(ReceiptDecision::Received));
     assert_eq!(
         restored.result().unwrap().final_result(),
         &SubmissionResult::Unknown
     );
+    drop(reopened);
+    std::fs::remove_file(path).unwrap();
+}
+
+#[test]
+#[expect(
+    non_snake_case,
+    reason = "Requirement tags use a double underscore separator."
+)]
+fn r_sub_9_r_sub_4_r_nf_11__partial_positive_resolution_is_atomic_durable_and_updates_only_proven_prior()
+ {
+    use tallyline_submission::api::SubmissionJobRepository;
+    use tallyline_submission::api::model::{
+        PayloadHash, SubmissionCommand, SubmissionResolutionAction, SubmissionResult,
+        VerifiedUexReport,
+    };
+    use tallyline_workflows::api::ManualReleaseStore;
+    let path = std::env::temp_dir().join(format!(
+        "tallyline-partial-positive-{}.db",
+        std::process::id()
+    ));
+    let (mut store, gate) =
+        support::stored_gate_with_mode(&path, SubmissionMode::Production).unwrap();
+    let released = store.release_manual(&gate).unwrap();
+    let sending = released
+        .job()
+        .apply(SubmissionCommand::Begin {
+            at: Timestamp::from_seconds(1000),
+            payload_hash: PayloadHash::new([9; 32]),
+            date_added: Timestamp::from_seconds(895),
+        })
+        .unwrap();
+    SubmissionJobRepository::save(&mut store, &sending).unwrap();
+    let partial = sending
+        .state()
+        .apply(SubmissionCommand::Complete {
+            result: SubmissionResult::Partial(vec![]),
+            at: Timestamp::from_seconds(1001),
+        })
+        .unwrap();
+    SubmissionJobRepository::save(&mut store, &partial).unwrap();
+    let proof = VerifiedUexReport::from_lookup_at(
+        718,
+        TerminalId(11),
+        CommodityId(42),
+        Timestamp::from_seconds(895),
+        partial.state().request(),
+        Timestamp::from_seconds(895),
+    )
+    .unwrap();
+    let verified = partial.state().apply(SubmissionCommand::ResolveDelivery(
+        SubmissionResolutionAction::Verified {
+            receipts: vec![proof],
+            at: Timestamp::from_seconds(1002),
+        },
+    ));
+    assert!(
+        verified.is_ok(),
+        "partial row proof must be accepted without changing transport history: {verified:?}"
+    );
+    let verified = verified.unwrap();
+    let fault = Connection::open(&path).unwrap();
+    fault.execute_batch("CREATE TRIGGER fail_partial_resolution BEFORE INSERT ON domain_outbox WHEN NEW.event_source='submission' BEGIN SELECT RAISE(ABORT,'test partial rollback'); END;").unwrap();
+    assert!(SubmissionJobRepository::save(&mut store, &verified).is_err());
+    assert_eq!(
+        SubmissionJobRepository::load(&mut store, partial.state().id())
+            .unwrap()
+            .as_ref(),
+        Some(partial.state())
+    );
+    assert_eq!(
+        store
+            .retained_report(gate.source().id())
+            .unwrap()
+            .unwrap()
+            .state(),
+        ReportState::PartiallyAccepted
+    );
+    fault
+        .execute_batch("DROP TRIGGER fail_partial_resolution")
+        .unwrap();
+    drop(fault);
+    SubmissionJobRepository::save(&mut store, &verified).unwrap();
+    drop(store);
+    let mut reopened = SqliteReferenceCache::open(&path).unwrap();
+    let job = SubmissionJobRepository::load(&mut reopened, released.job().id())
+        .unwrap()
+        .unwrap();
+    assert_eq!(&job, verified.state());
+    assert_eq!(job.attempts(), partial.state().attempts());
+    assert_eq!(job.result(), Some(&SubmissionResult::Partial(vec![])));
+    assert_eq!(job.verified_row_receipts().next().unwrap().id(), 718);
+    assert_eq!(
+        tallyline_workflows::api::accepted_submission_priors(&job)
+            .unwrap()
+            .len(),
+        1
+    );
+    assert_eq!(
+        reopened
+            .retained_report(gate.source().id())
+            .unwrap()
+            .unwrap()
+            .state(),
+        ReportState::Submitted
+    );
+    assert!(job.retry().is_err());
     drop(reopened);
     std::fs::remove_file(path).unwrap();
 }

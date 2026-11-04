@@ -19,6 +19,8 @@ mod screenshot_policy;
 mod report_fixable_reason;
 mod report_lifecycle;
 
+mod error_code_document;
+mod legacy_row_failure;
 mod queue_client_version;
 mod queue_document;
 mod queue_outcome_document;
@@ -38,8 +40,8 @@ mod reference_consistency;
 
 mod queue_account_evidence;
 
-mod unknown_resolution_document;
+mod resolution_action_document;
 
-mod unknown_draft;
+mod resolution_draft;
 
 mod report_history;

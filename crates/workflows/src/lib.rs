@@ -27,4 +27,4 @@ mod manual_dispatch;
 
 mod event_outbox;
 
-mod unknown_draft;
+mod resolution_draft;

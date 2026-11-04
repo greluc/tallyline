@@ -34,4 +34,4 @@ pub use crate::submission_control::{
     SubmissionControl, SubmissionFeedback, SubmissionIntent, SubmissionUpdate,
 };
 
-pub use crate::submission_unknown::UnknownQueueAction;
+pub use crate::resolution_queue_action::ResolutionQueueAction;

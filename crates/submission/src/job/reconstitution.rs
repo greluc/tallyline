@@ -121,10 +121,10 @@ impl SubmissionJob {
             }
             .map_err(|_| InvalidSubmission)?;
         }
-        for action in &stored.unknown_actions {
+        for action in &stored.resolution_actions {
             let previous_revision = job.revision();
             job = job
-                .resolve_unknown(action.clone())
+                .resolve_delivery(action.clone())
                 .map_err(|_| InvalidSubmission)?;
             if previous_revision == job.revision() {
                 return Err(InvalidSubmission);
@@ -152,7 +152,7 @@ impl SubmissionJob {
             || job.result != stored.result
             || job.review_reason != stored.review_reason
             || job.service_pause_acknowledged != stored.service_pause_acknowledged
-            || job.unknown_actions != stored.unknown_actions
+            || job.resolution_actions != stored.resolution_actions
             || job.client_update != stored.client_update
         {
             return Err(InvalidSubmission);

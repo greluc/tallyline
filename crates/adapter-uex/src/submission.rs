@@ -211,50 +211,21 @@ impl SubmissionReceiptVerifier for UexReader {
             return None;
         }
         let token = credentials.own_token().or(release_token)?;
-        let bearer = format!("Bearer {token}");
-        let ids = received.iter().map(|id| id.id());
         let verification = async {
-            let mut receipts = Vec::with_capacity(ids.len());
+            let mut receipts = Vec::with_capacity(received.len());
             let mut rows = std::collections::BTreeSet::new();
-            for id in ids {
-                let data = self
-                    .transport
-                    .get(
-                        "data_info/",
-                        &[
-                            ("id", &id.to_string()),
-                            ("type", "commodity"),
-                            ("id_terminal", &request.header().terminal.0.to_string()),
-                            ("username", &request.header().account),
-                            ("limit", "100"),
-                        ],
-                        &[
-                            ("Authorization", &bearer),
-                            ("secret-key", credentials.secret_key()),
-                        ],
-                    )
-                    .await;
-                let Ok(Value::Array(records)) = data else {
-                    return None;
-                };
-                let snapshot = request.clone();
-                let verified: Vec<_> = self
-                    .transport
-                    .process(move || {
-                        Ok(records
-                            .iter()
-                            .filter_map(|record| lookup(record, id, &snapshot, date_added))
-                            .collect())
-                    })
+            for id in received {
+                let window = self
+                    .read_receipt_window(request, date_added, credentials, token, Some(id.id()))
                     .await
                     .ok()?;
-                let [receipt] = verified.as_slice() else {
+                let [proof] = window.receipts.as_slice() else {
                     return None;
                 };
-                if !rows.insert(receipt.row().0) {
+                if !rows.insert(proof.row().0) {
                     return None;
                 }
-                receipts.push(receipt.clone());
+                receipts.push(proof.clone());
             }
             Some(receipts)
         };

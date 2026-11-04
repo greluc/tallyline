@@ -67,14 +67,14 @@ impl ShellState {
             return;
         }
         let (id, expected_revision, control) = match command {
-            QueueCommand::Unknown {
+            QueueCommand::Resolve {
                 id,
                 expected_revision,
                 action,
             } => (
                 id,
                 expected_revision,
-                SubmissionControl::Unknown {
+                SubmissionControl::Resolve {
                     id,
                     expected: expected_revision,
                     action,

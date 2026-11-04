@@ -3,7 +3,7 @@
 
 //! Persistence-only reconstruction through the aggregate's validated command path.
 
-use crate::api::model::UnknownResolutionAction;
+use crate::api::model::SubmissionResolutionAction;
 use crate::api::model::{
     AttemptOutcome, JobId, JobPhase, PayloadHash, SubmissionRequest, SubmissionResult,
 };
@@ -47,7 +47,7 @@ pub struct StoredSubmissionJob {
     /// Durable phase; sending is never converted back to queued here.
     pub phase: JobPhase,
     /// Explicit unknown-resolution actions retained independently of attempts.
-    pub unknown_actions: Vec<UnknownResolutionAction>,
+    pub resolution_actions: Vec<SubmissionResolutionAction>,
     /// Every committed write-ahead attempt.
     pub attempts: Vec<StoredSubmissionAttempt>,
     /// Retained closed outcome, absent before completion.

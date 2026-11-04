@@ -238,7 +238,7 @@ fn r_sub_9__queue_publishes_committed_receipt_mapping_only_for_its_exact_success
     non_snake_case,
     reason = "Requirement tags use a double underscore separator."
 )]
-fn r_sub_2_r_sub_8_r_ui_1__drawn_waits_show_exact_cooldown_budget_and_account_reason_and_ignore_stale_sending_views()
+fn r_sub_2_r_sub_8_r_ui_1_q_reports__drawn_waits_show_exact_cooldown_budget_and_account_reason_and_ignore_stale_sending_views()
  {
     use tallyline_submission::api::model::{SubmissionWait, SubmissionWaitReason};
     let first = queued(11, SubmissionMode::DryRun).unwrap();
@@ -607,3 +607,6 @@ fn safe_code_presentation() -> Result<(), Box<dyn std::error::Error>> {
 
 #[path = "submission_queue/unknown_resolution.rs"]
 mod unknown_resolution;
+
+#[path = "submission_queue/partial_resolution.rs"]
+mod partial_resolution;

@@ -4,15 +4,25 @@
 //! Typed persistence of explicit user statements about unknown delivery.
 
 use serde::{Deserialize, Serialize};
-use tallyline_shared_kernel::api::model::{ReportId, Timestamp};
+use tallyline_shared_kernel::api::model::{ReportId, RowId, Timestamp};
 use tallyline_submission::api::model::{
-    SubmissionRepositoryError, SubmissionRequest, UnknownDecision, UnknownResolutionAction,
+    ReceiptDecision, SubmissionRepositoryError, SubmissionRequest, SubmissionResolutionAction,
     VerifiedUexReport,
 };
 
 #[derive(Serialize, Deserialize)]
 #[serde(rename_all = "snake_case", deny_unknown_fields)]
-pub(crate) enum UnknownActionDocument {
+pub(crate) enum ResolutionActionDocument {
+    RowsDuplicated {
+        report: u64,
+        rows: Vec<u64>,
+        at: String,
+    },
+    RowDecision {
+        row: u64,
+        decision: DecisionDocument,
+        at: String,
+    },
     Received {
         at: String,
     },
@@ -28,10 +38,31 @@ pub(crate) enum UnknownActionDocument {
         at: String,
     },
 }
-impl From<&UnknownResolutionAction> for UnknownActionDocument {
-    fn from(value: &UnknownResolutionAction) -> Self {
+#[derive(Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub(crate) enum DecisionDocument {
+    Received,
+    NotReceived,
+}
+impl From<&SubmissionResolutionAction> for ResolutionActionDocument {
+    fn from(value: &SubmissionResolutionAction) -> Self {
         match value {
-            UnknownResolutionAction::Verified { receipts, at } => Self::Verified {
+            SubmissionResolutionAction::RowsDuplicated { report, rows, at } => {
+                Self::RowsDuplicated {
+                    report: report.0,
+                    rows: rows.iter().map(|row| row.0).collect(),
+                    at: at.millis().to_string(),
+                }
+            }
+            SubmissionResolutionAction::RowDecision { row, decision, at } => Self::RowDecision {
+                row: row.0,
+                decision: match decision {
+                    ReceiptDecision::Received => DecisionDocument::Received,
+                    ReceiptDecision::NotReceived => DecisionDocument::NotReceived,
+                },
+                at: at.millis().to_string(),
+            },
+            SubmissionResolutionAction::Verified { receipts, at } => Self::Verified {
                 receipts: receipts
                     .iter()
                     .map(|receipt| {
@@ -44,18 +75,18 @@ impl From<&UnknownResolutionAction> for UnknownActionDocument {
                     .collect(),
                 at: at.millis().to_string(),
             },
-            UnknownResolutionAction::Duplicated { report, at } => Self::Duplicated {
+            SubmissionResolutionAction::Duplicated { report, at } => Self::Duplicated {
                 report: report.0,
                 at: at.millis().to_string(),
             },
-            UnknownResolutionAction::Decision {
-                decision: UnknownDecision::Received,
+            SubmissionResolutionAction::Decision {
+                decision: ReceiptDecision::Received,
                 at,
             } => Self::Received {
                 at: at.millis().to_string(),
             },
-            UnknownResolutionAction::Decision {
-                decision: UnknownDecision::NotReceived,
+            SubmissionResolutionAction::Decision {
+                decision: ReceiptDecision::NotReceived,
                 at,
             } => Self::NotReceived {
                 at: at.millis().to_string(),
@@ -63,13 +94,32 @@ impl From<&UnknownResolutionAction> for UnknownActionDocument {
         }
     }
 }
-impl UnknownActionDocument {
+impl ResolutionActionDocument {
     pub(crate) fn restore(
         self,
         request: &SubmissionRequest,
         sent_at: Option<Timestamp>,
-    ) -> Result<UnknownResolutionAction, SubmissionRepositoryError> {
+    ) -> Result<SubmissionResolutionAction, SubmissionRepositoryError> {
         let (decision, at) = match self {
+            Self::RowsDuplicated { report, rows, at } => {
+                return Ok(SubmissionResolutionAction::RowsDuplicated {
+                    report: ReportId(report),
+                    rows: rows.into_iter().map(RowId).collect(),
+                    at: crate::reference_cache::timestamp(&at)
+                        .map_err(|_| SubmissionRepositoryError::Invalid)?,
+                });
+            }
+            Self::RowDecision { row, decision, at } => {
+                return Ok(SubmissionResolutionAction::RowDecision {
+                    row: RowId(row),
+                    decision: match decision {
+                        DecisionDocument::Received => ReceiptDecision::Received,
+                        DecisionDocument::NotReceived => ReceiptDecision::NotReceived,
+                    },
+                    at: crate::reference_cache::timestamp(&at)
+                        .map_err(|_| SubmissionRepositoryError::Invalid)?,
+                });
+            }
             Self::Verified { receipts, at } => {
                 let sent_at = sent_at.ok_or(SubmissionRepositoryError::Invalid)?;
                 let receipts = receipts
@@ -92,24 +142,24 @@ impl UnknownActionDocument {
                         .map_err(|_| SubmissionRepositoryError::Invalid)
                     })
                     .collect::<Result<Vec<_>, _>>()?;
-                return Ok(UnknownResolutionAction::Verified {
+                return Ok(SubmissionResolutionAction::Verified {
                     receipts,
                     at: crate::reference_cache::timestamp(&at)
                         .map_err(|_| SubmissionRepositoryError::Invalid)?,
                 });
             }
             Self::Duplicated { report, at } => {
-                return Ok(UnknownResolutionAction::Duplicated {
+                return Ok(SubmissionResolutionAction::Duplicated {
                     report: ReportId(report),
                     at: crate::reference_cache::timestamp(&at)
                         .map_err(|_| SubmissionRepositoryError::Invalid)?,
                 });
             }
-            Self::Received { at } => (UnknownDecision::Received, at),
-            Self::NotReceived { at } => (UnknownDecision::NotReceived, at),
+            Self::Received { at } => (ReceiptDecision::Received, at),
+            Self::NotReceived { at } => (ReceiptDecision::NotReceived, at),
         };
         let at = crate::reference_cache::timestamp(&at)
             .map_err(|_| SubmissionRepositoryError::Invalid)?;
-        Ok(UnknownResolutionAction::Decision { decision, at })
+        Ok(SubmissionResolutionAction::Decision { decision, at })
     }
 }

@@ -74,3 +74,7 @@ mod settings_page;
 mod submission_unknown;
 
 mod unknown_attempt;
+
+mod submission_partial;
+
+mod resolution_queue_action;

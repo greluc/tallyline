@@ -207,10 +207,10 @@ async fn route<B: HttpBackend + 'static>(
     submissions: Arc<tokio::sync::Semaphore>,
 ) {
     match command {
-        Command::VerifyUnknownReceipts(job, values, token, reply) => {
-            let result = backend.verify_unknown_receipts(job, values, token).await;
+        Command::VerifyRowReceipts(job, values, token, reply) => {
+            let result = backend.verify_row_receipts(job, values, token).await;
             if reply.send(result).is_err() {
-                tracing::debug!("Unknown receipt verification reply receiver closed");
+                tracing::debug!("Row receipt verification reply receiver closed");
             }
         }
         Command::ReserveSubmission(reply) => {

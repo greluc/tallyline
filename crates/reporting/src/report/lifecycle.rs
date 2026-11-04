@@ -506,7 +506,7 @@ impl Report {
     ///
     /// # Errors
     /// Refuses another job, ordinary delivery events and conflicting final outcomes.
-    pub fn resolve_unknown(
+    pub fn resolve_delivery(
         &self,
         job: SubmissionJobId,
         delivery: ReportDelivery,

@@ -7,7 +7,7 @@ use super::submission_result::{
     NotProcessed, SubmissionHoldReason, SubmissionPauseReason, SubmissionResult,
     SubmissionReturnReason,
 };
-use crate::api::model::UnknownResolutionAction;
+use crate::api::model::SubmissionResolutionAction;
 use crate::api::model::{InvalidSubmission, SendReturnReason, SubmissionRequest};
 use crate::api::model::{SubmissionAccountCheck, SubmissionAccountEvidence};
 use tallyline_shared_kernel::api::model::Timestamp;
@@ -174,7 +174,7 @@ pub struct SubmissionJob {
     pub(super) review_reason: Option<SendReturnReason>,
     pub(super) service_pause_acknowledged: bool,
     pub(super) client_update: Option<tallyline_shared_kernel::api::model::ReleaseVersion>,
-    pub(crate) unknown_actions: Vec<UnknownResolutionAction>,
+    pub(crate) resolution_actions: Vec<SubmissionResolutionAction>,
 }
 impl SubmissionJob {
     /// Creates a queued job for a valid released snapshot.
@@ -195,7 +195,7 @@ impl SubmissionJob {
             review_reason: None,
             service_pause_acknowledged: false,
             client_update: None,
-            unknown_actions: Vec::new(),
+            resolution_actions: Vec::new(),
         })
     }
     /// Returns the stable local identity.

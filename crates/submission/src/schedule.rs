@@ -73,7 +73,21 @@ impl SubmissionSchedule {
         let key = request.header();
         let mut waiting_until = None;
         let mut earlier = false;
-        let mut unresolved_newer = false;
+        let blocks = crate::observation_order::ObservationOrder::assess(request, history);
+        if blocks.iter().any(|block| {
+            matches!(
+                block,
+                crate::api::model::ObservationOrderBlock::NeedsConfirmation { .. }
+            )
+        }) {
+            return ScheduleDecision::NewerObservationSent;
+        }
+        let unresolved_newer = blocks.iter().any(|block| {
+            matches!(
+                block,
+                crate::api::model::ObservationOrderBlock::Unresolved { .. }
+            )
+        });
         for job in history.iter().filter(|job| job.id() != candidate.id()) {
             let phase = job.observation_order_phase();
             let previous = job.request();
@@ -90,51 +104,34 @@ impl SubmissionSchedule {
             if !shared {
                 continue;
             }
-            if old.side == key.side {
-                if old.observed_at > key.observed_at {
-                    match phase {
-                        JobPhase::Succeeded => {
-                            let unconfirmed = request.rows().iter().any(|row| {
-                                previous
-                                    .rows()
-                                    .iter()
-                                    .any(|old_row| row.commodity() == old_row.commodity())
-                                    && !request
-                                        .newer_observation_confirmed(row.id(), old.observed_at)
-                            });
-                            if unconfirmed {
-                                return ScheduleDecision::NewerObservationSent;
-                            }
-                        }
-                        JobPhase::PartiallyAccepted | JobPhase::OutcomeUnknown => {
-                            unresolved_newer = true
-                        }
-                        JobPhase::Queued
-                        | JobPhase::Sending
-                        | JobPhase::Returned
-                        | JobPhase::Cancelled
-                        | JobPhase::Held
-                        | JobPhase::Paused
-                        | JobPhase::Rejected => continue,
-                    }
-                }
-                if matches!(phase, JobPhase::Queued | JobPhase::Held)
-                    && (old.observed_at, job.id()) < (key.observed_at, candidate.id())
-                {
-                    earlier = true;
-                }
+            if old.side == key.side
+                && matches!(phase, JobPhase::Queued | JobPhase::Held)
+                && (old.observed_at, job.id()) < (key.observed_at, candidate.id())
+            {
+                earlier = true;
             }
-            if matches!(
-                phase,
-                JobPhase::Succeeded | JobPhase::PartiallyAccepted | JobPhase::OutcomeUnknown
-            ) || matches!(
-                job.result()
-                    .map(crate::api::model::SubmissionResult::final_result),
-                Some(
-                    SubmissionResult::Held(crate::api::model::SubmissionHoldReason::Cooldown)
-                        | SubmissionResult::DuplicateEvidence(_)
-                )
-            ) {
+            let shared_cooldown = previous.rows().iter().any(|old_row| {
+                request
+                    .rows()
+                    .iter()
+                    .any(|row| row.commodity() == old_row.commodity())
+                    && job
+                        .row_result(old_row.id())
+                        .is_none_or(|result| result.retains_cooldown())
+            });
+            if shared_cooldown
+                && (matches!(
+                    phase,
+                    JobPhase::Succeeded | JobPhase::PartiallyAccepted | JobPhase::OutcomeUnknown
+                ) || matches!(
+                    job.result()
+                        .map(crate::api::model::SubmissionResult::final_result),
+                    Some(
+                        SubmissionResult::Held(crate::api::model::SubmissionHoldReason::Cooldown)
+                            | SubmissionResult::DuplicateEvidence(_)
+                    )
+                ))
+            {
                 let Some(attempt) = job.attempts().last() else {
                     return ScheduleDecision::Unavailable;
                 };

@@ -11,9 +11,9 @@ use tallyline_egui::Density;
 use tallyline_egui::Motion;
 use tallyline_egui::Theme;
 use tallyline_shared_kernel::api::model::{SubmissionMode, Timestamp};
-use tallyline_submission::api::model::UnknownDecision;
+use tallyline_submission::api::model::ReceiptDecision;
 use tallyline_submission::api::model::{JobId, PayloadHash};
-use tallyline_ui::api::model::UnknownQueueAction;
+use tallyline_ui::api::model::ResolutionQueueAction;
 use tallyline_ui::api::model::{QueueCommand, SubmissionQueue};
 use tallyline_ui::api::{self, Catalogue};
 
@@ -61,10 +61,10 @@ fn r_sub_9_r_ui_16__unknown_received_action_is_drawn_and_keyboard_operable() {
     harness.run();
     assert_eq!(
         harness.state().1,
-        vec![QueueCommand::Unknown {
+        vec![QueueCommand::Resolve {
             id: JobId(88),
             expected_revision: unknown.revision(),
-            action: UnknownQueueAction::Decide(UnknownDecision::Received)
+            action: ResolutionQueueAction::Decide(ReceiptDecision::Received)
         }]
     );
     assert_eq!(harness.state().0.jobs(), &[unknown]);
@@ -83,8 +83,8 @@ fn r_sub_9_r_ui_16__unknown_received_action_is_drawn_and_keyboard_operable() {
     reason = "Requirement tags use a double underscore separator."
 )]
 fn r_sub_9_r_ui_16__not_received_history_offers_only_explicit_new_draft_and_read_only_evidence() {
-    use tallyline_submission::api::model::{UnknownDecision, UnknownResolutionAction};
-    use tallyline_ui::api::model::UnknownQueueAction;
+    use tallyline_submission::api::model::{ReceiptDecision, SubmissionResolutionAction};
+    use tallyline_ui::api::model::ResolutionQueueAction;
     for theme in [Theme::Dark, Theme::Light, Theme::HighContrast] {
         let unknown = super::queued(88, SubmissionMode::Production)
             .unwrap()
@@ -92,8 +92,8 @@ fn r_sub_9_r_ui_16__not_received_history_offers_only_explicit_new_draft_and_read
             .unwrap()
             .recover(Timestamp::from_seconds(120))
             .unwrap()
-            .resolve_unknown(UnknownResolutionAction::Decision {
-                decision: UnknownDecision::NotReceived,
+            .resolve_delivery(SubmissionResolutionAction::Decision {
+                decision: ReceiptDecision::NotReceived,
                 at: Timestamp::from_seconds(130),
             })
             .unwrap();
@@ -166,10 +166,10 @@ fn r_sub_9_r_ui_16__not_received_history_offers_only_explicit_new_draft_and_read
         harness.run();
         assert_eq!(
             harness.state().1,
-            vec![QueueCommand::Unknown {
+            vec![QueueCommand::Resolve {
                 id: JobId(88),
                 expected_revision: unknown.revision(),
-                action: UnknownQueueAction::DuplicateAsDraft
+                action: ResolutionQueueAction::DuplicateAsDraft
             }]
         );
         assert_eq!(harness.state().0.jobs(), &[unknown]);

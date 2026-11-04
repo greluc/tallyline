@@ -38,7 +38,7 @@ impl ObservationOrder {
     /// Returns ordering blocks without treating unrelated in-flight work as approval.
     ///
     /// An unavailable history must fail at the persistence port before this method is called.
-    /// Newer sending, partial and unknown work remains closed even with a known-row decision.
+    /// Newer unresolved rows remain closed even with a known-row confirmation.
     #[must_use]
     pub fn assess(
         request: &SubmissionRequest,
@@ -69,15 +69,28 @@ impl ObservationOrder {
                 {
                     continue;
                 }
-                let phase = job.observation_order_phase();
-                match phase {
-                    JobPhase::Succeeded => {
-                        accepted = Some(
-                            accepted
-                                .map_or(old.observed_at, |at: Timestamp| at.max(old.observed_at)),
-                        )
-                    }
-                    JobPhase::Sending | JobPhase::PartiallyAccepted | JobPhase::OutcomeUnknown => {
+                let Some(previous_row) = previous
+                    .rows()
+                    .iter()
+                    .find(|old_row| old_row.commodity() == row.commodity())
+                else {
+                    continue;
+                };
+                let result = job.row_result(previous_row.id());
+                if result.is_some_and(|result| result.is_not_accepted()) {
+                    continue;
+                }
+                if result.is_some_and(|result| result.is_accepted()) {
+                    accepted = Some(
+                        accepted.map_or(old.observed_at, |at: Timestamp| at.max(old.observed_at)),
+                    );
+                    continue;
+                }
+                match job.observation_order_phase() {
+                    JobPhase::Succeeded
+                    | JobPhase::Sending
+                    | JobPhase::PartiallyAccepted
+                    | JobPhase::OutcomeUnknown => {
                         let candidate = (old.observed_at, job.id());
                         unresolved = Some(
                             unresolved.map_or(candidate, |previous: (Timestamp, JobId)| {

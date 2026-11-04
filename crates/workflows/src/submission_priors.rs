@@ -12,9 +12,9 @@ use tallyline_submission::api::model::{JobPhase, SubmissionJob, SubmissionResult
 
 /// Produces only accepted production records for the workflow's atomic outcome transaction.
 ///
-/// Unmapped partial rows and unknown outcomes never change a prior. A full-count successful
-/// response establishes acceptance even while its returned identities remain unverified. PTU
-/// records remain history data; the reference lookup never promotes them to usable PTU prices.
+/// Full-count success establishes acceptance without verified identities.
+/// Partial and unknown rows require verified identities; statements create no priors.
+/// PTU records remain history; reference lookups never promote them to usable prices.
 ///
 /// # Errors
 /// Refuses inconsistent success metadata instead of omitting a supposedly accepted row.
@@ -23,14 +23,22 @@ pub fn accepted_submission_priors(
 ) -> Result<Vec<AcceptedLocalPrior>, InvalidPrior> {
     let request = job.request();
     let header = request.header();
-    if header.mode != SubmissionMode::Production || job.phase() != JobPhase::Succeeded {
+    if header.mode != SubmissionMode::Production {
         return Ok(Vec::new());
     }
-    if !matches!(
-        job.result(),
-        Some(SubmissionResult::ProductionSucceeded(_) | SubmissionResult::ProductionAccepted(_))
-    ) {
+    let full = job.phase() == JobPhase::Succeeded;
+    if full
+        && !matches!(
+            job.result(),
+            Some(
+                SubmissionResult::ProductionSucceeded(_) | SubmissionResult::ProductionAccepted(_)
+            )
+        )
+    {
         return Err(InvalidPrior);
+    }
+    if !full && job.verified_row_receipts().next().is_none() {
+        return Ok(Vec::new());
     }
     let accepted_at = job
         .attempts()
@@ -51,6 +59,11 @@ pub fn accepted_submission_priors(
     request
         .rows()
         .iter()
+        .filter(|row| {
+            full || job
+                .verified_row_receipts()
+                .any(|receipt| receipt.row() == row.id())
+        })
         .map(|row| {
             AcceptedLocalPrior::new(
                 Arc::clone(&context),

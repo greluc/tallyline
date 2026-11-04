@@ -3,14 +3,15 @@
 
 //! Durable closed-result and attempt-outcome documents without credential data.
 
+use crate::error_code_document::ErrorCodeDocument;
 use crate::queue_account_evidence::AccountCheckDocument;
 use crate::queue_client_version::ClientVersionDocument;
 use serde::{Deserialize, Serialize};
 use tallyline_shared_kernel::api::model::{Timestamp, UexReportId};
 use tallyline_submission::api::model::{
-    AttemptOutcome, JobId, NotProcessed, SubmissionCorrection, SubmissionRejection,
-    SubmissionRepositoryError, SubmissionRequest, SubmissionResult, SubmissionReturnReason,
-    UexErrorCode, VerifiedUexReport,
+    AttemptOutcome, JobId, NotProcessed, RowFailureSource, SubmissionCorrection,
+    SubmissionRejection, SubmissionRepositoryError, SubmissionRequest, SubmissionResult,
+    SubmissionReturnReason, VerifiedUexReport,
 };
 
 fn invalid<T>(_: T) -> SubmissionRepositoryError {
@@ -24,20 +25,26 @@ fn timestamp(value: &str) -> Result<Timestamp, SubmissionRepositoryError> {
 #[serde(rename_all = "snake_case")]
 pub(crate) enum ResultDocument {
     AccountRefusal(
-        Option<String>,
+        Option<ErrorCodeDocument>,
         u16,
         AccountCheckDocument,
         Box<ResultDocument>,
         Box<ResultDocument>,
     ),
-    PausedCode(String, Box<ResultDocument>),
+    PausedCode(ErrorCodeDocument, Box<ResultDocument>),
     DuplicateEvidence(u64),
-    RateLimitedCode(String),
-    Rechecked(String, Box<ResultDocument>),
-    PartialError(String, Option<usize>),
-    NeedsOutcomeCheck(String, u16),
-    Rejected(String),
-    PermanentRefusal(String, CorrectionDocument),
+    RateLimitedCode(ErrorCodeDocument),
+    Rechecked(ErrorCodeDocument, Box<ResultDocument>),
+    PartialError(ErrorCodeDocument, Option<usize>),
+    PartialEvidence(
+        ErrorCodeDocument,
+        Option<usize>,
+        FailureSourceDocument,
+        Vec<ReceiptDocument>,
+    ),
+    NeedsOutcomeCheck(ErrorCodeDocument, u16),
+    Rejected(ErrorCodeDocument),
+    PermanentRefusal(ErrorCodeDocument, CorrectionDocument),
     ProductionAccepted(Vec<IdDocument>),
     ProductionSucceeded(Vec<ReceiptDocument>),
     DryRunSucceeded,
@@ -134,16 +141,9 @@ impl From<&SubmissionResult> for ResultDocument {
             SubmissionResult::ProductionAccepted(ids) => {
                 Self::ProductionAccepted(ids.iter().map(id_document).collect())
             }
-            SubmissionResult::ProductionSucceeded(receipts) => Self::ProductionSucceeded(
-                receipts
-                    .iter()
-                    .map(|value| ReceiptDocument {
-                        id: value.id(),
-                        row: value.row().0,
-                        date_added: value.date_added().millis().to_string(),
-                    })
-                    .collect(),
-            ),
+            SubmissionResult::ProductionSucceeded(receipts) => {
+                Self::ProductionSucceeded(receipts.iter().map(ReceiptDocument::from).collect())
+            }
             SubmissionResult::DryRunSucceeded => Self::DryRunSucceeded,
             SubmissionResult::Partial(ids) => Self::Partial(ids.iter().map(id_document).collect()),
             SubmissionResult::NotProcessed(NotProcessed::ConnectFailure) => Self::ConnectFailure,
@@ -178,24 +178,32 @@ impl From<&SubmissionResult> for ResultDocument {
                 check,
                 outcome,
             } => Self::AccountRefusal(
-                code.as_ref().map(|code| code.as_str().to_owned()),
+                code.as_ref().map(ErrorCodeDocument::from),
                 *http_status,
                 (*check).into(),
                 Box::new(Self::from(&SubmissionResult::Paused(*reason))),
                 Box::new(Self::from(outcome.as_ref())),
             ),
-            SubmissionResult::PartialError { code, row } => {
-                Self::PartialError(code.as_str().to_owned(), *row)
-            }
+            SubmissionResult::PartialError {
+                code,
+                row,
+                source,
+                receipts,
+            } => Self::PartialEvidence(
+                ErrorCodeDocument::from(code),
+                *row,
+                (*source).into(),
+                receipts.iter().map(ReceiptDocument::from).collect(),
+            ),
             SubmissionResult::NeedsOutcomeCheck { code, http_status } => {
-                Self::NeedsOutcomeCheck(code.as_str().to_owned(), *http_status)
+                Self::NeedsOutcomeCheck(ErrorCodeDocument::from(code), *http_status)
             }
             SubmissionResult::Rechecked { code, outcome } => Self::Rechecked(
-                code.as_str().to_owned(),
+                ErrorCodeDocument::from(code),
                 Box::new(Self::from(outcome.as_ref())),
             ),
             SubmissionResult::RateLimitedCode(code) => {
-                Self::RateLimitedCode(code.as_str().to_owned())
+                Self::RateLimitedCode(ErrorCodeDocument::from(code))
             }
             SubmissionResult::NotProcessed(NotProcessed::RateLimited) => Self::RateLimited,
             SubmissionResult::NotProcessed(NotProcessed::RowBudget) => Self::RowBudget,
@@ -210,12 +218,12 @@ impl From<&SubmissionResult> for ResultDocument {
                 Self::PossiblyAlreadyReceived
             }
             SubmissionResult::PausedCode { code, reason } => Self::PausedCode(
-                code.as_str().to_owned(),
+                ErrorCodeDocument::from(code),
                 Box::new(Self::from(&SubmissionResult::Paused(*reason))),
             ),
             SubmissionResult::Unknown => Self::Unknown,
             SubmissionResult::Rejected(refusal) => Self::PermanentRefusal(
-                refusal.code().as_str().to_owned(),
+                ErrorCodeDocument::from(refusal.code()),
                 refusal.correction().into(),
             ),
             SubmissionResult::VersionLockedOut(version) => {
@@ -258,22 +266,7 @@ impl ResultDocument {
             Self::ProductionSucceeded(receipts) => SubmissionResult::ProductionSucceeded(
                 receipts
                     .into_iter()
-                    .map(|value| {
-                        let row = request
-                            .rows()
-                            .iter()
-                            .find(|row| row.id().0 == value.row)
-                            .ok_or(SubmissionRepositoryError::Invalid)?;
-                        VerifiedUexReport::from_lookup_at(
-                            value.id,
-                            request.header().terminal,
-                            row.commodity(),
-                            timestamp(&value.date_added)?,
-                            request,
-                            sent_at.ok_or(SubmissionRepositoryError::Invalid)?,
-                        )
-                        .map_err(invalid)
-                    })
+                    .map(|receipt| receipt.restore(request, sent_at))
                     .collect::<Result<_, _>>()?,
             ),
             Self::DryRunSucceeded => SubmissionResult::DryRunSucceeded,
@@ -323,10 +316,7 @@ impl ResultDocument {
                 };
                 SubmissionResult::AccountRefusal {
                     code: match code {
-                        Some(code) => Some(
-                            tallyline_submission::api::model::UexErrorCode::new(code)
-                                .ok_or(SubmissionRepositoryError::Invalid)?,
-                        ),
+                        Some(code) => Some(code.restore()?),
                         None => None,
                     },
                     http_status,
@@ -336,24 +326,33 @@ impl ResultDocument {
                 }
             }
             Self::PartialError(code, row) => SubmissionResult::PartialError {
-                code: tallyline_submission::api::model::UexErrorCode::new(code)
-                    .ok_or(SubmissionRepositoryError::Invalid)?,
+                code: code.restore()?,
                 row,
+                source: if row.is_some() {
+                    RowFailureSource::Unspecified
+                } else {
+                    RowFailureSource::Unmapped
+                },
+                receipts: Vec::new(),
+            },
+            Self::PartialEvidence(code, row, source, receipts) => SubmissionResult::PartialError {
+                code: code.restore()?,
+                row,
+                source: source.into(),
+                receipts: receipts
+                    .into_iter()
+                    .map(|receipt| receipt.restore(request, sent_at))
+                    .collect::<Result<_, _>>()?,
             },
             Self::NeedsOutcomeCheck(code, http_status) => SubmissionResult::NeedsOutcomeCheck {
-                code: tallyline_submission::api::model::UexErrorCode::new(code)
-                    .ok_or(SubmissionRepositoryError::Invalid)?,
+                code: code.restore()?,
                 http_status,
             },
             Self::Rechecked(code, outcome) => SubmissionResult::Rechecked {
-                code: tallyline_submission::api::model::UexErrorCode::new(code)
-                    .ok_or(SubmissionRepositoryError::Invalid)?,
+                code: code.restore()?,
                 outcome: Box::new(outcome.restore(request, sent_at)?),
             },
-            Self::RateLimitedCode(code) => SubmissionResult::RateLimitedCode(
-                tallyline_submission::api::model::UexErrorCode::new(code)
-                    .ok_or(SubmissionRepositoryError::Invalid)?,
-            ),
+            Self::RateLimitedCode(code) => SubmissionResult::RateLimitedCode(code.restore()?),
             Self::RateLimited => SubmissionResult::NotProcessed(NotProcessed::RateLimited),
             Self::RowBudget => SubmissionResult::NotProcessed(NotProcessed::RowBudget),
             Self::ImageUpload => SubmissionResult::NotProcessed(NotProcessed::ImageUpload),
@@ -374,29 +373,23 @@ impl ResultDocument {
                     return Err(SubmissionRepositoryError::Invalid);
                 };
                 SubmissionResult::PausedCode {
-                    code: tallyline_submission::api::model::UexErrorCode::new(code)
-                        .ok_or(SubmissionRepositoryError::Invalid)?,
+                    code: code.restore()?,
                     reason,
                 }
             }
             Self::Unknown => SubmissionResult::Unknown,
             Self::Rejected(code) => {
-                let correction = if code == "invalid_game_version" {
+                let code = code.restore()?;
+                let correction = if code.as_str() == "invalid_game_version" {
                     SubmissionCorrection::NewCapture
                 } else {
                     SubmissionCorrection::ReviewClient
                 };
-                SubmissionResult::Rejected(SubmissionRejection::new(
-                    UexErrorCode::new(code).ok_or(SubmissionRepositoryError::Invalid)?,
-                    correction,
-                ))
+                SubmissionResult::Rejected(SubmissionRejection::new(code, correction))
             }
-            Self::PermanentRefusal(code, correction) => {
-                SubmissionResult::Rejected(SubmissionRejection::new(
-                    UexErrorCode::new(code).ok_or(SubmissionRepositoryError::Invalid)?,
-                    correction.into(),
-                ))
-            }
+            Self::PermanentRefusal(code, correction) => SubmissionResult::Rejected(
+                SubmissionRejection::new(code.restore()?, correction.into()),
+            ),
             Self::AppToken => SubmissionResult::Paused(
                 tallyline_submission::api::model::SubmissionPauseReason::AppToken,
             ),
@@ -573,6 +566,66 @@ impl From<CorrectionDocument> for SubmissionCorrection {
         match value {
             CorrectionDocument::ReviewClient => Self::ReviewClient,
             CorrectionDocument::NewCapture => Self::NewCapture,
+        }
+    }
+}
+
+impl From<&VerifiedUexReport> for ReceiptDocument {
+    fn from(proof: &VerifiedUexReport) -> Self {
+        Self {
+            id: proof.id(),
+            row: proof.row().0,
+            date_added: proof.date_added().millis().to_string(),
+        }
+    }
+}
+impl ReceiptDocument {
+    fn restore(
+        self,
+        request: &SubmissionRequest,
+        sent_at: Option<Timestamp>,
+    ) -> Result<VerifiedUexReport, SubmissionRepositoryError> {
+        let row = request
+            .rows()
+            .iter()
+            .find(|row| row.id().0 == self.row)
+            .ok_or(SubmissionRepositoryError::Invalid)?;
+        VerifiedUexReport::from_lookup_at(
+            self.id,
+            request.header().terminal,
+            row.commodity(),
+            timestamp(&self.date_added)?,
+            request,
+            sent_at.ok_or(SubmissionRepositoryError::Invalid)?,
+        )
+        .map_err(invalid)
+    }
+}
+#[derive(Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub(crate) enum FailureSourceDocument {
+    Unmapped,
+    Index,
+    Commodity,
+    Unspecified,
+}
+impl From<RowFailureSource> for FailureSourceDocument {
+    fn from(source: RowFailureSource) -> Self {
+        match source {
+            RowFailureSource::Unmapped => Self::Unmapped,
+            RowFailureSource::Index => Self::Index,
+            RowFailureSource::Commodity => Self::Commodity,
+            RowFailureSource::Unspecified => Self::Unspecified,
+        }
+    }
+}
+impl From<FailureSourceDocument> for RowFailureSource {
+    fn from(source: FailureSourceDocument) -> Self {
+        match source {
+            FailureSourceDocument::Unmapped => Self::Unmapped,
+            FailureSourceDocument::Index => Self::Index,
+            FailureSourceDocument::Commodity => Self::Commodity,
+            FailureSourceDocument::Unspecified => Self::Unspecified,
         }
     }
 }

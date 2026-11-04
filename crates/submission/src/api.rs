@@ -322,9 +322,9 @@ pub use crate::observation_order::ObservationOrder;
 pub use crate::service_fence::SubmissionServiceFenceRepository;
 
 /// Reads positive identities for an uncertain production attempt without inferring non-receipt.
-pub trait SubmissionUnknownReceiptVerifier {
+pub trait SubmissionRowReceiptVerifier {
     /// Returns positively matched rows; empty or unavailable windows establish no negative proof.
-    fn verify_unknown_receipts(
+    fn verify_row_receipts(
         &self,
         job: &SubmissionJob,
         credentials: &CredentialValues,

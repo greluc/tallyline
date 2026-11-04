@@ -1,6 +1,6 @@
 # Requirements
 
-> **Doc type:** Living spec — binding. Last reviewed: 2026-11-03.
+> **Doc type:** Living spec — binding. Last reviewed: 2026-11-04.
 
 Corrected 2026-11-04: the owner marked all seven existing public corpus entries verified; see [current corpus status](../../corpus/README.md#offline-inspection). Earlier checkpoint verification states and inspection results below remain historical; this decision supplies no missing metadata, frozen reference snapshot, class coverage or recognition accuracy measurement.
 
@@ -302,3 +302,7 @@ The [SCU calibration evidence](../scu-policy-calibration.md) records explicit pe
 R-VAL-2/O-140 now use the provisional 20 % / 16 SCU engineering start pair documented in the calibration evidence. Independent tighten-only settings, exact stock decisions, class-based fresh-reference reassessment, counters and explicit desktop confirmation are composed. This records implementation of existing requirements without changing their normative rules. Broader empirical validation and native visual acceptance remain open; Reporting numeric readiness is separate from complete release/submission.
 
 Corrected 2026-11-03: the R-UI-11 percentage example follows O-83 D8's adjacent percent sign. The exact manual-review display adopts that existing decision; domain arithmetic and confirmation rules are unchanged. Current component adoption and native acceptance limits are recorded in [the design reference](../design-system/components.md).
+
+## Partial row resolution checkpoint — 2026-11-04
+
+The #89 source slice implements the row-by-row portion of R-SUB-9/R-SUB-11 and R-UI-1 :reports: exact positive receipt association, typed failure provenance, explicit row statements and the required separate copy of only resolved not-accepted rows. Original transport history remains immutable. Accepted priors and row-specific order/cooldown eligibility use exact proofs/outcomes; user statements supply no remote authority. This records implementation of existing requirements, changing no normative rule or coverage assignment. [The queue record](../submission-queue.md#partial-row-resolution-checkpoint--2026-11-04) states the sequential schema12/config6 gate and remaining canonical/mutation/native/real-service acceptance, #90 and #92 scope.

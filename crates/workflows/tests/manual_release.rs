@@ -210,7 +210,7 @@ fn r_sub_2_r_nf_11__manual_release_commits_report_job_and_outbox_atomically_and_
         database
             .pragma_query_value(None, "user_version", |row| row.get::<_, u32>(0))
             .unwrap(),
-        11
+        12
     );
     drop(database);
     drop(reopened);
@@ -1220,3 +1220,9 @@ fn r_sub_2_r_sub_9_r_nf_11__outbox_delivery_replays_after_handler_or_ack_failure
 
 #[path = "manual_release/unknown_resolution.rs"]
 mod unknown_resolution;
+
+#[path = "manual_release/partial_resolution.rs"]
+mod partial_resolution;
+
+#[path = "manual_release/three_rows.rs"]
+mod three_rows;

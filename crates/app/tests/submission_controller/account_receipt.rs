@@ -333,6 +333,8 @@ pub(super) fn verify() -> TestResult {
             SubmissionResult::PartialError {
                 code: code("no_api_found")?,
                 row: None,
+                source: tallyline_submission::api::model::RowFailureSource::Unmapped,
+                receipts: Vec::new(),
             },
             JobPhase::PartiallyAccepted,
             Some(code("no_api_found")?),

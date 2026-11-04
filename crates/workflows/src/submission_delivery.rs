@@ -4,11 +4,11 @@
 //! Submission outcomes applied through Reporting without a context dependency reversal.
 
 use tallyline_reporting::api::model::{
-    InvalidReport, Report, ReportChange, ReportDelivery, ReportFinding,
+    InvalidReport, Report, ReportChange, ReportDelivery, ReportFinding, ReportState,
 };
 use tallyline_submission::api::model::{
-    JobPhase, SendReturnReason, SubmissionJob, SubmissionResult, SubmissionReturnReason,
-    UnknownDecision,
+    JobPhase, ReceiptDecision, SendReturnReason, SubmissionJob, SubmissionResult,
+    SubmissionReturnReason,
 };
 
 /// Translates a committed job outcome for its exact owning Report and release binding.
@@ -29,17 +29,30 @@ pub fn apply_submission_delivery(
     {
         return Err(InvalidReport);
     }
-    let verified = job.unknown_receipts().count();
-    let received = job.unknown_decision() == Some(UnknownDecision::Received);
-    if received || verified == job.request().rows().len() {
-        return report
-            .resolve_unknown(job.id(), ReportDelivery::FullAcceptance)
-            .map(Some);
-    }
-    if verified > 0 {
-        return report
-            .resolve_unknown(job.id(), ReportDelivery::PartialAcceptance)
-            .map(Some);
+    let verified = job.verified_row_receipts().count();
+    let received = job.unknown_decision() == Some(ReceiptDecision::Received);
+    let partial_received = job.phase() == JobPhase::PartiallyAccepted
+        && job.request().rows().iter().all(|row| {
+            job.row_result(row.id())
+                .is_some_and(|result| result.is_accepted())
+        });
+    let resolution = if received || partial_received || verified == job.request().rows().len() {
+        Some(ReportDelivery::FullAcceptance)
+    } else if verified > 0 {
+        Some(ReportDelivery::PartialAcceptance)
+    } else {
+        None
+    };
+    if let Some(delivery) = resolution {
+        return if matches!(
+            report.state(),
+            ReportState::Queued | ReportState::WaitingForCooldown(_)
+        ) {
+            report.apply_delivery(job.id(), delivery)
+        } else {
+            report.resolve_delivery(job.id(), delivery)
+        }
+        .map(Some);
     }
     let delivery = match job.phase() {
         JobPhase::Queued | JobPhase::Sending | JobPhase::Held | JobPhase::Paused => None,

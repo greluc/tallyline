@@ -102,6 +102,31 @@ impl SubmissionJob {
                 return Err(QueueRefusal::InvalidTransition);
             }
         }
+        if let SubmissionResult::PartialError {
+            row,
+            source,
+            receipts,
+            ..
+        } = result.final_result()
+        {
+            if row.is_none() != (*source == crate::api::model::RowFailureSource::Unmapped) {
+                return Err(QueueRefusal::InvalidTransition);
+            }
+            if let Some(failed) = row
+                && receipts.iter().any(|proof| {
+                    self.request()
+                        .rows()
+                        .iter()
+                        .position(|row| row.id() == proof.row())
+                        .is_none_or(|index| index >= *failed)
+                })
+            {
+                return Err(QueueRefusal::InvalidTransition);
+            }
+            if !receipts.is_empty() {
+                self.validate_row_receipts(receipts)?;
+            }
+        }
         if matches!(result, SubmissionResult::PartialError { row: Some(row), .. } if *row >= self.request.rows().len())
         {
             return Err(QueueRefusal::InvalidTransition);

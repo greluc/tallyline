@@ -26,7 +26,7 @@ Tallyline is a Windows and Linux desktop client for reviewing Star Citizen commo
 |---|---|
 | Capture | Manual commodity Drafts, resumable after restart; bounded image decoding and private screenshot-region foundations. The desktop capture and OCR workflow is still being integrated. |
 | Review | Exact decimal prices and SCU quantities, reference comparisons, price/stock/status counters, keyboard navigation and value-bound confirmation. Passive refreshes preserve user input. Manual field commits and explicit actions save together; refused requests keep unfinished text. |
-| Report | Explicit test mode, reviewed release into a durable serial queue, remembered account/mode and cancellation before sending. Uncertain sends never replay automatically; complete retry, quota and partial-result handling remain open. |
+| Report | Explicit test mode, reviewed release into a durable serial queue, remembered account/mode and cancellation before sending. Uncertain sends never replay automatically; explicit row resolution and selective new-Draft copying retain the original attempt. Quota reset and remote lifecycle remain open. |
 
 Offline reference browsing and manual Drafts work without credentials. Onboarding and **Settings → UEX account** validate a masked key before saving it; session-only credentials are also supported. Actual OS-provider, real-service and native visual acceptance remain separate gates.
 
@@ -227,4 +227,8 @@ Independent community project, not made or endorsed by UEX Corp and not affiliat
 
 ### Unknown submission resolution
 
-The manual queue can inspect an unknown attempt, record an explicit received or not-received decision and request a bounded read-only UEX evidence check. Not received retains the original unknown history; **Duplicate as new Draft** creates one separate unreviewed Report with the original observation time, game version and entered values. All release and send checks still apply. Database schema 11 requires the coordinated backup before migration; settings remain schema 6. See [the queue record](docs/submission-queue.md) for safeguards and open acceptance gates.
+The manual queue can inspect an unknown attempt, record an explicit received or not-received decision and request a bounded read-only UEX evidence check. Not received retains the original unknown history; **Duplicate as new Draft** creates one separate unreviewed Report with the original observation time, game version and entered values. All release and send checks still apply. Database schema 12 requires the coordinated backup before migration; settings remain schema 6. See [the queue record](docs/submission-queue.md) for safeguards and open acceptance gates.
+
+### Partial row resolution checkpoint — 2026-11-04
+
+Partial entries provide a passive **Inspect original attempt** for the original target, values and wire date. The queue shows each partial row as verified accepted, explicitly received/not received, rejected, not sent or unresolved. A bounded read-only check verifies each returned ID against the exact original account, terminal, commodity and attempted wire date. Once every row is resolved, **Copy not-accepted rows to new Draft** preserves only the eligible rows and their original observation and values for complete review. Accepted and unmapped rows cannot be copied; the original request never resends. Exact verified production rows supply local accepted priors, while user statements create no IDs or withdrawal permission. See [the implementation and evidence limits](docs/submission-queue.md#partial-row-resolution-checkpoint--2026-11-04). Daily-quota reset, general lifecycle/withdrawal, native acceptance and an approved real-service dry run retain their gates.

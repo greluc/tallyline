@@ -252,7 +252,7 @@ impl HttpClient {
 }
 
 impl HttpClient {
-    pub(crate) fn begin_unknown_receipt_verification(
+    pub(crate) fn begin_row_receipt_verification(
         &self,
         job: &SubmissionJob,
         values: &CredentialValues,
@@ -261,7 +261,7 @@ impl HttpClient {
         use crate::api::model::HttpAdmissionFailure;
         let (reply, result) = oneshot::channel();
         self.requests
-            .try_send(Command::VerifyUnknownReceipts(
+            .try_send(Command::VerifyRowReceipts(
                 job.clone(),
                 values.clone(),
                 release_token.map(str::to_owned),

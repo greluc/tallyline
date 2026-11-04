@@ -1144,8 +1144,8 @@ fn r_val_8_r_sub_2__release_observation_order_is_independent_of_other_inflight_w
 )]
 fn r_sub_9__received_decision_retains_unknown_attempt_without_replay_authority() {
     use tallyline_submission::api::model::{
-        JobId, JobPhase, PayloadHash, SubmissionCommand, SubmissionJob, SubmissionResult,
-        UnknownDecision, UnknownResolutionAction,
+        JobId, JobPhase, PayloadHash, ReceiptDecision, SubmissionCommand, SubmissionJob,
+        SubmissionResolutionAction, SubmissionResult,
     };
     let mut production = header();
     production.mode = SubmissionMode::Production;
@@ -1156,9 +1156,9 @@ fn r_sub_9__received_decision_retains_unknown_attempt_without_replay_authority()
         .unwrap()
         .complete(SubmissionResult::Unknown, Timestamp::from_seconds(120))
         .unwrap();
-    let resolved = unknown.apply(SubmissionCommand::ResolveUnknown(
-        UnknownResolutionAction::Decision {
-            decision: UnknownDecision::Received,
+    let resolved = unknown.apply(SubmissionCommand::ResolveDelivery(
+        SubmissionResolutionAction::Decision {
+            decision: ReceiptDecision::Received,
             at: Timestamp::from_seconds(130),
         },
     ));

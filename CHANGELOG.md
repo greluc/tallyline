@@ -4,6 +4,10 @@ All notable changes are recorded here.
 
 ## [Unreleased]
 
+- Show the immutable target, row values and attempted observation date through **Inspect original attempt** for partial submissions before recording row decisions (R-SUB-9, R-UI-1:reports).
+
+- Resolve partial submissions row by row with exact positive receipt proofs, typed failure provenance and preserved original transport history. Explicitly copy only resolved not-accepted rows into a separate unreviewed Draft; row-specific ordering and accepted priors commit atomically with history. Schema 12 requires the coordinated database/settings backup; settings remain schema 6 (R-SUB-9, R-SUB-11, R-UI-1:reports, R-VAL-7).
+
 - Add an offline supplied-geometry panel tool with upright perspective crops, source transforms and conservative full-width header-and-upper-region masking before filtering. Dumps are bounded and exclusive; automatic locate and calibrated text/tone analysis remain open (R-OCR-2, R-CAP-7, R-SUB-7).
 
 - Resolve unknown submissions through explicit received/not-received decisions or verified read-only evidence while keeping the original uncertain attempt. A separate new-Draft action preserves the original observation and values for complete review; schema 11 requires the coordinated upgrade backup (R-SUB-9, R-UI-1:reports, R-SUB-4).

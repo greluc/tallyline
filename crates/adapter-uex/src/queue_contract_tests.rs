@@ -1574,5 +1574,8 @@ async fn early_account_answer() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
-#[path = "queue_contract_tests/unknown_receipts.rs"]
-mod unknown_receipts;
+#[path = "queue_contract_tests/verified_row_receipts.rs"]
+mod verified_row_receipts;
+
+#[path = "queue_contract_tests/partial_refusals.rs"]
+mod partial_refusals;

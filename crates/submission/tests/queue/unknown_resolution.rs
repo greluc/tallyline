@@ -7,8 +7,8 @@ use tallyline_shared_kernel::api::model::{
     CommodityId, ReportId, SubmissionMode, TerminalId, Timestamp,
 };
 use tallyline_submission::api::model::{
-    JobId, JobPhase, PayloadHash, SubmissionJob, SubmissionRequest, SubmissionResult,
-    UnknownDecision, UnknownResolutionAction, VerifiedUexReport,
+    JobId, JobPhase, PayloadHash, ReceiptDecision, SubmissionJob, SubmissionRequest,
+    SubmissionResolutionAction, SubmissionResult, VerifiedUexReport,
 };
 
 #[test]
@@ -31,13 +31,13 @@ fn r_sub_9__late_positive_receipt_after_not_received_and_duplication_keeps_both_
         .recover(Timestamp::from_seconds(120))
         .unwrap();
     let decided = unknown
-        .resolve_unknown(UnknownResolutionAction::Decision {
-            decision: UnknownDecision::NotReceived,
+        .resolve_delivery(SubmissionResolutionAction::Decision {
+            decision: ReceiptDecision::NotReceived,
             at: Timestamp::from_seconds(130),
         })
         .unwrap();
     let duplicated = decided
-        .resolve_unknown(UnknownResolutionAction::Duplicated {
+        .resolve_delivery(SubmissionResolutionAction::Duplicated {
             report: ReportId(99),
             at: Timestamp::from_seconds(140),
         })
@@ -51,7 +51,7 @@ fn r_sub_9__late_positive_receipt_after_not_received_and_duplication_keeps_both_
         Timestamp::from_seconds(95),
     )
     .unwrap();
-    let late = duplicated.resolve_unknown(UnknownResolutionAction::Verified {
+    let late = duplicated.resolve_delivery(SubmissionResolutionAction::Verified {
         receipts: vec![proof],
         at: Timestamp::from_seconds(150),
     });
@@ -60,8 +60,8 @@ fn r_sub_9__late_positive_receipt_after_not_received_and_duplication_keeps_both_
         "late positive proof must remain attributable to the original unknown attempt: {late:?}"
     );
     let late = late.unwrap();
-    assert_eq!(late.unknown_actions().len(), 3);
-    assert_eq!(late.unknown_decision(), Some(UnknownDecision::NotReceived));
+    assert_eq!(late.resolution_actions().len(), 3);
+    assert_eq!(late.unknown_decision(), Some(ReceiptDecision::NotReceived));
     assert_eq!(late.phase(), JobPhase::OutcomeUnknown);
     assert_eq!(late.attempts(), unknown.attempts());
     assert_eq!(late.result(), Some(&SubmissionResult::Unknown));
@@ -92,7 +92,7 @@ fn r_sub_9_r_sub_4__resolution_preserves_provisional_cooldown_and_rejects_empty_
         .unwrap();
     assert!(
         unknown
-            .resolve_unknown(UnknownResolutionAction::Verified {
+            .resolve_delivery(SubmissionResolutionAction::Verified {
                 receipts: vec![],
                 at: Timestamp::from_seconds(130)
             })
@@ -118,15 +118,15 @@ fn r_sub_9_r_sub_4__resolution_preserves_provisional_cooldown_and_rejects_empty_
     .unwrap();
     assert!(
         unknown
-            .resolve_unknown(UnknownResolutionAction::Verified {
+            .resolve_delivery(SubmissionResolutionAction::Verified {
                 receipts: vec![foreign],
                 at: Timestamp::from_seconds(130)
             })
             .is_err()
     );
     let received = unknown
-        .resolve_unknown(UnknownResolutionAction::Decision {
-            decision: UnknownDecision::Received,
+        .resolve_delivery(SubmissionResolutionAction::Decision {
+            decision: ReceiptDecision::Received,
             at: Timestamp::from_seconds(130),
         })
         .unwrap();

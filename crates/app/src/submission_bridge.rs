@@ -9,7 +9,7 @@ use std::sync::mpsc::{Receiver, SyncSender, TrySendError};
 use tallyline_shared_kernel::api::model::Timestamp;
 use tallyline_submission::api::CredentialApplication;
 use tallyline_submission::api::model::{AccountState, ReleaseToken};
-use tallyline_ui::api::model::UnknownQueueAction;
+use tallyline_ui::api::model::ResolutionQueueAction;
 use tallyline_ui::api::model::{
     BackgroundEvent, SubmissionControl, SubmissionFeedback, SubmissionIntent, SubmissionUpdate,
 };
@@ -193,21 +193,25 @@ impl SubmissionQueueBridge {
         token: Option<&ReleaseToken>,
     ) -> Result<(), SubmissionControlError> {
         match command {
-            SubmissionControl::Unknown {
+            SubmissionControl::Resolve {
                 id,
                 expected,
                 action,
             } => match action {
-                UnknownQueueAction::Decide(decision) => self
+                ResolutionQueueAction::DecideRow { row, decision } => self
+                    .controller
+                    .decide_row(id, expected, row, decision)
+                    .map(|_| ()),
+                ResolutionQueueAction::Decide(decision) => self
                     .controller
                     .decide_unknown(id, expected, decision)
                     .map(|_| ()),
-                UnknownQueueAction::CheckReceipt => {
+                ResolutionQueueAction::CheckReceipt => {
                     self.controller
-                        .check_unknown(id, expected, application, token)
+                        .check_receipts(id, expected, application, token)
                 }
-                UnknownQueueAction::DuplicateAsDraft => {
-                    self.controller.duplicate_unknown(id, expected).map(|_| ())
+                ResolutionQueueAction::DuplicateAsDraft => {
+                    self.controller.duplicate_resolved(id, expected).map(|_| ())
                 }
             },
             SubmissionControl::Release {

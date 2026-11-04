@@ -3,12 +3,13 @@
 
 //! Closed account-check and originating-attempt evidence documents.
 
+use crate::error_code_document::ErrorCodeDocument;
 use crate::queue_outcome_document::ResultDocument;
 use serde::{Deserialize, Serialize};
 use tallyline_shared_kernel::api::model::Timestamp;
 use tallyline_submission::api::model::{
     SubmissionAccountCheck, SubmissionAccountEvidence, SubmissionPauseReason,
-    SubmissionRepositoryError, SubmissionRequest, SubmissionResult, UexErrorCode,
+    SubmissionRepositoryError, SubmissionRequest, SubmissionResult,
 };
 
 #[derive(Serialize, Deserialize)]
@@ -57,7 +58,7 @@ fn action(
 #[derive(Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub(crate) struct AccountEvidenceDocument {
-    code: Option<String>,
+    code: Option<ErrorCodeDocument>,
     http_status: u16,
     original_action: ResultDocument,
     check: AccountCheckDocument,
@@ -66,7 +67,7 @@ pub(crate) struct AccountEvidenceDocument {
 impl From<&SubmissionAccountEvidence> for AccountEvidenceDocument {
     fn from(value: &SubmissionAccountEvidence) -> Self {
         Self {
-            code: value.code().map(|code| code.as_str().to_owned()),
+            code: value.code().map(ErrorCodeDocument::from),
             http_status: value.http_status(),
             original_action: ResultDocument::from(&SubmissionResult::Paused(
                 value.original_action(),
@@ -83,7 +84,7 @@ impl AccountEvidenceDocument {
         sent: Option<Timestamp>,
     ) -> Result<SubmissionAccountEvidence, SubmissionRepositoryError> {
         let code = match self.code {
-            Some(code) => Some(UexErrorCode::new(code).ok_or(SubmissionRepositoryError::Invalid)?),
+            Some(code) => Some(code.restore()?),
             None => None,
         };
         Ok(SubmissionAccountEvidence::new(

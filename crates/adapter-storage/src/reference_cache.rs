@@ -16,7 +16,7 @@ use tallyline_shared_kernel::api::model::{
     CommodityId, PricePerScu, TerminalId, Timestamp, TradeSide,
 };
 
-const SCHEMA_VERSION: u32 = 11;
+const SCHEMA_VERSION: u32 = 12;
 const SQLITE_BUSY_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(2);
 
 const MIGRATION:&str="CREATE TABLE ref_cache(endpoint TEXT PRIMARY KEY, fetched_at TEXT NOT NULL, payload TEXT NOT NULL);
@@ -75,134 +75,35 @@ impl SqliteReferenceCache {
         connection.busy_timeout(SQLITE_BUSY_TIMEOUT)?;
         let mut cache = Self { connection };
         let version: u32 = cache.connection.pragma_query_one(None, "user_version")?;
-        match version {
-            0 => {
-                let transaction = cache.connection.transaction()?;
-                transaction.execute_batch(MIGRATION)?;
-                crate::migration::schema_two(&transaction)?;
-                crate::migration::schema_three(&transaction)?;
-                crate::migration::schema_four(&transaction)?;
-                crate::migration::schema_five(&transaction)?;
-                crate::migration::schema_six(&transaction)?;
-                crate::migration::schema_seven(&transaction)?;
-                crate::migration::schema_eight(&transaction)?;
-                crate::migration::schema_nine(&transaction)?;
-                crate::migration::schema_ten(&transaction)?;
-                crate::migration::schema_eleven(&transaction)?;
-                transaction.commit()?;
-            }
-            1 => {
+        if version > SCHEMA_VERSION {
+            return Err(StorageError::UnsupportedSchema {
+                found: version,
+                supported: SCHEMA_VERSION,
+            });
+        }
+        if version < SCHEMA_VERSION {
+            if version != 0 {
                 backup(&mut cache, version)?;
-                let transaction = cache.connection.transaction()?;
-                crate::migration::schema_two(&transaction)?;
-                crate::migration::schema_three(&transaction)?;
-                crate::migration::schema_four(&transaction)?;
-                crate::migration::schema_five(&transaction)?;
-                crate::migration::schema_six(&transaction)?;
-                crate::migration::schema_seven(&transaction)?;
-                crate::migration::schema_eight(&transaction)?;
-                crate::migration::schema_nine(&transaction)?;
-                crate::migration::schema_ten(&transaction)?;
-                crate::migration::schema_eleven(&transaction)?;
-                transaction.commit()?;
             }
-            2 => {
-                backup(&mut cache, version)?;
-                let transaction = cache.connection.transaction()?;
-                crate::migration::schema_three(&transaction)?;
-                crate::migration::schema_four(&transaction)?;
-                crate::migration::schema_five(&transaction)?;
-                crate::migration::schema_six(&transaction)?;
-                crate::migration::schema_seven(&transaction)?;
-                crate::migration::schema_eight(&transaction)?;
-                crate::migration::schema_nine(&transaction)?;
-                crate::migration::schema_ten(&transaction)?;
-                crate::migration::schema_eleven(&transaction)?;
-                transaction.commit()?;
+            let transaction = cache.connection.transaction()?;
+            for next in version + 1..=SCHEMA_VERSION {
+                match next {
+                    1 => transaction.execute_batch(MIGRATION)?,
+                    2 => crate::migration::schema_two(&transaction)?,
+                    3 => crate::migration::schema_three(&transaction)?,
+                    4 => crate::migration::schema_four(&transaction)?,
+                    5 => crate::migration::schema_five(&transaction)?,
+                    6 => crate::migration::schema_six(&transaction)?,
+                    7 => crate::migration::schema_seven(&transaction)?,
+                    8 => crate::migration::schema_eight(&transaction)?,
+                    9 => crate::migration::schema_nine(&transaction)?,
+                    10 => crate::migration::schema_ten(&transaction)?,
+                    11 => crate::migration::schema_eleven(&transaction)?,
+                    12 => crate::migration::schema_twelve(&transaction)?,
+                    _ => return Err(StorageError::InvalidCache),
+                }
             }
-            3 => {
-                backup(&mut cache, version)?;
-                let transaction = cache.connection.transaction()?;
-                crate::migration::schema_four(&transaction)?;
-                crate::migration::schema_five(&transaction)?;
-                crate::migration::schema_six(&transaction)?;
-                crate::migration::schema_seven(&transaction)?;
-                crate::migration::schema_eight(&transaction)?;
-                crate::migration::schema_nine(&transaction)?;
-                crate::migration::schema_ten(&transaction)?;
-                crate::migration::schema_eleven(&transaction)?;
-                transaction.commit()?;
-            }
-            4 => {
-                backup(&mut cache, version)?;
-                let transaction = cache.connection.transaction()?;
-                crate::migration::schema_five(&transaction)?;
-                crate::migration::schema_six(&transaction)?;
-                crate::migration::schema_seven(&transaction)?;
-                crate::migration::schema_eight(&transaction)?;
-                crate::migration::schema_nine(&transaction)?;
-                crate::migration::schema_ten(&transaction)?;
-                crate::migration::schema_eleven(&transaction)?;
-                transaction.commit()?;
-            }
-            5 => {
-                backup(&mut cache, version)?;
-                let transaction = cache.connection.transaction()?;
-                crate::migration::schema_six(&transaction)?;
-                crate::migration::schema_seven(&transaction)?;
-                crate::migration::schema_eight(&transaction)?;
-                crate::migration::schema_nine(&transaction)?;
-                crate::migration::schema_ten(&transaction)?;
-                crate::migration::schema_eleven(&transaction)?;
-                transaction.commit()?;
-            }
-            6 => {
-                backup(&mut cache, version)?;
-                let transaction = cache.connection.transaction()?;
-                crate::migration::schema_seven(&transaction)?;
-                crate::migration::schema_eight(&transaction)?;
-                crate::migration::schema_nine(&transaction)?;
-                crate::migration::schema_ten(&transaction)?;
-                crate::migration::schema_eleven(&transaction)?;
-                transaction.commit()?;
-            }
-            7 => {
-                backup(&mut cache, version)?;
-                let transaction = cache.connection.transaction()?;
-                crate::migration::schema_eight(&transaction)?;
-                crate::migration::schema_nine(&transaction)?;
-                crate::migration::schema_ten(&transaction)?;
-                crate::migration::schema_eleven(&transaction)?;
-                transaction.commit()?;
-            }
-            8 => {
-                backup(&mut cache, version)?;
-                let transaction = cache.connection.transaction()?;
-                crate::migration::schema_nine(&transaction)?;
-                crate::migration::schema_ten(&transaction)?;
-                crate::migration::schema_eleven(&transaction)?;
-                transaction.commit()?;
-            }
-            9 => {
-                backup(&mut cache, version)?;
-                let transaction = cache.connection.transaction()?;
-                crate::migration::schema_ten(&transaction)?;
-                crate::migration::schema_eleven(&transaction)?;
-                transaction.commit()?;
-            }
-            10 => {
-                backup(&mut cache, version)?;
-                let transaction = cache.connection.transaction()?;
-                crate::migration::schema_eleven(&transaction)?;
-                transaction.commit()?;
-            }
-            SCHEMA_VERSION => {}
-            found => {
-                return Err(StorageError::UnsupportedSchema {
-                    found,
-                    supported: SCHEMA_VERSION,
-                });
-            }
+            transaction.commit()?;
         }
         Ok(cache)
     }

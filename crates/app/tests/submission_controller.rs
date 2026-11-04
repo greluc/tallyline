@@ -2208,3 +2208,9 @@ mod permanent_refusal;
 
 #[path = "submission_controller/unknown_resolution.rs"]
 mod unknown_resolution;
+
+#[path = "submission_controller/receipt_support.rs"]
+mod receipt_support;
+
+#[path = "submission_controller/partial_resolution.rs"]
+mod partial_resolution;

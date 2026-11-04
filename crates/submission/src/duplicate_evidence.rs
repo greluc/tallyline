@@ -3,7 +3,7 @@
 
 //! Duplicate evidence bound to an earlier uncertain same-account row key.
 
-use crate::api::model::UnknownResolutionAction;
+use crate::api::model::SubmissionResolutionAction;
 use crate::api::model::{JobId, JobPhase, SubmissionJob};
 use tallyline_shared_kernel::api::model::{ReportId, Timestamp};
 
@@ -51,10 +51,29 @@ impl SubmissionEvidence {
     /// Finds positive origin evidence that closes release of its already created duplicate.
     #[must_use]
     pub fn resolved_duplicate_origin(report: ReportId, history: &[SubmissionJob]) -> Option<JobId> {
-        history.iter().find(|job| {
-            job.unknown_receipts().next().is_some() && job.unknown_actions().iter().any(|action| {
-                matches!(action, UnknownResolutionAction::Duplicated { report: duplicate, .. } if *duplicate == report)
+        history
+            .iter()
+            .find(|job| {
+                job.verified_row_receipts().next().is_some()
+                    && job.resolution_actions().iter().any(|action| match action {
+                        SubmissionResolutionAction::Duplicated {
+                            report: duplicate, ..
+                        } => *duplicate == report,
+                        SubmissionResolutionAction::RowsDuplicated {
+                            report: duplicate,
+                            rows,
+                            ..
+                        } => {
+                            *duplicate == report
+                                && job
+                                    .verified_row_receipts()
+                                    .any(|proof| rows.contains(&proof.row()))
+                        }
+                        SubmissionResolutionAction::Decision { .. }
+                        | SubmissionResolutionAction::Verified { .. }
+                        | SubmissionResolutionAction::RowDecision { .. } => false,
+                    })
             })
-        }).map(SubmissionJob::id)
+            .map(SubmissionJob::id)
     }
 }

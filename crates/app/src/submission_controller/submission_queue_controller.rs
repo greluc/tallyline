@@ -8,8 +8,8 @@ use super::dispatch_preparation::DispatchPreparation;
 use super::dispatch_state::{DispatchProgress, DispatchState};
 use super::queue_state::QueueState;
 use super::receipt_enrichment::ReceiptEnrichment;
+use super::receipt_resolution::ReceiptResolution;
 use super::release_control::{ReleaseControl, ReleaseKind};
-use super::unknown_resolution::UnknownResolution;
 use super::{SubmissionControlError, SubmissionQueuePreferences};
 use crate::api::HttpClient;
 use tallyline_adapter_files::api::ManualWorkingCopies;
@@ -19,7 +19,7 @@ use tallyline_reporting::api::{ReportRepository, RepositoryError};
 use tallyline_shared_kernel::api::Clock;
 use tallyline_shared_kernel::api::model::{ReportId, RowId, SubmissionMode};
 use tallyline_submission::api::model::{
-    JobId, ReleaseToken, SubmissionCommand, SubmissionJob, SubmissionWait,
+    JobId, ReleaseToken, SubmissionCommand, SubmissionJob, SubmissionResult, SubmissionWait,
 };
 use tallyline_submission::api::{CredentialApplication, SubmissionJobRepository};
 use tallyline_workflows::api::{
@@ -38,7 +38,7 @@ pub struct SubmissionQueueController {
     client_version: Option<tallyline_shared_kernel::api::model::ReleaseVersion>,
     receipt: ReceiptEnrichment,
     recovery: super::refusal_recovery::RefusalRecovery,
-    unknown: UnknownResolution,
+    row_receipts: ReceiptResolution,
 }
 impl SubmissionQueueController {
     /// Recovers interrupted work before accepting any new release or dispatch.
@@ -99,7 +99,7 @@ impl SubmissionQueueController {
             client_version,
             receipt: ReceiptEnrichment::new(mappings),
             recovery: super::refusal_recovery::RefusalRecovery::default(),
-            unknown: UnknownResolution::default(),
+            row_receipts: ReceiptResolution::default(),
         })
     }
 
@@ -286,9 +286,12 @@ impl SubmissionQueueController {
         credentials: &CredentialApplication,
         token: Option<&ReleaseToken>,
     ) -> Result<bool, SubmissionControlError> {
-        let resolved =
-            self.unknown
-                .advance(&mut self.store, &mut self.queue, &*self.clock, credentials)?;
+        let resolved = self.row_receipts.advance(
+            &mut self.store,
+            &mut self.queue,
+            &*self.clock,
+            credentials,
+        )?;
         let recovered = self.recovery.advance(
             &mut self.store,
             &self.client,
@@ -313,6 +316,16 @@ impl SubmissionQueueController {
             let committed =
                 self.dispatch
                     .commit_completion(&mut self.store, &*self.clock, &mut self.queue)?;
+            if let Some(job) = &committed
+                && job.request().header().mode == SubmissionMode::Production
+                && matches!(
+                    job.result().map(SubmissionResult::final_result),
+                    Some(SubmissionResult::Partial(_))
+                )
+            {
+                self.row_receipts
+                    .begin(&self.client, job.clone(), credentials, token)?;
+            }
             if let Some(job) = &committed
                 && let Err(error) = self.receipt.begin_enrichment(
                     &mut self.store,
@@ -387,4 +400,4 @@ impl SubmissionQueueController {
     }
 }
 
-mod unknown_control;
+mod resolution_control;

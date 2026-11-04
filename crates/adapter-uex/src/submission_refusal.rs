@@ -4,11 +4,12 @@
 //! Durable-first account refusal and independent read-only receipt recovery.
 
 use crate::api::{RejectedData, UexReader};
+use crate::submission_code;
 use tallyline_shared_kernel::api::model::{SubmissionMode, Timestamp};
 use tallyline_submission::api::model::{
-    CredentialValues, JobPhase, NotProcessed, SubmissionAccountCheck, SubmissionHoldReason,
-    SubmissionJob, SubmissionPauseReason, SubmissionRequest, SubmissionResult,
-    SubmissionReturnReason, UexErrorCode,
+    CredentialValues, JobPhase, NotProcessed, RowFailureKind, RowFailureSource,
+    SubmissionAccountCheck, SubmissionHoldReason, SubmissionJob, SubmissionPauseReason,
+    SubmissionRequest, SubmissionResult, SubmissionReturnReason, UexErrorCode, VerifiedUexReport,
 };
 use tallyline_submission::api::model::{SubmissionCorrection, SubmissionRejection};
 
@@ -134,7 +135,8 @@ impl UexReader {
         {
             None
         } else {
-            UexErrorCode::new(error.code)
+            let row_failure = submission_code::row_failure(&error.code);
+            UexErrorCode::classified(error.code, row_failure)
         };
         if !account {
             return match code {
@@ -199,17 +201,29 @@ impl UexReader {
         if context.request.header().mode == SubmissionMode::Production
             && !before_storage(code.as_str())
         {
-            let row = match data {
-                Some(RejectedData::Row(row)) if row < context.request.rows().len() => Some(row),
+            let (row, source) = match data {
+                Some(RejectedData::Row(row)) if row < context.request.rows().len() => {
+                    (Some(row), RowFailureSource::Index)
+                }
                 Some(RejectedData::Report {
                     id_terminal,
                     id_commodity,
-                }) if id_terminal == u64::from(context.request.header().terminal.0) => context
-                    .request
-                    .rows()
-                    .iter()
-                    .position(|row| u64::from(row.commodity().0) == id_commodity),
-                _ => None,
+                }) if id_terminal == u64::from(context.request.header().terminal.0) => {
+                    let row = context
+                        .request
+                        .rows()
+                        .iter()
+                        .position(|row| u64::from(row.commodity().0) == id_commodity);
+                    (
+                        row,
+                        if row.is_some() {
+                            RowFailureSource::Commodity
+                        } else {
+                            RowFailureSource::Unmapped
+                        },
+                    )
+                }
+                _ => (None, RowFailureSource::Unmapped),
             };
             if row.is_some_and(|row| row > 0)
                 || matches!(
@@ -217,12 +231,24 @@ impl UexReader {
                     "database_error" | "invalid_prices_array_format" | "reference_key_not_supplied"
                 )
             {
-                return SubmissionResult::PartialError { code, row };
+                return SubmissionResult::PartialError {
+                    code,
+                    row,
+                    source,
+                    receipts: Vec::new(),
+                };
             }
             if row.is_none() {
                 match self.check_refusal_receipt(&context).await {
-                    Some(true) => return SubmissionResult::PartialError { code, row: None },
-                    Some(false) => {}
+                    Some(receipts) if !receipts.is_empty() => {
+                        return SubmissionResult::PartialError {
+                            code,
+                            row: None,
+                            source: RowFailureSource::Unmapped,
+                            receipts,
+                        };
+                    }
+                    Some(_) => {}
                     None => {
                         return SubmissionResult::NeedsOutcomeCheck { code, http_status };
                     }
@@ -284,53 +310,25 @@ impl UexReader {
             )),
         }
     }
-    async fn check_refusal_receipt(&self, context: &RejectionContext<'_>) -> Option<bool> {
-        let bearer = format!("Bearer {}", context.token);
-        let terminal = context.request.header().terminal.0.to_string();
-        let data = self
-            .transport
-            .get(
-                "data_info/",
-                &[
-                    ("type", "commodity"),
-                    ("id_terminal", &terminal),
-                    ("username", &context.request.header().account),
-                    ("limit", "100"),
-                ],
-                &[
-                    ("Authorization", &bearer),
-                    ("secret-key", context.credentials.secret_key()),
-                ],
+    async fn check_refusal_receipt(
+        &self,
+        context: &RejectionContext<'_>,
+    ) -> Option<Vec<VerifiedUexReport>> {
+        let window = self
+            .read_receipt_window(
+                context.request,
+                context.date_added,
+                context.credentials,
+                context.token,
+                None,
             )
-            .await;
-        let Ok(serde_json::Value::Array(records)) = data else {
-            return None;
-        };
-        let request = context.request.clone();
-        let date_added = context.date_added;
-        self.transport
-            .process(move || {
-                if !crate::receipt_window::valid(&records, &request) {
-                    return Ok(None);
-                }
-                let found = records.iter().any(|record| {
-                    record
-                        .get("id")
-                        .and_then(crate::submission::number)
-                        .and_then(|id| crate::submission::lookup(record, id, &request, date_added))
-                        .is_some()
-                });
-                Ok(if found {
-                    Some(true)
-                } else if records.len() < crate::receipt_window::LIMIT {
-                    Some(false)
-                } else {
-                    None
-                })
-            })
             .await
-            .ok()
-            .flatten()
+            .ok()?;
+        if !window.receipts.is_empty() || window.complete {
+            Some(window.receipts)
+        } else {
+            None
+        }
     }
 }
 fn before_storage(code: &str) -> bool {
@@ -373,29 +371,6 @@ fn before_storage(code: &str) -> bool {
 
 fn known_code(code: &str) -> bool {
     before_storage(code)
-        || matches!(
-            code,
-            "no_api_found"
-                | "not_allowed"
-                | "user_not_verified"
-                | "database_error"
-                | "duplicated_report"
-                | "invalid_prices_array"
-                | "invalid_prices_array_format"
-                | "reference_key_not_supplied"
-                | "no_commodities_found"
-                | "missing_id_commodity"
-                | "invalid_id_commodity"
-                | "has_no_prices_and_no_is_missing_set"
-                | "has_both_price_buy_and_price_sell"
-                | "has_both_scu_buy_and_scu_sell"
-                | "cannot_have_both_status_buy_and_status_sell"
-                | "cannot_have_both_price_buy_and_status_sell"
-                | "cannot_have_both_price_buy_and_scu_sell"
-                | "cannot_have_both_price_sell_and_status_buy"
-                | "cannot_have_both_price_sell_and_scu_buy"
-                | "invalid_status_buy"
-                | "invalid_status_sell"
-                | "invalid_quality"
-        )
+        || matches!(code, "no_api_found" | "not_allowed" | "user_not_verified")
+        || submission_code::row_failure(code) != RowFailureKind::Unrecognised
 }

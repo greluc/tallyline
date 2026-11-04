@@ -48,6 +48,10 @@ pub enum SubmissionResult {
         code: UexErrorCode,
         /// Zero-based failed row when UEX identified it.
         row: Option<usize>,
+        /// The exact identification provenance, absent only when no row was identified.
+        source: crate::api::model::RowFailureSource,
+        /// Positive identities returned by the original refusal safety read.
+        receipts: Vec<VerifiedUexReport>,
     },
     /// The read-only safety lookup must succeed before a refusal takes effect.
     NeedsOutcomeCheck {

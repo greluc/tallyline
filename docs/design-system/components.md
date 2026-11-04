@@ -1,6 +1,6 @@
 # Supplied design references and component adoption
 
-> **Doc type:** Living reference — partial egui adoption. Last reviewed: 2026-11-03.
+> **Doc type:** Living reference — partial egui adoption. Last reviewed: 2026-11-04.
 
 The owner-supplied archives guide the Tallyline rendition. Accepted requirements, ADRs and owner decisions remain normative. This checkpoint adopts typography, existing widget geometry and theme states, and exact manual-review number presentation. The shell composition is adopted; the review table, specialised screens and M1–M5 remain incomplete.
 
@@ -63,3 +63,7 @@ The existing Theme, SCU review tolerance, Submission mode and observation age, R
 An explicit invalid SCU save reveals its local explanation without applying the invalid value. Passive updates do not trigger that reveal. Mapping choices wrap within their panel and the game-channel field uses its available width. No speculative threshold, reset command, preference or workflow is introduced from the supplied references.
 
 Drawn actual-Shell contracts cover all three themes at the accepted 800×640 viewport and settled 2× zoom (400×320 logical points), named topic groups, field/action paint clips, explicit saves and local invalid feedback. These are headless geometry and command checks; native rendering, operating-system scaling, pixel contrast and supported-system acceptance remain open. Fan Kit files and pinning assertions are unchanged.
+
+## Partial row resolution checkpoint — 2026-11-04
+
+The existing submission queue renders all partial row outcomes, typed failure reason/code, verified ID/date, dated user decisions and selected-copy provenance. Exact-revision received/not-received/check/copy controls share the existing button focus treatment. Explicit focus reveals the whole action; passive row settlement preserves the exact target without scrolling it into view. Drawn contracts check frame and text paint across three themes, accepted 800×640 viewport and settled 1×/2× zoom. These are headless paint/command checks; native rendering, OS scaling and contrast acceptance retain their separate gates. Fan Kit assets, norms and pinning remain unchanged.

@@ -3,7 +3,7 @@
 
 //! Explicit version-bound release intents and passive committed feedback.
 
-use crate::api::model::UnknownQueueAction;
+use crate::api::model::ResolutionQueueAction;
 use tallyline_reporting::api::model::{ReleaseBlockReason, Report, ReportId};
 use tallyline_shared_kernel::api::model::SubmissionMode;
 use tallyline_submission::api::model::{
@@ -20,14 +20,14 @@ pub enum SubmissionIntent {
 }
 /// Bounded explicit control without secret values or mutable row payloads.
 pub enum SubmissionControl {
-    /// Applies an explicit action to the exact displayed unknown origin.
-    Unknown {
+    /// Applies an explicit action to the exact displayed partial or unknown origin.
+    Resolve {
         /// Stable original job identity.
         id: JobId,
         /// Displayed committed concurrency revision.
         expected: u64,
         /// The local decision, read-only check or separate Draft action.
-        action: UnknownQueueAction,
+        action: ResolutionQueueAction,
     },
     /// Retry an eligible held job against its displayed revision.
     Retry {

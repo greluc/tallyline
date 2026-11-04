@@ -241,7 +241,7 @@ A receipt-check wait may represent already stored rows. It remains held across r
 
 Database schema 10 supersedes the schema-nine descriptions above; settings remain schema 6. Startup makes the coordinated database/settings backup before migrating older schemas, preserving original Report values, decisions, attachments and attempts. Native visual/provider checks and an explicitly approved real dry run remain open.
 
-Account refusal and receipt uncertainty may be shown together. Retry now can acknowledge the queue pause while leaving the original uncertain or partially accepted Report closed to resending. Acknowledgement does not prove that UEX received or rejected its rows. Detailed row resolution, quota reset and duplicate-as-new-Draft actions remain separate work.
+Account refusal and receipt uncertainty may be shown together. Retry now can acknowledge the queue pause while leaving the original uncertain or partially accepted Report closed to resending. Acknowledgement does not prove that UEX received or rejected its rows. The row-resolution and separate new-Draft controls below keep this original request closed to replay. Daily-quota reset remains separate work.
 
 A pending read-only account check is shown explicitly. It must complete before Retry now becomes available. A successful or unavailable check keeps the queue paused; the check itself never sends or retries a Report.
 
@@ -253,8 +253,18 @@ An interrupted or uncertain send remains in the queue with its original attempt 
 
 Choose **Mark received** only as your explicit statement: the Report becomes Submitted, while the original uncertain attempt and your decision remain visible. This creates no remote IDs or withdrawal permission. **Mark not received** retains OutcomeUnknown. It enables the separate **Duplicate as new Draft** action, which creates one new Report with the original observation time, game version and entered values. Review it fully, renew any attachment preview and working copy, and release it through the normal checks. The original cannot be resent or edited. Later positive evidence can still be attached to the original, including after duplication. If it proves received rows, the separate duplicate cannot be released or dispatched; inspect the original history. Cooldowns and independent queue holds remain in force.
 
-Schema 11 requires the coordinated database/settings backup on upgrade; settings stay at schema 6. Withdrawal, detailed failed-row correction, selective cooldown splitting and daily-quota reset scheduling retain their separate acceptance gates.
+Schema 12 requires the coordinated database/settings backup on upgrade; settings stay at schema 6. Withdrawal, general editable lifecycle and daily-quota reset scheduling retain their separate acceptance gates.
 
 ## Offline supplied panel inspection
 
 The developer-only [supplied panel tool](../panel-preparation.md) accepts a reviewed independent geometry manifest and writes safe shop/location PNGs plus mapping evidence into a new private directory. It does not run OCR or update a Report, and manual/profile geometry still needs the separate full-size privacy confirmation before an upload. Text-size and tone results remain explicitly unavailable; output dimensions do not establish source resolution or legibility.
+
+## Resolve a partially accepted submission
+
+The expanded queue entry shows every original row. Open **Inspect original attempt** to view the fixed terminal, environment, side, game version, entered values and attempted observation date before making a decision. **Accepted** includes a verified UEX ID and returned date. **Received · your decision** is your dated statement and supplies no remote identity. A named failing row shows its technical code and typed reason; **Not stored** identifies a database failure. Rows after a named failure are **Not sent**. Rows before it remain unresolved until positive evidence or your explicit statement resolves them. Missing evidence never means not received.
+
+Use **Check UEX evidence** with the original account validated. An initial incomplete successful response also starts one bounded positive check; neither action repeats the original POST. Each returned ID must match the terminal, commodity and exact original attempted date. A full 100-record window or absent match leaves the relevant row unresolved. For an unresolved row, choose **Mark row … received** or **Mark row … not received** only as your explicit statement. The original response, attempt count, values and dated decisions remain visible after later evidence and restart.
+
+When all rows are resolved and at least one is not accepted, **Copy not-accepted rows to new Draft** creates one separate Report containing only those rows. It preserves the terminal, side, environment, observation time, game version and entered values. Review the copy fully and renew confirmations and attachment preview before normal release. Accepted and unresolved rows are excluded. Later positive proof for a copied row prevents the copy from releasing or sending; proof for an accepted row that was excluded does not block the copied subset. The original is never editable or resendable.
+
+Verified production rows become local accepted priors. An explicit statement creates no remote IDs, accepted priors or withdrawal permission. Row-specific provisional waits clear only for rows resolved not accepted; independent account, API, version, quota and duplicate waits remain. Daily-quota reset and general withdrawal/correction retain their separate gates.

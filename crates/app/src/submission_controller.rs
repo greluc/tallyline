@@ -18,4 +18,4 @@ mod submission_queue_controller;
 pub use models::{SubmissionControlError, SubmissionQueuePreferences};
 pub use submission_queue_controller::SubmissionQueueController;
 
-mod unknown_resolution;
+mod receipt_resolution;

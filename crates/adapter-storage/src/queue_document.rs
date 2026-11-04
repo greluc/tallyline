@@ -6,7 +6,7 @@
 use crate::queue_account_evidence::{AccountCheckDocument, AccountEvidenceDocument};
 use crate::queue_client_version::ClientVersionDocument;
 use crate::queue_outcome_document::{OutcomeDocument, ReceiptDocument, ResultDocument};
-use crate::unknown_resolution_document::UnknownActionDocument;
+use crate::resolution_action_document::ResolutionActionDocument;
 use serde::{Deserialize, Serialize};
 use tallyline_shared_kernel::api::model::{
     CommodityId, ReportId, RowId, SubmissionMode, TerminalId, Timestamp, TradeSide, UexEnvironment,
@@ -21,8 +21,8 @@ use tallyline_submission::api::model::{SubmissionAccountCheck, VerifiedReceiptMa
 #[derive(Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 struct JobDocument {
-    #[serde(default)]
-    unknown_actions: Vec<UnknownActionDocument>,
+    #[serde(default, alias = "unknown_actions")]
+    resolution_actions: Vec<ResolutionActionDocument>,
     header: HeaderDocument,
     rows: Vec<RowDocument>,
     newer_approvals: Vec<(u64, String)>,
@@ -229,7 +229,7 @@ pub(crate) fn encode(job: &SubmissionJob) -> Result<String, SubmissionRepository
     let request = job.request();
     let header = request.header();
     let document = JobDocument {
-        unknown_actions: job.unknown_actions().iter().map(Into::into).collect(),
+        resolution_actions: job.resolution_actions().iter().map(Into::into).collect(),
         header: HeaderDocument {
             report: header.report.0,
             report_version: header.report_version,
@@ -384,13 +384,13 @@ pub(crate) fn decode(
         .result
         .map(|result| result.restore(&request, attempts.last().map(|attempt| attempt.date_added)))
         .transpose()?;
-    let unknown_actions = document
-        .unknown_actions
+    let resolution_actions = document
+        .resolution_actions
         .into_iter()
         .map(|action| action.restore(&request, attempts.last().map(|attempt| attempt.date_added)))
         .collect::<Result<Vec<_>, _>>()?;
     SubmissionJob::reconstitute(StoredSubmissionJob {
-        unknown_actions,
+        resolution_actions,
         id,
         revision,
         request,

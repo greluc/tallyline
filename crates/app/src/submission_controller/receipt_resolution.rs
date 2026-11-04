@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 Lucas Greuloch
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Exact-snapshot unknown receipt checks with local-save-only retries.
+//! Exact-snapshot partial and unknown receipt checks with local-save-only retries.
 
 use super::SubmissionControlError;
 use super::queue_state::QueueState;
@@ -9,23 +9,23 @@ use crate::api::HttpClient;
 use tallyline_adapter_storage::api::SqliteReferenceCache;
 use tallyline_shared_kernel::api::Clock;
 use tallyline_submission::api::model::{
-    ReleaseToken, SubmissionChange, SubmissionCommand, SubmissionJob, UnknownResolutionAction,
+    ReleaseToken, SubmissionChange, SubmissionCommand, SubmissionJob, SubmissionResolutionAction,
     VerifiedUexReport,
 };
 use tallyline_submission::api::{CredentialApplication, SubmissionJobRepository};
 use tokio::sync::oneshot::Receiver;
 use tokio::sync::oneshot::error::TryRecvError;
 
-struct UnknownWork {
+struct ReceiptResolutionWork {
     origin: SubmissionJob,
     reply: Option<Receiver<Option<Vec<VerifiedUexReport>>>>,
     change: Option<SubmissionChange>,
 }
 #[derive(Default)]
-pub(super) struct UnknownResolution {
-    work: Option<UnknownWork>,
+pub(super) struct ReceiptResolution {
+    work: Option<ReceiptResolutionWork>,
 }
-impl UnknownResolution {
+impl ReceiptResolution {
     pub(super) fn begin(
         &mut self,
         client: &HttpClient,
@@ -40,13 +40,13 @@ impl UnknownResolution {
             .credentials_for(&origin.request().header().account)
             .ok_or(SubmissionControlError::Conflict)?;
         let reply = client
-            .begin_unknown_receipt_verification(
+            .begin_row_receipt_verification(
                 &origin,
                 values,
                 token.map(ReleaseToken::for_validation),
             )
             .map_err(|_| SubmissionControlError::Unavailable)?;
-        self.work = Some(UnknownWork {
+        self.work = Some(ReceiptResolutionWork {
             origin,
             reply: Some(reply),
             change: None,
@@ -101,7 +101,7 @@ impl UnknownResolution {
                 .filter(|receipt| {
                     !work
                         .origin
-                        .unknown_receipts()
+                        .verified_row_receipts()
                         .any(|existing| existing == receipt)
                 })
                 .collect();
@@ -110,8 +110,8 @@ impl UnknownResolution {
             }
             work.change = Some(
                 work.origin
-                    .apply(SubmissionCommand::ResolveUnknown(
-                        UnknownResolutionAction::Verified {
+                    .apply(SubmissionCommand::ResolveDelivery(
+                        SubmissionResolutionAction::Verified {
                             receipts: novel,
                             at: clock.now(),
                         },

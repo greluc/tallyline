@@ -43,7 +43,7 @@ fn queued() -> Option<SubmissionJob> {
 }
 fn stored(job: &SubmissionJob) -> StoredSubmissionJob {
     StoredSubmissionJob {
-        unknown_actions: job.unknown_actions().to_vec(),
+        resolution_actions: job.resolution_actions().to_vec(),
         id: job.id(),
         revision: job.revision(),
         request: job.request().clone(),

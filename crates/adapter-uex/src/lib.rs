@@ -73,6 +73,7 @@ mod public_contract_tests;
 mod queue_contract_tests;
 mod submission;
 mod submission_account_recheck;
+mod submission_code;
 mod submission_refusal;
 
 mod http_date;
@@ -83,6 +84,8 @@ mod response_processing;
 #[cfg(test)]
 mod processing_contract_tests;
 
-mod unknown_receipts;
+mod verified_row_receipts;
 
 mod receipt_window;
+
+mod receipt_reads;

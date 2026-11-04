@@ -8,7 +8,7 @@ use tallyline_adapter_uex::api::{ReadError, UexReader};
 use tallyline_reference_data::api::ReferenceDataFetcher;
 use tallyline_reference_data::api::model::{Endpoint, EndpointData, TerminalPriors};
 use tallyline_shared_kernel::api::model::TerminalId;
-use tallyline_submission::api::SubmissionUnknownReceiptVerifier;
+use tallyline_submission::api::SubmissionRowReceiptVerifier;
 use tallyline_submission::api::model::SubmissionJob;
 use tallyline_submission::api::model::VerifiedUexReport;
 use tallyline_submission::api::model::{
@@ -43,8 +43,8 @@ pub trait HttpBackend: Send + Sync {
         values: CredentialValues,
         release_token: Option<String>,
     ) -> impl Future<Output = Option<Vec<tallyline_submission::api::model::VerifiedUexReport>>> + Send;
-    /// Reads positive unknown-origin identities independently of the submission permit.
-    fn verify_unknown_receipts(
+    /// Reads positive partial or unknown identities independently of the submission permit.
+    fn verify_row_receipts(
         &self,
         _job: SubmissionJob,
         _values: CredentialValues,
@@ -94,13 +94,13 @@ impl HttpBackend for UexReader {
         SubmissionReceiptVerifier::verify_receipts(self, &job, &values, release_token.as_deref())
             .await
     }
-    async fn verify_unknown_receipts(
+    async fn verify_row_receipts(
         &self,
         job: SubmissionJob,
         values: CredentialValues,
         release_token: Option<String>,
     ) -> Option<Vec<VerifiedUexReport>> {
-        SubmissionUnknownReceiptVerifier::verify_unknown_receipts(
+        SubmissionRowReceiptVerifier::verify_row_receipts(
             self,
             &job,
             &values,
@@ -128,7 +128,7 @@ impl HttpBackend for UexReader {
 }
 
 pub(crate) enum Command {
-    VerifyUnknownReceipts(
+    VerifyRowReceipts(
         SubmissionJob,
         CredentialValues,
         Option<String>,

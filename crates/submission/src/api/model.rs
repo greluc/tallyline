@@ -300,9 +300,13 @@ pub use crate::job::SubmissionPauseReason;
 pub use crate::job::SubmissionHoldReason;
 pub use crate::retry::SubmissionRetrySettings;
 pub use crate::service_fence::{SubmissionServiceCause, SubmissionServiceFence};
-pub use crate::uex_error_code::UexErrorCode;
+pub use crate::uex_error_code::{RowFailureKind, RowFieldConflict, UexErrorCode};
 
 pub use crate::submission_account_evidence::{SubmissionAccountCheck, SubmissionAccountEvidence};
 pub use crate::submission_rejection::{SubmissionCorrection, SubmissionRejection};
 
-pub use crate::unknown_resolution::{UnknownDecision, UnknownResolutionAction};
+pub use crate::submission_resolution_action::{ReceiptDecision, SubmissionResolutionAction};
+
+pub use crate::submission_row_result::SubmissionRowResult;
+
+pub use crate::row_failure_source::RowFailureSource;

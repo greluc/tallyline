@@ -6,7 +6,7 @@
 use crate::api::Catalogue;
 use egui::{CollapsingHeader, Ui};
 use tallyline_shared_kernel::api::model::{TradeSide, UexEnvironment};
-use tallyline_submission::api::model::{SubmissionJob, UnknownResolutionAction};
+use tallyline_submission::api::model::{SubmissionJob, SubmissionResolutionAction};
 
 pub(crate) fn show(ui: &mut Ui, job: &SubmissionJob, catalogue: &Catalogue) {
     let details = CollapsingHeader::new(catalogue.text("queue.unknown_details")).show(ui, |ui| {
@@ -57,8 +57,8 @@ pub(crate) fn show(ui: &mut Ui, job: &SubmissionJob, catalogue: &Catalogue) {
                 ));
             }
         }
-        for action in job.unknown_actions() {
-            if let UnknownResolutionAction::Decision { at, .. } = action {
+        for action in job.resolution_actions() {
+            if let SubmissionResolutionAction::Decision { at, .. } = action {
                 ui.label(format!(
                     "{} {}",
                     catalogue.text("queue.decision_recorded"),

@@ -4,7 +4,7 @@
 //! Fixed-mode queue presentation and version-bound cancellation intent.
 
 use crate::api::Catalogue;
-use crate::submission_unknown::UnknownQueueAction;
+use crate::resolution_queue_action::ResolutionQueueAction;
 use tallyline_shared_kernel::api::model::SubmissionMode;
 use tallyline_submission::api::model::{
     JobId, JobPhase, SubmissionApplicationError, SubmissionJob, SubmissionRepositoryError,
@@ -19,14 +19,14 @@ use tallyline_submission::api::model::{
 /// An explicit queue action without credentials or mutable report values.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum QueueCommand {
-    /// Resolves only the exact unknown origin explicitly inspected by the user.
-    Unknown {
+    /// Resolves only the exact partial or unknown origin explicitly inspected by the user.
+    Resolve {
         /// Stable local submission identity.
         id: JobId,
         /// The committed version displayed before the action.
         expected_revision: u64,
         /// The explicit action without transport authority.
-        action: UnknownQueueAction,
+        action: ResolutionQueueAction,
     },
     /// Retries only the eligible exact version explicitly shown to the user.
     Retry {
@@ -47,7 +47,7 @@ pub enum QueueCommand {
 impl QueueCommand {
     fn identity(self) -> (JobId, u64) {
         match self {
-            Self::Unknown {
+            Self::Resolve {
                 id,
                 expected_revision,
                 ..
@@ -304,6 +304,11 @@ pub fn show_submission_queue(
                     ui.label(catalogue.text(review_reason_key(reason)));
                 }
                 show_result(ui, job, state.verified_receipts(job.id()), catalogue);
+                if let Some(action) =
+                    crate::submission_partial::show(ui, job, catalogue, state.busy.is_none())
+                {
+                    unknown_action = Some((job.id(), action));
+                }
                 if let Some(action) = crate::submission_unknown::show(
                     ui,
                     job,
@@ -374,7 +379,7 @@ pub fn show_submission_queue(
         });
     }
     if let Some((id, action)) = unknown_action {
-        state.request_unknown(id, action);
+        state.request_resolution(id, action);
     }
     if let Some(id) = cancel {
         state.request_cancel(id);
@@ -516,7 +521,7 @@ fn show_closed_result(ui: &mut egui::Ui, result: &SubmissionResult, catalogue: &
             ));
             show_closed_result(ui, outcome, catalogue);
         }
-        SubmissionResult::PartialError { code, row } => {
+        SubmissionResult::PartialError { code, row, .. } => {
             ui.label(format!(
                 "{} {}",
                 catalogue.text("queue.partial_error"),
@@ -646,8 +651,8 @@ pub(crate) fn review_reason_key(reason: SendReturnReason) -> &'static str {
 }
 
 impl SubmissionQueue {
-    /// Queues one explicit resolution action against the exact displayed unknown origin.
-    pub fn request_unknown(&mut self, id: JobId, action: UnknownQueueAction) -> bool {
+    /// Queues one explicit resolution action against the exact displayed partial or unknown origin.
+    pub fn request_resolution(&mut self, id: JobId, action: ResolutionQueueAction) -> bool {
         if self.busy.is_some() {
             return false;
         }
@@ -658,7 +663,7 @@ impl SubmissionQueue {
         else {
             return false;
         };
-        let command = QueueCommand::Unknown {
+        let command = QueueCommand::Resolve {
             id,
             expected_revision: job.revision(),
             action,
