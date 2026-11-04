@@ -1,6 +1,6 @@
 # Documentation
 
-> **Doc type:** Living reference — current. Last reviewed: 2026-11-03.
+> **Doc type:** Living reference — current. Last reviewed: 2026-11-04.
 
 `docs/` is the project's single source of truth ([`CLAUDE.md`](../CLAUDE.md), "The documentation is the project"). This file says what belongs where. A new directory or top-level file under `docs/` gets its row here in the same commit.
 
@@ -27,6 +27,7 @@
 | [`local-ocr-tesseract-experiment.md`](local-ocr-tesseract-experiment.md) | Completed approved Linux Tesseract best/fast PSM 11 pilot: twenty fixed conditions, literal complementary/error examples and bounded worker resource observations; no product backend selection |
 | [`local-ocr-joint-reader-comparison.md`](local-ocr-joint-reader-comparison.md) | Reconciled eleven-profile PP-OCR/Tesseract literal inventory over 63 development fields and all 55 pairs, with frozen references, shared-error examples and explicit accuracy/independence limits |
 | [`local-reader-evaluation-next.md`](local-reader-evaluation-next.md) | Provisional next local-reader comparison and delivery-proof plan; no runtime or production profile selection and no new measurements |
+| [`local-reader-verified-reassessment.md`](local-reader-verified-reassessment.md) | Post-hoc replay of retained OCR/VLM outputs against owner-verified values: all 55 OCR pairs, 165 triples, omissions, shared wrong answers and explicit coverage/acceptance limits |
 | [`local-vision-runtime-research.md`](local-vision-runtime-research.md) | Source-backed comparison of bundled local VLM runtimes, complementary OCR readers, hardware tiers and evaluation plans; original research scope and later experimental evidence are distinguished |
 | [`local-vision-first-campaign.md`](local-vision-first-campaign.md) | Completed 310-response local VLM experiment: exact inputs, structural coverage failures, separately labelled exploratory discrepancies and evidence limits; no validated accuracy or backend selection |
 | [`local-vision-small-model-campaign.md`](local-vision-small-model-campaign.md) | Completed author-bound 2B CPU/GPU smoke and a separate literal-field development condition, with raw-value discrepancies, structural failures and independent cleanup evidence |

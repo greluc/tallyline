@@ -158,7 +158,7 @@ Held recovery work preserves safe unknown UEX identifiers and durable account pa
 | Product scope and delivery | [Requirements](docs/plan/01-requirements.md) · [Roadmap](docs/plan/04-roadmap.md) |
 | Architecture and domain | [Architecture](docs/plan/02-architecture.md) · [DDD and TDD](docs/plan/11-ddd-and-tdd.md) |
 | Design | [Design system](docs/design-system/README.md) · [Tokens](docs/design-system/tokens.md) · [Branding](branding/README.md) |
-| Recognition and test data | [OCR concept](docs/plan/07-ocr-concept.md) · [Corpus capture guide](docs/user/corpus-capture.md) · [Next local-reader evaluation (provisional)](docs/local-reader-evaluation-next.md) |
+| Recognition and test data | [OCR concept](docs/plan/07-ocr-concept.md) · [Corpus capture guide](docs/user/corpus-capture.md) · [Next local-reader evaluation (provisional)](docs/local-reader-evaluation-next.md) · [Verified-reference reader reassessment (development)](docs/local-reader-verified-reassessment.md) |
 | Build and release | [Release process](docs/release-process.md) · [Packaging gates](docs/packaging-spike.md) · [Dependency pins](docs/dependency-pins.md) |
 | Verification | [Mutation evidence and withdrawn historical scores](docs/mutation-evidence.md) · [Public API drift](docs/public-api-contract-drift.md) · [Diagnostics export](docs/diagnostics-export.md) |
 | Decisions and remaining checks | [ADRs and open points](docs/adr/0000-open-points.md) |
