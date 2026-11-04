@@ -2,6 +2,8 @@
 
 > **Doc type:** Historical record — completed Windows raw-reader development experiment; no production profile selected. Last reviewed: 2026-11-02.
 
+Corrected 2026-11-04: verification states, counts and hashes below describe the recorded run, whose references were unverified at that time. The owner has since marked all seven existing public entries verified; see [current corpus status](../corpus/README.md#offline-inspection). Historical artefacts and expected-file hashes are unchanged and do not bind the current annotations; this decision supplies no retrospective accuracy measurement.
+
 ## Scope and source identity
 
 The root-owned headless experiment exercised every detector/recogniser pairing of the author-bound PP-OCRv6 Tiny, Small and Medium data through the existing approved ONNX Runtime 1.31.0 / ort 2.0.0-rc.14. No additional runtime, engine, feature or native activation was selected. Model and ordered-dictionary provenance remain in `crates/adapter-ocr/assets/research/provenance.json` and the Small provenance record; their `native_output_verified:false` fields describe the original static source-review condition, not this later execution. NOTICE and the catalogue retain the Apache-2.0 source/weight evidence.

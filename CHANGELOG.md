@@ -4,6 +4,8 @@ All notable changes are recorded here.
 
 ## [Unreleased]
 
+- Record the 2026-11-04 owner verification of all seven existing public corpus transcriptions. Values, clipped-card boundaries and images are unchanged; historical experiments retain their original verification state and hashes, and recognition accuracy remains unmeasured (R-QA-1, R-QA-3).
+
 - Save manual field commits together with explicit takeover, Add commodity and context changes so one interaction cannot lose another row's input. Preserve unrelated invalid text and bind save results to their exact request across Draft selection and retries; a refused batch saves nothing (R-MAN-2, R-MAN-3, R-UI-16).
 - Add explicit keyboard-accessible reveal/hide controls and persistent credential-confusion guidance to the shared UEX setup form. Show typed account feedback with distinct glyphs and semantic theme colours while preserving token, storage and connection error actions, masked defaults and session/fallback choices. Explicit focus reveals the Settings account header, while passive feedback preserves keyboard focus and page position (R-API-4, R-NF-4, R-UI-17).
 - Group existing Settings preferences into named single-column topic panels with one heading each and inline feedback. Invalid SCU saves reveal their explanation; saved values, tighten-only validation, explicit actions and busy guards are preserved (R-UI-7, R-UI-17, R-NF-5).
@@ -24,9 +26,9 @@ All notable changes are recorded here.
 
 - Verify rebuilt Development MSI/ZIP/deb/tar.gz packages, exact preferred-source inventory, legal terms and fixture boundaries. Keep shared libraries as non-executable data in portable archives written on Windows, with independent format-reader and actual artefact red/green. These recorded Development tuples do not establish Windows OS isolation, installed acceptance or authenticated releases (R-NF-2:installers, R-DOC-3, R-DOC-4, R-SEC-8).
 
-- Add fifteen balance-redacted Orbituary corpus captures with manual, unverified Buy and Local Market Value transcriptions, long names, literal warning markers and explicit clipped-card boundaries; recognition accuracy remains unmeasured (R-QA-1, R-QA-3).
+- Add fifteen balance-redacted Orbituary corpus captures with manual Buy and Local Market Value transcriptions, long names, literal warning markers and explicit clipped-card boundaries; recognition accuracy remains unmeasured (R-QA-1, R-QA-3).
 
-- Add four balance-redacted MIC-L2 Long Forest Station corpus captures with manual, unverified transcriptions and explicit clipped-card boundaries; recognition accuracy remains unmeasured (R-QA-1, R-QA-3).
+- Add four balance-redacted MIC-L2 Long Forest Station corpus captures with manual transcriptions and explicit clipped-card boundaries; recognition accuracy remains unmeasured (R-QA-1, R-QA-3).
 - Reject mutation scores contaminated by known independent test/build infrastructure failures using retained cause logs. Preserve genuine domain-error test failures and the frozen score floor; handle the pinned tool's explicit empty selection without inventing a measured score (R-SEC-1, R-DOC-3).
 
 - Added bounded headless `--build-info` before native bootstrap. About, logs, UEX identity and update comparison share fixed Development `0.0.0` or complete compile-time tag metadata; invalid or partial metadata refuses startup. Bounded source-job receipts bind compiled metadata and executable hashes into protected staging before fixture access; signed-tag/CI authentication and final package acceptance remain release gates (R-NF-11, R-API-7, R-UI-18, R-SEC-8).

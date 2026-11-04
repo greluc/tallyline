@@ -1,6 +1,8 @@
 # OCR concept
 
-> **Doc type:** Living spec — binding. Last reviewed: 2026-11-03.
+> **Doc type:** Living spec — binding. Last reviewed: 2026-11-04.
+
+Corrected 2026-11-04: the owner marked all seven existing public corpus entries verified; see [current corpus status](../../corpus/README.md#offline-inspection). The intake descriptions below retain their historical verification state; screenshot observations and recognition requirements are unchanged.
 
 ## 1. Observations on real screenshots (Patch City, Pyro)
 
@@ -25,7 +27,7 @@ The five screenshots supplied by the project owner (2000×1125, Buy and Local Ma
 
 ## 1b. Observations: Pyro Gateway (Stanton), blue theme
 
-Five more screenshots (4× Buy scrolled, 1× Sell) are stored as the first public corpus entry in `corpus/public/pyro-gateway-stanton-01/` (balance redacted, transcription **not yet** verified by a human).
+Five more screenshots (4× Buy scrolled, 1× Sell) are stored as the first public corpus entry in `corpus/public/pyro-gateway-stanton-01/` (balance redacted, transcription unverified at intake).
 
 | Element | Observation | Consequence |
 |---|---|---|
@@ -40,7 +42,7 @@ Five more screenshots (4× Buy scrolled, 1× Sell) are stored as the first publi
 
 ## 1c. Observations: original captures at Patch City and Ruin Station (2026-10-14)
 
-The project owner supplied 150 original screenshots (3840×2160 JPEG, game 4.10.2 LIVE, taken with the game's screenshot key on Windows with Windows HDR and the game's HDR on, Vulkan with DLAA) together with the game's language file `global.ini` in use at the time. They are the public entries `corpus/public/patch-city-01/` (1× Buy, 10× Sell), `ruin-station-01/` (5× Buy, 22× Sell), `seraphim-station-01/` (Stanton, blue; 12 captures without and 14 with a selected inventory) and `levski-01/` (Nyx; 86 captures from three positions), redacted losslessly; the transcriptions are **not yet** verified by a human. The language file is game content and stays in the private corpus; the entries record its SHA-256.
+The project owner supplied 150 original screenshots (3840×2160 JPEG, game 4.10.2 LIVE, taken with the game's screenshot key on Windows with Windows HDR and the game's HDR on, Vulkan with DLAA) together with the game's language file `global.ini` in use at the time. They are the public entries `corpus/public/patch-city-01/` (1× Buy, 10× Sell), `ruin-station-01/` (5× Buy, 22× Sell), `seraphim-station-01/` (Stanton, blue; 12 captures without and 14 with a selected inventory) and `levski-01/` (Nyx; 86 captures from three positions), redacted losslessly; the transcriptions were unverified at intake. The language file is game content and stays in the private corpus; the entries record its SHA-256.
 
 | Element | Observation | Consequence |
 |---|---|---|
@@ -488,7 +490,7 @@ Corrected 2026-10-08: basetool-sc-extractor is GPL-3.0-or-later. Since [ADR-0003
 
   **Scope** (as in R-QA-3 and [04](04-roadmap.md) M3): the **send-threshold rules** are rules 1 and 2 and the two field limits for variants outside the envelope (previous paragraph). They judge confidence after validation, which needs resolution, priors and the fixed eval clock, so they run only on an entry with its frozen reference snapshot (`reference/`, "Frozen reference data" above). `img` and every `T(img)` are evaluated against the same snapshot and clock. A `post-capture` snapshot is enough here, because the gate compares the two runs and does not score correctness against UEX. An entry without a snapshot gates only the locate and layout rules (3 and 4); its send-threshold rules run in the local pre-release evaluation of the private corpus (release checklist step 2).
 
-  **Staging:** from M2, rules 3 and 4 gate, and the raw field strings of `T(img)` are compared with those of `img` and reported. The M2 slice has no confidence yet, so the send-threshold rules become gates in M3 together with confidence, on every entry that has a reference snapshot. The gate shows invariance, not correctness; correctness comes from verified golden entries. With the single public entry that exists today, which has no `reference/` in the public corpus, CI tests the locate and layout side of the R-OCR-17/R-OCR-18 claims; the confidence side (field limits, R-OCR-18 caps) is tested in the local pre-release run once its snapshot is recorded in the private corpus.
+  **Staging:** from M2, rules 3 and 4 gate, and the raw field strings of `T(img)` are compared with those of `img` and reported. The M2 slice has no confidence yet, so the send-threshold rules become gates in M3 together with confidence, on every entry that has a reference snapshot. The gate shows invariance, not correctness; correctness comes from verified golden entries. At the initial single-entry public corpus stage, without a public `reference/` snapshot, CI tests the locate and layout side of the R-OCR-17/R-OCR-18 claims; the confidence side (field limits, R-OCR-18 caps) is tested in the local pre-release run once its snapshot is recorded in the private corpus.
 - **Capture protocol for pairs and ladders** (written in M2 as `docs/user/corpus-capture.md`, so contributors can follow it):
   1. Stand still at the terminal in interaction mode, with the cursor off the cards (no hover) and the same scroll position for all captures of a ladder. Hints and global chat off, `r_DisplayInfo` text off the screen. Keep the FOV setting fixed.
   2. Per step, change exactly one factor (R-QA-2 ladders). After changing HDR or a graphics setting, wait until the image is stable (start value ≥ 5 s; eye adaptation on in-world screens is unverified), then capture with every method of the ladder in a fixed order. Capture a whole ladder within a short window (start value 5 min), because stock and prices can change on a live server.
@@ -525,7 +527,7 @@ Corrected 2026-10-08: basetool-sc-extractor is GPL-3.0-or-later. Since [ADR-0003
   - **silently wrong** (wrong and classified as confident) – the most important metric, target ≈ 0
   - runtime, peak heap and peak process memory (per resolution class, R-NF-3)
 - **CI** checks the public, redacted partial corpus. Its images are Git LFS objects (O-43): the jobs that read them check out with LFS and cache the objects, and an LFS pointer file in place of an image fails the run visibly. The private corpus is included locally via an environment variable (`TALLYLINE_CORPUS_DIR`).
-- The first public entry is `pyro-gateway-stanton-01` (unverified, `sourceFidelity: reencoded-unknown`; its reference snapshot can only be recorded `post-capture`). Since 2026-10-14 the public corpus also holds `patch-city-01`, `ruin-station-01`, `seraphim-station-01` and `levski-01` (original captures, `original-redacted-lossless`, unverified, schema version 2; §1c). Their reference snapshots can only be recorded `post-capture`: UEX's Ruin Station values were updated within minutes of the captures.
+- The first public entry was `pyro-gateway-stanton-01` (unverified at intake, `sourceFidelity: reencoded-unknown`; its reference snapshot can only be recorded `post-capture`). Since 2026-10-14 the public corpus also holds `patch-city-01`, `ruin-station-01`, `seraphim-station-01` and `levski-01` (original captures, `original-redacted-lossless`, unverified at intake, schema version 2; §1c). Their reference snapshots can only be recorded `post-capture`: UEX's Ruin Station values were updated within minutes of the captures.
 
 ## M2 corpus tooling status — 2026-11-01
 
@@ -551,7 +553,7 @@ Public contracts cover exact approved identities, a same-size wrong model, a sam
 
 ## First exploratory local VLM campaign — 2026-11-02
 
-The [completed campaign record](../local-vision-first-campaign.md) binds 310 separately generated responses to 155 fixed shop-only crops and preserves the comparison policy frozen before scoring. Main assignment covers 0/560 complete reference cards for Qwen3-VL 8B and 15/560 for Qwen3.5 9B; no jointly eligible cards means an undefined paired main rate. A separately labelled name-only diagnostic retains unknown units, partial geometry and field-role confusion. It is not the production fusion policy or a held-out accuracy result. The reference entries remain unverified; neither reader agreement nor the nine owner-confirmed bottom-edge corrections promotes their values to a trusted golden. Layout remains the production completeness authority. New prompt conditions and complementary OCR readers require separately recorded outputs and evaluation.
+The [completed campaign record](../local-vision-first-campaign.md) binds 310 separately generated responses to 155 fixed shop-only crops and preserves the comparison policy frozen before scoring. Main assignment covers 0/560 complete reference cards for Qwen3-VL 8B and 15/560 for Qwen3.5 9B; no jointly eligible cards means an undefined paired main rate. A separately labelled name-only diagnostic retains unknown units, partial geometry and field-role confusion. It is not the production fusion policy or a held-out accuracy result. At campaign time the reference entries were unverified; neither reader agreement nor the nine owner-confirmed bottom-edge corrections verified their values. The separate 2026-11-04 owner decision is recorded in [current corpus status](../../corpus/README.md#offline-inspection). Layout remains the production completeness authority. New prompt conditions and complementary OCR readers require separately recorded outputs and evaluation.
 
 **Native load and bounded tensor diagnostic (2026-11-02, issue #104).** The safe private loader, explicit app-owned load token, Windows mapped-library/CRT boundary and same-read immutable model snapshots are implemented as described in02. Both exact official1.31.0 libraries are source build inputs with build/load pins; packaging must place only the matching regular library next to the executable. Full unchanged distribution notices are included. This does not choose CRT redistribution or supersede ADR-0009/0012.
 
@@ -616,4 +618,4 @@ The [research controller](../tesseract-linux-research-controller.md) supplies a 
 
 ### Deterministic transcription checkpoint — 2026-11-03
 
-The pure `recognition` numeric interface and `adapter-vlm` answer/request contract implement the bounded source slice described in [02](02-architecture.md#versioned-transcription-source-contract--2026-11-03). Literal contract answers exercise the named 333/3237 example and malformed/unreadable/truncation paths without an inference runtime. These are parser contracts, not model or corpus accuracy measurements. The current public corpus references remain unverified; comparisons against them establish concordance only. Layout matching, fusion, redacted image requests, report-level OCR preservation, lifecycle, engine selection and delivery remain open.
+The pure `recognition` numeric interface and `adapter-vlm` answer/request contract implement the bounded source slice described in [02](02-architecture.md#versioned-transcription-source-contract--2026-11-03). Literal contract answers exercise the named 333/3237 example and malformed/unreadable/truncation paths without an inference runtime. These are parser contracts, not model or corpus accuracy measurements. Corrected 2026-11-04: the owner marked all seven existing public corpus entries verified; see [current corpus status](../../corpus/README.md#offline-inspection). Earlier comparisons retain their unverified-at-run reference concordance and frozen hashes; no new accuracy measurement follows. Layout matching, fusion, redacted image requests, report-level OCR preservation, lifecycle, engine selection and delivery remain open.

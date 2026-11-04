@@ -2,6 +2,8 @@
 
 > **Doc type:** Historical record — completed development experiments; no product backend selected. Last reviewed: 2026-11-02.
 
+Corrected 2026-11-04: verification states, counts and hashes below describe the recorded run, whose references were unverified at that time. The owner has since marked all seven existing public entries verified; see [current corpus status](../corpus/README.md#offline-inspection). Historical artefacts and expected-file hashes are unchanged and do not bind the current annotations; this decision supplies no retrospective accuracy measurement.
+
 ## Scope and identity
 
 Two separate conditions used the author's Qwen3-VL-2B-Instruct Q4_K_M GGUF and matching F16 projector at revision [`52d6c8ffea26cc873ac5ad116f8631268d7eb503`](https://huggingface.co/Qwen/Qwen3-VL-2B-Instruct-GGUF/tree/52d6c8ffea26cc873ac5ad116f8631268d7eb503), under Apache-2.0. The language file is 1,107,409,952 bytes, SHA-256 `089d75c52f4b7ffc56ba998ffc50aae89fcafc755f9e7208aacca281dca6c2ae`; the projector is 819,394,848 bytes, SHA-256 `c3d5afbef5287953acd57b4043d2269456e5761a4eaccb3b71b062996970aea5`. Source, private copies, manifest, configuration and the actual vision/template/runner binding were checked before execution. No model conversion was performed or claimed reproducible.

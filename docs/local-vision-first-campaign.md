@@ -2,6 +2,8 @@
 
 > **Doc type:** Historical record — completed exploratory experiment; no product backend selected. Last reviewed: 2026-11-02.
 
+Corrected 2026-11-04: verification states, counts and hashes below describe the recorded run, whose references were unverified at that time. The owner has since marked all seven existing public entries verified; see [current corpus status](../corpus/README.md#offline-inspection). Historical artefacts and expected-file hashes are unchanged and do not bind the current annotations; this decision supplies no retrospective accuracy measurement.
+
 ## Result
 
 The two existing local readers returned 310 parseable, schema-valid responses across the same 155 shop-only crops. Their structural output is not suitable for estimating complete-pipeline accuracy. Under the comparison policy frozen before scoring, Qwen3-VL 8B supplies no complete candidates and Qwen3.5 9B supplies only 15 assignable complete reference cards out of 560. There are no jointly eligible cards, so the paired main comparison rate is **undefined**, not a zero-error result.

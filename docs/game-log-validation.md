@@ -2,6 +2,8 @@
 
 > **Doc type:** Living reference — finite validation complete; supported scope and exclusions recorded. Last reviewed: 2026-11-03.
 
+Corrected 2026-11-04: the owner marked all seven existing public corpus entries verified; see [current corpus status](../corpus/README.md#offline-inspection). Earlier checkpoint verification states and inspection results below remain historical; this decision supplies no missing metadata, frozen reference snapshot, class coverage or recognition accuracy measurement.
+
 This is the dated result of the local current-LIVE review for issue #107, R-OCR-20, A24 and O-101. It records the validated initial evidence scope, not a production parser or exhaustive mapping registry. The witness remains opt-in and default off; unknown formats and mappings supply no automatic resolving evidence. The implementation boundary and its privacy checks are recorded below (issue #108).
 
 ## Evidence boundary
@@ -127,7 +129,7 @@ The validated initial scope is:
 
 The Patch City candidate, Checkmate candidate, every unlisted location/template or commodity mapping, and other builds remain unsupported by this initial allowlist. Further independently established mappings can extend coverage; similar names, discarded suffixes and unverified corpus expectations cannot. The original capture-time localisation and current packaged-localisation provenance remain unverified, without invalidating the independently inspected paired-capture evidence.
 
-The M2 research-spike checkbox is complete. Corrected 2026-11-01: issue #108 implements the initial source boundary described below, with finite mappings, opt-in/default-off behaviour, unsupported-format handling and independent privacy checks at the present output/storage boundaries. This document introduces none of that implementation, no persistent game-log data, normative change or API write. All corpus verification flags remain false; selected pixel inspection does not make an entry golden data.
+The M2 research-spike checkbox is complete. Corrected 2026-11-01: issue #108 implements the initial source boundary described below, with finite mappings, opt-in/default-off behaviour, unsupported-format handling and independent privacy checks at the present output/storage boundaries. This document introduces none of that implementation, no persistent game-log data, normative change or API write. Corpus verification flags remained false at that checkpoint; selected pixel inspection does not make an entry golden data.
 
 ## Finite mapping extension — 2026-11-03
 

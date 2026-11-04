@@ -2,6 +2,8 @@
 
 > **Doc type:** Living reference — provisional research and measurement plan; no runtime or production profile selected. Last reviewed: 2026-11-03.
 
+Corrected 2026-11-04: the owner instructed that all seven existing public entries be marked verified; see [current corpus status](../corpus/README.md#offline-inspection). The figures, first-party release metadata and packet/hash checks below remain the 2026-11-03 research snapshot. Its expected-file hashes no longer match the current annotations. This verification-only decision changes no transcriptions, missing metadata or class coverage and creates no retrospective accuracy or fresh inference result.
+
 ## Scope and provisional decision
 
 Start with trustworthy field association and a small complementary-reader comparison, then expand where measured residual errors justify it. Accuracy and error detection take priority over reader count. [ADR-0012](adr/0012-strictly-local-recognition-delivery.md) requires local inference without inference fees, a complete initial installation profile, and measured hardware fit. Manual entry and classic OCR remain usable with AI Off. This plan selects no dependency, changes no approval and claims no new inference benchmark.
@@ -10,9 +12,9 @@ The source parent is signed `67fed6d45b4b777790e5e362b61f0a9a873eb60d`. This res
 
 ## Evidence reconciled and gaps
 
-Direct metadata inspection finds seven public entries, **174 captures, 622 complete and 236 partial card observations**. Every entry retains `verified:false`; every measured text-height band is null. The four MIC-L2 and fifteen Orbituary additions contribute 62 complete and 27 partial observations, without recognition measurements in the retained campaigns. Re-encoded inputs and unknown conditions cannot establish original-resolution, HDR, renderer or capture-method coverage. [Corpus rules and entries](../corpus/README.md)
+The 2026-11-03 metadata snapshot found seven public entries, **174 captures, 622 complete and 236 partial card observations**. Every entry then retained `verified:false`; every measured text-height band is null. The four MIC-L2 and fifteen Orbituary additions contribute 62 complete and 27 partial observations, without recognition measurements in the retained campaigns. Re-encoded inputs and unknown conditions cannot establish original-resolution, HDR, renderer or capture-method coverage. [Corpus rules and entries](../corpus/README.md)
 
-The retained joint packet was rehashed against `bda31d319cac456070216ae7407cd8c2ec2f4400a6fa3df82a1c010301a65341`; its schema/counts and all five bound current reference hashes were checked. It contains **11 profiles × 21 complete cards × 3 fields = 693 slots**, 691 nonempty strings and two omissions; 23 fields share one nonempty literal across all profiles: zero prices, eleven quantities and twelve statuses. This checks the combined packet, not a fresh audit of every upstream raw file. [Joint owning record](local-ocr-joint-reader-comparison.md)
+The retained joint packet was rehashed against `bda31d319cac456070216ae7407cd8c2ec2f4400a6fa3df82a1c010301a65341`; its schema/counts and all five reference hashes current on 2026-11-03 were checked. It contains **11 profiles × 21 complete cards × 3 fields = 693 slots**, 691 nonempty strings and two omissions; 23 fields share one nonempty literal across all profiles: zero prices, eleven quantities and twelve statuses. This checks the combined packet, not a fresh audit of every upstream raw file. [Joint owning record](local-ocr-joint-reader-comparison.md)
 
 | Completed record | Useful observation | Unresolved boundary |
 |---|---|---|

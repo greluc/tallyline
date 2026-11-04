@@ -1,7 +1,7 @@
 {
   "schemaVersion": 2,
   "id": "orbituary-01",
-  "verified": false,
+  "verified": true,
   "transcription": "Manually transcribed by Codex from balance-redacted source-resolution pixels on 2026-11-02, independently of recognition output and other agents; human verification is required before golden metrics.",
   "source": {
     "uploadedBy": "project owner",

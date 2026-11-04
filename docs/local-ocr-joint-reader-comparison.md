@@ -2,6 +2,8 @@
 
 > **Doc type:** Historical record — completed reconciliation of retained development outputs; accuracy and production combinations remain unmeasured. Last reviewed: 2026-11-02.
 
+Corrected 2026-11-04: verification states, counts and hashes below describe the recorded run, whose references were unverified at that time. The owner has since marked all seven existing public entries verified; see [current corpus status](../corpus/README.md#offline-inspection). Historical artefacts and expected-file hashes are unchanged and do not bind the current annotations; this decision supplies no retrospective accuracy measurement.
+
 ## Outcome and scope
 
 Reusing the completed [Windows PP-OCRv6 nine-pair experiment](local-ocr-nine-pair-experiment.md) and [Linux Tesseract best/fast PSM 11 experiment](local-ocr-tesseract-experiment.md) yields eleven reader profiles over the same five development crops. This data-only comparison covers 21 complete cards, 63 manually associated fields and all 55 reader pairs. It adds no model execution, native build, model download or product configuration.

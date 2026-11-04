@@ -2,6 +2,8 @@
 
 > **Doc type:** Living reference — provisional starting-pair recommendation; broader empirical validation open. Last reviewed: 2026-11-02.
 
+Corrected 2026-11-04: verification states, counts and hashes below describe the recorded run, whose references were unverified at that time. The owner has since marked all seven existing public entries verified; see [current corpus status](../corpus/README.md#offline-inspection). Historical artefacts and expected-file hashes are unchanged and do not bind the current annotations; this decision supplies no retrospective accuracy measurement.
+
 ## Binding rule and evidence boundary
 
 [R-VAL-2](plan/01-requirements.md) and [O-140](adr/0000-open-points.md) require independently typed percentage and absolute SCU bands, both calibrated on the corpus in M1 and only tighten-able. A difference is Major only when it strictly exceeds both bands. The verified server `scu_variation` of 5000 % is diagnostic only, not a client baseline. [07 §2.6](plan/07-ocr-concept.md#26-confidence-rule-based) preserves the unlowered class for decisions, lowers only stale Minor presentation and separates USER reading confidence from deviation.

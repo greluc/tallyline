@@ -2,6 +2,8 @@
 
 > **Doc type:** Historical record — completed Linux PSM 11 development experiment; no product backend selected. Last reviewed: 2026-11-02.
 
+Corrected 2026-11-04: verification states, counts and hashes below describe the recorded run, whose references were unverified at that time. The owner has since marked all seven existing public entries verified; see [current corpus status](../corpus/README.md#offline-inspection). Historical artefacts and expected-file hashes are unchanged and do not bind the current annotations; this decision supplies no retrospective accuracy measurement.
+
 ## Scope and execution identity
 
 The root-owned headless experiment completed the owner's exact Linux-v1 research approval: Tesseract 5.5.4, Leptonica 1.87.0, the approved OpenMP patch, CMake 4.4.4 and the unchanged existing GCC 12.2 research image. The [controller record](tesseract-linux-research-controller.md) describes source, licence, process and data boundaries. Approval scope SHA-256 is `1c6180099f49e239624c4b85fb427ef10b73093d7635cadc9abe5d7a9857a2ee`; the fixed twenty-condition manifest is `5adbdf2b8fbfa0ab9e711091b025e0cb3fb4006701d7cf70d64468e58d840c31`. No Windows native execution, own FFI, product distribution or additional dependency was adopted.

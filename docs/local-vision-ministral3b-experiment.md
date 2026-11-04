@@ -2,6 +2,8 @@
 
 > **Doc type:** Historical record — completed development experiment; no product backend selected. Last reviewed: 2026-11-02.
 
+Corrected 2026-11-04: verification states, counts and hashes below describe the recorded run, whose references were unverified at that time. The owner has since marked all seven existing public entries verified; see [current corpus status](../corpus/README.md#offline-inspection). Historical artefacts and expected-file hashes are unchanged and do not bind the current annotations; this decision supplies no retrospective accuracy measurement.
+
 ## Scope and source identity
 
 Five GPU-only requests used the author's public, ungated [Ministral-3-3B-Instruct-2512-GGUF](https://huggingface.co/mistralai/Ministral-3-3B-Instruct-2512-GGUF/tree/eb599d408350ea2bb60452cb86be7c7b2fc28227), revision `eb599d408350ea2bb60452cb86be7c7b2fc28227` dated 2026-01-15, under Apache-2.0. The [author API at that revision](https://huggingface.co/api/models/mistralai/Ministral-3-3B-Instruct-2512-GGUF/revision/eb599d408350ea2bb60452cb86be7c7b2fc28227?blobs=true) binds the two published files below. Both downloaded files and their private imported copies were independently rehashed against these sizes and digests; no conversion was performed or claimed reproducible.
