@@ -14,23 +14,22 @@ pub fn show_submission_settings(
     catalogue: &Catalogue,
 ) -> Vec<SettingsCommand> {
     let mut commands = Vec::new();
-    ui.heading(catalogue.text("settings.submission"));
+    ui.heading(tallyline_egui::TypeStyle::HEADING_2.text(catalogue.text("settings.submission")));
     ui.label(catalogue.text("settings.submission_explanation"));
     for (mode, key) in [
         (None, "settings.mode_default"),
         (Some(SubmissionMode::DryRun), "settings.mode_dry"),
         (Some(SubmissionMode::Production), "settings.mode_production"),
     ] {
-        if ui
-            .add_enabled(
-                state.ready() && !state.busy(),
-                egui::RadioButton::new(
-                    state.settings().submission_mode_override() == mode,
-                    catalogue.text(key),
-                ),
-            )
-            .clicked()
-        {
+        let choice = ui.add_enabled(
+            state.ready() && !state.busy(),
+            egui::RadioButton::new(
+                state.settings().submission_mode_override() == mode,
+                catalogue.text(key),
+            ),
+        );
+        crate::control_focus::reveal(ui, &choice);
+        if choice.clicked() {
             commands.extend(state.act(UserAction::ChangeSubmissionMode(mode)));
         }
     }
@@ -48,16 +47,15 @@ pub fn show_submission_settings(
         else {
             continue;
         };
-        if ui
-            .add_enabled(
-                state.ready() && !state.busy(),
-                egui::RadioButton::new(
-                    state.settings().observation_age() == age,
-                    format!("{minutes} {}", catalogue.text("settings.minutes")),
-                ),
-            )
-            .clicked()
-        {
+        let choice = ui.add_enabled(
+            state.ready() && !state.busy(),
+            egui::RadioButton::new(
+                state.settings().observation_age() == age,
+                format!("{minutes} {}", catalogue.text("settings.minutes")),
+            ),
+        );
+        crate::control_focus::reveal(ui, &choice);
+        if choice.clicked() {
             commands.extend(state.act(UserAction::ChangeObservationAge(age)));
         }
     }

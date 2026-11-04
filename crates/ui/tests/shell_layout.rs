@@ -3,6 +3,8 @@
 
 //! Drawn shell regions and preserved navigation.
 
+mod control_paint;
+mod input_frame_paint;
 mod resources;
 
 use egui_kittest::{Harness, kittest::Queryable};
@@ -132,3 +134,6 @@ mod notices;
 
 #[path = "shell_layout/paint.rs"]
 mod paint;
+
+#[path = "shell_layout/settings.rs"]
+mod settings;

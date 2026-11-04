@@ -69,3 +69,4 @@ mod submission_wake;
 mod submission_accounts;
 
 mod number_text;
+mod settings_page;

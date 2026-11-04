@@ -42,18 +42,16 @@ pub(crate) fn settings(
     state: &mut ShellState,
     catalogue: &Catalogue,
 ) -> Vec<SettingsCommand> {
-    ui.separator();
-    ui.heading(catalogue.text("update.title"));
+    ui.heading(tallyline_egui::TypeStyle::HEADING_2.text(catalogue.text("update.title")));
     ui.label(catalogue.text("update.explanation"));
     let mut enabled = state.settings().update_checks() == UpdateChecks::Enabled;
     let mut commands = Vec::new();
-    if ui
-        .add_enabled(
-            state.ready() && !state.busy(),
-            egui::Checkbox::new(&mut enabled, catalogue.text("update.enable")),
-        )
-        .changed()
-    {
+    let toggle = ui.add_enabled(
+        state.ready() && !state.busy(),
+        egui::Checkbox::new(&mut enabled, catalogue.text("update.enable")),
+    );
+    crate::control_focus::reveal(ui, &toggle);
+    if toggle.changed() {
         commands.extend(state.act(UserAction::ChangeUpdateChecks(if enabled {
             UpdateChecks::Enabled
         } else {

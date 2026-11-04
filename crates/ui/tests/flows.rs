@@ -8,6 +8,7 @@ use tallyline_ui::api::model::{BackgroundEvent, SettingsCommand};
 use tallyline_ui::api::{Catalogue, FanKitUnit, ShellState, configure_fonts, show_shell};
 use tallyline_workflows::api::model::AppSettings;
 
+mod control_paint;
 mod resources;
 
 type Outcome = Result<(), String>;
@@ -66,6 +67,9 @@ fn harness() -> Result<Harness<'static, Fixture>, String> {
         ))
 }
 
+fn assert_focused_control_visible(harness: &Harness<'_, Fixture>, label: &str) -> Outcome {
+    crate::control_paint::assert_focused_visible(harness, &harness.get_by_label(label), label)
+}
 #[test]
 #[expect(
     non_snake_case,
@@ -169,7 +173,10 @@ fn r_ui_8_r_ui_19_q_app__done_leaves_settings_and_preserves_unfinished_onboardin
             ));
         harness.state_mut().shell.show_settings();
         harness.run();
-        harness.get_by_label("Done").click();
+        harness.get_by_label("Done").focus();
+        harness.run();
+        assert_focused_control_visible(&harness, "Done")?;
+        harness.key_press(egui::Key::Space);
         harness.run();
         let destination = if complete {
             "Workspace"
@@ -247,7 +254,10 @@ fn r_ocr_20__settings_shows_default_off_and_emits_only_explicit_witness_commands
     );
     harness
         .get_by_label("Enable read-only Game.log witness")
-        .click();
+        .focus();
+    harness.run();
+    assert_focused_control_visible(&harness, "Enable read-only Game.log witness")?;
+    harness.key_press(egui::Key::Space);
     harness.run();
     assert_eq!(
         harness.state().commands,
@@ -371,7 +381,10 @@ fn r_nf_7_r_ui_16__daily_setting_waits_for_save_and_disabled_results_remain_hidd
     harness.run();
     harness
         .get_by_label("Check for release updates daily")
-        .click();
+        .focus();
+    harness.run();
+    assert_focused_control_visible(&harness, "Check for release updates daily")?;
+    harness.key_press(egui::Key::Space);
     harness.run();
     assert_eq!(
         harness.state().commands,
@@ -434,8 +447,6 @@ fn r_nf_5_r_val_2_q_manual__drawn_stock_settings_reject_loose_input_and_save_exp
     use egui_kittest::kittest::NodeT;
     let mut harness = harness()?;
     harness.state_mut().shell.show_settings();
-    harness.run();
-    harness.get_by_label("SCU review tolerance").click();
     harness.run();
     harness
         .get_by_role_and_label(egui::Role::TextInput, "SCU percentage (0 to 20) (%)")

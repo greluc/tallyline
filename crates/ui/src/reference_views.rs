@@ -284,11 +284,10 @@ pub(crate) fn show_mapping(
 ) -> Vec<crate::api::model::SettingsCommand> {
     use crate::api::model::UserAction;
     let mut commands = Vec::new();
-    ui.separator();
     ui.heading(TypeStyle::HEADING_2.text(catalogue.text("reference.mapping")));
     ui.label(catalogue.text("reference.mapping_explanation"));
     for (channel, key) in CHANNELS {
-        ui.horizontal(|ui| {
+        ui.horizontal_wrapped(|ui| {
             ui.label(catalogue.text(key));
             let selected = state
                 .game_witness()
@@ -296,16 +295,15 @@ pub(crate) fn show_mapping(
                 .environment_mapping
                 .environment(channel);
             for environment in [UexEnvironment::Live, UexEnvironment::Ptu] {
-                if ui
-                    .add_enabled(
-                        state.ready() && !state.busy(),
-                        egui::RadioButton::new(
-                            selected == environment,
-                            environment_name(environment, catalogue),
-                        ),
-                    )
-                    .clicked()
-                {
+                let choice = ui.add_enabled(
+                    state.ready() && !state.busy(),
+                    egui::RadioButton::new(
+                        selected == environment,
+                        environment_name(environment, catalogue),
+                    ),
+                );
+                crate::control_focus::reveal(ui, &choice);
+                if choice.clicked() {
                     commands.extend(
                         state.act(UserAction::ChangeEnvironmentMapping(channel, environment)),
                     );

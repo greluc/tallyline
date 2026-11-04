@@ -41,51 +41,51 @@ pub(crate) fn show(
     use crate::state::UserAction;
     use tallyline_game::api::model::{WitnessMode, WitnessUnavailable};
     let mut commands = Vec::new();
-    ui.separator();
-    ui.heading(catalogue.text("witness.title"));
+    ui.heading(tallyline_egui::TypeStyle::HEADING_2.text(catalogue.text("witness.title")));
     ui.label(catalogue.text("witness.explanation"));
     let channel_label = ui.label(catalogue.text("witness.channel"));
     let enabled = state.ready() && !state.busy();
-    ui.add_enabled(
-        enabled,
-        egui::TextEdit::singleline(state.game_channel_draft()).char_limit(4096),
-    )
-    .labelled_by(channel_label.id);
-    if ui
+    let directory = ui
         .add_enabled(
             enabled,
-            egui::Button::new(tallyline_egui::button_text(
-                catalogue.text("witness.select_channel"),
-            )),
+            egui::TextEdit::singleline(state.game_channel_draft())
+                .desired_width(ui.available_width())
+                .char_limit(4096),
         )
-        .clicked()
-    {
+        .labelled_by(channel_label.id);
+    crate::control_focus::reveal(ui, &directory);
+    let action = ui.add_enabled(
+        enabled,
+        egui::Button::new(tallyline_egui::button_text(
+            catalogue.text("witness.select_channel"),
+        )),
+    );
+    crate::control_focus::reveal(ui, &action);
+    if action.clicked() {
         let channel = state.game_channel_draft().clone();
         commands.extend(state.act(UserAction::ChooseGameChannel(channel)));
     }
     let mut selected = state.game_witness().settings.witness == WitnessMode::On;
-    if ui
-        .add_enabled(
-            enabled,
-            egui::Checkbox::new(&mut selected, catalogue.text("witness.enable")),
-        )
-        .changed()
-    {
+    let action = ui.add_enabled(
+        enabled,
+        egui::Checkbox::new(&mut selected, catalogue.text("witness.enable")),
+    );
+    crate::control_focus::reveal(ui, &action);
+    if action.changed() {
         commands.extend(state.act(UserAction::ChangeWitnessMode(if selected {
             WitnessMode::On
         } else {
             WitnessMode::Off
         })));
     }
-    if ui
-        .add_enabled(
-            enabled,
-            egui::Button::new(tallyline_egui::button_text(
-                catalogue.text("witness.refresh"),
-            )),
-        )
-        .clicked()
-    {
+    let action = ui.add_enabled(
+        enabled,
+        egui::Button::new(tallyline_egui::button_text(
+            catalogue.text("witness.refresh"),
+        )),
+    );
+    crate::control_focus::reveal(ui, &action);
+    if action.clicked() {
         commands.extend(state.act(UserAction::RefreshWitness));
     }
     let key = match &state.game_witness().snapshot {

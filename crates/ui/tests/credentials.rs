@@ -9,6 +9,8 @@ use tallyline_submission::api::model::{
 };
 use tallyline_ui::api::model::{BackgroundEvent, CredentialCommand};
 use tallyline_ui::api::{Catalogue, ShellState, show_shell};
+mod control_paint;
+mod input_frame_paint;
 mod resources;
 
 #[test]
@@ -50,8 +52,7 @@ fn r_api_4_r_nf_4_r_ui_16__masked_setup_keeps_failed_save_passive_and_allows_ses
             shell,
         );
     harness.run();
-    harness.get_by_label("UEX account").click();
-    harness.run();
+    visibility::activate_visible(&mut harness, "UEX account").unwrap();
     let initial_output = format!(
         "{:?} {:?}",
         harness.output().shapes,
@@ -59,8 +60,7 @@ fn r_api_4_r_nf_4_r_ui_16__masked_setup_keeps_failed_save_passive_and_allows_ses
     );
     assert!(!initial_output.contains("dummy-key-mask-probe"));
     assert!(!initial_output.contains("dummy-token-mask-probe"));
-    harness.get_by_label("Validate credentials").click();
-    harness.run();
+    visibility::activate_visible(&mut harness, "Validate credentials").unwrap();
     assert!(matches!(
         harness.state_mut().credentials_mut().take_command(),
         Some(CredentialCommand::Validate(_))
@@ -88,3 +88,15 @@ fn r_api_4_r_nf_4_r_ui_16__masked_setup_keeps_failed_save_passive_and_allows_ses
             .all(|output| output.commands.is_empty())
     );
 }
+
+#[path = "credentials/feedback.rs"]
+mod feedback;
+#[path = "credentials/fields.rs"]
+mod fields;
+#[path = "credentials/reach.rs"]
+mod reach;
+#[path = "credentials/support.rs"]
+mod support;
+
+#[path = "credentials/visibility.rs"]
+mod visibility;

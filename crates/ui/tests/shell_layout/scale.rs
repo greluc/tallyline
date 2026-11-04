@@ -114,10 +114,6 @@ fn settings_stock_inputs_remain_visible_and_save_explicitly_at_double_scale() {
         let mut harness = super::configured_shell(egui::vec2(800.0, 640.0), theme, 2.0).unwrap();
         harness.state_mut().shell.show_settings();
         harness.run();
-        harness.get_by_label("SCU review tolerance").focus();
-        harness.run();
-        harness.key_press(egui::Key::Space);
-        harness.run();
         let label = "Absolute SCU minimum (0 to 16) (SCU)";
         harness
             .get_by_role_and_label(egui::Role::TextInput, label)
@@ -134,6 +130,12 @@ fn settings_stock_inputs_remain_visible_and_save_explicitly_at_double_scale() {
         assert!(input.rect().bottom() <= harness.get_by_label("Saved submissions: 0").rect().top());
         harness.get_by_label("Save SCU tolerance").focus();
         harness.run();
+        crate::control_paint::assert_focused_visible(
+            &harness,
+            &harness.get_by_label("Save SCU tolerance"),
+            "Save SCU tolerance",
+        )
+        .unwrap();
         harness.key_press(egui::Key::Space);
         harness.run();
         assert!(harness.state().commands.iter().any(|command| matches!(

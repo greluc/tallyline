@@ -30,6 +30,8 @@ Tallyline is a Windows and Linux desktop client for reviewing Star Citizen commo
 
 Offline reference browsing and manual Drafts work without credentials. Onboarding and **Settings → UEX account** validate a masked key before saving it; session-only credentials are also supported. Actual OS-provider, real-service and native visual acceptance remain separate gates.
 
+Settings presents existing theme, SCU tolerance, submission/age, updates, environment mapping and Game log preferences in one column of topic panels. Validation stays with its controls; SCU tolerance still requires an explicit valid save.
+
 ## Local recognition and privacy
 
 Recognition is designed to run locally and without per-use inference charges. While the game runs, lightweight OCR is intended to handle extraction; optional local AI can cross-check results when resources are available. Model and engine combinations are still being evaluated.
@@ -134,6 +136,8 @@ Source preparation now verifies actual archived component bytes and seals a sour
 Distribution source checks also bind every workspace manifest, so feature-only changes invalidate stale legal source bindings even when Cargo.lock stays unchanged.
 
 The packaging helper now includes fixed native backend adapters and independently inspected Debian archive/CRT prerequisite contracts. Actual final protected distributions and clean-OS/native acceptance remain pending; the Windows Visual C++ runtime prerequisite remains unchanged.
+
+The shared onboarding/Settings UEX form includes always-visible key guidance, explicit **Show key / Hide key** and **Show token / Hide token** controls for user-entered values, and typed account feedback with distinct glyphs and theme tones. Values start masked; validation, replacement and clearing reset visibility. Token, connection and secure-store errors keep their own actionable wording. Keyboard focus reveals clipped credential controls at the minimum surface and double zoom; native accessibility/scale acceptance remains pending.
 
 Corrected 2026-11-03: remembered validated accounts can release reviewed Reports to the durable queue offline; dispatch waits for successful validation in the current session. Replacement credentials close both release and sending until validated (R-API-7, R-SUB-2). Native/provider and approved real-service acceptance remain open.
 

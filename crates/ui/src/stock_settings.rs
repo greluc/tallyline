@@ -32,11 +32,12 @@ pub(crate) fn show(
     state: &mut ShellState,
     catalogue: &Catalogue,
 ) -> Vec<SettingsCommand> {
-    ui.separator();
+    ui.heading(tallyline_egui::TypeStyle::HEADING_2.text(catalogue.text("settings.stock_title")));
     ui.label(catalogue.text("review.policy_scu"));
     ui.label(catalogue.text("settings.stock_explanation"));
     let enabled = state.ready() && !state.busy();
     let editor = &mut state.stock_settings_editor;
+    let mut save_pressed = false;
     let candidate = ui
         .add_enabled_ui(enabled, |ui| {
             for (key, salt, unit, value) in [
@@ -61,12 +62,12 @@ pub(crate) fn show(
                 });
                 crate::control_focus::reveal(ui, &response);
             }
-            if ui
-                .button(tallyline_egui::button_text(
-                    catalogue.text("settings.stock_save"),
-                ))
-                .clicked()
-            {
+            let save = ui.button(tallyline_egui::button_text(
+                catalogue.text("settings.stock_save"),
+            ));
+            crate::control_focus::reveal(ui, &save);
+            if save.clicked() {
+                save_pressed = true;
                 let settings = editor
                     .percent
                     .trim()
@@ -84,7 +85,10 @@ pub(crate) fn show(
         })
         .inner;
     if editor.invalid {
-        ui.label(catalogue.text("settings.stock_invalid"));
+        let feedback = ui.label(catalogue.text("settings.stock_invalid"));
+        if save_pressed {
+            feedback.scroll_to_me_animation(None, egui::style::ScrollAnimation::none());
+        }
     }
     candidate
         .and_then(|settings| state.act(UserAction::ChangeStockSettings(settings)))
