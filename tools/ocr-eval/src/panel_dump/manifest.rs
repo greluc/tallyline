@@ -32,7 +32,13 @@ pub(super) fn parse(bytes: &[u8]) -> Result<Manifest, String> {
             "limits",
         ],
     )?;
-    if field(&value, "schemaVersion")? != 1 {
+    if field(&value, "schemaVersion")? == 1 {
+        return Err(
+            "geometry schema 1 is obsolete; regenerate and review source-bound schema 2 geometry"
+                .into(),
+        );
+    }
+    if field(&value, "schemaVersion")? != 2 {
         return Err("unsupported geometry schema".into());
     }
     let image_hash = field(&value, "imageSha256")?

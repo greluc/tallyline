@@ -26,7 +26,7 @@ pub fn prepare_panels(
     let location = ProjectiveMap::new(supplied.location.corners, source, supplied.location.output)
         .map_err(|_| PanelRefusal::Geometry)?;
     ProjectiveMap::new(supplied.header, source, [1, 1]).map_err(|_| PanelRefusal::Geometry)?;
-    let mask = PrivacyMask::new(supplied.header);
+    let mask = PrivacyMask::try_new(supplied.header, source).ok_or(PanelRefusal::Geometry)?;
     if mask.covers(supplied.shop.corners) || mask.covers(supplied.location.corners) {
         return Err(PanelRefusal::PrivacyExtent);
     }
@@ -85,7 +85,7 @@ fn sample(
     remaining: &mut u64,
 ) -> Result<u32, PanelRefusal> {
     let pixel = |x, y| {
-        if mask.excludes(y) {
+        if mask.excludes(x, y) {
             Some(0xff00_0000)
         } else {
             image

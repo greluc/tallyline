@@ -265,6 +265,7 @@ fn r_ocr_2_r_cap_7__bounded_mapping_translation_and_privacy_invariants_hold_acro
     reason = "Requirement tags contain a double underscore."
 )]
 fn r_cap_7__a_panel_with_no_extent_outside_the_header_is_refused() {
+    use tallyline_recognition::api::model::PanelRefusal;
     let image = ImageRaster::new(8, 8, vec![0xff00_0000; 64]).unwrap();
     let supplied = SuppliedPanels {
         shop: PanelGeometry {
@@ -278,7 +279,18 @@ fn r_cap_7__a_panel_with_no_extent_outside_the_header_is_refused() {
         header: [[0., 0.], [8., 0.], [8., 8.], [0., 8.]],
         provenance: GeometryProvenance::Manual,
     };
-    assert!(prepare_panels(&image, &supplied, PanelLimits::default()).is_err());
+    for header in [
+        [[0., 0.], [8., 0.], [8., 8.], [0., 8.]],
+        [[0., 0.], [8., 0.], [8., 8.], [0., 6.]],
+        [[0., 0.], [8., 0.], [8., 6.], [0., 8.]],
+    ] {
+        let supplied = SuppliedPanels { header, ..supplied };
+        assert_eq!(
+            prepare_panels(&image, &supplied, PanelLimits::default()),
+            Err(PanelRefusal::PrivacyExtent),
+            "header {header:?}"
+        );
+    }
 }
 
 #[test]
@@ -345,21 +357,24 @@ fn r_nf_5__panel_limits_validate_tighten_only_values_at_construction() {
     reason = "Requirement tags contain a double underscore."
 )]
 fn r_cap_7_r_sub_7__header_boundary_excludes_the_upper_region_before_every_filter() {
-    for (header, corners, output) in [
+    for (header, corners, output, last_rows) in [
         (
             [[0., 2.], [8., 2.], [8., 3.], [0., 3.]],
             [[0., 0.], [8., 0.], [8., 6.], [0., 6.]],
             [8, 6],
+            [3; 8],
         ),
         (
             [[0., 1.8], [8., 2.2], [8., 3.2], [0., 2.8]],
             [[0.5, 0.2], [7.5, 0.4], [6.5, 6.5], [1.5, 6.5]],
             [14, 12],
+            [2, 2, 2, 3, 3, 3, 3, 3],
         ),
         (
             [[0., 1.8], [8., 2.2], [8., 3.2], [0., 2.8]],
             [[0.5, 0.2], [7.5, 0.4], [6.5, 6.5], [1.5, 6.5]],
             [3, 2],
+            [2, 2, 2, 3, 3, 3, 3, 3],
         ),
     ] {
         let mut unpadded = None;
@@ -386,7 +401,13 @@ fn r_cap_7_r_sub_7__header_boundary_excludes_the_upper_region_before_every_filte
                     height,
                     (0..width * height)
                         .map(|index| {
-                            if index / width < 4 + dy {
+                            let x = index % width;
+                            let y = index / width;
+                            if x >= dx
+                                && x < dx + 8
+                                && y >= dy
+                                && y - dy <= last_rows[(x - dx) as usize]
+                            {
                                 secret
                             } else {
                                 0xff22_4466
@@ -403,7 +424,7 @@ fn r_cap_7_r_sub_7__header_boundary_excludes_the_upper_region_before_every_filte
                 prepare_panels(&image(0xff00_ff11), &supplied, PanelLimits::default()).unwrap();
             assert_eq!(first, second);
             assert_eq!(first_source, before);
-            assert_eq!(first.shop().raster().argb()[0], 0xff00_0000);
+
             assert!(
                 first
                     .shop()
@@ -427,4 +448,231 @@ fn r_cap_7_r_sub_7__header_boundary_excludes_the_upper_region_before_every_filte
             }
         }
     }
+}
+
+#[test]
+#[expect(
+    non_snake_case,
+    reason = "Requirement tags contain a double underscore."
+)]
+fn r_ocr_2_r_cap_7__positive_skew_preserves_safe_cell_outside_header_width() {
+    let mut pixels = vec![0xff22_4466; 64];
+    pixels[16] = 0xff12_3456;
+    let image = ImageRaster::new(8, 8, pixels).unwrap();
+    let supplied = SuppliedPanels {
+        shop: PanelGeometry {
+            corners: [[0., 0.], [8., 0.], [8., 8.], [0., 8.]],
+            output: [8, 8],
+        },
+        location: PanelGeometry {
+            corners: [[0., 6.], [2., 6.], [2., 8.], [0., 8.]],
+            output: [2, 2],
+        },
+        header: [[2., 0.], [6., 0.], [6., 4.], [2., 2.]],
+        provenance: GeometryProvenance::Manual,
+    };
+    let prepared = prepare_panels(&image, &supplied, PanelLimits::default()).unwrap();
+    assert_eq!(prepared.shop().raster().argb()[16], 0xff12_3456);
+}
+
+#[test]
+#[expect(
+    non_snake_case,
+    reason = "Requirement tags contain a double underscore."
+)]
+fn r_cap_7_r_sub_7__both_skews_exclude_contact_cells_before_both_filters() {
+    for (header, last_rows, witness) in [
+        (
+            [[2., 0.], [6., 0.], [6., 4.], [2., 2.]],
+            [1, 2, 2, 3, 3, 4, 4, 5],
+            16,
+        ),
+        (
+            [[2., 0.], [6., 0.], [6., 2.], [2., 4.]],
+            [5, 4, 4, 3, 3, 2, 2, 1],
+            23,
+        ),
+    ] {
+        for (output, expected) in [
+            ([8, 8], 0xff80_8080),
+            ([16, 16], 0xff80_8080),
+            ([1, 1], 0xff40_4040),
+        ] {
+            let supplied = SuppliedPanels {
+                shop: PanelGeometry {
+                    corners: [[0., 0.], [8., 0.], [8., 8.], [0., 8.]],
+                    output,
+                },
+                location: PanelGeometry {
+                    corners: [[0., 6.], [8., 6.], [8., 8.], [0., 8.]],
+                    output: [8, 2],
+                },
+                header,
+                provenance: GeometryProvenance::Manual,
+            };
+            let image = |secret| {
+                ImageRaster::new(
+                    8,
+                    8,
+                    (0..64)
+                        .map(|i| {
+                            if i / 8 <= last_rows[i % 8] {
+                                secret
+                            } else {
+                                0xff80_8080
+                            }
+                        })
+                        .collect(),
+                )
+                .unwrap()
+            };
+            let source = image(0xffff_00ff);
+            let before = source.clone();
+            let first = prepare_panels(&source, &supplied, PanelLimits::default()).unwrap();
+            let second =
+                prepare_panels(&image(0xff00_ff00), &supplied, PanelLimits::default()).unwrap();
+            assert_eq!(first, second);
+            assert_eq!(source, before);
+            if output == [8, 8] {
+                assert_eq!(first.shop().raster().argb()[witness], expected);
+                for (x, y) in last_rows.into_iter().enumerate() {
+                    assert_eq!(first.shop().raster().argb()[y * 8 + x], 0xff00_0000);
+                    assert_eq!(first.shop().raster().argb()[(y + 1) * 8 + x], expected);
+                }
+            } else if output == [1, 1] {
+                assert_eq!(first.shop().raster().argb(), [expected]);
+            } else {
+                assert_eq!(*first.shop().raster().argb().last().unwrap(), expected);
+            }
+        }
+    }
+}
+
+#[test]
+#[expect(
+    non_snake_case,
+    reason = "Requirement tags contain a double underscore."
+)]
+fn r_cap_7__unsupported_header_labels_and_invalid_coordinates_refuse_geometry() {
+    use tallyline_recognition::api::model::PanelRefusal;
+    let image = ImageRaster::new(8, 8, vec![0xff80_8080; 64]).unwrap();
+    for header in [
+        [[2., 0.], [2., 2.], [6., 4.], [6., 0.]],
+        [[6., 0.], [6., 4.], [2., 2.], [2., 0.]],
+        [[6., 4.], [2., 2.], [2., 0.], [6., 0.]],
+        [[1., 1.], [3., 1.], [3., 5.], [3., 3.]],
+        [[0., 0.]; 4],
+        [[0., 0.], [8., 0.], [8., 1e-12], [0., 1e-12]],
+        [[0., 0.], [8., 0.], [2., 1.], [0., 4.]],
+        [[f64::NAN, 0.], [8., 0.], [8., 2.], [0., 2.]],
+        [[0., 0.], [f64::INFINITY, 0.], [8., 2.], [0., 2.]],
+        [[0., 0.], [f64::from(u32::MAX), 0.], [8., 2.], [0., 2.]],
+    ] {
+        let supplied = SuppliedPanels {
+            shop: PanelGeometry {
+                corners: [[0., 0.], [8., 0.], [8., 8.], [0., 8.]],
+                output: [8, 8],
+            },
+            location: PanelGeometry {
+                corners: [[0., 6.], [2., 6.], [2., 8.], [0., 8.]],
+                output: [2, 2],
+            },
+            header,
+            provenance: GeometryProvenance::Profile,
+        };
+        assert_eq!(
+            prepare_panels(&image, &supplied, PanelLimits::default()),
+            Err(PanelRefusal::Geometry),
+            "{header:?}"
+        );
+    }
+}
+
+#[test]
+#[expect(
+    non_snake_case,
+    reason = "Requirement tags contain a double underscore."
+)]
+fn r_cap_7__fractional_skew_contacts_and_neighbouring_boundaries_keep_safe_cells() {
+    for (bottom, rows) in [
+        ([3.875, 1.875], [1, 1, 2, 2, 3, 3, 4, 4]),
+        ([4., 2.], [1, 2, 2, 3, 3, 4, 4, 5]),
+        ([4.125, 2.125], [1, 2, 2, 3, 3, 4, 4, 5]),
+        (
+            [4_f64.next_down(), 2_f64.next_down()],
+            [1, 2, 2, 3, 3, 4, 4, 5],
+        ),
+        ([4_f64.next_up(), 2_f64.next_up()], [1, 2, 2, 3, 3, 4, 4, 5]),
+    ] {
+        for mirrored in [false, true] {
+            let (header, rows) = if mirrored {
+                let mut rows = rows;
+                rows.reverse();
+                ([[2., 0.], [6., 0.], [6., bottom[1]], [2., bottom[0]]], rows)
+            } else {
+                ([[2., 0.], [6., 0.], [6., bottom[0]], [2., bottom[1]]], rows)
+            };
+            let source = ImageRaster::new(8, 8, vec![0xff12_3456; 64]).unwrap();
+            let supplied = SuppliedPanels {
+                shop: PanelGeometry {
+                    corners: [[0., 0.], [8., 0.], [8., 8.], [0., 8.]],
+                    output: [8, 8],
+                },
+                location: PanelGeometry {
+                    corners: [[0., 6.], [2., 6.], [2., 8.], [0., 8.]],
+                    output: [2, 2],
+                },
+                header,
+                provenance: GeometryProvenance::Manual,
+            };
+            let result = prepare_panels(&source, &supplied, PanelLimits::default()).unwrap();
+            for (x, last) in rows.into_iter().enumerate() {
+                let prohibited = if bottom == [4_f64.next_down(), 2_f64.next_down()] {
+                    last - 1
+                } else {
+                    last
+                };
+                assert_eq!(
+                    result.shop().raster().argb()[prohibited * 8 + x],
+                    0xff00_0000,
+                    "{bottom:?} {mirrored} {x}"
+                );
+                assert_eq!(
+                    result.shop().raster().argb()[(last + 1) * 8 + x],
+                    0xff12_3456
+                );
+            }
+        }
+    }
+}
+
+#[test]
+#[expect(
+    non_snake_case,
+    reason = "Requirement tags contain a double underscore."
+)]
+fn r_cap_7__allocated_translated_thin_raster_keeps_safe_cells_with_small_edge_offsets() {
+    let width = 262_144;
+    let image = ImageRaster::new(width, 8, vec![0xff12_3456; width as usize * 8]).unwrap();
+    let base = f64::from(width) - 8.;
+    let supplied = SuppliedPanels {
+        shop: PanelGeometry {
+            corners: [[base, 0.], [base + 8., 0.], [base + 8., 8.], [base, 8.]],
+            output: [8, 8],
+        },
+        location: PanelGeometry {
+            corners: [[base, 6.], [base + 2., 6.], [base + 2., 8.], [base, 8.]],
+            output: [2, 2],
+        },
+        header: [
+            [base + 2., 0.],
+            [base + 6., 0.],
+            [base + 6., 2.000_000_000_2],
+            [base + 2., 2.000_000_000_1],
+        ],
+        provenance: GeometryProvenance::Profile,
+    };
+    let result = prepare_panels(&image, &supplied, PanelLimits::default()).unwrap();
+    assert_eq!(result.shop().raster().argb()[18], 0xff00_0000);
+    assert_eq!(result.shop().raster().argb()[26], 0xff12_3456);
 }

@@ -100,7 +100,7 @@ The [support-export foundation](docs/diagnostics-export.md) supplies masked prev
 
 Use the offline [corpus capture and annotation guide](docs/user/corpus-capture.md) and `cargo run -p ocr-eval --locked -- inspect` to inspect conditions, expected values and sample readiness. Recognition metrics are not implemented yet.
 
-The model-free [supplied panel tool](docs/panel-preparation.md) prepares upright safe shop/location crops with source transforms from independently supplied geometry. `ocr-eval prepare-panels` masks the full-width region above the supplied header boundary before filtering and writes an exclusive bounded dump; automatic locate, text/tone measurements, corpus-wide crop review and recognition remain open.
+The model-free [supplied panel tool](docs/panel-preparation.md) prepares upright safe shop/location crops with source transforms from independently supplied geometry. `ocr-eval prepare-panels` masks source-cell contact with the full-width upward half-plane of the supplied header supporting bottom edge before filtering and writes an exclusive bounded dump; automatic locate, text/tone measurements, corpus-wide crop review and recognition remain open.
 
 Corrected 2026-11-03: game preferences persist independent channel-to-UEX mappings in settings schema 6, preserving witness and release-check choices across migration; the browsing controls save these mappings before applying them.
 
@@ -236,3 +236,5 @@ Partial entries provide a passive **Inspect original attempt** for the original 
 ## Daily token quota source checkpoint
 
 Corrected 2026-11-04: the queue now retains the daily reset supplied for the exact attempted app token, pauses authenticated receipt reads and concurrent submissions for that token as soon as quota exhaustion is known, and resumes eligible work only through current send checks. Known token replacement keeps independent holds; account changes, cancellation and ordinary Retry cannot bypass them. The queue shows a reset check rather than a promised send time, and restart still requires renewed release. Schema 13/configuration 6 has source-bound previous12 backup/rollback contracts. See [the user guide](docs/user/desktop.md#daily-app-token-quota) and [source checkpoint](docs/submission-queue.md#token-quota-reset-checkpoint--2026-11-04); the explicit cooldown split and native/real-service acceptance remain open.
+
+Corrected 2026-11-05: supplied-panel dumps preserve provably safe skewed title pixels, refuse unsupported header labels and use schema 2. Historical schema-one geometry requires regeneration and review; see [the panel contract](docs/panel-preparation.md).

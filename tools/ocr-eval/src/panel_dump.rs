@@ -40,14 +40,14 @@ pub fn prepare(image: &Path, geometry: &Path, destination: &Path) -> Result<Valu
             .map_err(|error| format!("panel preparation refused: {error:?}"))?;
     let reduction=decoded.downscaled.map(|value|json!({"originalDimensions":[value.original_width,value.original_height],"factor":value.factor}));
     let metadata = json!({
-        "schemaVersion":1,"sourceSha256":manifest.image_hash,"geometrySha256":digest(&geometry_bytes),
+        "schemaVersion":2,"sourceSha256":manifest.image_hash,"geometrySha256":digest(&geometry_bytes),
         "rasterDimensions":manifest.dimensions,"downscaled":reduction,
         "provenance":match prepared.provenance() { tallyline_recognition::api::model::GeometryProvenance::Manual=>"manual",tallyline_recognition::api::model::GeometryProvenance::Profile=>"profile" },
         "automaticLocate":"not_run","privacyConfirmationRequired":prepared.requires_privacy_confirmation(),
         "textSize":"unavailable_not_measured","tone":"unavailable_uncalibrated",
         "recognition":"not_run","sourceTextEvidence":"original_raster_only",
         "coordinateConvention":"raster edges; clockwise TL/TR/BR/BL; half-integer pixel centres; upright panels",
-        "headerExclusion":manifest.supplied.header,"privacyMask":"full_width_upward_through_header_max_y",
+        "headerExclusion":manifest.supplied.header,"privacyMask":"full_width_upward_through_header_supporting_bottom_edge",
         "shop":panel_metadata(prepared.shop(),manifest.supplied.shop),"location":panel_metadata(prepared.location(),manifest.supplied.location),
     });
     let metadata =

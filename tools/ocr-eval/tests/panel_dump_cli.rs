@@ -71,7 +71,7 @@ fn r_ocr_2_r_cap_7__real_file_panel_dump_is_safe_bound_and_exclusive() {
     fs::write(&image, &bytes).unwrap();
     let geometry = fixture.path("supplied.json");
     let manifest = serde_json::json!({
-        "schemaVersion":1,"imageSha256":Sha256::digest(&bytes).iter().map(|b|format!("{b:02x}")).collect::<String>(),
+        "schemaVersion":2,"imageSha256":Sha256::digest(&bytes).iter().map(|b|format!("{b:02x}")).collect::<String>(),
         "rasterDimensions":[8,8],"provenance":"manual",
         "shop":{"corners":[[2.,2.],[6.,2.],[6.,6.],[2.,6.]],"output":[4,4]},
         "location":{"corners":[[0.,2.],[2.,2.],[2.,5.],[0.,5.]],"output":[4,6]},
@@ -100,6 +100,15 @@ fn r_ocr_2_r_cap_7__real_file_panel_dump_is_safe_bound_and_exclusive() {
         assert!(!refused_output.exists());
         assert_eq!(fs::read(&image).unwrap(), bytes);
     }
+    let mut legacy = manifest.clone();
+    legacy["schemaVersion"] = 1.into();
+    let legacy_geometry = fixture.path("legacy.json");
+    fs::write(&legacy_geometry, serde_json::to_vec(&legacy).unwrap()).unwrap();
+    let legacy_output = fixture.path("legacy-output");
+    let refused = run(&image, &legacy_geometry, &legacy_output).unwrap();
+    assert!(!refused.status.success());
+    assert!(String::from_utf8_lossy(&refused.stderr).contains("regenerate and review"));
+    assert!(!legacy_output.exists());
     let output = fixture.path("safe-dump");
     let result = run(&image, &geometry, &output).unwrap();
     assert!(
@@ -113,6 +122,15 @@ fn r_ocr_2_r_cap_7__real_file_panel_dump_is_safe_bound_and_exclusive() {
     assert_eq!(receipt["automaticLocate"], "not_run");
     let metadata: serde_json::Value =
         serde_json::from_slice(&fs::read(output.join("geometry.json")).unwrap()).unwrap();
+    assert_eq!(metadata["schemaVersion"], 2);
+    assert_eq!(metadata["sourceSha256"], manifest["imageSha256"]);
+    assert_eq!(
+        metadata["geometrySha256"],
+        Sha256::digest(fs::read(&geometry).unwrap())
+            .iter()
+            .map(|b| format!("{b:02x}"))
+            .collect::<String>()
+    );
     assert_eq!(metadata["provenance"], "manual");
     let matrix: [[f64; 3]; 3] =
         serde_json::from_value(metadata["shop"]["outputToSource"].clone()).unwrap();
@@ -122,7 +140,7 @@ fn r_ocr_2_r_cap_7__real_file_panel_dump_is_safe_bound_and_exclusive() {
     assert_eq!(metadata["privacyConfirmationRequired"], true);
     assert_eq!(
         metadata["privacyMask"],
-        "full_width_upward_through_header_max_y"
+        "full_width_upward_through_header_supporting_bottom_edge"
     );
     let ImageIntake::Decoded(decoded) = api::read_image_file(
         &output.join("location.png"),
@@ -137,4 +155,36 @@ fn r_ocr_2_r_cap_7__real_file_panel_dump_is_safe_bound_and_exclusive() {
     assert!(!run(&image, &geometry, &output).unwrap().status.success());
     assert_eq!(fs::read(output.join("shop.png")).unwrap(), frozen);
     assert_eq!(fs::read(&image).unwrap(), bytes);
+    let mut skew_bytes = bytes.clone();
+    let sentinel = 54 + (5 * 8) * 3;
+    skew_bytes[sentinel..sentinel + 3].copy_from_slice(&[0x56, 0x34, 0x12]);
+    let skew_image = fixture.path("skew.bmp");
+    fs::write(&skew_image, &skew_bytes).unwrap();
+    let mut skew = manifest.clone();
+    skew["imageSha256"] = Sha256::digest(&skew_bytes)
+        .iter()
+        .map(|b| format!("{b:02x}"))
+        .collect::<String>()
+        .into();
+    skew["shop"] = serde_json::json!({"corners":[[0,0],[8,0],[8,8],[0,8]],"output":[8,8]});
+    skew["location"] = serde_json::json!({"corners":[[0,6],[2,6],[2,8],[0,8]],"output":[2,2]});
+    skew["header"] = serde_json::json!([[2, 0], [6, 0], [6, 4], [2, 2]]);
+    let skew_geometry = fixture.path("skew.json");
+    fs::write(&skew_geometry, serde_json::to_vec(&skew).unwrap()).unwrap();
+    let skew_output = fixture.path("skew-output");
+    let result = run(&skew_image, &skew_geometry, &skew_output).unwrap();
+    assert!(
+        result.status.success(),
+        "{}",
+        String::from_utf8_lossy(&result.stderr)
+    );
+    let ImageIntake::Decoded(decoded) = api::read_image_file(
+        &skew_output.join("shop.png"),
+        &ImageIntakeSettings::default(),
+    ) else {
+        panic!("skew output was not a PNG");
+    };
+    assert_eq!(decoded.raster.argb()[16], 0xff12_3456);
+    assert_eq!(decoded.raster.argb()[17], 0xff00_0000);
+    assert_eq!(fs::read(&skew_image).unwrap(), skew_bytes);
 }

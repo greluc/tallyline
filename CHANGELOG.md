@@ -50,6 +50,10 @@ All notable changes are recorded here.
 
 - Added bounded headless `--build-info` before native bootstrap. About, logs, UEX identity and update comparison share fixed Development `0.0.0` or complete compile-time tag metadata; invalid or partial metadata refuses startup. Bounded source-job receipts bind compiled metadata and executable hashes into protected staging before fixture access; signed-tag/CI authentication and final package acceptance remain release gates (R-NF-11, R-API-7, R-UI-18, R-SEC-8).
 
+### Fixed
+
+- Preserve provably safe skewed terminal titles with full-width supporting-edge source-cell privacy before both filters. Refuse unsupported header labels; supplied-panel geometry and dumps use schema 2, requiring reviewed regeneration of schema-one inputs (R-CAP-7, R-SUB-7).
+
 ### Added
 
 - Recover from UEX refusals with bounded safe retries, durable queue-wide account/API-change/quota fences, explicit strictly-newer-release version recovery and Retry now and report-fixable Draft findings. Production refusals with uncertain prior rows stay held for read-only receipt checks; schema 10 requires a coordinated backup, while partial-row resolution and daily-quota reset scheduling remain separate gates (R-SUB-2, R-SUB-6, R-SUB-9, R-SUB-11, R-API-7).

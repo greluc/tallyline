@@ -8,7 +8,7 @@ use tallyline_shared_kernel::api::model::{ImageRaster, ProjectiveMap};
 /// The origin of caller-supplied geometry, without automatic locate evidence.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum GeometryProvenance {
-    /// Corners placed by a person.
+    /// Explicitly supplied corners, without evidence of owner approval.
     Manual,
     /// Corners supplied by a layout profile.
     Profile,
@@ -31,7 +31,7 @@ pub struct SuppliedPanels {
     /// Location field extent.
     pub location: PanelGeometry,
     /// Supplied terminal-header/balance quadrilateral in clockwise raster-edge coordinates.
-    /// Its greatest corner y-coordinate defines a full-width exclusion extending upwards.
+    /// Its supported upright bottom edge defines a full-width upward half-plane; contact cells are black.
     pub header: [[f64; 2]; 4],
     /// Geometry origin retained for preview confirmation.
     pub provenance: GeometryProvenance,

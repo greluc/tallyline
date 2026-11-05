@@ -287,3 +287,7 @@ Token associations remain protected across account changes. Session-only credent
 
 
 A genuinely different explicit token can be validated independently when the intact protected store proves it differs from the held token. This comparison does not save an unvalidated token. A session-only choice keeps that proof in memory; missing or locked protected identity keeps a conservative hold.
+
+## Skewed supplied-panel geometry
+
+Corrected 2026-11-05: the offline supplied-panel tool follows the header's supporting bottom edge across the full width, preserving provably safe title pixels below it. Touching or numerically uncertain source cells are black before filtering; unsupported header labels are refused. Geometry and dumps use schema 2. Regenerate versioned source-bound schema-one sidecars and review their geometry and full-size crops; changing a version number does not confirm a proposal. Manual means explicitly supplied geometry, without owner-approval evidence. The existing full-size privacy confirmation before upload remains required. See [the panel contract](../panel-preparation.md).
