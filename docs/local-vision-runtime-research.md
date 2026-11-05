@@ -1,6 +1,6 @@
 # Local vision runtimes and complementary recognition readers
 
-> **Doc type:** Living reference — runtime research and proposals; product constraints accepted in ADR-0012, engine choice pending. Last reviewed: 2026-11-04.
+> **Doc type:** Living reference — runtime research and proposals; product constraints accepted in ADR-0012, engine choice pending. Last reviewed: 2026-11-05.
 
 ## 1. Conclusion and scope
 
@@ -105,6 +105,26 @@ Keep the current versioned plain transcription format as the baseline. Compare g
 
 GenAI has its **own** 1DS telemetry enabled by default in supported official packages. Its source documents compilation/runtime opt-outs; existing ADR-0008's acceptance of particular ORT Windows ETW events does not cover this additional uploader. Its build also fetches ONNX Runtime by default unless a reviewed `ORT_HOME` is supplied; the tagged source defaults to an older ORT version than Tallyline's 1.31.0. Reuse of the existing library and combined-process compatibility must be demonstrated. Qwen runtime classes and dummy test graphs alone do not prove a complete, validated export of each candidate model. [GenAI privacy](https://github.com/microsoft/onnxruntime-genai/blob/v0.17.0/docs/Privacy.md), [build options](https://github.com/microsoft/onnxruntime-genai/blob/v0.17.0/cmake/options.cmake), [ORT selection](https://github.com/microsoft/onnxruntime-genai/blob/v0.17.0/cmake/ortlib.cmake), [Qwen test package](https://github.com/microsoft/onnxruntime-genai/tree/v0.17.0/test/models/qwen3-vl)
 
+
+### 4.3 Conditional Ollama CPU payload evidence (2026-11-05)
+
+At the 2026-11-05 metadata check, **v0.40.13** was the newest S-7-eligible stable Ollama release; v0.40.14 remained inside seven days and v0.40.15-rc1 was a prerelease. Its source is **04088e7c9d41cba5d33bafbf788d87a465c79d5b**, native b11963 / **39febd2adb947b70da35e95f9351b3bf58ad170a** plus Ollama compatibility sources/patches. The v0.40.12 offsets/native pin cannot be reused. [Releases](https://api.github.com/repos/ollama/ollama/releases?per_page=3), [source tag](https://api.github.com/repos/ollama/ollama/git/ref/tags/v0.40.13), [native pin](https://github.com/ollama/ollama/blob/04088e7c9d41cba5d33bafbf788d87a465c79d5b/LLAMA_CPP_VERSION), [source comparison](https://github.com/ollama/ollama/compare/f067033f9126993b6172bdfffa71a74ad693fda4...04088e7c9d41cba5d33bafbf788d87a465c79d5b).
+
+After the metadata proof, one reviewed data-only acquisition fetched **29,396,850 application body bytes** and decompressed **83,611,431 bytes** into 26 native candidates/four notices, all saved as numbered data. Local headers, CRCs, sizes and hashes were checked. The full Windows archive was neither acquired nor authenticated; no acquired code ran. [Official asset identity](https://api.github.com/repos/ollama/ollama/releases/assets/687142233).
+
+Static inspection found AMD64/PE32+ throughout, no delay-import directories, and a **25-file/83,029,576-byte source-expanded native candidate**, retaining all 14 CPU scoring variants. Winpthreads has no import referrer; no quantisation unit is imported. No MSVCP/VCRUNTIME import name appears, but 18 external names, including 13 CRT API-set contracts, still need actual provider resolution. Static imports cannot prove dynamic loader or CPU-only execution closure. [Scoring loader](https://github.com/ggml-org/llama.cpp/blob/39febd2adb947b70da35e95f9351b3bf58ad170a/ggml/src/ggml-backend-reg.cpp#L480), [inference target](https://github.com/ggml-org/llama.cpp/blob/39febd2adb947b70da35e95f9351b3bf58ad170a/tools/server/CMakeLists.txt).
+
+The CLI's embedded build information claims go1.26.10, CGO_ENABLED=1 and the matching source revision. Its 58 declared Go modules include **go-sqlite3 v1.14.52** and **gods/v2 v2.0.0-alpha**. Exact static CGo/SQLite provenance and the upstream prerelease constraint remain admission qualifications; **the application's rusqlite approval does not cover this Ollama payload**. Every native hash differs from the preserved installed-v0.40.14 snapshot despite matching import lists; all four notices are identical. Neither unchanged native source nor matching notices authenticates binaries.
+
+The [portable evidence manifest](research/ollama-v0.40.13/ollama-v0.40.13-windows-amd64-static-evidence-v01.json) retains all 30 member sizes/hashes, import lists, candidate membership, 58 embedded Go modules, notice hashes and unresolved flags. Its SHA-256 is `d110257d028634ae9865f8ab8e62201f1992d85877dd5f69f1a33bb458c98eaa`. The [reproduction note](research/ollama-v0.40.13/ollama-v0.40.13-static-evidence-reproduction-v01.md) explains the data-only checks and partial-archive limits; retained receipt/review hashes below identify supporting local evidence rather than linked repository files.
+
+| Retained evidence | SHA-256 |
+|---|---|
+| Data-acquisition receipt | `cc1236bc988c9aaf1fd058995a781973011cf7450d322624c40c8b865cb29a48` |
+| Actual static data review | `b0c3eb446a2b619e350b9174fffd99cf8b9ac6fc04f35652d872964364efa16c` |
+| Acquired CLI | `c1cca2937421d78877d5961746d25e33acd62e194d881f90fb63dca7f3e10f41` |
+
+The notices supply MIT/Go/vendor texts, but exact LLVM runtime, CGo/native-vendor and complete notice/source mapping remain unresolved; missing evidence is not a licence-violation finding. This narrowed candidate supports completing bundled-private-CLI admission before invoking ADR-0013's installed-CLI last resort. Actual clean-install providers, private stores and OS endpoint ownership, download destinations, drift and whole-tree cancellation/resources still need proof. The separate ORT prerequisite remains. No native activation, accuracy or physical weak-PC acceptance follows.
 
 ## 5. Additional OCR readers
 
