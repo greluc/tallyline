@@ -1,6 +1,6 @@
 # Engineering Principles: Modularisation, Maintainability, Clean Code
 
-> **Doc type:** Living spec — binding. Last reviewed: 2026-11-04.
+> **Doc type:** Living spec — binding. Last reviewed: 2026-11-05.
 
 This document makes "best practices" **verifiable**: every rule states *how* it is enforced. Where possible this happens automatically (compiler, the Cargo crate graph, Clippy, `cargo-deny`, `xtask`, CI), otherwise via the review checklist and the Definition of Done.
 
@@ -288,6 +288,7 @@ Corrected 2026-11-02: core mutation runs keep their per-ref concurrency group wi
 
 Corrected 2026-11-02: mutation execution and aggregation now require retained bounded cause logs before scoring; known independent executable-busy, disk, linker and crate-artefact failures invalidate the measurement even when another compiler diagnostic is present. The [mutation evidence record](../mutation-evidence.md) withdraws the affected historical full-run scores and distinguishes genuine domain-error test failures, Rust-unviable mutants and infrastructure failures. The exact selection and frozen 100% floor remain unchanged; replacement full current-source measurements are pending.
 
+Corrected 2026-11-05: mutation subprocesses disable dev/test debug information and incremental compilation through child-only Cargo environment overrides. Ordinary build/check/coverage/package/release settings, default optimisation, debug assertions, overflow checks, full locked workspace variant tests, exact mutant selection, eight round-robin shards, cause admission and the frozen 100% floor are unchanged. The public CLI regression compiles and tests a small real Cargo workspace under hostile inherited settings and observes emitted compiler arguments; it does not reproduce disk exhaustion or prove hosted capacity. Hosted run 41855686062 at source cc4479b failed with exhausted disk space after its core-only baseline; no completed score is admitted. The [mutation evidence record](../mutation-evidence.md#mutation-build-storage) records the qualified diagnosis, reduced debug detail/repeated-build trade-offs, regression overhead and pending replacement capacity/time measurement under the unchanged 120-minute job limit.
 ## 9. Dependencies and build
 
 - Versions are declared once, in `[workspace.dependencies]` of the root `Cargo.toml`; member crates inherit them. Shared lint settings live in the workspace `[lints]` table. Repository checks and generators are the `xtask` crate (D12), run through `cargo xtask …`.

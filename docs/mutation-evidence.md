@@ -1,6 +1,6 @@
 # Mutation evidence admission
 
-> **Doc type:** Living reference — implemented guard, replacement measurements pending. Last reviewed: 2026-11-02.
+> **Doc type:** Living reference — implemented guard, replacement measurements pending. Last reviewed: 2026-11-05.
 
 A successful mutation-tool exit and its `caught` or `unviable` counters do not establish a usable score. Each completed selection needs its original cause logs as well as its exact source, selected mutant identities, baseline and outcomes. An unrelated workspace test failure invalidates the affected measurement.
 
@@ -35,6 +35,16 @@ The review covered every selected outcome, retained cause log and complete parti
 A separate local diagnostics selection of 51 mutants also reported 100% on its repeat, with 46 catches and five reported unviable outcomes. One of those five is an unrelated LNK1104 failure opening a test executable, not a Rust type error. That measurement is also invalid. Its cause is unproved; antivirus activity or leaked fixture handles must not be presented as established explanations.
 
 The initial eight-mutant workflow baseline documented in the engineering principles is a distinct historical measurement. The frozen floor is unchanged. No replacement full current-source measurement is established by this guard or by the historical recount.
+
+## Mutation build storage
+
+Corrected 2026-11-05: hosted [run 41855686062, shard 4/8](https://github.com/tallyline-sc/tallyline/actions/runs/41855686062/job/126729841203) at source `cc4479bff15acacc33b61c48ca14c72760a0ce54` selected 281 mutants. Its core-only baseline passed after 55 seconds building and two seconds testing. The runner then warned of 37 MB free and failed with `No space left on device (os error 28)` while writing a scenario log. This is invalid infrastructure evidence and establishes no completed score. The other seven shards were observed cancelled; the cause of those cancellations is not established here. The retained shard archive is artifact `13345957990`, 718,535 bytes, SHA-256 `cb07e301e70a3972b24d917ac3bbc452277f86a9f216fbc9df30c89911bca6c0`.
+
+The [pinned tool](https://github.com/sourcefrog/cargo-mutants/blob/v27.1.0/src/lab.rs) tests only mutated packages for the baseline, then all workspace packages for variants under `--test-workspace=true`. Baseline success therefore does not establish workspace build capacity. The default serial worker reuses one copied build directory; this failure is not evidence of 281 independent target copies. The log contains no initial free-space or directory-size breakdown, so the exact space consumers remain unproved.
+
+Mutation subprocesses set `CARGO_PROFILE_DEV_DEBUG=0`, `CARGO_PROFILE_TEST_DEBUG=0` and `CARGO_INCREMENTAL=0`, including listing and nested Cargo calls. This removes default debug information and incremental compilation storage while retaining default optimisation, debug assertions and overflow checks. [Cargo documents these profile settings and environment overrides](https://doc.rust-lang.org/cargo/reference/profiles.html); its [incremental setting](https://doc.rust-lang.org/cargo/reference/environment-variables.html#configuration-environment-variables) controls additional compiler state on disk. Ordinary checks, coverage, packaging and release commands retain their existing settings. Reduced debugger/backtrace detail and potentially longer repeated compilation are trade-offs.
+
+The public `cargo xtask mutation` regression uses two small real Cargo probe packages and a CLI harness compiled from the actual entry point with the actual xtask library. A forwarding compiler recorder observes real rustc arguments; named probe tests verify debug assertions before recording execution, and separate `#[should_panic]` tests require the arithmetic overflow panic in each probe package. Hostile inherited debug/incremental settings remain effective for an ordinary Cargo control and are overridden for mutation, including the full-workspace probe. The fixture retains locked dependency resolution from the repository and runs offline. It neither reproduces disk exhaustion nor measures hosted capacity. The regression adds its own build/test time to workspace variants; replacement full current-source measurements must still establish disk capacity and completion within the unchanged 120-minute job limit. Exact selection, eight round-robin shards, cause admission, evidence identities and the frozen 100% score floor remain unchanged.
 
 ## Verification boundaries
 

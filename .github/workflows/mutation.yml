@@ -23,8 +23,6 @@ jobs:
     env:
       MUTATION_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
       MUTATION_SHARD: ${{ matrix.shard }}/8
-      MUTANTS_VERSION: 27.1.0
-      MUTANTS_SHA256: dfe6dc37d0342c891d2829b5a695aa57c2d0edecef7e7d0399a30cc6e206411e
     steps:
       - name: Check out the repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
@@ -48,17 +46,7 @@ jobs:
         run: cargo xtask guard
 
       - name: Install pinned cargo-mutants
-        run: |
-          cd "$RUNNER_TEMP"
-          archive=cargo-mutants-x86_64-unknown-linux-gnu.tar.gz
-          curl --fail --silent --show-error --location --output "$archive" "https://github.com/sourcefrog/cargo-mutants/releases/download/v${MUTANTS_VERSION}/${archive}"
-          echo "${MUTANTS_SHA256}  ${archive}" | sha256sum --check -
-          mkdir cargo-mutants
-          tar -xzf "$archive" -C cargo-mutants
-          echo "$RUNNER_TEMP/cargo-mutants" >> "$GITHUB_PATH"
-
-      - name: Verify pinned cargo-mutants
-        run: test "$(cargo --locked mutants --version)" = "cargo-mutants ${MUTANTS_VERSION}"
+        uses: ./.github/actions/install-cargo-mutants
 
       - name: Test mutations in pull request changes
         if: github.event_name == 'pull_request'

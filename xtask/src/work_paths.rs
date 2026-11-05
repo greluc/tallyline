@@ -106,7 +106,10 @@ impl WorkPaths {
         let mut command = self.command(program);
         command
             .env("CARGO_TARGET_DIR", "target")
-            .env("CARGO_BUILD_BUILD_DIR", "target");
+            .env("CARGO_BUILD_BUILD_DIR", "target")
+            .env("CARGO_PROFILE_DEV_DEBUG", "0")
+            .env("CARGO_PROFILE_TEST_DEBUG", "0")
+            .env("CARGO_INCREMENTAL", "0");
         command
     }
 
