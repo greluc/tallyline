@@ -75,6 +75,7 @@ fn concurrent_account_update_and_storage_notices_keep_actions_visible_at_double_
                 SubmissionUpdate {
                     client_version: None,
                     service_fences: vec![],
+                    authenticated_quotas: vec![],
                     jobs: vec![job],
                     mappings: vec![],
                     waiting: vec![],

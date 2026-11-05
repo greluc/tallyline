@@ -84,6 +84,35 @@ pub enum SubmissionResult {
     Unknown,
 }
 impl SubmissionResult {
+    /// Returns the supplied token quota reset without granting retry authority.
+    #[must_use]
+    pub fn daily_quota_reset(&self) -> Option<tallyline_shared_kernel::api::model::Timestamp> {
+        if let Self::NotProcessed(NotProcessed::DailyQuotaUntil(evidence)) = self.final_result() {
+            Some(evidence.reset())
+        } else {
+            None
+        }
+    }
+    /// Returns the exact response's server time without substituting local persistence time.
+    #[must_use]
+    pub fn daily_quota_observed_at(
+        &self,
+    ) -> Option<tallyline_shared_kernel::api::model::Timestamp> {
+        if let Self::NotProcessed(NotProcessed::DailyQuotaUntil(evidence)) = self.final_result() {
+            evidence.observed_at()
+        } else {
+            None
+        }
+    }
+    /// Reports a proven unprocessed app-token quota refusal.
+    #[must_use]
+    pub fn is_daily_quota(&self) -> bool {
+        matches!(
+            self.final_result(),
+            Self::NotProcessed(NotProcessed::DailyQuota | NotProcessed::DailyQuotaUntil(_))
+        )
+    }
+
     /// Retains original account provenance independently of the receipt class.
     #[must_use]
     pub fn account_evidence(&self) -> Option<SubmissionAccountEvidence> {
@@ -210,6 +239,8 @@ pub enum NotProcessed {
     ImageStorage,
     /// The shared token quota is exhausted; reset scheduling remains closed.
     DailyQuota,
+    /// The token quota is exhausted until the supplied Unix instant.
+    DailyQuotaUntil(crate::api::model::TokenQuotaReset),
 }
 
 /// A report-fixable outcome that requires a new release decision.

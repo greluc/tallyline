@@ -78,3 +78,5 @@ mod unknown_attempt;
 mod submission_partial;
 
 mod resolution_queue_action;
+
+mod submission_quota;

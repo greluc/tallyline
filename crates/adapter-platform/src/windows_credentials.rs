@@ -8,7 +8,9 @@ use std::collections::HashMap;
 use keyring_core::api::CredentialStoreApi;
 use keyring_core::{Entry, Error};
 use tallyline_submission::api::SecretStore;
-use tallyline_submission::api::model::{SavedCredentials, StorageFailure};
+use tallyline_submission::api::model::{
+    Persistence, SavedCredentials, StorageFailure, TokenAdmission, TokenScope,
+};
 use zeroize::{Zeroize, Zeroizing};
 
 use crate::credential_bundle;
@@ -17,6 +19,7 @@ use crate::credential_bundle;
 /// Calls run serially on an application-owned blocking worker.
 pub struct WindowsCredentialStore {
     entry: Entry,
+    registry: Entry,
 }
 
 impl WindowsCredentialStore {
@@ -39,11 +42,41 @@ impl WindowsCredentialStore {
         let entry = provider
             .build("Tallyline", "uex-credentials", Some(&modifiers))
             .map_err(|error| failure(error, StorageFailure::Unavailable))?;
-        Ok(Self { entry })
+        let registry = provider
+            .build("Tallyline", "uex-token-associations", Some(&modifiers))
+            .map_err(|error| failure(error, StorageFailure::Unavailable))?;
+        Ok(Self { entry, registry })
+    }
+    fn read_registry(&self) -> Result<crate::token_registry::TokenRegistry, StorageFailure> {
+        let bytes = match self.registry.get_secret() {
+            Ok(bytes) => Some(Zeroizing::new(bytes)),
+            Err(Error::NoEntry) => None,
+            Err(error) => return Err(failure(error, StorageFailure::Unavailable)),
+        };
+        crate::token_registry::TokenRegistry::load(bytes.as_deref().map(Vec::as_slice))
     }
 }
 
 impl SecretStore for WindowsCredentialStore {
+    async fn token_admission(&mut self, token: &str) -> Result<TokenAdmission, StorageFailure> {
+        self.read_registry()?.admission(token)
+    }
+
+    async fn token_scope(
+        &mut self,
+        token: &str,
+        persistence: Persistence,
+    ) -> Result<Option<TokenScope>, StorageFailure> {
+        let mut registry = self.read_registry()?;
+        let (scope, changed) = registry.associate(token, persistence)?;
+        if changed {
+            self.registry
+                .set_secret(&registry.encode()?)
+                .map_err(|error| failure(error, StorageFailure::WriteFailed))?;
+        }
+        Ok(scope)
+    }
+
     async fn load(&mut self) -> Result<Option<SavedCredentials>, StorageFailure> {
         match self.entry.get_secret() {
             Ok(bytes) => credential_bundle::decode(&Zeroizing::new(bytes)).map(Some),

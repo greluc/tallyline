@@ -164,6 +164,7 @@ impl CredentialWorker {
                     token: stores.token.or(token),
                     reconcile: false,
                     fallback_available: false,
+                    startup_pending: false,
                 };
                 let Some(failure) = runtime.block_on(interruptible(session.restore(), &stopping))
                 else {
@@ -175,6 +176,14 @@ impl CredentialWorker {
                 deliver(&outgoing, session.event(failure), &wake, &stopping)?;
                 let result = (|| {
                     while !stopping.load(Ordering::Acquire) {
+                        if session.startup_pending && session.validator.is_available() {
+                            let Some(failure) =
+                                runtime.block_on(interruptible(session.restore(), &stopping))
+                            else {
+                                break;
+                            };
+                            deliver(&outgoing, session.event(failure), &wake, &stopping)?;
+                        }
                         match incoming.try_recv() {
                             Ok(command) => {
                                 let Some(failure) = runtime
@@ -260,9 +269,11 @@ struct Session<S, V, C> {
     token: Option<ReleaseToken>,
     reconcile: bool,
     fallback_available: bool,
+    startup_pending: bool,
 }
 impl<S: SecretStore, V: CredentialValidator, C: Clock> Session<S, V, C> {
     async fn restore(&mut self) -> Option<CredentialFailure> {
+        self.startup_pending = false;
         let store = match &mut self.store {
             Ok(store) => store,
             Err(failure) => return Some(CredentialFailure::Storage(*failure)),
@@ -278,7 +289,17 @@ impl<S: SecretStore, V: CredentialValidator, C: Clock> Session<S, V, C> {
             return None;
         }
         self.application = restored;
-        let request = self.application.begin_revalidation()?;
+        if !self.validator.is_available() {
+            self.startup_pending = true;
+            return None;
+        }
+        let mut request = self.application.begin_revalidation()?;
+        if let Err(failure) = request
+            .lookup_token_admission(store, self.token.as_ref().map(ReleaseToken::for_validation))
+            .await
+        {
+            return Some(CredentialFailure::Storage(failure));
+        }
         let result = request
             .validate_with_release_token(
                 &self.validator,
@@ -292,7 +313,19 @@ impl<S: SecretStore, V: CredentialValidator, C: Clock> Session<S, V, C> {
             .err();
         self.reconcile |=
             failure == Some(CredentialFailure::Storage(StorageFailure::OutcomeUnknown));
-        failure
+        if failure.is_none() {
+            self.application
+                .establish_token_scope(
+                    store,
+                    self.token.as_ref().map(ReleaseToken::for_validation),
+                    Persistence::Session,
+                )
+                .await
+                .err()
+                .map(CredentialFailure::Storage)
+        } else {
+            failure
+        }
     }
     async fn process(&mut self, command: CredentialCommand) -> Option<CredentialFailure> {
         let candidate = match command {
@@ -317,7 +350,24 @@ impl<S: SecretStore, V: CredentialValidator, C: Clock> Session<S, V, C> {
             }
             self.reconcile = false;
         }
-        let request = self.application.begin(candidate);
+        let persistence = candidate.persistence();
+        self.startup_pending = false;
+        let mut request = self.application.begin(candidate);
+        let scope_failure = match &mut self.store {
+            Ok(store) => request
+                .lookup_token_admission(
+                    store,
+                    self.token.as_ref().map(ReleaseToken::for_validation),
+                )
+                .await
+                .err(),
+            Err(failure) => Some(*failure),
+        };
+        if persistence == Persistence::Durable
+            && let Some(failure) = scope_failure
+        {
+            return Some(CredentialFailure::Storage(failure));
+        }
         let result = request
             .validate_with_release_token(
                 &self.validator,
@@ -325,11 +375,28 @@ impl<S: SecretStore, V: CredentialValidator, C: Clock> Session<S, V, C> {
             )
             .await;
         match &mut self.store {
-            Ok(store) => self
-                .application
-                .accept(request, result, self.clock.now(), store)
-                .await
-                .err(),
+            Ok(store) => {
+                match self
+                    .application
+                    .accept(request, result, self.clock.now(), store)
+                    .await
+                {
+                    Ok(()) if scope_failure.is_some() => {
+                        scope_failure.map(CredentialFailure::Storage)
+                    }
+                    Ok(()) => self
+                        .application
+                        .establish_token_scope(
+                            store,
+                            self.token.as_ref().map(ReleaseToken::for_validation),
+                            persistence,
+                        )
+                        .await
+                        .err()
+                        .map(CredentialFailure::Storage),
+                    Err(failure) => Some(failure),
+                }
+            }
             Err(failure) => self
                 .application
                 .accept(

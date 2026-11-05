@@ -4,6 +4,8 @@ All notable changes are recorded here.
 
 ## [Unreleased]
 
+- Wait for the exact app token's daily quota reset with visible UTC check times and durable receipt-read holds. Eligible work resumes through all current checks, while original attempts and restart review remain intact; schema 13 requires coordinated backup and settings remain schema 6 (R-SUB-2, R-SUB-11, R-API-3). A failed local save of a known quota answer keeps reads for that token held until the exact answer is saved and its own reset is due. Receipt checks stop their remaining requests and concurrent submissions for the same token as soon as quota exhaustion is known, including before the check returns and while its evidence transfers to the queue owner.
+
 - Amend planned recognition delivery: permit conditional local Ollama and explicitly requested first/additional model downloads; user installation is a last resort if bundled delivery cannot be implemented acceptably. Local-only inference, optional AI, private child ownership and exact admission gates remain; no backend or download feature is implemented by this policy change (R-VLM-6/7/12; ADR-0013).
 
 - Show the immutable target, row values and attempted observation date through **Inspect original attempt** for partial submissions before recording row decisions (R-SUB-9, R-UI-1:reports).

@@ -456,7 +456,11 @@ fn describe(error: ReadError) -> String {
                     id_terminal,
                     id_commodity,
                 }) => format!(", report terminal {id_terminal}, commodity {id_commodity}"),
-                Some(tallyline_adapter_uex::api::RejectedData::Other) | None => String::new(),
+                Some(
+                    tallyline_adapter_uex::api::RejectedData::Other
+                    | tallyline_adapter_uex::api::RejectedData::QuotaReset { .. },
+                )
+                | None => String::new(),
             };
             format!("UEX refused the request: HTTP {http_status}, code {code}{detail}")
         }

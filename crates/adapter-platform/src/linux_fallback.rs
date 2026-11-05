@@ -10,7 +10,7 @@ use std::os::unix::fs::MetadataExt;
 use std::path::{Component, Path};
 use std::sync::atomic::{AtomicU64, Ordering};
 use tallyline_submission::api::SecretStore;
-use tallyline_submission::api::model::{SavedCredentials, StorageFailure};
+use tallyline_submission::api::model::{Persistence, SavedCredentials, StorageFailure, TokenScope};
 use zeroize::Zeroizing;
 
 use crate::credential_bundle;
@@ -25,6 +25,20 @@ pub struct LinuxFallbackStore {
     directory: File,
 }
 impl LinuxFallbackStore {
+    fn read_registry(&self) -> Result<crate::token_registry::TokenRegistry, StorageFailure> {
+        let bytes = match self.record_named("uex-token-associations")? {
+            Some(file) => {
+                let mut bytes = Zeroizing::new(Vec::new());
+                file.take((crate::token_registry::MAX_BYTES + 1) as u64)
+                    .read_to_end(&mut bytes)
+                    .map_err(|_| StorageFailure::Corrupt)?;
+                Some(bytes)
+            }
+            None => None,
+        };
+        crate::token_registry::TokenRegistry::load(bytes.as_deref().map(Vec::as_slice))
+    }
+
     /// Checks a pre-existing owner-only directory and its actual filesystem.
     /// No stored credential is read or permission repaired.
     ///
@@ -80,6 +94,9 @@ impl LinuxFallbackStore {
         Ok(store)
     }
     fn record(&self) -> Result<Option<File>, StorageFailure> {
+        self.record_named(RECORD)
+    }
+    fn record_named(&self, record: &str) -> Result<Option<File>, StorageFailure> {
         let metadata = self
             .directory
             .metadata()
@@ -91,7 +108,7 @@ impl LinuxFallbackStore {
         }
         let descriptor = match rustix::fs::openat(
             &self.directory,
-            RECORD,
+            record,
             OFlags::RDONLY | OFlags::NOFOLLOW | OFlags::NONBLOCK | OFlags::CLOEXEC,
             Mode::empty(),
         ) {
@@ -103,6 +120,25 @@ impl LinuxFallbackStore {
         check_file(&file)?;
         Ok(Some(file))
     }
+    fn replace_record(&self, record: &str, bytes: &[u8]) -> Result<(), StorageFailure> {
+        drop(self.record_named(record)?);
+        let (name, mut file) = self.temporary()?;
+        let prepared = file.write_all(bytes).and_then(|()| file.sync_all());
+        if prepared.is_err() {
+            rustix::fs::unlinkat(&self.directory, name.as_str(), AtFlags::empty())
+                .map_err(|_| StorageFailure::WriteFailed)?;
+            return Err(StorageFailure::WriteFailed);
+        }
+        if rustix::fs::renameat(&self.directory, name.as_str(), &self.directory, record).is_err() {
+            rustix::fs::unlinkat(&self.directory, name.as_str(), AtFlags::empty())
+                .map_err(|_| StorageFailure::WriteFailed)?;
+            return Err(StorageFailure::WriteFailed);
+        }
+        self.directory
+            .sync_all()
+            .map_err(|_| StorageFailure::OutcomeUnknown)
+    }
+
     fn temporary(&self) -> Result<(String, File), StorageFailure> {
         for _ in 0..MAX_TEMP_ATTEMPTS {
             let name = format!(
@@ -144,6 +180,27 @@ fn check_file(file: &File) -> Result<(), StorageFailure> {
     Ok(())
 }
 impl SecretStore for LinuxFallbackStore {
+    async fn token_admission(
+        &mut self,
+        token: &str,
+    ) -> Result<tallyline_submission::api::model::TokenAdmission, StorageFailure> {
+        self.read_registry()?.admission(token)
+    }
+
+    async fn token_scope(
+        &mut self,
+        token: &str,
+        persistence: Persistence,
+    ) -> Result<Option<TokenScope>, StorageFailure> {
+        const REGISTRY: &str = "uex-token-associations";
+        let mut registry = self.read_registry()?;
+        let (scope, changed) = registry.associate(token, persistence)?;
+        if changed {
+            self.replace_record(REGISTRY, &registry.encode()?)?;
+        }
+        Ok(scope)
+    }
+
     async fn load(&mut self) -> Result<Option<SavedCredentials>, StorageFailure> {
         let Some(file) = self.record()? else {
             return Ok(None);
@@ -156,22 +213,7 @@ impl SecretStore for LinuxFallbackStore {
     }
     async fn save(&mut self, credentials: &SavedCredentials) -> Result<(), StorageFailure> {
         let bytes = credential_bundle::encode(credentials)?;
-        drop(self.record()?);
-        let (name, mut file) = self.temporary()?;
-        let prepared = file.write_all(&bytes).and_then(|()| file.sync_all());
-        if prepared.is_err() {
-            rustix::fs::unlinkat(&self.directory, name.as_str(), AtFlags::empty())
-                .map_err(|_| StorageFailure::WriteFailed)?;
-            return Err(StorageFailure::WriteFailed);
-        }
-        if rustix::fs::renameat(&self.directory, name.as_str(), &self.directory, RECORD).is_err() {
-            rustix::fs::unlinkat(&self.directory, name.as_str(), AtFlags::empty())
-                .map_err(|_| StorageFailure::WriteFailed)?;
-            return Err(StorageFailure::WriteFailed);
-        }
-        self.directory
-            .sync_all()
-            .map_err(|_| StorageFailure::OutcomeUnknown)
+        self.replace_record(RECORD, &bytes)
     }
     async fn save_passive(&mut self, saved: &SavedCredentials) -> Result<(), StorageFailure> {
         self.save(saved).await

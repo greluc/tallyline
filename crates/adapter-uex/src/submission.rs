@@ -12,7 +12,7 @@ use tallyline_shared_kernel::api::model::{
 };
 use tallyline_submission::api::model::{
     CredentialValues, NotProcessed, PayloadHash, PreparationFailure, SubmissionRequest,
-    SubmissionResult, VerifiedUexReport,
+    SubmissionResult, SubmissionReturnReason, VerifiedUexReport,
 };
 use tallyline_submission::api::{SubmissionGateway, SubmissionReceiptVerifier};
 
@@ -38,6 +38,9 @@ impl SubmissionGateway for UexReader {
         credentials: &CredentialValues,
         release_token: Option<&str>,
     ) -> SubmissionResult {
+        if !self.token_request_allowed(credentials) {
+            return SubmissionResult::Returned(SubmissionReturnReason::PreflightChanged);
+        }
         let Some(token) = credentials.own_token().or(release_token) else {
             return SubmissionResult::Unknown;
         };

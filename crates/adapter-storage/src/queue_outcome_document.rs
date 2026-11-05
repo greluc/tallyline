@@ -65,6 +65,7 @@ pub(crate) enum ResultDocument {
     ImageUpload,
     ImageStorage,
     DailyQuota,
+    DailyQuotaUntil(u64, Option<u64>),
 
     ScreenshotRequired,
     InvalidObservationTime,
@@ -115,6 +116,7 @@ pub(crate) enum OutcomeDocument {
     ImageUpload,
     ImageStorage,
     DailyQuota,
+    DailyQuotaUntil(u64, Option<u64>),
 
     ScreenshotRequired,
     InvalidObservationTime,
@@ -210,6 +212,12 @@ impl From<&SubmissionResult> for ResultDocument {
             SubmissionResult::NotProcessed(NotProcessed::ImageUpload) => Self::ImageUpload,
             SubmissionResult::NotProcessed(NotProcessed::ImageStorage) => Self::ImageStorage,
             SubmissionResult::NotProcessed(NotProcessed::DailyQuota) => Self::DailyQuota,
+            SubmissionResult::NotProcessed(NotProcessed::DailyQuotaUntil(at)) => {
+                Self::DailyQuotaUntil(
+                    at.reset().seconds(),
+                    at.observed_at().map(|at| at.seconds()),
+                )
+            }
             SubmissionResult::Held(
                 tallyline_submission::api::model::SubmissionHoldReason::Cooldown,
             ) => Self::DuplicateCooldown,
@@ -358,6 +366,14 @@ impl ResultDocument {
             Self::ImageUpload => SubmissionResult::NotProcessed(NotProcessed::ImageUpload),
             Self::ImageStorage => SubmissionResult::NotProcessed(NotProcessed::ImageStorage),
             Self::DailyQuota => SubmissionResult::NotProcessed(NotProcessed::DailyQuota),
+            Self::DailyQuotaUntil(at, observed) => {
+                SubmissionResult::NotProcessed(NotProcessed::DailyQuotaUntil(
+                    tallyline_submission::api::model::TokenQuotaReset::new(
+                        Timestamp::from_seconds(at),
+                        observed.map(Timestamp::from_seconds),
+                    ),
+                ))
+            }
             Self::UpdateRequired => SubmissionResult::Paused(
                 tallyline_submission::api::model::SubmissionPauseReason::UpdateRequired,
             ),
@@ -427,6 +443,12 @@ impl From<AttemptOutcome> for OutcomeDocument {
             AttemptOutcome::NotProcessed(NotProcessed::ImageUpload) => Self::ImageUpload,
             AttemptOutcome::NotProcessed(NotProcessed::ImageStorage) => Self::ImageStorage,
             AttemptOutcome::NotProcessed(NotProcessed::DailyQuota) => Self::DailyQuota,
+            AttemptOutcome::NotProcessed(NotProcessed::DailyQuotaUntil(at)) => {
+                Self::DailyQuotaUntil(
+                    at.reset().seconds(),
+                    at.observed_at().map(|at| at.seconds()),
+                )
+            }
             AttemptOutcome::Held(
                 tallyline_submission::api::model::SubmissionHoldReason::Cooldown,
             ) => Self::DuplicateCooldown,
@@ -511,6 +533,14 @@ impl From<OutcomeDocument> for AttemptOutcome {
             OutcomeDocument::ImageUpload => Self::NotProcessed(NotProcessed::ImageUpload),
             OutcomeDocument::ImageStorage => Self::NotProcessed(NotProcessed::ImageStorage),
             OutcomeDocument::DailyQuota => Self::NotProcessed(NotProcessed::DailyQuota),
+            OutcomeDocument::DailyQuotaUntil(at, observed) => {
+                Self::NotProcessed(NotProcessed::DailyQuotaUntil(
+                    tallyline_submission::api::model::TokenQuotaReset::new(
+                        Timestamp::from_seconds(at),
+                        observed.map(Timestamp::from_seconds),
+                    ),
+                ))
+            }
             OutcomeDocument::UpdateRequired => Self::Paused(
                 tallyline_submission::api::model::SubmissionPauseReason::UpdateRequired,
             ),

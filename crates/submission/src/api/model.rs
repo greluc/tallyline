@@ -43,6 +43,7 @@ pub enum ReleaseTokenFailure {
 pub struct CredentialValues {
     key: String,
     own_token: Option<String>,
+    pub(crate) token_admission: TokenAdmission,
 }
 
 impl CredentialValues {
@@ -58,9 +59,23 @@ impl CredentialValues {
         {
             return Err(CredentialFailure::InvalidInput);
         }
-        Ok(Self { key, own_token })
+        Ok(Self {
+            key,
+            own_token,
+            token_admission: TokenAdmission::default(),
+        })
     }
 
+    /// Borrows exact protected token inequality evidence without exposing token values.
+    #[must_use]
+    pub const fn token_admission(&self) -> &TokenAdmission {
+        &self.token_admission
+    }
+    /// Returns nonsecret scope metadata minted by the protected credential boundary.
+    #[must_use]
+    pub const fn token_scope(&self) -> Option<TokenScope> {
+        self.token_admission.known_scope()
+    }
     /// Borrows the key exclusively for a credential boundary operation.
     #[must_use]
     pub fn secret_key(&self) -> &str {
@@ -310,3 +325,11 @@ pub use crate::submission_resolution_action::{ReceiptDecision, SubmissionResolut
 pub use crate::submission_row_result::SubmissionRowResult;
 
 pub use crate::row_failure_source::RowFailureSource;
+
+pub use crate::token_scope::TokenScope;
+
+pub use crate::token_quota_reset::TokenQuotaReset;
+
+pub use crate::token_quota_observation::{TokenQuotaObservation, TokenQuotaObservations};
+
+pub use crate::token_admission::TokenAdmission;

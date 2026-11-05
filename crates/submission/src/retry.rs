@@ -26,10 +26,28 @@ impl Default for SubmissionRetrySettings {
     }
 }
 impl SubmissionRetrySettings {
+    /// Returns the maximum automatic attempts for one released job.
+    #[must_use]
+    pub const fn maximum_attempts(&self) -> usize {
+        self.maximum_attempts
+    }
     /// Returns the bounded timeout for one already reserved HTTP submission.
     #[must_use]
     pub const fn send_timeout(&self) -> Duration {
         self.send_timeout
+    }
+
+    /// Returns a usable token reset only within the bounded automatic attempt limit.
+    #[must_use]
+    pub fn quota_retry_at(&self, job: &SubmissionJob) -> Option<Timestamp> {
+        if job.phase() != JobPhase::Held
+            || job.attempts().len() >= self.maximum_attempts
+            || job.result()?.account_pause().is_some()
+        {
+            return None;
+        }
+        let reset = job.result()?.daily_quota_reset()?;
+        (reset > job.result()?.daily_quota_observed_at()?).then_some(reset)
     }
 
     /// Returns the next automatic attempt time only for bounded proven unprocessed work.
@@ -69,6 +87,7 @@ impl SubmissionRetrySettings {
                 job.result(),
                 Some(SubmissionResult::NotProcessed(
                     crate::api::model::NotProcessed::DailyQuota
+                        | crate::api::model::NotProcessed::DailyQuotaUntil(_)
                 ))
             )
         {

@@ -13,18 +13,44 @@ impl CredentialValidator for UexReader {
         values: &CredentialValues,
     ) -> Result<ValidatedAccount, CredentialFailure> {
         let key = SecretKey::new(values.secret_key());
+        let account = self.eligible_account(values).await?;
+        let token = values.own_token().ok_or(CredentialFailure::MissingToken)?;
+        if !self.token_request_allowed(values) {
+            return Err(CredentialFailure::Unavailable);
+        }
+        let access = self
+            .report_access(&AppToken::new(token), &key, &account.username)
+            .await;
+        self.observe_read_quota(&access, values.token_scope())
+            .map_err(|_| CredentialFailure::Unavailable)?;
+        access.map_err(|error| failure(error, Check::Token))?;
+        Ok(ValidatedAccount::new(account.username))
+    }
+}
+
+impl UexReader {
+    async fn eligible_account(
+        &self,
+        values: &CredentialValues,
+    ) -> Result<crate::api::model::UexAccount, CredentialFailure> {
         let account = self
-            .account(&key)
+            .account(&SecretKey::new(values.secret_key()))
             .await
             .map_err(|error| failure(error, Check::Account))?;
         if !account.is_datarunner || account.is_datarunner_banned {
             return Err(CredentialFailure::NotAllowed);
         }
-        let token = values.own_token().ok_or(CredentialFailure::MissingToken)?;
-        self.report_access(&AppToken::new(token), &key, &account.username)
-            .await
-            .map_err(|error| failure(error, Check::Token))?;
-        Ok(ValidatedAccount::new(account.username))
+        Ok(account)
+    }
+    /// Performs the tokenless account check without issuing a held token-validation request.
+    pub async fn check_account_while_token_held(
+        &self,
+        values: &CredentialValues,
+    ) -> CredentialFailure {
+        match self.eligible_account(values).await {
+            Ok(_) => CredentialFailure::Unavailable,
+            Err(failure) => failure,
+        }
     }
 }
 

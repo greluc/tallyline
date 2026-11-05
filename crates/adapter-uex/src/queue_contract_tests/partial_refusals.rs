@@ -114,6 +114,14 @@ async fn r_sub_9_r_sub_11__named_failure_retains_index_or_exact_commodity_proven
     for (data, expected) in [
         (json!({"row":1}), RowFailureSource::Index),
         (
+            json!({"row":1,"reset":1793858400_u64}),
+            RowFailureSource::Index,
+        ),
+        (
+            json!({"report":{"id_terminal":89,"id_commodity":8},"reset":1793858400_u64}),
+            RowFailureSource::Commodity,
+        ),
+        (
             json!({"report":{"id_terminal":89,"id_commodity":8}}),
             RowFailureSource::Commodity,
         ),

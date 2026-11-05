@@ -35,6 +35,7 @@ pub struct ManualDispatch {
     account: AccountState,
     payload_hash: PayloadHash,
     date_added: Timestamp,
+    token_admission: tallyline_submission::api::model::TokenAdmission,
 }
 impl ManualDispatch {
     /// Checks current session authority and the complete exact queued Report before persistence.
@@ -97,10 +98,37 @@ impl ManualDispatch {
             account: credentials.state().clone(),
             payload_hash,
             date_added,
+            token_admission: credentials
+                .token_admission(None)
+                .cloned()
+                .unwrap_or_default(),
         };
         plan.check(gate)?;
         plan.change(gate.checked_at())?;
         Ok(plan)
+    }
+    /// Binds the exact selected token through the credential application's protected association.
+    #[must_use]
+    pub fn with_selected_token(
+        mut self,
+        credentials: &CredentialApplication,
+        release_token: Option<&str>,
+    ) -> Self {
+        self.token_admission = credentials
+            .token_admission(release_token)
+            .cloned()
+            .unwrap_or_default();
+        self
+    }
+    /// Returns immutable nonsecret token identity for this write-ahead attempt.
+    #[must_use]
+    pub const fn token_scope(&self) -> Option<tallyline_submission::api::model::TokenScope> {
+        self.token_admission.known_scope()
+    }
+    /// Returns the current protected token distinction for atomic admission only.
+    #[must_use]
+    pub fn token_admission(&self) -> &tallyline_submission::api::model::TokenAdmission {
+        &self.token_admission
     }
     fn check(&self, gate: &SubmissionGate) -> Result<(), ManualDispatchError> {
         match assess_manual_send_context(

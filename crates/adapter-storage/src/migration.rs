@@ -235,3 +235,8 @@ pub(crate) fn schema_twelve(connection: &Connection) -> Result<(), StorageError>
     connection.pragma_update(None, "user_version", 12)?;
     Ok(())
 }
+
+pub(crate) fn schema_thirteen(connection: &Connection) -> Result<(), StorageError> {
+    connection.execute_batch("ALTER TABLE submission_service_fences ADD COLUMN token_scope BLOB; ALTER TABLE submission_service_fences ADD COLUMN reset_at TEXT; CREATE TABLE submission_token_bindings(job_id INTEGER NOT NULL REFERENCES submission_jobs(id),attempt INTEGER NOT NULL CHECK(attempt>0),token_scope BLOB CHECK(token_scope IS NULL OR length(token_scope)=32),PRIMARY KEY(job_id,attempt)); CREATE TABLE authenticated_token_quotas(id INTEGER PRIMARY KEY AUTOINCREMENT,payload TEXT NOT NULL UNIQUE,retired_at TEXT); CREATE TABLE submission_quota_expiries(source_job INTEGER NOT NULL REFERENCES submission_jobs(id),source_revision INTEGER NOT NULL CHECK(source_revision>0),expired_at TEXT NOT NULL,token_scope BLOB,reset_at TEXT NOT NULL,PRIMARY KEY(source_job,source_revision)); PRAGMA user_version=13;")?;
+    Ok(())
+}

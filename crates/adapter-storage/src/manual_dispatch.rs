@@ -59,8 +59,14 @@ impl ManualDispatchStore for SqliteReferenceCache {
                 tallyline_reporting::api::model::ReleaseBlockReason::ImageRequired,
             ]));
         }
+        crate::token_quota::bind(&transaction, &current, plan.token_scope()).map_err(error)?;
         let change = plan.change(now)?;
-        crate::queue::save_change(&transaction, &change).map_err(error)?;
+        crate::queue::save_change_with_admission(
+            &transaction,
+            &change,
+            Some(plan.token_admission()),
+        )
+        .map_err(error)?;
         if gate.report() != gate.source() {
             crate::queue::save_report(&transaction, gate.report(), source.version())
                 .map_err(error)?;

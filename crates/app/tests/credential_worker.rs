@@ -603,3 +603,75 @@ fn r_nf_3_r_sub_2_r_sub_8__queue_composition_borrows_live_session_only_on_the_de
     worker.finish().unwrap();
     assert_eq!(closed.load(std::sync::atomic::Ordering::SeqCst), 1);
 }
+
+struct DeferredValidator {
+    ready: std::sync::Arc<std::sync::atomic::AtomicBool>,
+    calls: std::sync::Arc<std::sync::atomic::AtomicUsize>,
+}
+impl CredentialValidator for DeferredValidator {
+    fn is_available(&self) -> bool {
+        self.ready.load(std::sync::atomic::Ordering::SeqCst)
+    }
+    async fn validate(&self, _: &CredentialValues) -> Result<ValidatedAccount, CredentialFailure> {
+        self.calls.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+        Ok(ValidatedAccount::new("dummy-runner".to_owned()))
+    }
+}
+struct RememberedStore;
+impl SecretStore for RememberedStore {
+    async fn load(&mut self) -> Result<Option<SavedCredentials>, StorageFailure> {
+        Ok(Some(
+            SavedCredentials::from_storage(
+                CredentialValues::new("dummy-key".to_owned(), Some("dummy-token".to_owned()))
+                    .map_err(|_| StorageFailure::Corrupt)?,
+                ValidatedAccount::new("dummy-runner".to_owned()),
+                Timestamp::from_seconds(100),
+                None,
+            )
+            .map_err(|_| StorageFailure::Corrupt)?,
+        ))
+    }
+    async fn save(&mut self, _: &SavedCredentials) -> Result<(), StorageFailure> {
+        Ok(())
+    }
+    async fn save_passive(&mut self, _: &SavedCredentials) -> Result<(), StorageFailure> {
+        Ok(())
+    }
+    async fn remove(&mut self) -> Result<(), StorageFailure> {
+        Ok(())
+    }
+}
+#[test]
+#[expect(
+    non_snake_case,
+    reason = "Requirement tags use a double underscore separator."
+)]
+fn r_sub_2_r_sub_11_r_api_3__restored_account_waits_for_quota_admission_before_passive_validation()
+{
+    use std::sync::Arc;
+    use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
+    let ready = Arc::new(AtomicBool::new(false));
+    let calls = Arc::new(AtomicUsize::new(0));
+    let (commands, incoming) = mpsc::sync_channel(1);
+    let (outgoing, events) = mpsc::sync_channel(4);
+    let worker = tallyline_app::api::CredentialWorker::start(
+        || async { Ok(RememberedStore) },
+        DeferredValidator {
+            ready: Arc::clone(&ready),
+            calls: Arc::clone(&calls),
+        },
+        Clock,
+        None,
+        incoming,
+        outgoing,
+        || {},
+    )
+    .unwrap();
+    events.recv_timeout(Duration::from_secs(2)).unwrap();
+    assert_eq!(calls.load(Ordering::SeqCst), 0);
+    ready.store(true, Ordering::SeqCst);
+    events.recv_timeout(Duration::from_secs(2)).unwrap();
+    assert_eq!(calls.load(Ordering::SeqCst), 1);
+    worker.finish().unwrap();
+    drop(commands);
+}

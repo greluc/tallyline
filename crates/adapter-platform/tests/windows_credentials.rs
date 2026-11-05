@@ -57,7 +57,7 @@ impl Fault {
 }
 
 #[derive(Default)]
-struct Provider(Arc<Credential>);
+struct Provider(Arc<Credential>, Arc<Credential>);
 
 #[derive(Default)]
 struct Credential {
@@ -82,12 +82,16 @@ impl CredentialStoreApi for Provider {
         modifiers: Option<&HashMap<&str, &str>>,
     ) -> KeyringResult<Entry> {
         assert_eq!(service, "Tallyline");
-        assert_eq!(user, "uex-credentials");
+        assert!(matches!(user, "uex-credentials" | "uex-token-associations"));
         assert_eq!(modifiers, Some(&HashMap::from([("persistence", "Local")])));
         if let Some(fault) = *self.0.build_fault.lock().map_err(poisoned)? {
             return Err(fault.error());
         }
-        Ok(Entry::new_with_credential(self.0.clone()))
+        Ok(Entry::new_with_credential(if user == "uex-credentials" {
+            self.0.clone()
+        } else {
+            self.1.clone()
+        }))
     }
     fn as_any(&self) -> &dyn Any {
         self
@@ -385,4 +389,390 @@ async fn r_nf_4__maximum_native_bundle_is_accepted_without_truncating_fields() {
         Some("t".repeat(1024).as_str())
     );
     assert_eq!(restored.username(), "n".repeat(484));
+}
+
+#[tokio::test]
+#[expect(
+    non_snake_case,
+    reason = "Requirement tags use a double underscore separator."
+)]
+async fn r_sub_2_r_sub_11__token_associations_survive_account_removal_and_token_return() {
+    let provider = Provider::default();
+    let mut store = WindowsCredentialStore::with_provider(&provider).unwrap();
+    let first = store
+        .token_scope("dummy-token-a", Persistence::Durable)
+        .await
+        .unwrap()
+        .unwrap();
+    let second = store
+        .token_scope("dummy-token-b", Persistence::Durable)
+        .await
+        .unwrap()
+        .unwrap();
+    assert_ne!(first, second);
+    store.remove().await.unwrap();
+    let mut reopened = WindowsCredentialStore::with_provider(&provider).unwrap();
+    assert_eq!(
+        reopened
+            .token_scope("dummy-token-a", Persistence::Durable)
+            .await
+            .unwrap(),
+        Some(first)
+    );
+    assert_eq!(
+        reopened
+            .token_scope("dummy-token-b", Persistence::Session)
+            .await
+            .unwrap(),
+        Some(second)
+    );
+    assert_eq!(
+        reopened
+            .token_scope("dummy-session-only", Persistence::Session)
+            .await
+            .unwrap(),
+        None
+    );
+    assert_eq!(
+        reopened
+            .token_scope("dummy-token-a", Persistence::Session)
+            .await
+            .unwrap(),
+        Some(first)
+    );
+}
+
+#[tokio::test]
+#[expect(
+    non_snake_case,
+    reason = "Requirement tags use a double underscore separator."
+)]
+async fn r_sub_2_r_sub_11__account_key_replacement_keeps_exact_token_quota_identity() {
+    let provider = Provider::default();
+    let mut store = WindowsCredentialStore::with_provider(&provider).unwrap();
+    let mut application = CredentialApplication::default();
+    accept(&mut application, &mut store, Persistence::Durable)
+        .await
+        .unwrap();
+    application
+        .establish_token_scope(&mut store, None, Persistence::Durable)
+        .await
+        .unwrap();
+    let original = application.token_scope(None).unwrap();
+    let request = application.begin(CredentialCandidate::new(
+        CredentialValues::new("dummy-new-key".to_owned(), Some("dummy-token".to_owned())).unwrap(),
+        Persistence::Durable,
+    ));
+    assert_eq!(application.token_scope(None), None);
+    application
+        .accept(
+            request,
+            Ok(ValidatedAccount::new("dummy-second-account".to_owned())),
+            Timestamp::from_seconds(200),
+            &mut store,
+        )
+        .await
+        .unwrap();
+    application
+        .establish_token_scope(&mut store, None, Persistence::Durable)
+        .await
+        .unwrap();
+    assert_eq!(application.token_scope(None), Some(original));
+    assert_eq!(
+        application.token_scope(Some("dummy-other-packaged-token")),
+        Some(original)
+    );
+}
+
+#[tokio::test]
+#[expect(
+    non_snake_case,
+    reason = "Requirement tags use a double underscore separator."
+)]
+async fn r_sub_2_r_sub_11__registry_save_failure_publishes_no_new_scope_and_preserves_known_associations()
+ {
+    let provider = Provider::default();
+    let mut store = WindowsCredentialStore::with_provider(&provider).unwrap();
+    let first = store
+        .token_scope("dummy-a", Persistence::Durable)
+        .await
+        .unwrap()
+        .unwrap();
+    *provider.1.write_fault.lock().unwrap() = Some(Fault::Unavailable);
+    assert_eq!(
+        store.token_scope("dummy-b", Persistence::Durable).await,
+        Err(StorageFailure::WriteFailed)
+    );
+    let mut reopened = WindowsCredentialStore::with_provider(&provider).unwrap();
+    assert_eq!(
+        reopened
+            .token_scope("dummy-a", Persistence::Session)
+            .await
+            .unwrap(),
+        Some(first)
+    );
+    assert_eq!(
+        reopened
+            .token_scope("dummy-b", Persistence::Session)
+            .await
+            .unwrap(),
+        None
+    );
+    *provider.1.write_fault.lock().unwrap() = None;
+    let second = reopened
+        .token_scope("dummy-b", Persistence::Durable)
+        .await
+        .unwrap()
+        .unwrap();
+    assert_ne!(first, second);
+    assert!(first.shares_registry(second));
+}
+#[tokio::test]
+#[expect(
+    non_snake_case,
+    reason = "Requirement tags use a double underscore separator."
+)]
+async fn r_sub_2_r_sub_11__session_input_and_locked_registry_never_publish_a_guessed_durable_scope()
+{
+    let provider = Provider::default();
+    let mut store = WindowsCredentialStore::with_provider(&provider).unwrap();
+    assert_eq!(
+        store
+            .token_scope("dummy-session", Persistence::Session)
+            .await
+            .unwrap(),
+        None
+    );
+    let mut reopened = WindowsCredentialStore::with_provider(&provider).unwrap();
+    assert_eq!(
+        reopened
+            .token_scope("dummy-session", Persistence::Session)
+            .await
+            .unwrap(),
+        None
+    );
+    *provider.1.read_fault.lock().unwrap() = Some(Fault::Locked);
+    assert_eq!(
+        reopened
+            .token_scope("dummy-session", Persistence::Session)
+            .await,
+        Err(StorageFailure::Locked)
+    );
+}
+#[tokio::test]
+#[expect(
+    non_snake_case,
+    reason = "Requirement tags use a double underscore separator."
+)]
+async fn r_sub_2_r_sub_11__lost_registry_uses_a_distinct_generation_and_future_formats_fail_closed()
+{
+    let provider = Provider::default();
+    let mut store = WindowsCredentialStore::with_provider(&provider).unwrap();
+    let original = store
+        .token_scope("dummy-same-token", Persistence::Durable)
+        .await
+        .unwrap()
+        .unwrap();
+    *provider.1.bytes.lock().unwrap() = None;
+    let replaced = store
+        .token_scope("dummy-same-token", Persistence::Durable)
+        .await
+        .unwrap()
+        .unwrap();
+    assert_ne!(original, replaced);
+    assert!(!original.shares_registry(replaced));
+    *provider.1.bytes.lock().unwrap() = Some(b"TLTR\x02".to_vec());
+    assert_eq!(
+        store
+            .token_scope("dummy-same-token", Persistence::Durable)
+            .await,
+        Err(StorageFailure::Corrupt)
+    );
+    assert_eq!(
+        store
+            .token_scope("dummy-same-token", Persistence::Session)
+            .await,
+        Err(StorageFailure::Corrupt)
+    );
+}
+#[tokio::test]
+#[expect(
+    non_snake_case,
+    reason = "Requirement tags use a double underscore separator."
+)]
+async fn r_sub_2_r_sub_11__full_registry_refuses_growth_without_evicting_existing_token_identity() {
+    let provider = Provider::default();
+    let mut store = WindowsCredentialStore::with_provider(&provider).unwrap();
+    let first = "a".repeat(1024);
+    let second = "b".repeat(1024);
+    let third = "c".repeat(1024);
+    let a = store
+        .token_scope(&first, Persistence::Durable)
+        .await
+        .unwrap()
+        .unwrap();
+    let b = store
+        .token_scope(&second, Persistence::Durable)
+        .await
+        .unwrap()
+        .unwrap();
+    assert_eq!(
+        store.token_scope(&third, Persistence::Durable).await,
+        Err(StorageFailure::WriteFailed)
+    );
+    let mut reopened = WindowsCredentialStore::with_provider(&provider).unwrap();
+    assert_eq!(
+        reopened
+            .token_scope(&first, Persistence::Session)
+            .await
+            .unwrap(),
+        Some(a)
+    );
+    assert_eq!(
+        reopened
+            .token_scope(&second, Persistence::Session)
+            .await
+            .unwrap(),
+        Some(b)
+    );
+    assert_eq!(
+        reopened
+            .token_scope(&third, Persistence::Session)
+            .await
+            .unwrap(),
+        None
+    );
+}
+
+#[tokio::test]
+#[expect(
+    non_snake_case,
+    reason = "Requirement tags use a double underscore separator."
+)]
+async fn r_sub_2_r_sub_11__intact_registry_proves_first_token_replacement_without_saving_the_candidate()
+ {
+    let provider = Provider::default();
+    let mut store = WindowsCredentialStore::with_provider(&provider).unwrap();
+    let first = store
+        .token_scope("dummy-token-a", Persistence::Durable)
+        .await
+        .unwrap()
+        .unwrap();
+    let same = store.token_admission("dummy-token-a").await.unwrap();
+    assert_eq!(same.known_scope(), Some(first));
+    assert!(!same.proves_distinct(first));
+    let replacement = store.token_admission("dummy-first-token-b").await.unwrap();
+    assert_eq!(replacement.known_scope(), None);
+    assert!(replacement.proves_distinct(first));
+    assert_eq!(
+        store
+            .token_scope("dummy-first-token-b", Persistence::Session)
+            .await
+            .unwrap(),
+        None
+    );
+    *provider.1.bytes.lock().unwrap() = None;
+    let lost = store.token_admission("dummy-first-token-b").await.unwrap();
+    assert_eq!(lost.known_scope(), None);
+    assert!(!lost.proves_distinct(first));
+}
+
+struct QuotaValidator {
+    held: tallyline_submission::api::model::TokenQuotaObservation,
+    accounts: std::sync::atomic::AtomicUsize,
+    tokens: std::sync::atomic::AtomicUsize,
+}
+impl tallyline_submission::api::CredentialValidator for QuotaValidator {
+    async fn validate(
+        &self,
+        values: &CredentialValues,
+    ) -> Result<ValidatedAccount, CredentialFailure> {
+        self.accounts
+            .fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+        if self.held.blocks_admission(values.token_admission()) {
+            return Err(CredentialFailure::Unavailable);
+        }
+        self.tokens
+            .fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+        Ok(ValidatedAccount::new("dummy-runner".to_owned()))
+    }
+}
+#[tokio::test]
+#[expect(
+    non_snake_case,
+    reason = "Requirement tags use a double underscore separator."
+)]
+async fn r_sub_2_r_sub_11__first_distinct_token_validates_before_registration_while_same_and_lost_tokens_stay_held()
+ {
+    let provider = Provider::default();
+    let mut store = WindowsCredentialStore::with_provider(&provider).unwrap();
+    let a = store
+        .token_scope("dummy-token-a", Persistence::Durable)
+        .await
+        .unwrap()
+        .unwrap();
+    let validator = QuotaValidator {
+        held: tallyline_submission::api::model::TokenQuotaObservation::new(Some(a), None),
+        accounts: Default::default(),
+        tokens: Default::default(),
+    };
+    let mut application = CredentialApplication::default();
+    for (token, allowed) in [("dummy-token-a", false), ("dummy-first-token-b", true)] {
+        let mut request = application.begin(CredentialCandidate::new(
+            CredentialValues::new("dummy-key".to_owned(), Some(token.to_owned())).unwrap(),
+            Persistence::Durable,
+        ));
+        request
+            .lookup_token_admission(&mut store, None)
+            .await
+            .unwrap();
+        let result = request.validate(&validator).await;
+        assert_eq!(result.is_ok(), allowed);
+        if allowed {
+            assert_eq!(
+                store
+                    .token_scope(token, Persistence::Session)
+                    .await
+                    .unwrap(),
+                None
+            );
+            application
+                .accept(request, result, Timestamp::from_seconds(1000), &mut store)
+                .await
+                .unwrap();
+            application
+                .establish_token_scope(&mut store, None, Persistence::Durable)
+                .await
+                .unwrap();
+            let b = application.token_scope(None).unwrap();
+            assert_ne!(a, b);
+            assert!(
+                !validator
+                    .held
+                    .blocks_admission(application.token_admission(None).unwrap())
+            );
+        }
+    }
+    *provider.1.bytes.lock().unwrap() = None;
+    let mut lost = application.begin(CredentialCandidate::new(
+        CredentialValues::new(
+            "dummy-key".to_owned(),
+            Some("dummy-first-token-b".to_owned()),
+        )
+        .unwrap(),
+        Persistence::Durable,
+    ));
+    lost.lookup_token_admission(&mut store, None).await.unwrap();
+    assert_eq!(
+        lost.validate(&validator).await,
+        Err(CredentialFailure::Unavailable)
+    );
+    assert_eq!(
+        validator.accounts.load(std::sync::atomic::Ordering::SeqCst),
+        3
+    );
+    assert_eq!(
+        validator.tokens.load(std::sync::atomic::Ordering::SeqCst),
+        1
+    );
 }

@@ -248,6 +248,9 @@ impl ShellState {
                 self.submission
                     .queue
                     .received_service_fences(update.service_fences);
+                self.submission
+                    .queue
+                    .received_authenticated_quotas(update.authenticated_quotas);
                 self.submission.queue.received_waiting(update.waiting);
                 self.submission
                     .accounts

@@ -267,7 +267,17 @@ impl UexReader {
             "image_storage_error" => SubmissionResult::NotProcessed(NotProcessed::ImageStorage),
             "requests_limit_reached" => SubmissionResult::NotProcessed(NotProcessed::RateLimited),
             "too_many_reports" => SubmissionResult::NotProcessed(NotProcessed::RowBudget),
-            "exceeded_daily_quota" => SubmissionResult::NotProcessed(NotProcessed::DailyQuota),
+            "exceeded_daily_quota" => SubmissionResult::NotProcessed(match data {
+                Some(RejectedData::QuotaReset { reset, observed_at }) => {
+                    NotProcessed::DailyQuotaUntil(
+                        tallyline_submission::api::model::TokenQuotaReset::new(
+                            Timestamp::from_seconds(reset),
+                            observed_at,
+                        ),
+                    )
+                }
+                _ => NotProcessed::DailyQuota,
+            }),
             "upgrade_required" => SubmissionResult::Paused(SubmissionPauseReason::UpdateRequired),
             "service_unavailable" => {
                 SubmissionResult::NotProcessed(NotProcessed::ServiceUnavailable)

@@ -22,6 +22,9 @@ impl UexReader {
         token: &str,
         id: Option<u64>,
     ) -> Result<ReceiptWindow, ReceiptReadFailure> {
+        if !self.token_request_allowed(credentials) {
+            return Err(ReceiptReadFailure::Unavailable);
+        }
         let terminal = request.header().terminal.0.to_string();
         let identity = id.map(|value| value.to_string());
         let mut filters = vec![
@@ -35,7 +38,7 @@ impl UexReader {
         }
         let bearer = format!("Bearer {token}");
         let read = async {
-            let Ok(Value::Array(records)) = self
+            let result = self
                 .transport
                 .get(
                     "data_info/",
@@ -45,8 +48,10 @@ impl UexReader {
                         ("secret-key", credentials.secret_key()),
                     ],
                 )
-                .await
-            else {
+                .await;
+            self.observe_read_quota(&result, credentials.token_scope())
+                .map_err(|_| ReceiptReadFailure::Unavailable)?;
+            let Ok(Value::Array(records)) = result else {
                 return Err(ReceiptReadFailure::Unavailable);
             };
             let snapshot = request.clone();

@@ -331,6 +331,7 @@ fn r_sub_12_r_ui_16__account_switch_offers_keep_or_review_without_rebinding_jobs
         SubmissionUpdate {
             client_version: None,
             service_fences: vec![],
+            authenticated_quotas: vec![],
             jobs: vec![job.clone()],
             waiting: vec![],
             mappings: vec![],
@@ -465,8 +466,7 @@ fn r_sub_2_r_sub_11_r_ui_16__durable_global_quota_reason_is_visible_without_an_a
             state,
         );
     harness.run();
-    harness
-        .get_by_label("All submissions are held: the shared daily app-token quota is exhausted.");
+    harness.get_by_label("Requests using this app token are held: its daily quota is exhausted.");
     assert!(
         harness
             .output()
@@ -610,3 +610,98 @@ mod unknown_resolution;
 
 #[path = "submission_queue/partial_resolution.rs"]
 mod partial_resolution;
+
+#[test]
+#[expect(
+    non_snake_case,
+    reason = "Requirement tags use a double underscore separator."
+)]
+fn r_sub_2_r_sub_11__authenticated_quota_shows_bounded_reset_check_without_a_report() {
+    let mut state = SubmissionQueue::default();
+    state.received_authenticated_quotas(vec![
+        tallyline_submission::api::model::TokenQuotaObservation::new(
+            None,
+            Some(tallyline_submission::api::model::TokenQuotaReset::new(
+                Timestamp::from_seconds(1010),
+                Some(Timestamp::from_seconds(1000)),
+            )),
+        ),
+    ]);
+    let catalogue = Catalogue::english().unwrap();
+    let mut fonts = Some(font_files().unwrap());
+    let mut harness = Harness::builder()
+        .with_size(egui::vec2(1000.0, 500.0))
+        .build_ui_state(
+            move |ui, state: &mut SubmissionQueue| {
+                if let Some(fonts) = fonts.take() {
+                    tallyline_ui::api::configure_fonts(ui.ctx(), fonts);
+                }
+                show_submission_queue(ui, state, &catalogue, tallyline_egui::Theme::Light);
+            },
+            state,
+        );
+    harness.run();
+    harness.get_by_label("Requests using this app token are held: its daily quota is exhausted.");
+    harness.get_by_label("Quota reset check: 1970-01-01 00:16:50 UTC");
+    harness.get_by_label("Sending still requires all current checks to pass.");
+    assert!(
+        harness
+            .output()
+            .viewport_output
+            .values()
+            .all(|output| output.commands.is_empty())
+    );
+}
+
+#[test]
+#[expect(
+    non_snake_case,
+    reason = "Requirement tags use a double underscore separator."
+)]
+fn r_sub_2_r_sub_11__quota_attempt_limit_offers_cancel_for_review_without_a_retry_bypass() {
+    let mut job = queued(1, SubmissionMode::DryRun).unwrap();
+    for (at, reset) in [(1000, 1010), (1010, 1020), (1020, 1030)] {
+        job = job
+            .begin(Timestamp::from_seconds(at), PayloadHash::new([1; 32]))
+            .unwrap()
+            .complete(
+                SubmissionResult::NotProcessed(NotProcessed::DailyQuotaUntil(
+                    tallyline_submission::api::model::TokenQuotaReset::new(
+                        Timestamp::from_seconds(reset),
+                        Some(Timestamp::from_seconds(at)),
+                    ),
+                )),
+                Timestamp::from_seconds(at),
+            )
+            .unwrap();
+        if reset < 1030 {
+            job = job.resume_quota(Timestamp::from_seconds(reset)).unwrap();
+        }
+    }
+    let mut state = SubmissionQueue::default();
+    state.received(vec![job]);
+    let catalogue = Catalogue::english().unwrap();
+    let mut fonts = Some(font_files().unwrap());
+    let mut harness = Harness::builder()
+        .with_size(egui::vec2(1100.0, 700.0))
+        .build_ui_state(
+            move |ui, state: &mut SubmissionQueue| {
+                if let Some(fonts) = fonts.take() {
+                    tallyline_ui::api::configure_fonts(ui.ctx(), fonts);
+                }
+                show_submission_queue(ui, state, &catalogue, tallyline_egui::Theme::Light);
+            },
+            state,
+        );
+    harness.run();
+    harness.get_by_label(
+        "Automatic attempts are exhausted. Cancel this report to review and release it again.",
+    );
+    assert!(harness.query_by_label("Retry now 1").is_none());
+    assert!(
+        !harness
+            .get_by_label("Cancel submission 1")
+            .accesskit_node()
+            .is_disabled()
+    );
+}

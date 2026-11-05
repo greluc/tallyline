@@ -23,6 +23,11 @@ pub enum SubmissionCommand {
     Cancel,
     /// Returns an eligible held request to the complete send-time gate.
     Retry,
+    /// Returns proven unprocessed quota work through the full gate after its reset.
+    ResumeQuota {
+        /// The injected expiry observation time.
+        at: Timestamp,
+    },
     /// Retries or acknowledges a version lockout only from a strictly newer compiled release.
     RetryAfterUpdate {
         /// Immutable current release identity supplied by the application owner.
@@ -143,6 +148,7 @@ impl SubmissionJob {
             } => self.begin_prepared(at, payload_hash, date_added)?,
             SubmissionCommand::Cancel => self.cancel()?,
             SubmissionCommand::Retry => self.retry()?,
+            SubmissionCommand::ResumeQuota { at } => self.resume_quota(at)?,
             SubmissionCommand::RetryAfterUpdate { version } => self.retry_after_update(version)?,
             SubmissionCommand::ResolveOutcomeCheck { result } => {
                 self.resolve_outcome_check(result)?

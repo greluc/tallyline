@@ -69,6 +69,7 @@ impl QueueCommand {
 pub struct SubmissionQueue {
     client_version: Option<tallyline_shared_kernel::api::model::ReleaseVersion>,
     service_fences: Vec<SubmissionServiceFence>,
+    authenticated_quotas: Vec<tallyline_submission::api::model::TokenQuotaObservation>,
     jobs: Vec<SubmissionJob>,
     mappings: Vec<VerifiedReceiptMapping>,
     waiting: Vec<SubmissionWait>,
@@ -108,6 +109,13 @@ impl SubmissionQueue {
             self.pending = None;
             self.failure = None;
         }
+    }
+    /// Publishes committed authenticated-read quota holds without submission authority.
+    pub fn received_authenticated_quotas(
+        &mut self,
+        quotas: Vec<tallyline_submission::api::model::TokenQuotaObservation>,
+    ) {
+        self.authenticated_quotas = quotas;
     }
     /// Publishes durable global service reasons without granting dispatch authority.
     pub fn received_service_fences(&mut self, fences: Vec<SubmissionServiceFence>) {
@@ -250,6 +258,19 @@ pub fn show_submission_queue(
             SubmissionServiceCause::AccountPause => "queue.global_account_pause",
             SubmissionServiceCause::ApiChanged => "queue.global_api_changed",
         }));
+        if fence.cause() == SubmissionServiceCause::DailyQuota {
+            crate::submission_quota::show(ui, fence.quota_reset(), catalogue);
+        }
+    }
+    for observation in &state.authenticated_quotas {
+        ui.label(catalogue.text("queue.global_daily_quota"));
+        crate::submission_quota::show(
+            ui,
+            observation
+                .reset()
+                .and_then(tallyline_submission::api::model::TokenQuotaReset::usable_reset),
+            catalogue,
+        );
     }
     if state.jobs.is_empty() {
         ui.label(catalogue.text("queue.empty"));
@@ -319,6 +340,11 @@ pub fn show_submission_queue(
                     unknown_action = Some((job.id(), action));
                 }
                 let retry_policy = SubmissionRetrySettings::default();
+                if job.result().is_some_and(SubmissionResult::is_daily_quota)
+                    && job.attempts().len() >= retry_policy.maximum_attempts()
+                {
+                    ui.label(catalogue.text("queue.quota_attempts_exhausted"));
+                }
                 if let Some(at) = retry_policy.automatic_retry_at(job) {
                     ui.label(format!(
                         "{} {}",
@@ -510,7 +536,9 @@ fn show_closed_result(ui: &mut egui::Ui, result: &SubmissionResult, catalogue: &
         SubmissionResult::NotProcessed(NotProcessed::ImageUpload | NotProcessed::ImageStorage) => {
             ui.label(catalogue.text("queue.image_unavailable"));
         }
-        SubmissionResult::NotProcessed(NotProcessed::DailyQuota) => {
+        SubmissionResult::NotProcessed(
+            NotProcessed::DailyQuota | NotProcessed::DailyQuotaUntil(_),
+        ) => {
             ui.label(catalogue.text("queue.daily_quota"));
         }
         SubmissionResult::Rechecked { code, outcome } => {

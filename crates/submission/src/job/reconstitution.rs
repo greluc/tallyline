@@ -25,6 +25,9 @@ impl SubmissionJob {
                     (Some(SubmissionResult::VersionLockedOut(_)), Some(version)) => {
                         job.retry_after_update(version)
                     }
+                    (Some(result), _) if result.daily_quota_reset().is_some() => {
+                        job.resume_quota(result.daily_quota_reset().ok_or(InvalidSubmission)?)
+                    }
                     _ => job.retry(),
                 }
                 .map_err(|_| InvalidSubmission)?;
@@ -86,6 +89,9 @@ impl SubmissionJob {
             job = match (job.result(), stored.client_update) {
                 (Some(SubmissionResult::VersionLockedOut(_)), Some(version)) => {
                     job.retry_after_update(version)
+                }
+                (Some(result), _) if result.daily_quota_reset().is_some() => {
+                    job.resume_quota(result.daily_quota_reset().ok_or(InvalidSubmission)?)
                 }
                 _ => job.retry(),
             }

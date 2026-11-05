@@ -21,6 +21,31 @@ use tokio::sync::oneshot::Sender;
 
 /// The existing adapter operations driven only by the owned shared I/O runtime.
 pub trait HttpBackend: Send + Sync {
+    /// Installs fresh admission for token-bearing reads inside compound adapter operations.
+    fn with_authenticated_read_gate(
+        self,
+        _gate: tallyline_adapter_uex::api::AuthenticatedReadGate,
+    ) -> Self
+    where
+        Self: Sized,
+    {
+        self
+    }
+    /// Checks account standing without issuing a token-bearing validation request.
+    fn check_account_while_token_held(
+        &self,
+        _values: CredentialValues,
+    ) -> impl Future<Output = CredentialFailure> + Send {
+        async { CredentialFailure::Unavailable }
+    }
+
+    /// Transfers authenticated-read quota evidence without re-entering shared admission.
+    fn take_quota_observations(
+        &self,
+    ) -> Vec<tallyline_submission::api::model::TokenQuotaObservation> {
+        Vec::new()
+    }
+
     /// Fetches one public endpoint through the shared client.
     fn fetch(
         &self,
@@ -70,6 +95,22 @@ pub trait HttpBackend: Send + Sync {
     ) -> impl Future<Output = SubmissionResult> + Send;
 }
 impl HttpBackend for UexReader {
+    fn with_authenticated_read_gate(
+        self,
+        gate: tallyline_adapter_uex::api::AuthenticatedReadGate,
+    ) -> Self {
+        UexReader::with_authenticated_read_gate(self, gate)
+    }
+    async fn check_account_while_token_held(&self, values: CredentialValues) -> CredentialFailure {
+        UexReader::check_account_while_token_held(self, &values).await
+    }
+
+    fn take_quota_observations(
+        &self,
+    ) -> Vec<tallyline_submission::api::model::TokenQuotaObservation> {
+        UexReader::take_quota_observations(self)
+    }
+
     async fn fetch(&self, endpoint: Endpoint) -> Result<EndpointData, ReadError> {
         ReferenceDataFetcher::fetch(self, endpoint).await
     }

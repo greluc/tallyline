@@ -89,3 +89,10 @@ mod verified_row_receipts;
 mod receipt_window;
 
 mod receipt_reads;
+
+mod quota_observations;
+
+mod authenticated_read_gate;
+
+#[cfg(test)]
+mod quota_post_contract_tests;

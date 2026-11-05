@@ -39,8 +39,20 @@ pub struct SubmissionQueueController {
     receipt: ReceiptEnrichment,
     recovery: super::refusal_recovery::RefusalRecovery,
     row_receipts: ReceiptResolution,
+    pending_quotas: Vec<tallyline_submission::api::model::TokenQuotaObservation>,
 }
 impl SubmissionQueueController {
+    /// Loads authenticated-read quota holds without fabricating submission history.
+    ///
+    /// # Errors
+    /// Refuses corrupt or unavailable quota evidence.
+    pub fn authenticated_quotas(
+        &mut self,
+    ) -> Result<Vec<tallyline_submission::api::model::TokenQuotaObservation>, SubmissionControlError>
+    {
+        tallyline_submission::api::SubmissionQuotaRepository::authenticated_quotas(&mut self.store)
+            .map_err(SubmissionControlError::Repository)
+    }
     /// Recovers interrupted work before accepting any new release or dispatch.
     ///
     /// # Errors
@@ -73,6 +85,7 @@ impl SubmissionQueueController {
         store
             .recover_unfinished(clock.now())
             .map_err(SubmissionControlError::Repository)?;
+        quota_control::publish(&mut store, &client)?;
         let jobs = store
             .queue_jobs()
             .map_err(SubmissionControlError::Repository)?;
@@ -100,6 +113,7 @@ impl SubmissionQueueController {
             receipt: ReceiptEnrichment::new(mappings),
             recovery: super::refusal_recovery::RefusalRecovery::default(),
             row_receipts: ReceiptResolution::default(),
+            pending_quotas: Vec::new(),
         })
     }
 
@@ -286,6 +300,7 @@ impl SubmissionQueueController {
         credentials: &CredentialApplication,
         token: Option<&ReleaseToken>,
     ) -> Result<bool, SubmissionControlError> {
+        let quota_progress = self.advance_quotas()?;
         let resolved = self.row_receipts.advance(
             &mut self.store,
             &mut self.queue,
@@ -304,8 +319,9 @@ impl SubmissionQueueController {
         let result = self.advance(credentials, token);
         let refreshed = self.queue.refresh_waiting(credentials, &*self.clock);
         let progress = result?;
+        quota_control::publish(&mut self.store, &self.client)?;
         refreshed?;
-        Ok(resolved || recovered || progress || previous != self.queue.waiting())
+        Ok(quota_progress || resolved || recovered || progress || previous != self.queue.waiting())
     }
     fn advance(
         &mut self,
@@ -401,3 +417,5 @@ impl SubmissionQueueController {
 }
 
 mod resolution_control;
+
+mod quota_control;

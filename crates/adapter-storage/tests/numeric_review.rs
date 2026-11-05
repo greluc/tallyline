@@ -366,7 +366,7 @@ fn r_nf_11_r_ui_12_q_manual__schema_six_requires_backup_and_preserves_legacy_pri
         current
             .query_row("PRAGMA user_version", [], |row| row.get::<_, u32>(0))
             .unwrap(),
-        12
+        13
     );
     assert_eq!(
         current
@@ -475,7 +475,7 @@ fn r_nf_11_r_ui_12_q_manual__schema_seven_stock_migration_requires_backup_and_pr
         .unwrap()
         .remove("stock_decision");
     document.as_object_mut().unwrap().remove("lifecycle");
-    connection.execute_batch("DROP TABLE submission_service_fences; DROP TABLE submission_receipt_enrichment; DROP TABLE accepted_priors; DROP TABLE submission_jobs; DROP TABLE domain_outbox; ALTER TABLE reports DROP COLUMN phase;").unwrap();
+    connection.execute_batch("DROP TABLE submission_quota_expiries; DROP TABLE authenticated_token_quotas; DROP TABLE submission_token_bindings; DROP TABLE submission_service_fences; DROP TABLE submission_receipt_enrichment; DROP TABLE accepted_priors; DROP TABLE submission_jobs; DROP TABLE domain_outbox; ALTER TABLE reports DROP COLUMN phase;").unwrap();
     connection
         .execute("UPDATE reports SET payload=?1", [document.to_string()])
         .unwrap();

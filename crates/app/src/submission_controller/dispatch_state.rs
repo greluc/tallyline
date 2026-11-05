@@ -70,13 +70,13 @@ impl DispatchState {
                 }
                 Err(_) => return Err(SubmissionControlError::Unavailable),
             };
-            let Some(prepared) = context.prepare_reserved(id, credentials)? else {
+            let Some(prepared) = context.prepare_reserved(id, credentials, token)? else {
                 return Ok(DispatchProgress::Idle);
             };
             self.dispatch_prepared(&mut context, prepared, slot, token)?;
             return Ok(DispatchProgress::Started);
         }
-        self.reservation = context.reserve_candidate(credentials)?;
+        self.reservation = context.reserve_candidate(credentials, token)?;
         Ok(DispatchProgress::Scheduled)
     }
     fn dispatch_prepared(
@@ -97,7 +97,7 @@ impl DispatchState {
                 context.now(),
             )),
         });
-        let pending = context.dispatch_if_current(work, slot, token)?;
+        let pending = context.dispatch_if_current(work, slot.bind_origin(&sending), token)?;
         let completion = if pending.is_none() {
             Some((
                 SubmissionResult::Returned(

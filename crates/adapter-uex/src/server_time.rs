@@ -23,13 +23,33 @@ impl ServerTimeTracker {
             observation: Arc::new(Mutex::new(None)),
         }
     }
-    pub(crate) fn observe(&self, date: Option<&str>) -> Result<(), ServerTimeUnavailable> {
-        let observation = date
-            .and_then(|value| crate::http_date::parse(value, self.clock.now()))
-            .map(|server| ServerTimeEstimate::new(server, self.clock.monotonic()));
+    /// Starts from a verified server observation using the supplied clock's monotonic origin.
+    #[must_use]
+    pub fn from_estimate(clock: Arc<dyn SubmissionClock>, estimate: ServerTimeEstimate) -> Self {
+        Self {
+            clock,
+            observation: Arc::new(Mutex::new(Some(estimate))),
+        }
+    }
+    pub(crate) fn observe(
+        &self,
+        date: Option<&str>,
+    ) -> Result<Option<Timestamp>, ServerTimeUnavailable> {
+        let server = date.and_then(|value| crate::http_date::parse(value, self.clock.now()));
+        let observation =
+            server.map(|server| ServerTimeEstimate::new(server, self.clock.monotonic()));
         let mut current = self.observation.lock().map_err(|_| ServerTimeUnavailable)?;
         *current = observation;
-        Ok(())
+        Ok(server)
+    }
+    /// Returns the fresh server estimate advanced solely by this tracker's monotonic clock.
+    #[must_use]
+    pub fn current(&self) -> Option<Timestamp> {
+        self.observation
+            .lock()
+            .ok()?
+            .as_ref()?
+            .at(self.clock.monotonic())
     }
     /// Returns only an earlier fresh estimate, falling back to the original observation.
     #[must_use]

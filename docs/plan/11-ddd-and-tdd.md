@@ -23,6 +23,9 @@ The domain terms are binding: the same terms in docs, UI and code (all English).
 
 | Term | Meaning |
 |---|---|
+| Token scope (`TokenScope`) | nonsecret random registry generation and exact selected-token association supplied by protected credential storage; account keys, mode and environment do not partition the token quota |
+| Token admission (`TokenAdmission`) | bounded in-memory exact-token inequality proof from an intact protected registry; it grants no validation/send authority and is never persisted |
+| Token quota reset (`TokenQuotaReset`) | supplied Unix reset together with the verified server time of that same response; only an originally future reset is usable, and a fresh current server estimate is still needed for expiry |
 | Capture (`Capture`) | an imported screenshot (file identity, source, environment, capture time with its source and certainty (`CaptureTime`, R-CAP-5), game version at capture time) |
 | Scan (`Scan`) | result of the recognition of a Capture: read cards with findings |
 | Card reading (`CardReading`) | a read commodity card (raw values per reader, its section and its completeness) |
@@ -372,3 +375,7 @@ SubmissionRowResult is the exact RowId disposition query: verified accepted, acc
 The shared resolution/copy seam keeps policy below the app/UI: Reporting copies a selected eligible subset, Workflows commits the origin and fresh unreviewed Draft atomically, and scheduling/observation order consume the same row-result query. Exact verified production rows feed accepted priors; statements do not. Positive late evidence retains all prior decisions/copy links and closes a copied subset only when it intersects that subset. General lifecycle and withdrawal remain separate.
 
 Public contracts cover real temporary SQLite migration/rollback/reopen, HTTP positive/ambiguous windows and individual ID reads, application decisions/save fencing, selected-copy rollback and drawn scaled-theme focus/paint. Preserved failing-source/log evidence precedes fixes. The schema 12/config 6 format uses a genuine source-bound previous schema 11 fixture, not a downgraded current writer. [The queue record](../submission-queue.md#partial-row-resolution-checkpoint--2026-11-04) states evidence and remaining gates; no complete milestone or native/live-service acceptance is claimed.
+
+## Token quota source seam — 2026-11-04
+
+Submission owns semantic token identity/reset evidence, exact-source fences and bounded resumption; UEX alone translates live code/reset/header fields. The protected platform adapter owns registry bytes and exact token equality. Storage owns versioned binding, authenticated-read evidence and atomic expiry/audit transactions. Application code supplies the existing shared HTTP owner and fresh server-time tracker. Public contracts compare original attempts and row actions, exercise real SQLite rollback/restart and independent injected clocks, and draw honest queue recovery controls. Schema 13/configuration 6 preserves the source-bound prior schema-12 fixture. [The quota checkpoint](../submission-queue.md#token-quota-reset-checkpoint--2026-11-04) qualifies the remaining issue-90 split and acceptance work.

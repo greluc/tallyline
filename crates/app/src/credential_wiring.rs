@@ -81,6 +81,27 @@ enum LinuxStore {
 }
 #[cfg(target_os = "linux")]
 impl tallyline_submission::api::SecretStore for LinuxStore {
+    async fn token_admission(
+        &mut self,
+        token: &str,
+    ) -> Result<tallyline_submission::api::model::TokenAdmission, StorageFailure> {
+        match self {
+            Self::Service(store) => store.token_admission(token).await,
+            Self::File(store) => store.token_admission(token).await,
+        }
+    }
+
+    async fn token_scope(
+        &mut self,
+        token: &str,
+        persistence: tallyline_submission::api::model::Persistence,
+    ) -> Result<Option<tallyline_submission::api::model::TokenScope>, StorageFailure> {
+        match self {
+            Self::Service(store) => store.token_scope(token, persistence).await,
+            Self::File(store) => store.token_scope(token, persistence).await,
+        }
+    }
+
     async fn load(
         &mut self,
     ) -> Result<Option<tallyline_submission::api::model::SavedCredentials>, StorageFailure> {

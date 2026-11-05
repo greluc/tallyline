@@ -255,6 +255,13 @@ pub(crate) fn save_change(
     transaction: &Connection,
     change: &SubmissionChange,
 ) -> Result<(), SubmissionRepositoryError> {
+    save_change_with_admission(transaction, change, None)
+}
+pub(crate) fn save_change_with_admission(
+    transaction: &Connection,
+    change: &SubmissionChange,
+    admission: Option<&tallyline_submission::api::model::TokenAdmission>,
+) -> Result<(), SubmissionRepositoryError> {
     let next = change.state();
     let current = load_job(transaction, next.id())?.ok_or(SubmissionRepositoryError::Invalid)?;
     if &current == next {
@@ -273,7 +280,9 @@ pub(crate) fn save_change(
         return Err(SubmissionRepositoryError::Invalid);
     }
     if next.phase() == JobPhase::Sending {
-        if !crate::submission_service_fences::load(transaction)?.is_empty() {
+        let scope = crate::token_quota::binding(transaction, next.id(), next.attempts().len())?;
+        let fallback = tallyline_submission::api::model::TokenAdmission::from_scope(scope);
+        if !crate::authenticated_quota::allows(transaction, admission.unwrap_or(&fallback))? {
             return Err(SubmissionRepositoryError::Conflict);
         }
         let at = next

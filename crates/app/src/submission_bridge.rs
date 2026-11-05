@@ -29,6 +29,7 @@ pub struct SubmissionQueueBridge {
     notification_published: bool,
     release_refresh: Option<Box<dyn crate::api::ReleaseReferenceRefresh>>,
     release_pending: Option<SubmissionControl>,
+    projected_scope: Option<tallyline_submission::api::model::TokenAdmission>,
 }
 impl SubmissionQueueBridge {
     /// Composes bounded channels without creating a thread, runtime or credential copy.
@@ -52,6 +53,7 @@ impl SubmissionQueueBridge {
             notification_published: false,
             release_refresh: None,
             release_pending: None,
+            projected_scope: None,
         }
     }
     /// Requires an owned reference-attempt acknowledgement before a manual or test release.
@@ -283,7 +285,12 @@ impl CredentialQueue for SubmissionQueueBridge {
         self.publish()?;
         self.publish_references();
         let acknowledged = self.acknowledge_notifications()?;
-        let mut changed = self.initial;
+        let selected_scope = application
+            .token_admission(token.map(ReleaseToken::for_validation))
+            .cloned()
+            .unwrap_or_default();
+        let mut changed = self.initial || self.projected_scope.as_ref() != Some(&selected_scope);
+        self.projected_scope = Some(selected_scope.clone());
         self.initial = false;
         let mut feedback = None;
         let mut completed = false;
@@ -345,9 +352,22 @@ impl CredentialQueue for SubmissionQueueBridge {
             self.pending = Some(BackgroundEvent::SubmissionUpdated(Box::new(
                 SubmissionUpdate {
                     client_version: self.controller.client_version(),
-                    service_fences: self.controller.service_fences().map_err(|_| {
-                        io::Error::other("submission service-fence snapshot unavailable")
-                    })?,
+                    service_fences: self
+                        .controller
+                        .service_fences()
+                        .map_err(|_| {
+                            io::Error::other("submission service-fence snapshot unavailable")
+                        })?
+                        .into_iter()
+                        .filter(|fence| fence.blocks_admission(&selected_scope))
+                        .collect(),
+                    authenticated_quotas: self
+                        .controller
+                        .authenticated_quotas()
+                        .map_err(|_| io::Error::other("authenticated quota snapshot unavailable"))?
+                        .into_iter()
+                        .filter(|hold| hold.blocks_admission(&selected_scope))
+                        .collect(),
                     jobs: self.controller.jobs().to_vec(),
                     mappings: self.controller.mappings().to_vec(),
                     waiting: self.controller.waiting().to_vec(),

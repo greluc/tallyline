@@ -98,6 +98,8 @@ pub struct SubmissionUpdate {
     pub client_version: Option<tallyline_shared_kernel::api::model::ReleaseVersion>,
     /// Durable queue-wide service causes independent of Report phase.
     pub service_fences: Vec<tallyline_submission::api::model::SubmissionServiceFence>,
+    /// Durable current-token quota holds from authenticated reads, independent of jobs.
+    pub authenticated_quotas: Vec<tallyline_submission::api::model::TokenQuotaObservation>,
     /// Actual committed jobs, including Sending after a failed outcome save.
     pub jobs: Vec<SubmissionJob>,
     /// Exact-version passive waits without changing durable job phases.

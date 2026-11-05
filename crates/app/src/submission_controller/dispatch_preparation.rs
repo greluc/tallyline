@@ -16,9 +16,10 @@ use tallyline_shared_kernel::api::Clock;
 use tallyline_shared_kernel::api::model::Timestamp;
 use tallyline_submission::api::model::{
     CredentialValues, JobId, JobPhase, ReleaseToken, ScheduleDecision, SubmissionJob,
+    TokenAdmission,
 };
 use tallyline_submission::api::{
-    CredentialApplication, SubmissionJobRepository, SubmissionSchedule,
+    CredentialApplication, SubmissionJobRepository, SubmissionQuotaRepository, SubmissionSchedule,
 };
 use tallyline_workflows::api::{
     ManualDispatch, ManualDispatchError, ManualDispatchStore, SubmissionQueueStore,
@@ -54,11 +55,9 @@ impl<'a> DispatchPreparation<'a> {
         &mut self,
         id: JobId,
         credentials: &'credentials CredentialApplication,
+        token: Option<&ReleaseToken>,
     ) -> Result<Option<PreparedDispatch<'credentials>>, SubmissionControlError> {
-        if !tallyline_submission::api::SubmissionServiceFenceRepository::service_fences(self.store)
-            .map_err(SubmissionControlError::Repository)?
-            .is_empty()
-        {
+        if !self.quota_allows(credentials, token)? {
             return Ok(None);
         }
         let job = SubmissionJobRepository::load(self.store, id)
@@ -88,7 +87,8 @@ impl<'a> DispatchPreparation<'a> {
             return Err(SubmissionControlError::Conflict);
         }
         let plan = ManualDispatch::prepare(&job, &gate, credentials, hash, prepared.date_added())
-            .map_err(SubmissionControlError::Dispatch)?;
+            .map_err(SubmissionControlError::Dispatch)?
+            .with_selected_token(credentials, token.map(ReleaseToken::for_validation));
         Ok(Some(PreparedDispatch {
             plan,
             prepared,
@@ -148,11 +148,9 @@ impl<'a> DispatchPreparation<'a> {
     pub(super) fn reserve_candidate(
         &mut self,
         credentials: &CredentialApplication,
+        token: Option<&ReleaseToken>,
     ) -> Result<Option<(JobId, PendingSubmissionReservation)>, SubmissionControlError> {
-        if !tallyline_submission::api::SubmissionServiceFenceRepository::service_fences(self.store)
-            .map_err(SubmissionControlError::Repository)?
-            .is_empty()
-        {
+        if !self.quota_allows(credentials, token)? {
             return Ok(None);
         }
         let attempts = self.queue.account_attempts()?;
@@ -201,6 +199,19 @@ impl<'a> DispatchPreparation<'a> {
         }
         Ok(None)
     }
+    fn quota_allows(
+        &mut self,
+        credentials: &CredentialApplication,
+        token: Option<&ReleaseToken>,
+    ) -> Result<bool, SubmissionControlError> {
+        let unproven = TokenAdmission::default();
+        let proof = credentials
+            .token_admission(token.map(ReleaseToken::for_validation))
+            .unwrap_or(&unproven);
+        let durable = SubmissionQuotaRepository::quota_allows_admission(self.store, proof)
+            .map_err(SubmissionControlError::Repository)?;
+        Ok(durable && !self.client.quota_blocks(proof))
+    }
     pub(super) fn begin_attempt(
         &mut self,
         prepared: &PreparedDispatch<'_>,
@@ -230,6 +241,13 @@ impl<'a> DispatchPreparation<'a> {
             preferences,
             values,
         } = work;
+        if tallyline_submission::api::SubmissionServiceFenceRepository::service_fences(self.store)
+            .map_err(SubmissionControlError::Repository)?
+            .iter()
+            .any(|fence| fence.blocks_admission(plan.token_admission()))
+        {
+            return Ok(None);
+        }
         let history = self
             .store
             .queue_jobs()

@@ -1,14 +1,14 @@
 // SPDX-FileCopyrightText: 2026 Lucas Greuloch
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Durable global submission blocks independent of the originating Report phase.
+//! Durable applicable service blocks independent of the originating Report phase.
 
 use crate::api::model::{
     JobId, JobPhase, NotProcessed, SubmissionHoldReason, SubmissionJob, SubmissionRepositoryError,
-    SubmissionResult,
+    SubmissionResult, TokenScope,
 };
 
-/// A service refusal that stops the complete submission queue.
+/// A service refusal that holds applicable submission work.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum SubmissionServiceCause {
     /// The shared app-token daily quota is exhausted.
@@ -24,6 +24,8 @@ pub struct SubmissionServiceFence {
     cause: SubmissionServiceCause,
     source: JobId,
     source_revision: u64,
+    scope: Option<TokenScope>,
+    reset: Option<tallyline_shared_kernel::api::model::Timestamp>,
 }
 impl SubmissionServiceFence {
     /// Accepts only a positive committed source identity and revision.
@@ -40,7 +42,39 @@ impl SubmissionServiceFence {
             cause,
             source,
             source_revision,
+            scope: None,
+            reset: None,
         })
+    }
+    /// Adds proven token association and usable reset metadata without changing its source.
+    #[must_use]
+    pub fn with_quota_metadata(
+        mut self,
+        scope: Option<TokenScope>,
+        reset: Option<tallyline_shared_kernel::api::model::Timestamp>,
+    ) -> Option<Self> {
+        if self.cause != SubmissionServiceCause::DailyQuota {
+            return None;
+        }
+        self.scope = scope;
+        self.reset = reset;
+        Some(self)
+    }
+    /// Returns the reset only when the original response supplied a usable future instant.
+    #[must_use]
+    pub const fn quota_reset(self) -> Option<tallyline_shared_kernel::api::model::Timestamp> {
+        self.reset
+    }
+    /// Returns the protected token association, absent for legacy or unproven input.
+    #[must_use]
+    pub const fn token_scope(self) -> Option<TokenScope> {
+        self.scope
+    }
+    /// Retains global causes while accepting exact protected inequality evidence for quota.
+    #[must_use]
+    pub fn blocks_admission(self, proof: &crate::api::model::TokenAdmission) -> bool {
+        self.cause != SubmissionServiceCause::DailyQuota
+            || self.scope.is_none_or(|scope| !proof.proves_distinct(scope))
     }
     /// Verifies the retained cause against its immutable originating job history.
     #[must_use]
@@ -78,7 +112,9 @@ impl SubmissionServiceFence {
                     .is_some(),
                 SubmissionServiceCause::DailyQuota => matches!(
                     job.result(),
-                    Some(SubmissionResult::NotProcessed(NotProcessed::DailyQuota))
+                    Some(SubmissionResult::NotProcessed(
+                        NotProcessed::DailyQuota | NotProcessed::DailyQuotaUntil(_)
+                    ))
                 ),
                 SubmissionServiceCause::ApiChanged => matches!(
                     job.result(),

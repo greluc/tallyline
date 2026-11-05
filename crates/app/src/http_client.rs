@@ -27,6 +27,7 @@ use tokio::sync::{mpsc, oneshot};
 pub struct HttpClient {
     pub(crate) requests: mpsc::Sender<Command>,
     pub(crate) server_time: Option<ServerTimeTracker>,
+    pub(crate) quota: std::sync::Arc<std::sync::Mutex<crate::http_quota::HttpQuota>>,
 }
 impl ReferenceDataFetcher for HttpClient {
     type Error = ReadError;
@@ -51,10 +52,17 @@ impl ReferenceDataFetcher for HttpClient {
     }
 }
 impl CredentialValidator for HttpClient {
+    fn is_available(&self) -> bool {
+        self.quota.lock().is_ok_and(|quota| quota.ready())
+    }
+
     async fn validate(
         &self,
         values: &CredentialValues,
     ) -> Result<ValidatedAccount, CredentialFailure> {
+        if !self.is_available() {
+            return Err(CredentialFailure::Unavailable);
+        }
         let (reply, result) = oneshot::channel();
         self.requests
             .send(Command::Validate(values.clone(), reply))
@@ -99,6 +107,37 @@ fn unavailable() -> ReadError {
 }
 
 impl HttpClient {
+    pub(crate) fn quota_blocks(
+        &self,
+        proof: &tallyline_submission::api::model::TokenAdmission,
+    ) -> bool {
+        self.quota.lock().map_or(true, |quota| quota.blocks(proof))
+    }
+    pub(crate) fn take_quota_observations(
+        &self,
+    ) -> Result<
+        Vec<tallyline_submission::api::model::TokenQuotaObservation>,
+        crate::api::SubmissionControlError,
+    > {
+        self.quota
+            .lock()
+            .map(|mut quota| quota.take())
+            .map_err(|_| crate::api::SubmissionControlError::Unavailable)
+    }
+    pub(crate) fn replace_quota_holds(
+        &self,
+        holds: Vec<tallyline_submission::api::model::TokenQuotaObservation>,
+        post_fences: &[tallyline_submission::api::model::SubmissionServiceFence],
+    ) -> Result<(), crate::api::SubmissionControlError> {
+        self.quota
+            .lock()
+            .map(|mut quota| quota.replace_holds(holds, post_fences))
+            .map_err(|_| crate::api::SubmissionControlError::Unavailable)
+    }
+
+    pub(crate) fn quota_time(&self) -> Option<tallyline_shared_kernel::api::model::Timestamp> {
+        self.server_time.as_ref()?.current()
+    }
     /// Prepares the workflow-validated private crop on its bounded CPU worker.
     ///
     /// # Errors
@@ -124,6 +163,9 @@ impl tallyline_submission::api::SubmissionReceiptVerifier for HttpClient {
         values: &CredentialValues,
         release_token: Option<&str>,
     ) -> Option<Vec<VerifiedUexReport>> {
+        if self.quota_blocks(values.token_admission()) {
+            return None;
+        }
         let (reply, result) = oneshot::channel();
         self.requests
             .send(Command::VerifyReceipts(
@@ -156,6 +198,9 @@ impl HttpClient {
             || !matches!(job.result(), Some(SubmissionResult::ProductionAccepted(_)))
         {
             return Err(HttpAdmissionFailure::InvalidJob);
+        }
+        if self.quota_blocks(values.token_admission()) {
+            return Err(HttpAdmissionFailure::Busy);
         }
         let (reply, result) = oneshot::channel();
         self.requests
@@ -214,13 +259,16 @@ impl HttpClient {
             .last()
             .and_then(|attempt| attempt.account_evidence())
             .is_some_and(|evidence| {
-                matches!(
-                    evidence.check(),
-                    SubmissionAccountCheck::Pending
-                        | SubmissionAccountCheck::Completed(
+                matches!(evidence.check(), SubmissionAccountCheck::Pending)
+                    || matches!(
+                        evidence.check(),
+                        SubmissionAccountCheck::Completed(
                             SubmissionPauseReason::KeyCheckUnavailable
                         )
-                )
+                    ) && !matches!(
+                        job.result().map(SubmissionResult::final_result),
+                        Some(SubmissionResult::NeedsOutcomeCheck { .. })
+                    )
             });
         let receipt = job.phase() == JobPhase::Held
             && matches!(
@@ -234,6 +282,9 @@ impl HttpClient {
             )
         {
             return Err(HttpAdmissionFailure::InvalidJob);
+        }
+        if receipt && !account && self.quota_blocks(values.token_admission()) {
+            return Err(HttpAdmissionFailure::Busy);
         }
         let (reply, result) = oneshot::channel();
         self.requests
@@ -259,6 +310,9 @@ impl HttpClient {
         release_token: Option<&str>,
     ) -> Result<Receiver<Option<Vec<VerifiedUexReport>>>, HttpAdmissionFailure> {
         use crate::api::model::HttpAdmissionFailure;
+        if self.quota_blocks(values.token_admission()) {
+            return Err(HttpAdmissionFailure::Busy);
+        }
         let (reply, result) = oneshot::channel();
         self.requests
             .try_send(Command::VerifyRowReceipts(

@@ -365,8 +365,9 @@ impl SubmissionJob {
                 && !matches!(
                     self.result.as_ref().map(SubmissionResult::final_result),
                     Some(
-                        SubmissionResult::NotProcessed(NotProcessed::DailyQuota)
-                            | SubmissionResult::Paused(SubmissionPauseReason::UpdateRequired)
+                        SubmissionResult::NotProcessed(
+                            NotProcessed::DailyQuota | NotProcessed::DailyQuotaUntil(_)
+                        ) | SubmissionResult::Paused(SubmissionPauseReason::UpdateRequired)
                             | SubmissionResult::PausedCode {
                                 reason: SubmissionPauseReason::UpdateRequired,
                                 ..
@@ -385,6 +386,22 @@ impl SubmissionJob {
             return Ok(next);
         }
         if !self.can_retry() {
+            return Err(QueueRefusal::InvalidTransition);
+        }
+        let mut next = self.advance()?;
+        next.phase = JobPhase::Queued;
+        next.result = None;
+        Ok(next)
+    }
+    /// Returns a quota-held request to the complete gate only after a valid due reset.
+    ///
+    /// # Errors
+    /// Refuses missing, stale or premature deadlines and exhausted automatic attempts.
+    pub fn resume_quota(&self, now: Timestamp) -> Result<Self, QueueRefusal> {
+        let reset = crate::api::model::SubmissionRetrySettings::default()
+            .quota_retry_at(self)
+            .ok_or(QueueRefusal::InvalidTransition)?;
+        if now < reset {
             return Err(QueueRefusal::InvalidTransition);
         }
         let mut next = self.advance()?;

@@ -284,6 +284,13 @@ pub enum ReadError {
 /// Sanitised structured fields returned with a rejected UEX request.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum RejectedData {
+    /// The supplied Unix-second app-token quota reset.
+    QuotaReset {
+        /// The raw unsigned Unix-second reset.
+        reset: u64,
+        /// The independently parsed Date header of this response.
+        observed_at: Option<tallyline_shared_kernel::api::model::Timestamp>,
+    },
     /// Zero-based index of the `prices[]` row that failed validation.
     Row(usize),
     /// Report identity attached to `duplicated_report`.
@@ -301,6 +308,9 @@ pub enum RejectedData {
 #[derive(Debug)]
 pub struct UexReader {
     pub(crate) transport: Transport,
+    pub(crate) quota_observations:
+        std::sync::Mutex<tallyline_submission::api::model::TokenQuotaObservations>,
+    pub(crate) read_gate: Option<AuthenticatedReadGate>,
 }
 
 /// The UEX submission client. Its only write operation is a `data_submit` dry run.
@@ -358,6 +368,8 @@ impl UexReader {
     ) -> Result<Self, BuildError> {
         Ok(Self {
             transport: Transport::new(settings)?.with_processor(processor),
+            quota_observations: Default::default(),
+            read_gate: None,
         })
     }
     /// Adds shared response-date tracking without replacing the injected processing boundary.
@@ -376,6 +388,8 @@ impl UexReader {
     ) -> Result<Self, BuildError> {
         Ok(Self {
             transport: Transport::new(settings)?.with_server_time(tracker),
+            quota_observations: Default::default(),
+            read_gate: None,
         })
     }
     /// Builds the client with the `aws-lc-rs` crypto provider and the platform verifier.
@@ -385,7 +399,11 @@ impl UexReader {
     /// [`BuildError::Tls`] or [`BuildError::Client`] when the TLS stack or the client fails.
     pub fn new(settings: &ReaderSettings) -> Result<Self, BuildError> {
         let transport = Transport::new(settings)?;
-        Ok(Self { transport })
+        Ok(Self {
+            transport,
+            quota_observations: Default::default(),
+            read_gate: None,
+        })
     }
 
     /// Reads selectable commodity terminals without credentials or LIVE filtering.
@@ -504,3 +522,5 @@ impl ReadError {
 pub use crate::response_processing::{
     ProcessingUnavailable, ResponseExecutor, ResponseProcessor, ResponseTask,
 };
+
+pub use crate::authenticated_read_gate::AuthenticatedReadGate;

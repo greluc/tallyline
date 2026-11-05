@@ -9,7 +9,7 @@ use std::time::Duration;
 
 use secret_service::{Collection, EncryptionType, Error, Item, SecretService};
 use tallyline_submission::api::SecretStore;
-use tallyline_submission::api::model::{SavedCredentials, StorageFailure};
+use tallyline_submission::api::model::{Persistence, SavedCredentials, StorageFailure, TokenScope};
 use tracing::instrument::WithSubscriber;
 use zbus::zvariant::OwnedObjectPath;
 use zeroize::Zeroizing;
@@ -69,6 +69,54 @@ impl LinuxCredentialStore {
 }
 
 impl SecretStore for LinuxCredentialStore {
+    async fn token_admission(
+        &mut self,
+        token: &str,
+    ) -> Result<tallyline_submission::api::model::TokenAdmission, StorageFailure> {
+        let collection = bounded(
+            self.collection(StorageFailure::Unavailable),
+            StorageFailure::Unavailable,
+        )
+        .await?;
+        read_registry(&collection).await?.admission(token)
+    }
+
+    async fn token_scope(
+        &mut self,
+        token: &str,
+        persistence: Persistence,
+    ) -> Result<Option<TokenScope>, StorageFailure> {
+        const RECORD: &str = "uex-token-associations";
+        let collection = bounded(
+            self.collection(StorageFailure::Unavailable),
+            StorageFailure::Unavailable,
+        )
+        .await?;
+        let mut registry = read_registry(&collection).await?;
+        let (scope, changed) = registry.associate(token, persistence)?;
+        if changed {
+            let bytes = registry.encode()?;
+            bounded(
+                async {
+                    collection
+                        .create_item(
+                            "Tallyline UEX token associations",
+                            HashMap::from([("application", "Tallyline"), ("record", RECORD)]),
+                            &bytes,
+                            true,
+                            CONTENT_TYPE,
+                        )
+                        .await
+                        .map_err(mutation_failure)?;
+                    Ok(())
+                },
+                StorageFailure::OutcomeUnknown,
+            )
+            .await?;
+        }
+        Ok(scope)
+    }
+
     async fn load(&mut self) -> Result<Option<SavedCredentials>, StorageFailure> {
         bounded(
             async {
@@ -196,8 +244,18 @@ async fn record<'a>(
     collection: &'a Collection<'_>,
     fallback: StorageFailure,
 ) -> Result<Option<Item<'a>>, StorageFailure> {
+    record_named(collection, fallback, "uex-credentials").await
+}
+async fn record_named<'a>(
+    collection: &'a Collection<'_>,
+    fallback: StorageFailure,
+    name: &'static str,
+) -> Result<Option<Item<'a>>, StorageFailure> {
     let mut items = collection
-        .search_items(attributes())
+        .search_items(HashMap::from([
+            ("application", "Tallyline"),
+            ("record", name),
+        ]))
         .await
         .map_err(|error| failure(error, fallback))?;
     if items.len() > 1 {
@@ -273,4 +331,31 @@ fn failure(error: Error, fallback: StorageFailure) -> StorageFailure {
         | Error::Unavailable
         | _ => fallback,
     }
+}
+
+async fn read_registry(
+    collection: &Collection<'_>,
+) -> Result<crate::token_registry::TokenRegistry, StorageFailure> {
+    let bytes = bounded(
+        async {
+            match record_named(
+                collection,
+                StorageFailure::Unavailable,
+                "uex-token-associations",
+            )
+            .await?
+            {
+                Some(item) => item
+                    .get_secret()
+                    .await
+                    .map(Zeroizing::new)
+                    .map(Some)
+                    .map_err(|error| failure(error, StorageFailure::Unavailable)),
+                None => Ok(None),
+            }
+        },
+        StorageFailure::Unavailable,
+    )
+    .await?;
+    crate::token_registry::TokenRegistry::load(bytes.as_deref().map(Vec::as_slice))
 }

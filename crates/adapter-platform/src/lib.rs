@@ -38,3 +38,5 @@ mod linux_credentials;
 
 #[cfg(target_os = "linux")]
 mod linux_fallback;
+
+mod token_registry;

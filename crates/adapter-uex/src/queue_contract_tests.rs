@@ -73,7 +73,7 @@ async fn r_sub_1_r_sub_8_r_api_7__queue_dry_run_sends_exact_one_sided_values_and
     server.verify().await;
 }
 
-fn released_request() -> Option<SubmissionRequest> {
+pub(super) fn released_request() -> Option<SubmissionRequest> {
     SubmissionRequest::new(
         SubmissionHeader {
             report: ReportId(1),
@@ -1579,3 +1579,255 @@ mod verified_row_receipts;
 
 #[path = "queue_contract_tests/partial_refusals.rs"]
 mod partial_refusals;
+
+#[tokio::test]
+#[expect(
+    non_snake_case,
+    reason = "Requirement tags use a double underscore separator."
+)]
+async fn r_sub_2_r_sub_11_r_api_3__daily_quota_retains_reset_without_receipt_probe() {
+    let server = MockServer::start().await;
+    Mock::given(method("POST"))
+        .and(path("/2.0/data_submit/"))
+        .respond_with(
+            ResponseTemplate::new(429).set_body_json(
+                json!({"status":"exceeded_daily_quota","data":{"reset":1793858400}}),
+            ),
+        )
+        .expect(1)
+        .mount(&server)
+        .await;
+    let settings = ReaderSettings::for_test_server(
+        &format!("{}/2.0/", server.uri()),
+        ClientIdentity::new("tallyline-test", "1.2.3"),
+    )
+    .unwrap()
+    .with_expert_host_confirmation();
+    let reader = UexReader::new(&settings).unwrap();
+    let credentials =
+        CredentialValues::new("dummy-key".to_owned(), Some("dummy-token".to_owned())).unwrap();
+    let result = reader
+        .submit(
+            reader.prepare(&released_request().unwrap()).unwrap().0,
+            &credentials,
+            None,
+        )
+        .await;
+    assert_eq!(
+        result.daily_quota_reset(),
+        Some(Timestamp::from_seconds(1793858400))
+    );
+    let requests = server.received_requests().await.unwrap();
+    assert_eq!(requests.len(), 1);
+    server.verify().await;
+}
+
+#[tokio::test]
+#[expect(
+    non_snake_case,
+    reason = "Requirement tags use a double underscore separator."
+)]
+async fn r_sub_2_r_sub_11_r_api_3__quota_reset_retains_its_response_server_time_after_tracker_changes()
+ {
+    let server = MockServer::start().await;
+    Mock::given(method("POST"))
+        .respond_with(
+            ResponseTemplate::new(429)
+                .insert_header("date", "Thu, 01 Jan 1970 00:16:40 GMT")
+                .set_body_json(json!({"status":"exceeded_daily_quota","data":{"reset":1010}})),
+        )
+        .expect(1)
+        .mount(&server)
+        .await;
+    let settings = ReaderSettings::for_test_server(
+        &format!("{}/2.0/", server.uri()),
+        ClientIdentity::new("tallyline-test", "1.2.3"),
+    )
+    .unwrap()
+    .with_expert_host_confirmation();
+    let clock = Arc::new(ServerClock {
+        tick: AtomicU64::new(0),
+    });
+    let reader = UexReader::new_with_server_time(
+        &settings,
+        crate::api::model::ServerTimeTracker::new(clock.clone()),
+    )
+    .unwrap();
+    let values =
+        CredentialValues::new("dummy-key".to_owned(), Some("dummy-token".to_owned())).unwrap();
+    let result = reader
+        .submit(
+            reader.prepare(&released_request().unwrap()).unwrap().0,
+            &values,
+            None,
+        )
+        .await;
+    clock.tick.store(20_000, Ordering::SeqCst);
+    assert_eq!(
+        result.daily_quota_reset(),
+        Some(Timestamp::from_seconds(1010))
+    );
+    assert_eq!(
+        result.daily_quota_observed_at(),
+        Some(Timestamp::from_seconds(1000))
+    );
+    server.verify().await;
+}
+
+#[tokio::test]
+#[expect(
+    non_snake_case,
+    reason = "Requirement tags use a double underscore separator."
+)]
+async fn r_sub_2_r_sub_11_r_api_3__authenticated_receipt_quota_is_observable_without_a_post_attempt()
+ {
+    let server = MockServer::start().await;
+    Mock::given(method("GET"))
+        .and(path("/2.0/data_info/"))
+        .respond_with(
+            ResponseTemplate::new(429)
+                .insert_header("date", "Thu, 01 Jan 1970 00:16:40 GMT")
+                .set_body_json(json!({"status":"exceeded_daily_quota","data":{"reset":1010}})),
+        )
+        .expect(1)
+        .mount(&server)
+        .await;
+    let settings = ReaderSettings::for_test_server(
+        &format!("{}/2.0/", server.uri()),
+        ClientIdentity::new("tallyline-test", "1.2.3"),
+    )
+    .unwrap()
+    .with_expert_host_confirmation();
+    let reader = UexReader::new_with_server_time(
+        &settings,
+        crate::api::model::ServerTimeTracker::new(Arc::new(ServerClock {
+            tick: AtomicU64::new(0),
+        })),
+    )
+    .unwrap();
+    let base = released_request().unwrap();
+    let mut header = base.header().clone();
+    header.mode = SubmissionMode::Production;
+    let request = SubmissionRequest::new(header, base.rows().to_vec()).unwrap();
+    let original = accepted_job(
+        &request,
+        SubmissionResult::Unknown,
+        Timestamp::from_seconds(100),
+    )
+    .unwrap();
+    let credentials =
+        CredentialValues::new("dummy-key".to_owned(), Some("dummy-token".to_owned())).unwrap();
+    assert!(
+        tallyline_submission::api::SubmissionRowReceiptVerifier::verify_row_receipts(
+            &reader,
+            &original,
+            &credentials,
+            None
+        )
+        .await
+        .is_none()
+    );
+    let observations = reader.take_quota_observations();
+    assert_eq!(observations.len(), 1);
+    assert_eq!(
+        observations[0].reset().unwrap().usable_reset(),
+        Some(Timestamp::from_seconds(1010))
+    );
+    assert_eq!(original.attempts().len(), 1);
+    assert_eq!(server.received_requests().await.unwrap().len(), 1);
+    assert!(reader.take_quota_observations().is_empty());
+    server.verify().await;
+}
+
+#[tokio::test]
+#[expect(
+    non_snake_case,
+    reason = "Requirement tags use a double underscore separator."
+)]
+async fn r_sub_2_r_sub_9_r_api_3__partial_receipt_quota_stops_remaining_ids_and_window_before_handoff()
+ {
+    use tallyline_shared_kernel::api::model::UexReportId;
+    use tallyline_submission::api::SubmissionRowReceiptVerifier as _;
+    let server = MockServer::start().await;
+    Mock::given(method("GET"))
+        .and(path("/2.0/data_info/"))
+        .respond_with(
+            ResponseTemplate::new(429)
+                .insert_header("date", "Thu, 01 Jan 1970 00:16:40 GMT")
+                .set_body_json(json!({"status":"exceeded_daily_quota","data":{"reset":1010}})),
+        )
+        .expect(1)
+        .mount(&server)
+        .await;
+    let settings = ReaderSettings::for_test_server(
+        &format!("{}/2.0/", server.uri()),
+        ClientIdentity::new("tallyline-test", "1.2.3"),
+    )
+    .unwrap()
+    .with_expert_host_confirmation();
+    let reader = UexReader::new(&settings)
+        .unwrap()
+        .with_authenticated_read_gate(crate::api::AuthenticatedReadGate::new(|_| true));
+    let base = released_request().unwrap();
+    let mut header = base.header().clone();
+    header.mode = SubmissionMode::Production;
+    let mut rows = base.rows().to_vec();
+    for (row, commodity) in [(8, 8), (9, 9)] {
+        rows.push(
+            SubmissionRow::new(
+                RowId(row),
+                CommodityId(commodity),
+                "120".parse().unwrap(),
+                "0".parse().unwrap(),
+                1,
+            )
+            .unwrap(),
+        );
+    }
+    let request = SubmissionRequest::new(header, rows).unwrap();
+    let job = accepted_job(
+        &request,
+        SubmissionResult::Partial(vec![
+            UexReportId::new(81, Timestamp::from_seconds(100)).unwrap(),
+            UexReportId::new(82, Timestamp::from_seconds(100)).unwrap(),
+        ]),
+        Timestamp::from_seconds(100),
+    )
+    .unwrap();
+    assert_eq!(job.phase(), JobPhase::PartiallyAccepted);
+    let original = job.clone();
+    let credentials =
+        CredentialValues::new("dummy-key".to_owned(), Some("dummy-token".to_owned())).unwrap();
+    assert!(
+        reader
+            .verify_row_receipts(&job, &credentials, None)
+            .await
+            .is_none()
+    );
+    assert!(
+        reader
+            .verify_row_receipts(&job, &credentials, None)
+            .await
+            .is_none()
+    );
+    let requests = server.received_requests().await.unwrap();
+    assert_eq!(
+        requests.len(),
+        1,
+        "a known local quota must stop remaining returned IDs, the final window and repeated reads before owner handoff"
+    );
+    assert!(
+        requests[0]
+            .url
+            .query_pairs()
+            .any(|(key, value)| key == "id" && value == "81")
+    );
+    let observations = reader.take_quota_observations();
+    assert_eq!(observations.len(), 1);
+    assert_eq!(
+        observations[0].reset().map(|reset| reset.reset()),
+        Some(Timestamp::from_seconds(1010))
+    );
+    assert_eq!(job, original);
+    server.verify().await;
+}

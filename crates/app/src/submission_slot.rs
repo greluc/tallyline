@@ -5,13 +5,14 @@
 
 use crate::api::model::HttpAdmissionFailure;
 use tallyline_adapter_uex::api::model::PreparedUexSubmission;
-use tallyline_submission::api::model::{CredentialValues, SubmissionResult};
+use tallyline_submission::api::model::{CredentialValues, SubmissionJob, SubmissionResult};
 use tokio::sync::oneshot;
 
 pub(crate) struct SubmissionDispatch {
     pub(crate) prepared: PreparedUexSubmission,
     pub(crate) values: CredentialValues,
     pub(crate) token: Option<String>,
+    pub(crate) quota_source: Option<crate::http_quota::PostQuotaSource>,
 }
 /// A pending slot request containing neither credentials nor encoded payload data.
 pub struct PendingSubmissionReservation {
@@ -53,6 +54,7 @@ impl PendingSubmissionReservation {
 pub struct SubmissionSlot {
     dispatch: oneshot::Sender<SubmissionDispatch>,
     reply: oneshot::Receiver<SubmissionResult>,
+    quota_source: Option<crate::http_quota::PostQuotaSource>,
 }
 impl SubmissionSlot {
     pub(crate) fn channel() -> (
@@ -62,7 +64,19 @@ impl SubmissionSlot {
     ) {
         let (dispatch, request) = oneshot::channel();
         let (result, reply) = oneshot::channel();
-        (Self { dispatch, reply }, request, result)
+        (
+            Self {
+                dispatch,
+                reply,
+                quota_source: None,
+            },
+            request,
+            result,
+        )
+    }
+    pub(crate) fn bind_origin(mut self, sending: &SubmissionJob) -> Self {
+        self.quota_source = Some(crate::http_quota::PostQuotaSource::new(sending));
+        self
     }
     /// Dispatches once directly to the ready route after the caller committed write-ahead state.
     /// Fresh credentials must still match the immutable released account at this point.
@@ -79,6 +93,7 @@ impl SubmissionSlot {
                 prepared,
                 values: values.clone(),
                 token: release_token.map(str::to_owned),
+                quota_source: self.quota_source,
             })
             .is_err();
         PendingSubmission {

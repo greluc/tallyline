@@ -45,3 +45,7 @@ mod resolution_action_document;
 mod resolution_draft;
 
 mod report_history;
+
+mod token_quota;
+
+mod authenticated_quota;

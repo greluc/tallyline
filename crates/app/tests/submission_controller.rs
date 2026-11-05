@@ -2214,3 +2214,21 @@ mod receipt_support;
 
 #[path = "submission_controller/partial_resolution.rs"]
 mod partial_resolution;
+
+#[path = "submission_controller/quota.rs"]
+mod quota;
+
+#[path = "submission_controller/quota_regressions.rs"]
+mod quota_regressions;
+
+#[path = "submission_controller/quota_tokens.rs"]
+mod quota_tokens;
+
+#[path = "submission_controller/quota_overlap.rs"]
+mod quota_overlap;
+
+#[path = "submission_controller/quota_transfer.rs"]
+mod quota_transfer;
+
+#[path = "submission_controller/quota_pending_post.rs"]
+mod quota_pending_post;

@@ -16,6 +16,11 @@ use tallyline_shared_kernel::api::model::Timestamp;
 
 /// Performs read-only account and selected-token validation.
 pub trait CredentialValidator {
+    /// Reports whether restored service admission is ready for credential checks.
+    fn is_available(&self) -> bool {
+        true
+    }
+
     /// Returns only the account identity after both checks succeed.
     fn validate(
         &self,
@@ -25,6 +30,26 @@ pub trait CredentialValidator {
 
 /// Persists one complete credential record atomically.
 pub trait SecretStore {
+    /// Compares a candidate read-only against protected token associations without saving input.
+    fn token_admission(
+        &mut self,
+        token: &str,
+    ) -> impl std::future::Future<Output = Result<model::TokenAdmission, StorageFailure>> + Send
+    {
+        let scope = self.token_scope(token, Persistence::Session);
+        async move { scope.await.map(model::TokenAdmission::from_scope) }
+    }
+
+    /// Resolves an exact token inside protected storage without persisting session-only input.
+    fn token_scope(
+        &mut self,
+        _token: &str,
+        _persistence: Persistence,
+    ) -> impl std::future::Future<Output = Result<Option<model::TokenScope>, StorageFailure>> + Send
+    {
+        async { Ok(None) }
+    }
+
     /// Reads the required account record without revealing it to a view.
     fn load(
         &mut self,
@@ -48,9 +73,29 @@ pub struct ValidationRequest {
     identity: u64,
     candidate: CredentialCandidate,
     revalidation: bool,
+    scope_token: Option<String>,
 }
 
 impl ValidationRequest {
+    /// Compares a candidate with protected token associations without saving or unlocking.
+    ///
+    /// # Errors
+    /// Returns a closed provider failure while leaving the candidate identity unproven.
+    pub async fn lookup_token_admission(
+        &mut self,
+        store: &mut impl SecretStore,
+        release_token: Option<&str>,
+    ) -> Result<(), StorageFailure> {
+        self.candidate.values.token_admission = model::TokenAdmission::default();
+        self.scope_token = None;
+        let Some(token) = self.candidate.values.own_token().or(release_token) else {
+            return Ok(());
+        };
+        let proof = store.token_admission(token).await?;
+        self.scope_token = Some(token.to_owned());
+        self.candidate.values.token_admission = proof;
+        Ok(())
+    }
     /// Runs both read-only checks without publishing or saving the candidate.
     ///
     /// # Errors
@@ -77,10 +122,13 @@ impl ValidationRequest {
             .own_token()
             .or(release_token)
             .ok_or(CredentialFailure::MissingToken)?;
-        let selected = CredentialValues::new(
+        let mut selected = CredentialValues::new(
             self.candidate.values.secret_key().to_owned(),
             Some(token.to_owned()),
         )?;
+        if self.scope_token.as_deref() == Some(token) {
+            selected.token_admission = self.candidate.values.token_admission.clone();
+        }
         validator.validate(&selected).await
     }
 }
@@ -101,6 +149,7 @@ pub struct CredentialApplication {
     persistence: Option<Persistence>,
     send_authorised: bool,
     release_eligibility: ReleaseEligibility,
+    token_binding: Option<(String, model::TokenAdmission)>,
 }
 
 impl CredentialApplication {
@@ -123,9 +172,72 @@ impl CredentialApplication {
             persistence,
             send_authorised: false,
             release_eligibility: ReleaseEligibility::Remembered,
+            token_binding: None,
         })
     }
 
+    /// Publishes a durable scope only after protected persistence or retains a session-only comparison.
+    ///
+    /// # Errors
+    /// Returns a closed provider failure without publishing a new token identity.
+    pub async fn establish_token_scope(
+        &mut self,
+        store: &mut impl SecretStore,
+        release_token: Option<&str>,
+        persistence: Persistence,
+    ) -> Result<(), StorageFailure> {
+        if self.token_scope(release_token).is_some() {
+            return Ok(());
+        }
+        self.token_binding = None;
+        if let Some(saved) = &mut self.accepted {
+            saved.values.token_admission = model::TokenAdmission::default();
+        }
+        if !self.send_authorised {
+            return Ok(());
+        }
+        let Some(token) = self
+            .accepted
+            .as_ref()
+            .and_then(|saved| saved.values.own_token().or(release_token))
+        else {
+            return Ok(());
+        };
+        let proof = match persistence {
+            Persistence::Durable => {
+                model::TokenAdmission::from_scope(store.token_scope(token, persistence).await?)
+            }
+            Persistence::Session => store.token_admission(token).await?,
+        };
+        self.token_binding = Some((token.to_owned(), proof.clone()));
+        if let Some(saved) = &mut self.accepted {
+            saved.values.token_admission = proof;
+        }
+        Ok(())
+    }
+    /// Returns protected inequality evidence only for the exact currently selected validated token.
+    #[must_use]
+    pub fn token_admission(&self, release_token: Option<&str>) -> Option<&model::TokenAdmission> {
+        if !self.send_authorised {
+            return None;
+        }
+        let token = self
+            .accepted
+            .as_ref()?
+            .values
+            .own_token()
+            .or(release_token)?;
+        self.token_binding
+            .as_ref()
+            .filter(|(bound, _)| bound == token)
+            .map(|(_, proof)| proof)
+    }
+    /// Returns durable token identity only for the exact currently selected token.
+    #[must_use]
+    pub fn token_scope(&self, release_token: Option<&str>) -> Option<model::TokenScope> {
+        self.token_admission(release_token)
+            .and_then(model::TokenAdmission::known_scope)
+    }
     /// Returns safe account state without exposing saved credential values.
     #[must_use]
     pub const fn state(&self) -> &AccountState {
@@ -168,6 +280,7 @@ impl CredentialApplication {
     /// Starts a candidate, closes release and sending, and supersedes earlier validation requests.
     /// The accepted identity remains visible until a current successful candidate replaces it.
     pub fn begin(&mut self, candidate: CredentialCandidate) -> ValidationRequest {
+        self.token_binding = None;
         self.send_authorised = false;
         self.release_eligibility = ReleaseEligibility::Closed;
         self.generation = self.generation.wrapping_add(1);
@@ -175,6 +288,7 @@ impl CredentialApplication {
             identity: self.generation,
             candidate,
             revalidation: false,
+            scope_token: None,
         }
     }
 
@@ -237,6 +351,9 @@ impl CredentialApplication {
             };
             result.map_err(CredentialFailure::Storage)?;
         }
+        self.token_binding = request
+            .scope_token
+            .map(|token| (token, saved.values.token_admission.clone()));
         self.state = account_state(&saved, request.candidate.persistence);
         self.persistence = Some(request.candidate.persistence);
         self.accepted = Some(saved);
@@ -330,4 +447,51 @@ pub trait SubmissionRowReceiptVerifier {
         credentials: &CredentialValues,
         release_token: Option<&str>,
     ) -> impl Future<Output = Option<Vec<VerifiedUexReport>>> + Send;
+}
+
+/// Atomically expires independently persisted token quota evidence.
+pub trait SubmissionQuotaRepository {
+    /// Retains one exact authenticated-read quota answer idempotently without a POST attempt.
+    ///
+    /// # Errors
+    /// Returns unavailable or invalid persistence without publishing a weaker hold.
+    fn record_authenticated_quota(
+        &mut self,
+        observation: model::TokenQuotaObservation,
+    ) -> Result<(), model::SubmissionRepositoryError>;
+    /// Loads active authenticated-read quota evidence without treating a failed read as empty.
+    ///
+    /// # Errors
+    /// Returns unavailable or corrupt persisted evidence.
+    fn authenticated_quotas(
+        &mut self,
+    ) -> Result<Vec<model::TokenQuotaObservation>, model::SubmissionRepositoryError>;
+    /// Checks independent global and exact-token service evidence without granting send authority.
+    ///
+    /// # Errors
+    /// Refuses unavailable or corrupt service history.
+    fn quota_allows(
+        &mut self,
+        scope: Option<model::TokenScope>,
+    ) -> Result<bool, model::SubmissionRepositoryError>;
+
+    /// Checks a bounded protected token distinction without persisting its proof.
+    ///
+    /// # Errors
+    /// Refuses unavailable or corrupt service history.
+    fn quota_allows_admission(
+        &mut self,
+        proof: &model::TokenAdmission,
+    ) -> Result<bool, model::SubmissionRepositoryError> {
+        self.quota_allows(proof.known_scope())
+    }
+
+    /// Commits due quota expiry and eligible in-session resumption without dispatching HTTP.
+    ///
+    /// # Errors
+    /// Retains every fence and job if an exact-source transaction cannot commit.
+    fn expire_quotas(
+        &mut self,
+        now: Timestamp,
+    ) -> Result<Vec<SubmissionJob>, model::SubmissionRepositoryError>;
 }

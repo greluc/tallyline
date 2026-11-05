@@ -5,13 +5,13 @@
 
 use crate::http_client::HttpClient;
 use crate::http_protocol::{Command, HttpBackend};
+use crate::http_quota::HttpQuota;
 use std::io;
-use std::sync::{
-    Arc,
-    atomic::{AtomicBool, Ordering},
-};
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::{Arc, Mutex};
 use std::thread::JoinHandle;
 use std::time::Duration;
+use tallyline_submission::api::model::TokenAdmission;
 use tokio::sync::mpsc;
 use tokio::task::JoinSet;
 use tracing::instrument::WithSubscriber;
@@ -81,11 +81,17 @@ impl HttpDriver {
         B: HttpBackend + 'static,
     {
         let (requests, incoming) = mpsc::channel(REQUEST_CAPACITY);
+        let mut initial_quota = crate::http_quota::HttpQuota::default();
+        if server_time.is_none() {
+            initial_quota.replace_holds(Vec::new(), &[]);
+        }
+        let quota = Arc::new(std::sync::Mutex::new(initial_quota));
+        let driver_quota = Arc::clone(&quota);
         let stop = Arc::new(AtomicBool::new(false));
         let stopping = Arc::clone(&stop);
         let worker = crate::executor::spawn("tallyline-http", move || {
             tracing::subscriber::with_default(tracing::subscriber::NoSubscriber::default(), || {
-                run(factory, incoming, &stopping)
+                run(factory, incoming, &stopping, driver_quota)
             })
         })?;
         Ok((
@@ -97,6 +103,7 @@ impl HttpDriver {
             HttpClient {
                 requests,
                 server_time,
+                quota,
             },
         ))
     }
@@ -134,6 +141,7 @@ fn run<B: HttpBackend + 'static, E>(
     factory: impl FnOnce() -> Result<B, E>,
     mut incoming: mpsc::Receiver<Command>,
     stop: &AtomicBool,
+    quota: Arc<std::sync::Mutex<crate::http_quota::HttpQuota>>,
 ) -> io::Result<()> {
     let runtime = tokio::runtime::Builder::new_multi_thread()
         .worker_threads(IO_THREADS)
@@ -143,7 +151,15 @@ fn run<B: HttpBackend + 'static, E>(
         .build()?;
     let backend = {
         let _entered = runtime.enter();
-        Arc::new(factory().map_err(|_| io::Error::other("shared HTTP backend is unavailable"))?)
+        let admission = Arc::clone(&quota);
+        let gate = tallyline_adapter_uex::api::AuthenticatedReadGate::new(move |proof| {
+            admission.lock().is_ok_and(|quota| !quota.blocks(proof))
+        });
+        Arc::new(
+            factory()
+                .map_err(|_| io::Error::other("shared HTTP backend is unavailable"))?
+                .with_authenticated_read_gate(gate),
+        )
     };
     let mut tasks = JoinSet::new();
     let submissions = Arc::new(tokio::sync::Semaphore::new(MAX_SUBMISSIONS));
@@ -154,6 +170,7 @@ fn run<B: HttpBackend + 'static, E>(
         &mut incoming,
         stop,
         &submissions,
+        &quota,
     );
     runtime.block_on(tasks.shutdown());
     drop(backend);
@@ -167,6 +184,7 @@ fn drive<B: HttpBackend + 'static>(
     incoming: &mut mpsc::Receiver<Command>,
     stop: &AtomicBool,
     submissions: &Arc<tokio::sync::Semaphore>,
+    quota: &Arc<std::sync::Mutex<crate::http_quota::HttpQuota>>,
 ) -> io::Result<()> {
     while !stop.load(Ordering::Acquire) {
         while let Some(result) = tasks.try_join_next() {
@@ -189,7 +207,7 @@ fn drive<B: HttpBackend + 'static>(
             Ok(Some(command)) => {
                 let backend = Arc::clone(backend);
                 tasks.spawn_on(
-                    route(backend, command, Arc::clone(submissions))
+                    route(backend, command, Arc::clone(submissions), Arc::clone(quota))
                         .with_subscriber(tracing::subscriber::NoSubscriber::default()),
                     runtime.handle(),
                 );
@@ -205,10 +223,12 @@ async fn route<B: HttpBackend + 'static>(
     backend: Arc<B>,
     command: Command,
     submissions: Arc<tokio::sync::Semaphore>,
+    quota: Arc<std::sync::Mutex<crate::http_quota::HttpQuota>>,
 ) {
     match command {
         Command::VerifyRowReceipts(job, values, token, reply) => {
             let result = backend.verify_row_receipts(job, values, token).await;
+            record_quota(&*backend, &quota);
             if reply.send(result).is_err() {
                 tracing::debug!("Row receipt verification reply receiver closed");
             }
@@ -224,39 +244,61 @@ async fn route<B: HttpBackend + 'static>(
             let Ok(request) = request.await else {
                 return;
             };
-            let answer = backend
-                .submit(request.prepared, request.values, request.token)
-                .await;
+            let blocked = post_blocked(&*backend, &quota, request.values.token_admission());
+            let scope = request.values.token_scope();
+            let answer = if blocked {
+                tallyline_submission::api::model::SubmissionResult::Returned(
+                    tallyline_submission::api::model::SubmissionReturnReason::PreflightChanged,
+                )
+            } else {
+                backend
+                    .submit(request.prepared, request.values, request.token)
+                    .await
+            };
+            hold_post_quota(&quota, &answer, scope, request.quota_source);
+            record_quota(&*backend, &quota);
             if result.send(answer).is_err() {
                 tracing::debug!("Reserved submission HTTP reply receiver closed");
             }
         }
         Command::RecheckRefusal(job, values, token, reply) => {
             let result = backend.recheck_refusal(job, values, token).await;
+            record_quota(&*backend, &quota);
             if reply.send(result).is_err() {
                 tracing::debug!("Refusal recheck reply receiver closed");
             }
         }
         Command::VerifyReceipts(job, values, token, reply) => {
             let result = backend.verify_receipts(job, values, token).await;
+            record_quota(&*backend, &quota);
             if reply.send(result).is_err() {
                 tracing::debug!("Receipt verification reply receiver closed");
             }
         }
         Command::Fetch(endpoint, reply) => {
             let result = backend.fetch(endpoint).await;
+            record_quota(&*backend, &quota);
             if reply.send(result).is_err() {
                 tracing::debug!("Public HTTP reply receiver closed");
             }
         }
         Command::Priors(terminals, reply) => {
             let result = backend.fetch_terminal_priors(terminals).await;
+            record_quota(&*backend, &quota);
             if reply.send(result).is_err() {
                 tracing::debug!("Prior HTTP reply receiver closed");
             }
         }
         Command::Validate(values, reply) => {
-            let result = backend.validate(values).await;
+            let blocked = quota
+                .lock()
+                .map_or(true, |quota| quota.blocks(values.token_admission()));
+            let result = if blocked {
+                Err(backend.check_account_while_token_held(values).await)
+            } else {
+                backend.validate(values).await
+            };
+            record_quota(&*backend, &quota);
             if reply.send(result).is_err() {
                 tracing::debug!("Credential HTTP reply receiver closed");
             }
@@ -271,10 +313,73 @@ async fn route<B: HttpBackend + 'static>(
                 }
                 return;
             };
-            let result = backend.submit(prepared, values, token).await;
+            let scope = values.token_scope();
+            let blocked = post_blocked(&*backend, &quota, values.token_admission());
+            let result = if blocked {
+                tallyline_submission::api::model::SubmissionResult::Returned(
+                    tallyline_submission::api::model::SubmissionReturnReason::PreflightChanged,
+                )
+            } else {
+                backend.submit(prepared, values, token).await
+            };
+            hold_post_quota(&quota, &result, scope, None);
+            record_quota(&*backend, &quota);
             if reply.send(result).is_err() {
                 tracing::debug!("Submission HTTP reply receiver closed");
             }
         }
+    }
+}
+
+fn record_quota(
+    backend: &impl HttpBackend,
+    quota: &std::sync::Mutex<crate::http_quota::HttpQuota>,
+) {
+    match quota.lock() {
+        Ok(mut quota) => {
+            record_pending_quota(backend, &mut quota);
+        }
+        Err(_) => tracing::error!("Shared HTTP quota state is unavailable"),
+    }
+}
+
+fn post_blocked(
+    backend: &impl HttpBackend,
+    quota: &Mutex<HttpQuota>,
+    proof: &TokenAdmission,
+) -> bool {
+    quota.lock().map_or(true, |mut quota| {
+        record_pending_quota(backend, &mut quota);
+        quota.blocks(proof)
+    })
+}
+
+fn record_pending_quota(backend: &impl HttpBackend, quota: &mut HttpQuota) {
+    for observation in backend.take_quota_observations() {
+        quota.record(observation);
+    }
+}
+
+fn hold_post_quota(
+    quota: &std::sync::Mutex<crate::http_quota::HttpQuota>,
+    result: &tallyline_submission::api::model::SubmissionResult,
+    scope: Option<tallyline_submission::api::model::TokenScope>,
+    source: Option<crate::http_quota::PostQuotaSource>,
+) {
+    if !result.is_daily_quota() {
+        return;
+    }
+    let reset = result.daily_quota_reset().map(|reset| {
+        tallyline_submission::api::model::TokenQuotaReset::new(
+            reset,
+            result.daily_quota_observed_at(),
+        )
+    });
+    match quota.lock() {
+        Ok(mut quota) => quota.hold_post(
+            tallyline_submission::api::model::TokenQuotaObservation::new(scope, reset),
+            source,
+        ),
+        Err(_) => tracing::error!("Shared HTTP quota state is unavailable"),
     }
 }

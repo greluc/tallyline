@@ -34,6 +34,7 @@ pub(crate) struct CappedResponse {
     pub(crate) http_status: u16,
     pub(crate) cf_ray: Option<String>,
     pub(crate) body: Vec<u8>,
+    pub(crate) server_time: Option<tallyline_shared_kernel::api::model::Timestamp>,
 }
 
 impl Transport {
@@ -254,8 +255,31 @@ impl Transport {
                     http_status,
                     cf_ray: response.cf_ray,
                 },
-                other @ (ReadError::Rejected { .. }
-                | ReadError::Redirect { .. }
+                ReadError::Rejected {
+                    http_status,
+                    code,
+                    message,
+                    data,
+                } => {
+                    let data = data.map(|data| match data {
+                        crate::api::RejectedData::QuotaReset { reset, .. } => {
+                            crate::api::RejectedData::QuotaReset {
+                                reset,
+                                observed_at: response.server_time,
+                            }
+                        }
+                        other @ (crate::api::RejectedData::Row(_)
+                        | crate::api::RejectedData::Report { .. }
+                        | crate::api::RejectedData::Other) => other,
+                    });
+                    ReadError::Rejected {
+                        http_status,
+                        code,
+                        message,
+                        data,
+                    }
+                }
+                other @ (ReadError::Redirect { .. }
                 | ReadError::Malformed { .. }
                 | ReadError::BodyTooLarge { .. }
                 | ReadError::Transport(_)) => other,
@@ -269,7 +293,7 @@ impl Transport {
         mut response: reqwest::Response,
         credentials: &[(&str, &str)],
     ) -> Result<CappedResponse, ReadError> {
-        if let Some(tracker) = &self.server_time {
+        let server_time = if let Some(tracker) = &self.server_time {
             let date = if response.headers().get_all("date").iter().count() == 1 {
                 response
                     .headers()
@@ -280,8 +304,10 @@ impl Transport {
             };
             tracker
                 .observe(date)
-                .map_err(|_| ReadError::Transport("server-time cache is unavailable".to_owned()))?;
-        }
+                .map_err(|_| ReadError::Transport("server-time cache is unavailable".to_owned()))?
+        } else {
+            None
+        };
         let http_status = response.status().as_u16();
         if response.status().is_redirection() {
             return Err(ReadError::Redirect { http_status });
@@ -310,6 +336,7 @@ impl Transport {
             http_status,
             cf_ray,
             body,
+            server_time,
         })
     }
 }
