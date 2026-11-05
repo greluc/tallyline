@@ -46,7 +46,7 @@ jobs:
         run: cargo xtask guard
 
       - name: Install pinned cargo-mutants
-        uses: ./.github/actions/install-cargo-mutants
+        run: cargo xtask install-cargo-mutants
 
       - name: Test mutations in pull request changes
         if: github.event_name == 'pull_request'

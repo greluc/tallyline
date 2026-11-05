@@ -113,7 +113,7 @@ jobs:
         run: cargo xtask guard
 
       - name: Install pinned cargo-mutants
-        uses: ./.github/actions/install-cargo-mutants
+        run: cargo xtask install-cargo-mutants
 
       - name: Fetch the complete locked dependency graph
         run: cargo fetch --locked

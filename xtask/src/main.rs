@@ -70,6 +70,9 @@ fn main() -> ExitCode {
         .as_slice()
     {
         ["check"] => run_check(&root),
+        ["install-cargo-mutants"] => {
+            xtask::install_cargo_mutants::run().map(|()| ExitCode::SUCCESS)
+        }
         ["guard"] => run_guard(&root),
         ["architecture"] => architecture_passes(&root).map(exit_status),
         ["build-code"] => run_build_code(&root),
@@ -107,7 +110,7 @@ fn main() -> ExitCode {
 fn usage() -> io::Result<ExitCode> {
     writeln!(
         io::stderr(),
-        "usage: cargo xtask check | guard | architecture | build-code | native-scope | property-scope <metadata.json> <Cargo.lock> <target> [<approved.json>] | sqlite-native | native-assembly [<approved.json>] | mutation [--in-diff <diff>] [--shard <k/n>] | mutation-aggregate <directory> <head> <run> <attempt> | dco <base> <head> | osv-gate <report.json> | vendor-hashes write | vendor-hashes verify | notices"
+        "usage: cargo xtask check | install-cargo-mutants | guard | architecture | build-code | native-scope | property-scope <metadata.json> <Cargo.lock> <target> [<approved.json>] | sqlite-native | native-assembly [<approved.json>] | mutation [--in-diff <diff>] [--shard <k/n>] | mutation-aggregate <directory> <head> <run> <attempt> | dco <base> <head> | osv-gate <report.json> | vendor-hashes write | vendor-hashes verify | notices"
     )?;
     Ok(ExitCode::FAILURE)
 }

@@ -16,6 +16,7 @@ pub mod exit;
 pub mod guard;
 pub mod hashlist;
 pub mod header;
+pub mod install_cargo_mutants;
 pub mod licence;
 pub mod listing;
 pub mod lockfile;
