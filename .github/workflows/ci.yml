@@ -75,6 +75,7 @@ jobs:
           test "$pinned" = "$actual"
 
       - name: Install pinned cargo-llvm-cov
+        timeout-minutes: 3
         shell: bash
         env:
           LLVM_COV_TARGET: ${{ matrix.llvm-cov-target }}
@@ -82,15 +83,13 @@ jobs:
         run: |
           cd "$RUNNER_TEMP"
           archive="cargo-llvm-cov-${LLVM_COV_TARGET}.tar.gz"
-          curl --fail --silent --show-error --location --output "$archive" "https://github.com/taiki-e/cargo-llvm-cov/releases/download/v${LLVM_COV_VERSION}/${archive}"
+          curl --disable --fail --silent --show-error --location --proto =https --proto-redir =https --connect-timeout 30 --max-time 120 --retry 3 --retry-max-time 20 --max-filesize 67108864 --output "$archive" "https://github.com/taiki-e/cargo-llvm-cov/releases/download/v${LLVM_COV_VERSION}/${archive}"
           echo "${LLVM_COV_SHA256}  ${archive}" | sha256sum --check -
           mkdir cargo-llvm-cov
           tar -xzf "$archive" -C cargo-llvm-cov
+          test "$(PATH="$(pwd)/cargo-llvm-cov:$PATH" cargo --locked llvm-cov --version)" = "cargo-llvm-cov ${LLVM_COV_VERSION}"
           echo "$RUNNER_TEMP/cargo-llvm-cov" >> "$GITHUB_PATH"
 
-      - name: Verify pinned cargo-llvm-cov
-        shell: bash
-        run: test "$(cargo --locked llvm-cov --version)" = "cargo-llvm-cov ${LLVM_COV_VERSION}"
       - name: Install cargo-deny at the pinned version
         shell: bash
         env:

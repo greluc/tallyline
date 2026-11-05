@@ -16,6 +16,8 @@ use sha2::Sha256;
 
 const CONNECT_TIMEOUT_SECONDS: &str = "30";
 const DOWNLOAD_TIMEOUT_SECONDS: &str = "120";
+const DOWNLOAD_RETRIES: &str = "3";
+const RETRY_WINDOW_SECONDS: &str = "20";
 const MAX_DOWNLOAD_BYTES: &str = "67108864";
 const MAX_OUTPUT_BYTES: u64 = 65_536;
 const POLL_INTERVAL: Duration = Duration::from_millis(10);
@@ -169,6 +171,10 @@ fn download(release: &Release, owned: &Path, archive: &Path) -> io::Result<()> {
                 CONNECT_TIMEOUT_SECONDS,
                 "--max-time",
                 DOWNLOAD_TIMEOUT_SECONDS,
+                "--retry",
+                DOWNLOAD_RETRIES,
+                "--retry-max-time",
+                RETRY_WINDOW_SECONDS,
                 "--max-filesize",
                 MAX_DOWNLOAD_BYTES,
                 "--output",

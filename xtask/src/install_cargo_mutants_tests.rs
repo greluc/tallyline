@@ -8,12 +8,38 @@ use std::fs;
 use std::net::TcpListener;
 use std::path::PathBuf;
 use std::process::Command;
+use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::thread;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 use super::Release;
 use crate::scratch::Scratch;
 
+const SERVER_TIMEOUT: Duration = Duration::from_secs(30);
+const SERVER_POLL_INTERVAL: Duration = Duration::from_millis(10);
+
+struct HttpServer {
+    stopped: Arc<AtomicBool>,
+    worker: Option<thread::JoinHandle<usize>>,
+}
+
+impl HttpServer {
+    fn join(mut self) -> thread::Result<usize> {
+        self.stop()
+    }
+
+    fn stop(&mut self) -> thread::Result<usize> {
+        self.stopped.store(true, Ordering::Release);
+        self.worker.take().map_or(Ok(0), thread::JoinHandle::join)
+    }
+}
+
+impl Drop for HttpServer {
+    fn drop(&mut self) {
+        self.stop().expect("valid installer fixture");
+    }
+}
 struct Fixture {
     scratch: Scratch,
     root: PathBuf,
@@ -85,40 +111,85 @@ impl Fixture {
         self.root.join("github-path")
     }
 
-    fn serve(&self, archive: Vec<u8>) -> (Release, thread::JoinHandle<()>) {
+    fn serve(&self, archive: Vec<u8>) -> (Release, HttpServer) {
         self.serve_status(archive, "200 OK")
     }
 
-    fn serve_status(
+    fn serve_status(&self, archive: Vec<u8>, status: &'static str) -> (Release, HttpServer) {
+        self.serve_statuses(archive, vec![status])
+    }
+
+    fn serve_statuses(
         &self,
         archive: Vec<u8>,
-        status: &'static str,
-    ) -> (Release, thread::JoinHandle<()>) {
+        statuses: Vec<&'static str>,
+    ) -> (Release, HttpServer) {
         use std::io::{Read, Write};
 
         let listener = TcpListener::bind("127.0.0.1:0").expect("valid installer fixture");
+        listener
+            .set_nonblocking(true)
+            .expect("valid installer fixture");
         let address = listener.local_addr().expect("valid installer fixture");
         use sha2::{Digest, Sha256};
         let digest: [u8; 32] = Sha256::digest(&archive).into();
-        let server = thread::spawn(move || {
-            let (mut stream, _) = listener.accept().expect("valid installer fixture");
-            stream
-                .set_read_timeout(Some(Duration::from_secs(10)))
+        assert!(!statuses.is_empty(), "fixture requires an HTTP response");
+        let stopped = Arc::new(AtomicBool::new(false));
+        let worker_stopped = Arc::clone(&stopped);
+        let worker = thread::spawn(move || {
+            let start = Instant::now();
+            let mut requests = 0;
+            loop {
+                let mut stream = loop {
+                    if worker_stopped.load(Ordering::Acquire) {
+                        return requests;
+                    }
+                    match listener.accept() {
+                        Ok((stream, _)) => break stream,
+                        Err(error) if error.kind() == std::io::ErrorKind::WouldBlock => {
+                            assert!(
+                                start.elapsed() < SERVER_TIMEOUT,
+                                "fixture request timed out"
+                            );
+                            thread::sleep(SERVER_POLL_INTERVAL);
+                        }
+                        Err(error) => panic!("cannot accept fixture request: {error}"),
+                    }
+                };
+                stream
+                    .set_nonblocking(false)
+                    .expect("valid installer fixture");
+                stream
+                    .set_read_timeout(Some(SERVER_TIMEOUT))
+                    .expect("valid installer fixture");
+                stream
+                    .set_write_timeout(Some(SERVER_TIMEOUT))
+                    .expect("valid installer fixture");
+                let mut request = [0; 4096];
+                let count = stream.read(&mut request).expect("valid installer fixture");
+                assert!(count > 0);
+                let status = statuses[requests.min(statuses.len() - 1)];
+                requests += 1;
+                let body = if status == "200 OK" {
+                    archive.as_slice()
+                } else {
+                    b"unavailable"
+                };
+                write!(
+                    stream,
+                    "HTTP/1.1 {status}\r\nContent-Length: {}\r\nConnection: close\r\n\r\n",
+                    body.len()
+                )
                 .expect("valid installer fixture");
-            let mut request = [0; 4096];
-            let count = stream.read(&mut request).expect("valid installer fixture");
-            assert!(count > 0);
-            write!(
-                stream,
-                "HTTP/1.1 {status}\r\nContent-Length: {}\r\nConnection: close\r\n\r\n",
-                archive.len()
-            )
-            .expect("valid installer fixture");
-            stream.write_all(&archive).expect("valid installer fixture");
+                stream.write_all(body).expect("valid installer fixture");
+            }
         });
         (
             Release::fixture(format!("http://{address}/fixture"), digest),
-            server,
+            HttpServer {
+                stopped,
+                worker: Some(worker),
+            },
         )
     }
 }
@@ -131,12 +202,7 @@ fn executable() -> &'static str {
     }
 }
 
-#[test]
-fn verified_install_publishes_one_literal_directory_after_real_cargo_dispatch() {
-    let fixture = Fixture::new();
-    let (release, server) = fixture.serve(fixture.archive("success"));
-    super::install(&release, &fixture.root, &fixture.output()).expect("valid installer fixture");
-    server.join().expect("valid installer fixture");
+fn assert_verified_install(fixture: &Fixture) {
     let bin = fixture
         .root
         .join("cargo-mutants")
@@ -153,6 +219,28 @@ fn verified_install_publishes_one_literal_directory_after_real_cargo_dispatch() 
         b"cargo dispatch"
     );
     assert!(!fixture.root.join("cargo-mutants/archive").exists());
+}
+
+#[test]
+fn verified_install_publishes_one_literal_directory_after_real_cargo_dispatch() {
+    let fixture = Fixture::new();
+    let (release, server) = fixture.serve(fixture.archive("success"));
+    super::install(&release, &fixture.root, &fixture.output()).expect("valid installer fixture");
+    server.join().expect("valid installer fixture");
+    assert_verified_install(&fixture);
+}
+
+#[test]
+fn transient_http_errors_recover_before_verified_path_publication() {
+    let fixture = Fixture::new();
+    let (release, server) = fixture.serve_statuses(
+        fixture.archive("success"),
+        vec!["503 Service Unavailable", "504 Gateway Timeout", "200 OK"],
+    );
+    super::install(&release, &fixture.root, &fixture.output())
+        .expect("transient HTTP errors must recover within the bounded download");
+    server.join().expect("valid installer fixture");
+    assert_verified_install(&fixture);
 }
 
 #[test]
@@ -271,12 +359,16 @@ fn invalid_archive_is_cleaned_without_executing_or_publishing() {
 }
 
 #[test]
-fn http_error_is_cleaned_without_publication() {
+fn exhausted_transient_http_errors_are_cleaned_without_publication() {
     let fixture = Fixture::new();
     let (release, server) =
         fixture.serve_status(b"unavailable".to_vec(), "503 Service Unavailable");
     assert_failure(&fixture, &release, "download failed");
-    server.join().expect("valid installer fixture");
+    assert_eq!(
+        server.join().expect("valid installer fixture"),
+        4,
+        "the live HTTP endpoint must receive only the initial attempt and three retries"
+    );
 }
 
 #[test]
