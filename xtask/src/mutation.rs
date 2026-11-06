@@ -142,7 +142,7 @@ pub fn selected_counts(
 }
 
 /// Number of required CI shards.
-pub const CI_SHARD_COUNT: usize = 8;
+pub const CI_SHARD_COUNT: usize = 32;
 
 /// Identity shared by every artifact of one workflow attempt.
 pub struct RunIdentity<'a> {

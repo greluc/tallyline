@@ -43,6 +43,16 @@ impl Fixture {
 
 impl Drop for Fixture {
     fn drop(&mut self) {
+        if std::thread::panicking() {
+            use std::io::Write;
+            writeln!(
+                std::io::stderr(),
+                "retained failed mutation CLI fixture: {}",
+                self.0.display()
+            )
+            .unwrap();
+            return;
+        }
         fs::remove_dir_all(&self.0).expect("remove owned mutation CLI fixture");
     }
 }
@@ -216,4 +226,8 @@ fn public_mutation_bounds_build_storage_and_preserves_workspace_test_semantics()
             .all(|args| !args.contains("debuginfo=2") && !args.contains("incremental=")),
         "{mutation:#?}"
     );
+    campaign::assert_constructed_partitions(&fixture);
 }
+
+#[path = "mutation_build_storage/campaign.rs"]
+mod campaign;

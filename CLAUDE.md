@@ -164,11 +164,13 @@ This site is not endorsed by or affiliated with the Cloud Imperium or Roberts Sp
 
 Valid from M0 once the build exists. They are the intended interface; `cargo xtask check` exists today (the supply-chain guard, `cargo-deny` for licences, sources and bans, which must be installed at the version in `docs/dependency-pins.md`, the suppression and exemption rules for `deny.toml` and the `cargo-vet` store, the Dependabot rules, format, Clippy, rustdoc, tests and the requirement-tag check, the byte comparison of `LICENSE` and `LICENSES/GPL-3.0-or-later.txt`, the licence-header check of the Rust files and the English check; `reuse lint`, the DCO check, `cargo-vet`, `cargo-audit` and OSV-Scanner run in CI only; the other gates join it with their tickets), the other flags are fixed in M0, so check the tree before you rely on one:
 
+Corrected 2026-11-06: the aggregate command requires 32 artifacts, matching the fixed CI matrix.
+
 ```bash
 cargo xtask check               # supply-chain guard, format check, Clippy, rustdoc lints, all tests, architecture rules, cargo-deny, coverage gate
 cargo xtask dco <base> <head>   # DCO check: every non-merge commit of <base>..<head> has a Signed-off-by line matching its author (CI: pull requests)
 cargo xtask mutation [--in-diff <diff>] [--shard <k/n>] # full workspace tests for exact core selection; zero-based round-robin shards
-cargo xtask mutation-aggregate <directory> <head> <run> <attempt> # require all eight exact artifacts and the global score
+cargo xtask mutation-aggregate <directory> <head> <run> <attempt> # require all 32 exact artifacts and the global score
 cargo xtask guard               # the CI guard of 10 S-4 over Cargo.lock, manifests, Cargo config, toolchain pin and .github
 cargo xtask osv-gate <report>   # judge an osv-scanner JSON report (CI, 10 S-19; no network)
 cargo xtask vendor-hashes write # regenerate supply-chain/vendor-hashes.txt (network; run in the lockfile commit)

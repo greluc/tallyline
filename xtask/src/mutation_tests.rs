@@ -69,11 +69,11 @@ fn aggregates_viable_and_unviable_shards_but_rejects_all_unviable_and_missing_ev
         attempt: "1",
     };
     let full = json!([{"name":"first"}, {"name":"second"}, {"name":"third"}]);
-    for index in 0..8 {
-        let directory = format!("core-mutation-42-1-shard-{index}-of-8");
+    for index in 0..32 {
+        let directory = format!("core-mutation-42-1-shard-{index}-of-32");
         scratch.write(
             &format!("{directory}/identity.txt"),
-            &format!("head\n42\n1\n{index}/8\n"),
+            &format!("head\n42\n1\n{index}/32\n"),
         );
         scratch.write(
             &format!("{directory}/all-selected-mutants.json"),
@@ -105,7 +105,7 @@ fn aggregates_viable_and_unviable_shards_but_rejects_all_unviable_and_missing_ev
     }
     assert_eq!(aggregate(scratch.path(), &identity), Ok(Some(100.0)));
     scratch.write(
-        "core-mutation-42-1-shard-0-of-8/mutants.out/log/cause.log",
+        "core-mutation-42-1-shard-0-of-32/mutants.out/log/cause.log",
         "test unrelated_loader ... FAILED\nError: ExecutableFileBusy\ntest result: FAILED. 0 passed; 1 failed\n",
     );
     assert!(
@@ -113,16 +113,16 @@ fn aggregates_viable_and_unviable_shards_but_rejects_all_unviable_and_missing_ev
         "Infrastructure failure must not count as a caught core mutation."
     );
     scratch.write(
-        "core-mutation-42-1-shard-0-of-8/mutants.out/log/cause.log",
+        "core-mutation-42-1-shard-0-of-32/mutants.out/log/cause.log",
         "test domain_contract ... FAILED\nassertion failed: expected value\ntest result: FAILED. 0 passed; 1 failed\n",
     );
     scratch.write(
-        "core-mutation-42-1-shard-0-of-8/selected-mutants.json",
+        "core-mutation-42-1-shard-0-of-32/selected-mutants.json",
         &json!([full[1].clone()]).to_string(),
     );
     assert!(aggregate(scratch.path(), &identity).is_err());
     scratch.write(
-        "core-mutation-42-1-shard-0-of-8/selected-mutants.json",
+        "core-mutation-42-1-shard-0-of-32/selected-mutants.json",
         &json!([full[0].clone()]).to_string(),
     );
     let foreign_run = RunIdentity {
@@ -132,47 +132,47 @@ fn aggregates_viable_and_unviable_shards_but_rejects_all_unviable_and_missing_ev
     };
     assert!(aggregate(scratch.path(), &foreign_run).is_err());
     scratch.write(
-        "core-mutation-42-1-shard-7-of-8/all-selected-mutants.json",
+        "core-mutation-42-1-shard-31-of-32/all-selected-mutants.json",
         "[]",
     );
     assert!(aggregate(scratch.path(), &identity).is_err());
     scratch.write(
-        "core-mutation-42-1-shard-7-of-8/all-selected-mutants.json",
+        "core-mutation-42-1-shard-31-of-32/all-selected-mutants.json",
         &full.to_string(),
     );
 
     for index in 0..2 {
         scratch.write(
-            &format!("core-mutation-42-1-shard-{index}-of-8/mutants.out/outcomes.json"),
+            &format!("core-mutation-42-1-shard-{index}-of-32/mutants.out/outcomes.json"),
             &completed_report(full[index].clone(), true).to_string(),
         );
         scratch.write(
-            &format!("core-mutation-42-1-shard-{index}-of-8/mutants.out/log/cause.log"),
+            &format!("core-mutation-42-1-shard-{index}-of-32/mutants.out/log/cause.log"),
             "error[E0277]: Preview does not implement Default\n",
         );
     }
     assert!(aggregate(scratch.path(), &identity).is_err());
     scratch.write(
-        "core-mutation-42-1-shard-0-of-8/mutants.out/outcomes.json",
+        "core-mutation-42-1-shard-0-of-32/mutants.out/outcomes.json",
         &completed_report(full[0].clone(), false).to_string(),
     );
     scratch.write(
-        "core-mutation-42-1-shard-0-of-8/mutants.out/log/cause.log",
+        "core-mutation-42-1-shard-0-of-32/mutants.out/log/cause.log",
         "test domain_contract ... FAILED\nassertion failed: expected value\ntest result: FAILED. 0 passed; 1 failed\n",
     );
     scratch.write(
-        "core-mutation-42-1-shard-7-of-8/identity.txt",
-        "other-head\n42\n1\n7/8\n",
+        "core-mutation-42-1-shard-31-of-32/identity.txt",
+        "other-head\n42\n1\n31/32\n",
     );
     assert!(aggregate(scratch.path(), &identity).is_err());
     scratch.write(
-        "core-mutation-42-1-shard-7-of-8/identity.txt",
-        "head\n42\n1\n7/8\n",
+        "core-mutation-42-1-shard-31-of-32/identity.txt",
+        "head\n42\n1\n31/32\n",
     );
     std::fs::remove_file(
         scratch
             .path()
-            .join("core-mutation-42-1-shard-7-of-8/selected-mutants.json"),
+            .join("core-mutation-42-1-shard-31-of-32/selected-mutants.json"),
     )
     .unwrap();
     assert!(aggregate(scratch.path(), &identity).is_err());
@@ -183,18 +183,18 @@ fn completed_report(mutant: serde_json::Value, unviable: bool) -> serde_json::Va
 }
 
 #[test]
-fn all_eight_empty_selections_skip_without_a_measured_score() {
+fn all_thirty_two_empty_selections_skip_without_a_measured_score() {
     let scratch = crate::scratch::Scratch::new();
     let identity = crate::mutation::RunIdentity {
         head: "head",
         run: "42",
         attempt: "1",
     };
-    for index in 0..8 {
-        let directory = format!("core-mutation-42-1-shard-{index}-of-8");
+    for index in 0..32 {
+        let directory = format!("core-mutation-42-1-shard-{index}-of-32");
         scratch.write(
             &format!("{directory}/identity.txt"),
-            &format!("head\n42\n1\n{index}/8\n"),
+            &format!("head\n42\n1\n{index}/32\n"),
         );
         scratch.write(&format!("{directory}/all-selected-mutants.json"), "[]");
         scratch.write(&format!("{directory}/selected-mutants.json"), "[]");
@@ -204,7 +204,7 @@ fn all_eight_empty_selections_skip_without_a_measured_score() {
         Ok(None)
     );
     scratch.write(
-        "core-mutation-42-1-shard-0-of-8/mutants.out/outcomes.json",
+        "core-mutation-42-1-shard-0-of-32/mutants.out/outcomes.json",
         "{}",
     );
     assert!(crate::mutation::aggregate(scratch.path(), &identity).is_err());
