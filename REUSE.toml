@@ -15,6 +15,8 @@ path = [
   "crates/adapter-storage/tests/fixtures/schema-eleven-job.json",
   "crates/adapter-storage/tests/fixtures/schema-eleven-report.json",
   "crates/adapter-storage/tests/fixtures/schema-eleven-source.json",
+  "crates/adapter-storage/tests/fixtures/schema-thirteen-source.json",
+  "crates/adapter-storage/tests/fixtures/schema-thirteen.json",
   "crates/adapter-uex/contracts/*.json",
   "crates/egui/design/tokens.json",
   "ui/design-tokens/*.json",
