@@ -1,6 +1,6 @@
 # Local vision runtimes and complementary recognition readers
 
-> **Doc type:** Living reference — runtime research and proposals; product constraints accepted in ADR-0012, engine choice pending. Last reviewed: 2026-11-05.
+> **Doc type:** Living reference — runtime research and proposals; product constraints accepted in ADR-0012, engine choice pending. Last reviewed: 2026-11-06.
 
 ## 1. Conclusion and scope
 
@@ -125,6 +125,8 @@ The [portable evidence manifest](research/ollama-v0.40.13/ollama-v0.40.13-window
 | Acquired CLI | `c1cca2937421d78877d5961746d25e33acd62e194d881f90fb63dca7f3e10f41` |
 
 The notices supply MIT/Go/vendor texts, but exact LLVM runtime, CGo/native-vendor and complete notice/source mapping remain unresolved; missing evidence is not a licence-violation finding. This narrowed candidate supports completing bundled-private-CLI admission before invoking ADR-0013's installed-CLI last resort. Actual clean-install providers, private stores and OS endpoint ownership, download destinations, drift and whole-tree cancellation/resources still need proof. The separate ORT prerequisite remains. No native activation, accuracy or physical weak-PC acceptance follows.
+
+Added 2026-11-06: the [CGo/SQLite/notice delta](research/ollama-v0.40.13/ollama-v0.40.13-cgo-sqlite-notice-delta-v01.md) records consistency of all 58 embedded module/version/h1 claims, all 58 `.mod` h1s and 61 module licence/NOTICE texts. Complete source ZIP h1s were reproduced only for SQLite and gods/v2. The exact Go dependency contains SQLite 3.53.4, distinct from the approved Rust SQLite 3.54.1 scope. Trimpath omits native flag metadata; actual flags, compiled native scope, authenticity, complete notices/providers/dynamic closure and execution admission remain unproved. This inspects upstream Go code and adds no Tallyline Go implementation or selected runtime.
 
 ## 5. Additional OCR readers
 

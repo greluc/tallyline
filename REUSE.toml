@@ -4,6 +4,7 @@ version = 1
 path = [
   "**/*.md",
   "docs/research/ollama-v0.40.13/ollama-v0.40.13-windows-amd64-static-evidence-v01.json",
+  "docs/research/ollama-v0.40.13/ollama-v0.40.13-cgo-sqlite-notice-delta-v01.json",
   ".editorconfig",
   ".gitattributes",
   ".gitignore",
