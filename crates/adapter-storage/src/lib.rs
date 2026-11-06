@@ -42,6 +42,7 @@ mod queue_account_evidence;
 
 mod resolution_action_document;
 
+mod cooldown_split;
 mod resolution_draft;
 
 mod report_history;

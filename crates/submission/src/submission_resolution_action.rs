@@ -21,6 +21,13 @@ pub enum ReceiptDecision {
 /// An explicit resolution action without submission authority.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum SubmissionResolutionAction {
+    /// Links the separate ready Report while retaining all original evidence ancestry.
+    Split {
+        /// Fresh ready Report identity; the cooling Report retains the source identity.
+        report: ReportId,
+        /// Explicit split time.
+        at: Timestamp,
+    },
     /// Links a separate Draft containing exactly the resolved not-accepted rows.
     RowsDuplicated {
         /// The fresh separate Draft identity.
@@ -66,7 +73,8 @@ impl SubmissionResolutionAction {
     #[must_use]
     pub const fn at(&self) -> Timestamp {
         match self {
-            Self::RowsDuplicated { at, .. }
+            Self::Split { at, .. }
+            | Self::RowsDuplicated { at, .. }
             | Self::RowDecision { at, .. }
             | Self::Decision { at, .. }
             | Self::Duplicated { at, .. }
@@ -109,7 +117,8 @@ impl SubmissionJob {
                 if self.can_duplicate_unknown()
                     && report.0 != 0
                     && *report != self.request().header().report => {}
-            SubmissionResolutionAction::RowsDuplicated { .. }
+            SubmissionResolutionAction::Split { .. }
+            | SubmissionResolutionAction::RowsDuplicated { .. }
             | SubmissionResolutionAction::RowDecision { .. }
             | SubmissionResolutionAction::Decision { .. }
             | SubmissionResolutionAction::Duplicated { .. } => {
@@ -156,7 +165,8 @@ impl SubmissionJob {
             .iter()
             .find_map(|action| match action {
                 SubmissionResolutionAction::Decision { decision, .. } => Some(*decision),
-                SubmissionResolutionAction::RowsDuplicated { .. }
+                SubmissionResolutionAction::Split { .. }
+                | SubmissionResolutionAction::RowsDuplicated { .. }
                 | SubmissionResolutionAction::RowDecision { .. }
                 | SubmissionResolutionAction::Duplicated { .. }
                 | SubmissionResolutionAction::Verified { .. } => None,
@@ -188,7 +198,8 @@ impl SubmissionJob {
                 .iter()
                 .flat_map(|action| match action {
                     SubmissionResolutionAction::Verified { receipts, .. } => receipts.as_slice(),
-                    SubmissionResolutionAction::RowsDuplicated { .. }
+                    SubmissionResolutionAction::Split { .. }
+                    | SubmissionResolutionAction::RowsDuplicated { .. }
                     | SubmissionResolutionAction::RowDecision { .. }
                     | SubmissionResolutionAction::Decision { .. }
                     | SubmissionResolutionAction::Duplicated { .. } => &[],
@@ -238,5 +249,32 @@ impl SubmissionJob {
             return Err(QueueRefusal::InvalidTransition);
         }
         Ok(())
+    }
+}
+
+impl SubmissionJob {
+    pub(crate) fn cancel_for_split(
+        &self,
+        report: ReportId,
+        at: Timestamp,
+    ) -> Result<Self, QueueRefusal> {
+        if self.phase() != JobPhase::Queued
+            || report.0 == 0
+            || report == self.request().header().report
+            || self.request().rows().len() < 2
+            || !self.resolution_actions.is_empty()
+            || at < self.request().header().observed_at
+            || self
+                .attempts()
+                .last()
+                .and_then(|attempt| attempt.ended_at())
+                .is_some_and(|ended| at < ended)
+        {
+            return Err(QueueRefusal::InvalidTransition);
+        }
+        let mut next = self.cancel()?;
+        next.resolution_actions
+            .push(SubmissionResolutionAction::Split { report, at });
+        Ok(next)
     }
 }

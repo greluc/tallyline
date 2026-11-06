@@ -2232,3 +2232,8 @@ mod quota_transfer;
 
 #[path = "submission_controller/quota_pending_post.rs"]
 mod quota_pending_post;
+
+#[path = "submission_controller/cooldown_split.rs"]
+mod cooldown_split;
+#[path = "../../workflows/tests/manual_release/three_rows.rs"]
+mod three_rows;

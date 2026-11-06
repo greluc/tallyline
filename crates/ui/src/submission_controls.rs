@@ -67,6 +67,17 @@ impl ShellState {
             return;
         }
         let (id, expected_revision, control) = match command {
+            QueueCommand::Split {
+                id,
+                expected_revision,
+            } => (
+                id,
+                expected_revision,
+                SubmissionControl::Split {
+                    id,
+                    expected: expected_revision,
+                },
+            ),
             QueueCommand::Resolve {
                 id,
                 expected_revision,

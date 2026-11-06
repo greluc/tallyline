@@ -23,6 +23,7 @@ pub struct SubmissionQueueBridge {
     wake: Box<dyn Fn() + Send>,
     pending: Option<BackgroundEvent>,
     initial: bool,
+    control_feedback: Option<SubmissionFeedback>,
     reference_publication: Option<Box<dyn FnMut() -> bool + Send>>,
     publication_pending: bool,
     notifications: Vec<OutboxEvent>,
@@ -47,6 +48,7 @@ impl SubmissionQueueBridge {
             wake: Box::new(wake),
             pending: None,
             initial: true,
+            control_feedback: None,
             reference_publication: None,
             publication_pending: false,
             notifications: Vec::new(),
@@ -72,6 +74,7 @@ impl SubmissionQueueBridge {
         application: &CredentialApplication,
         token: Option<&ReleaseToken>,
     ) -> Result<bool, SubmissionControlError> {
+        self.control_feedback = None;
         if let SubmissionControl::Release {
             id,
             expected,
@@ -195,6 +198,12 @@ impl SubmissionQueueBridge {
         token: Option<&ReleaseToken>,
     ) -> Result<(), SubmissionControlError> {
         match command {
+            SubmissionControl::Split { id, expected } => {
+                self.controller
+                    .split_cooldown(id, expected, application, token)?;
+                self.control_feedback = Some(SubmissionFeedback::Split);
+                Ok(())
+            }
             SubmissionControl::Resolve {
                 id,
                 expected,
@@ -302,7 +311,10 @@ impl CredentialQueue for SubmissionQueueBridge {
         {
             changed = true;
             match self.begin_command(command, application, token) {
-                Ok(done) => completed = done,
+                Ok(done) => {
+                    completed = done;
+                    feedback = self.control_feedback.take();
+                }
                 Err(error) => {
                     completed = true;
                     feedback = Some(feedback_for(error));
@@ -351,6 +363,7 @@ impl CredentialQueue for SubmissionQueueBridge {
             }
             self.pending = Some(BackgroundEvent::SubmissionUpdated(Box::new(
                 SubmissionUpdate {
+                    assessed_at: self.controller.schedule_time(),
                     client_version: self.controller.client_version(),
                     service_fences: self
                         .controller

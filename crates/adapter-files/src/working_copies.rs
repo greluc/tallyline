@@ -8,7 +8,7 @@ use sha2::{Digest, Sha256};
 use std::io::Read;
 use std::path::{Path, PathBuf};
 use tallyline_reporting::api::model::{ImageHash, Report};
-use tallyline_shared_kernel::api::model::ImageRaster;
+use tallyline_shared_kernel::api::model::{ImageRaster, ReportId};
 use tallyline_workflows::api::{WorkingCopyFailure, WorkingCopyStore};
 
 const MAGIC: &[u8; 8] = b"TLCRP001";
@@ -58,14 +58,14 @@ impl ManualWorkingCopies {
         }
         Ok(Self { directory })
     }
-    fn path(&self, report: &Report, hash: ImageHash) -> PathBuf {
+    fn path(&self, owner: ReportId, hash: ImageHash) -> PathBuf {
         let digest: String = hash
             .bytes()
             .iter()
             .map(|byte| format!("{byte:02x}"))
             .collect();
         self.directory
-            .join(format!("report-{}-{digest}.crop", report.id().0))
+            .join(format!("report-{}-{digest}.crop", owner.0))
     }
 }
 impl WorkingCopyStore for ManualWorkingCopies {
@@ -92,7 +92,7 @@ impl WorkingCopyStore for ManualWorkingCopies {
             bytes.extend_from_slice(&pixel.to_be_bytes());
         }
         let digest = ImageHash::new(Sha256::digest(&bytes).into());
-        let destination = self.path(report, digest);
+        let destination = self.path(report.id(), digest);
         if read_verified(&destination, digest).is_ok_and(|existing| existing == bytes) {
             return Ok(digest);
         }
@@ -130,7 +130,10 @@ impl WorkingCopyStore for ManualWorkingCopies {
         if !attachment.preview_confirmed() {
             return Err(WorkingCopyFailure::Unconfirmed);
         }
-        let bytes = read_verified(&self.path(report, digest), digest)?;
+        let owner = attachment
+            .working_copy_owner()
+            .ok_or(WorkingCopyFailure::MissingOrChanged)?;
+        let bytes = read_verified(&self.path(owner, digest), digest)?;
         let mut expected = Vec::with_capacity(HEADER_BYTES);
         expected.extend_from_slice(MAGIC);
         expected.extend_from_slice(&attachment.binding().image().bytes());

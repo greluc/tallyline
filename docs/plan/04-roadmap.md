@@ -303,3 +303,7 @@ Corrected 2026-11-04: M1 source coverage for R-SUB-2/R-SUB-11 now includes per-t
 ### Optional faction affinity checkpoint (2026-11-06)
 
 The R-SUB-13 source slice covers manual capture and the Report editor, integer bounds, absence versus explicit zero, immutable commodity-only submission, durable restart and selected-row copying. It adds no affinity-specific deviation exception. Database schema 14/configuration 6 covers the forward format gate and coordinated backup. Public application, real SQLite, local HTTP and drawn egui contracts are separate from native visual and approved real-service acceptance; the complete M1 submission lifecycle checkbox remains open.
+
+### Explicit mixed-cooldown source checkpoint - 2026-11-06
+
+Corrected 2026-11-06: the issue90 source slice implements R-SUB-4's explicit two-part released split, preserving exact row decisions, headers, observation time, attachments, age approval and optional affinity. Shared schedule policy supplies current groups/deadlines; an immediate SQLite transaction preserves original attempts and commits both replacements with their outbox. Schema15/configuration 6 has genuine previous14 backup/admission contracts. Public real-SQLite/controller and drawn egui contracts are distinct from local HTTP wire contracts. The complete M1 lifecycle checklist, mutation/native/provider/package and approved real-service acceptance remain open; issue92 lifecycle/withdrawal/general duplication is separate. See [the queue checkpoint](../submission-queue.md#explicit-mixed-cooldown-split-checkpoint---2026-11-06).

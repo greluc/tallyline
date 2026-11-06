@@ -21,6 +21,13 @@ pub enum SubmissionCommand {
     },
     /// Cancels an unsent job at the user's request.
     Cancel,
+    /// Cancels a queued origin only as part of an atomic released-row split.
+    CancelForSplit {
+        /// Fresh Report identity for the ready rows; the cooling part retains this Report.
+        report: ReportId,
+        /// The injected explicit split time.
+        at: Timestamp,
+    },
     /// Returns an eligible held request to the complete send-time gate.
     Retry,
     /// Returns proven unprocessed quota work through the full gate after its reset.
@@ -138,6 +145,7 @@ impl SubmissionJob {
     /// Refuses invalid phase transitions, payloads or exhausted persistence versions.
     pub fn apply(&self, command: SubmissionCommand) -> Result<SubmissionChange, QueueRefusal> {
         let account_check = matches!(&command, SubmissionCommand::ResolveAccountCheck(_));
+        let split = matches!(command, SubmissionCommand::CancelForSplit { .. });
         let state = match command {
             SubmissionCommand::ResolveDelivery(action) => self.resolve_delivery(action)?,
             SubmissionCommand::ResolveAccountCheck(reason) => self.resolve_account_check(reason)?,
@@ -147,6 +155,9 @@ impl SubmissionJob {
                 date_added,
             } => self.begin_prepared(at, payload_hash, date_added)?,
             SubmissionCommand::Cancel => self.cancel()?,
+            SubmissionCommand::CancelForSplit { report, at } => {
+                self.cancel_for_split(report, at)?
+            }
             SubmissionCommand::Retry => self.retry()?,
             SubmissionCommand::ResumeQuota { at } => self.resume_quota(at)?,
             SubmissionCommand::RetryAfterUpdate { version } => self.retry_after_update(version)?,
@@ -189,9 +200,11 @@ impl SubmissionJob {
                         (None, _) => SubmissionReturn::Restart,
                     },
                 )),
-                JobPhase::Cancelled => {
-                    Some(SubmissionEventKind::Cancelled(CancellationReason::User))
-                }
+                JobPhase::Cancelled => Some(SubmissionEventKind::Cancelled(if split {
+                    CancellationReason::Split
+                } else {
+                    CancellationReason::User
+                })),
             };
             if let Some(kind) = kind {
                 let id = EventId::new(EventSource::Submission, state.id().0, state.revision())
@@ -218,6 +231,8 @@ impl SubmissionJob {
 pub enum CancellationReason {
     /// Explicit user cancellation before sending began.
     User,
+    /// The exact released rows are atomically partitioned into replacement jobs.
+    Split,
 }
 
 /// Why an unfinished Report requires renewed manual release.

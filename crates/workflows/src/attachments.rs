@@ -28,7 +28,7 @@ pub trait WorkingCopyStore {
         report: &Report,
         raster: &ImageRaster,
     ) -> Result<ImageHash, WorkingCopyFailure>;
-    /// Loads and verifies the exact Report-owned private copy.
+    /// Loads and verifies the exact persisted private-copy binding.
     ///
     /// # Errors
     /// Refuses absent, changed or unbound evidence without falling back to the original.

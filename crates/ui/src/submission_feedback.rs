@@ -9,6 +9,9 @@ use tallyline_reporting::api::model::ReleaseBlockReason;
 
 pub(crate) fn show(ui: &mut egui::Ui, feedback: &SubmissionFeedback, catalogue: &Catalogue) {
     match feedback {
+        SubmissionFeedback::Split => {
+            ui.label(catalogue.text("queue.split_result"));
+        }
         SubmissionFeedback::Blocked(blocks) => {
             for block in blocks {
                 ui.label(catalogue.text(block_key(*block)));

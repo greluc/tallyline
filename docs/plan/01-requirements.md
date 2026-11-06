@@ -1,6 +1,6 @@
 # Requirements
 
-> **Doc type:** Living spec — binding. Last reviewed: 2026-11-04.
+> **Doc type:** Living spec — binding. Last reviewed: 2026-11-06.
 
 Corrected 2026-11-04: the owner marked all seven existing public corpus entries verified; see [current corpus status](../../corpus/README.md#offline-inspection). Earlier checkpoint verification states and inspection results below remain historical; this decision supplies no missing metadata, frozen reference snapshot, class coverage or recognition accuracy measurement.
 
@@ -310,3 +310,7 @@ The #89 source slice implements the row-by-row portion of R-SUB-9/R-SUB-11 and R
 ## Token quota source checkpoint — 2026-11-04
 
 Corrected 2026-11-04: the R-SUB-2/R-SUB-11 source unit now retains exact-response reset evidence, opaque protected token associations and independent durable quota expiry. R-API-3 reference requests remain tokenless. Expiry uses a fresh monotonic server estimate, keeps the automatic attempt ceiling and repeats the full send gate; restart still returns ordinary unfinished jobs to Draft for renewed release. Authenticated-read quota creates no POST history. Schema 13/configuration 6 and the protected registry's bounded version-one format retain previous-format/rollback contracts. This descriptive checkpoint changes no requirement or owner decision. The explicit R-SUB-4 cooldown split and remaining native/real-service acceptance remain open; see [the queue checkpoint](../submission-queue.md#token-quota-reset-checkpoint--2026-11-04).
+
+### Explicit cooldown partition source checkpoint - 2026-11-06
+
+Corrected 2026-11-06: R-SUB-4's existing explicit mixed-cooldown split is implemented through shared exact scheduling, preserved released decisions and an atomic Report/job/outbox transaction. R-SUB-2 restart, row budgets and serial sending, R-SUB-5 current acceptance, R-SUB-9 immutable attempt history and R-SUB-13 optional affinity remain authoritative for both replacements. This is an implementation checkpoint, changing no normative rule or coverage assignment. [The queue record](../submission-queue.md#explicit-mixed-cooldown-split-checkpoint---2026-11-06) defines the schema 15/configuration 6 gate and acceptance limits.

@@ -477,15 +477,26 @@ impl Report {
                 status_confirmation_revoked: row.status_confirmation_revoked,
             });
         }
+        if stored.attachment.is_some_and(|attachment| {
+            attachment.working_copy_owner.is_some() && attachment.working_copy.is_none()
+        }) {
+            return Err(InvalidReport);
+        }
         report.attachment = stored.attachment.map(|attachment| ManualAttachment {
             binding: attachment.binding,
             time: attachment.time,
             preview_confirmed: attachment.preview_confirmed,
             working_copy: attachment.working_copy,
+            working_copy_owner: attachment
+                .working_copy
+                .map(|_| attachment.working_copy_owner.unwrap_or(stored.id)),
         });
         if report.attachment.is_some_and(|attachment| {
             attachment.time.at() < report.observed_at
                 || (attachment.working_copy.is_some() && !attachment.preview_confirmed)
+                || attachment
+                    .working_copy_owner
+                    .is_some_and(|owner| owner.0 == 0)
         }) {
             return Err(InvalidReport);
         }
@@ -514,7 +525,8 @@ mod lifecycle;
 pub use fixable_reason::FixableReason;
 pub use lifecycle::{
     ReportChange, ReportDelivery, ReportEvent, ReportEventKind, ReportFinding,
-    ReportReleaseBinding, ReportState, StoredReportLifecycle, StoredReportReleaseBinding,
+    ReportReleaseBinding, ReportSplit, ReportState, StoredReportLifecycle,
+    StoredReportReleaseBinding,
 };
 
 mod newer_observation;

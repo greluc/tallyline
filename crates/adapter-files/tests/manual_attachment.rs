@@ -308,3 +308,144 @@ fn r_man_5_r_sub_7__confirmed_private_working_copy_survives_source_deletion_and_
     assert!(restore_manual_attachment(&report, &mut store).is_err());
     std::fs::remove_dir_all(directory).unwrap();
 }
+
+#[test]
+#[expect(
+    non_snake_case,
+    reason = "Requirement tags use a double underscore separator."
+)]
+fn r_sub_4_r_sub_7_r_nf_9__split_metadata_reuses_exact_private_copy_and_detaching_either_report_retains_it()
+ {
+    use tallyline_adapter_files::api::{ManualWorkingCopies, restore_manual_attachment};
+    use tallyline_reporting::api::model::{
+        AttachmentBinding, AttachmentTime, ImageHash, StoredAttachment, StoredReport,
+        StoredReportLifecycle,
+    };
+    use tallyline_shared_kernel::api::model::ImageRaster;
+    use tallyline_workflows::api::WorkingCopyStore;
+    let root = std::env::temp_dir().join(format!(
+        "tallyline-split-private-copy-{}",
+        std::process::id()
+    ));
+    std::fs::create_dir(&root).unwrap();
+    let mut copies = ManualWorkingCopies::new(root.join("private")).unwrap();
+    let mut source = Report::manual(
+        ReportId(1),
+        ReportKey::new(TerminalId(11), TradeSide::Buy, GameEnvironment::Live).unwrap(),
+        Timestamp::from_seconds(900),
+        Some("4.10.2"),
+    )
+    .unwrap();
+    let binding = AttachmentBinding::new(
+        ImageHash::new([1; 32]),
+        AttachmentRegion::new(0, 0, 2, 2).unwrap(),
+    );
+    source
+        .edit_attachment(AttachmentEdit::Select(
+            binding,
+            AttachmentTime::User(Timestamp::from_seconds(900)),
+        ))
+        .unwrap();
+    source
+        .edit_attachment(AttachmentEdit::ConfirmPreview(binding))
+        .unwrap();
+    let raster = ImageRaster::new(2, 2, vec![0xff00_c800; 4]).unwrap();
+    let digest = copies.save(&source, &raster).unwrap();
+    source
+        .edit_attachment(AttachmentEdit::BindWorkingCopy(binding, digest))
+        .unwrap();
+    let evidence = source.attachment().unwrap();
+    let stored = StoredReport {
+        id: ReportId(2),
+        key: source.key(),
+        observed_at: source.observed_at(),
+        game_version: Some("4.10.2".to_owned()),
+        faction_affinity: None,
+        version: source.version(),
+        rows: vec![],
+        lifecycle: StoredReportLifecycle::default(),
+        attachment: Some(StoredAttachment {
+            binding: evidence.binding(),
+            time: evidence.time(),
+            preview_confirmed: evidence.preview_confirmed(),
+            working_copy: evidence.working_copy(),
+            working_copy_owner: evidence.working_copy_owner(),
+        }),
+    };
+    let target = Report::reconstitute(stored.clone()).unwrap();
+    assert_eq!(
+        target.attachment().unwrap().working_copy_owner(),
+        Some(source.id())
+    );
+    let mut legacy = stored.clone();
+    legacy.id = source.id();
+    legacy.attachment.as_mut().unwrap().working_copy_owner = None;
+    assert_eq!(
+        restore_manual_attachment(&Report::reconstitute(legacy).unwrap(), &mut copies)
+            .unwrap()
+            .raster(),
+        &raster
+    );
+    let mut unbound = stored.clone();
+    unbound.attachment.as_mut().unwrap().working_copy_owner = None;
+    assert!(
+        restore_manual_attachment(&Report::reconstitute(unbound).unwrap(), &mut copies).is_err()
+    );
+    let mut invalid = stored;
+    invalid.attachment.as_mut().unwrap().working_copy_owner = Some(ReportId(0));
+    assert!(Report::reconstitute(invalid).is_err());
+    assert_eq!(
+        restore_manual_attachment(&target, &mut copies)
+            .unwrap()
+            .raster(),
+        &raster
+    );
+    assert_eq!(std::fs::read_dir(root.join("private")).unwrap().count(), 1);
+    let preview = restore_manual_attachment(&target, &mut copies).unwrap();
+    let encoded =
+        encode_manual_attachment(&target, &preview, &AttachmentEncodingSettings::default())
+            .unwrap();
+    assert!(encoded.base64_for(&target).is_ok());
+    let mut changed = target.clone();
+    changed.edit_attachment(AttachmentEdit::Remove).unwrap();
+    assert_eq!(
+        restore_manual_attachment(&source, &mut copies)
+            .unwrap()
+            .raster(),
+        &raster
+    );
+    changed
+        .edit_attachment(AttachmentEdit::Select(
+            AttachmentBinding::new(ImageHash::new([2; 32]), binding.region()),
+            evidence.time(),
+        ))
+        .unwrap();
+    assert_eq!(
+        restore_manual_attachment(&source, &mut copies)
+            .unwrap()
+            .raster(),
+        &raster
+    );
+    let preserved_source = source.clone();
+    source.edit_attachment(AttachmentEdit::Remove).unwrap();
+    assert_eq!(
+        restore_manual_attachment(&target, &mut copies)
+            .unwrap()
+            .raster(),
+        &raster
+    );
+    let artifact = std::fs::read_dir(root.join("private"))
+        .unwrap()
+        .next()
+        .unwrap()
+        .unwrap()
+        .path();
+    let mut changed_bytes = std::fs::read(&artifact).unwrap();
+    *changed_bytes.first_mut().unwrap() ^= 1;
+    std::fs::write(artifact, changed_bytes).unwrap();
+    assert!(restore_manual_attachment(&target, &mut copies).is_err());
+    assert!(restore_manual_attachment(&preserved_source, &mut copies).is_err());
+    drop(copies);
+    std::fs::remove_dir_all(&root).unwrap();
+    assert!(!root.exists());
+}

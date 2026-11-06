@@ -3,6 +3,9 @@
 
 //! Immutable Report release bindings and lifecycle transitions.
 
+mod cooldown_split;
+pub use cooldown_split::ReportSplit;
+
 use super::{InvalidReport, Report, ReportId};
 use crate::api::model::{ReleaseBlockReason, SubmissionGate};
 use tallyline_shared_kernel::api::model::{

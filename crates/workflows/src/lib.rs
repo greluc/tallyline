@@ -27,4 +27,5 @@ mod manual_dispatch;
 
 mod event_outbox;
 
+mod cooldown_split;
 mod resolution_draft;

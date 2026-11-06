@@ -295,3 +295,11 @@ A genuinely different explicit token can be validated independently when the int
 ## Skewed supplied-panel geometry
 
 Corrected 2026-11-05: the offline supplied-panel tool follows the header's supporting bottom edge across the full width, preserving provably safe title pixels below it. Touching or numerically uncertain source cells are black before filtering; unsupported header labels are refused. Geometry and dumps use schema 2. Regenerate versioned source-bound schema-one sidecars and review their geometry and full-size crops; changing a version number does not confirm a proposal. Manual means explicitly supplied geometry, without owner-approval evidence. The existing full-size privacy confirmation before upload remains required. See [the panel contract](../panel-preparation.md).
+
+## Send the other rows now
+
+When a queued Report has both cooling rows and rows ready now, the queue shows both groups, each cooling row's UTC deadline and **Send the others now**. Reach the button with Tab and activate it with Enter or Space. This explicit action makes two released Reports; values, confirmations, observation age approval, screenshot evidence and optional faction affinity stay with their rows. The cooling part keeps the original Report identity. Blank, unsent manual placeholders stay unchanged with that part.
+
+The original job remains cancelled in history with its complete original snapshot. Each replacement has its own job and repeats all current account, reference, age, image, quota, row-budget and serial-send checks. A displayed deadline is not a promise to send. If state changes before the action is saved, refresh the queue and review the current result. A failed atomic save creates neither replacement and sends nothing. After an application restart, unfinished replacements return to Draft for renewed release.
+
+Corrected 2026-11-06: the explicit mixed-cooldown split is implemented in source under database schema 15/configuration 6. Native visual and approved real-service acceptance remain separate; see [the source checkpoint](../submission-queue.md#explicit-mixed-cooldown-split-checkpoint---2026-11-06).

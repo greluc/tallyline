@@ -20,6 +20,13 @@ pub enum SubmissionIntent {
 }
 /// Bounded explicit control without secret values or mutable row payloads.
 pub enum SubmissionControl {
+    /// Explicitly partitions the exact displayed waiting job after fresh full checks.
+    Split {
+        /// Stable original job identity.
+        id: JobId,
+        /// Committed revision displayed before the action.
+        expected: u64,
+    },
     /// Applies an explicit action to the exact displayed partial or unknown origin.
     Resolve {
         /// Stable original job identity.
@@ -76,6 +83,8 @@ pub enum SubmissionControl {
 /// Closed actionable feedback without paths, keys or remote response text.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum SubmissionFeedback {
+    /// The explicit partition committed two released replacement Reports.
+    Split,
     /// The displayed account, settings or source version changed.
     Changed,
     /// The full current release gate refused the Draft.
@@ -104,6 +113,8 @@ pub struct SubmissionUpdate {
     pub jobs: Vec<SubmissionJob>,
     /// Exact-version passive waits without changing durable job phases.
     pub waiting: Vec<tallyline_submission::api::model::SubmissionWait>,
+    /// Injected assessment time for exact current cooldown row groups.
+    pub assessed_at: tallyline_shared_kernel::api::model::Timestamp,
     /// Persisted independently verified receipt mappings.
     pub mappings: Vec<VerifiedReceiptMapping>,
     /// Current persisted Drafts after release, return or cancellation.

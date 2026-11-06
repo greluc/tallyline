@@ -271,3 +271,9 @@ pub(super) struct PreparedDispatch<'a> {
     preferences: SubmissionQueuePreferences,
     values: &'a CredentialValues,
 }
+
+impl PreparedDispatch<'_> {
+    pub(super) fn plan(&self) -> &ManualDispatch {
+        &self.plan
+    }
+}

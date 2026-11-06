@@ -51,6 +51,33 @@ impl SubmissionEvidence {
     /// Finds positive origin evidence that closes release of its already created duplicate.
     #[must_use]
     pub fn resolved_duplicate_origin(report: ReportId, history: &[SubmissionJob]) -> Option<JobId> {
+        let mut reports = std::collections::BTreeSet::from([report.0]);
+        loop {
+            let mut changed = false;
+            for source in history
+                .iter()
+                .filter(|job| job.phase() == JobPhase::Cancelled)
+            {
+                for action in source.resolution_actions() {
+                    match action {
+                        SubmissionResolutionAction::Split { report: child, .. } => {
+                            if reports.contains(&child.0) {
+                                changed |= reports.insert(source.request().header().report.0);
+                            }
+                        }
+                        SubmissionResolutionAction::RowsDuplicated { .. }
+                        | SubmissionResolutionAction::RowDecision { .. }
+                        | SubmissionResolutionAction::Decision { .. }
+                        | SubmissionResolutionAction::Duplicated { .. }
+                        | SubmissionResolutionAction::Verified { .. } => {}
+                    }
+                }
+            }
+            if !changed {
+                break;
+            }
+        }
+
         history
             .iter()
             .find(|job| {
@@ -58,18 +85,19 @@ impl SubmissionEvidence {
                     && job.resolution_actions().iter().any(|action| match action {
                         SubmissionResolutionAction::Duplicated {
                             report: duplicate, ..
-                        } => *duplicate == report,
+                        } => reports.contains(&duplicate.0),
                         SubmissionResolutionAction::RowsDuplicated {
                             report: duplicate,
                             rows,
                             ..
                         } => {
-                            *duplicate == report
+                            reports.contains(&duplicate.0)
                                 && job
                                     .verified_row_receipts()
                                     .any(|proof| rows.contains(&proof.row()))
                         }
-                        SubmissionResolutionAction::Decision { .. }
+                        SubmissionResolutionAction::Split { .. }
+                        | SubmissionResolutionAction::Decision { .. }
                         | SubmissionResolutionAction::Verified { .. }
                         | SubmissionResolutionAction::RowDecision { .. } => false,
                     })

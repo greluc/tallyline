@@ -19,6 +19,13 @@ use tallyline_submission::api::model::{
 /// An explicit queue action without credentials or mutable report values.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum QueueCommand {
+    /// Explicitly partitions the exact displayed queued revision into two releases.
+    Split {
+        /// Stable original job identity.
+        id: JobId,
+        /// Committed revision displayed before the action.
+        expected_revision: u64,
+    },
     /// Resolves only the exact partial or unknown origin explicitly inspected by the user.
     Resolve {
         /// Stable local submission identity.
@@ -52,7 +59,11 @@ impl QueueCommand {
                 expected_revision,
                 ..
             } => (id, expected_revision),
-            Self::Cancel {
+            Self::Split {
+                id,
+                expected_revision,
+            }
+            | Self::Cancel {
                 id,
                 expected_revision,
             }
@@ -73,6 +84,7 @@ pub struct SubmissionQueue {
     jobs: Vec<SubmissionJob>,
     mappings: Vec<VerifiedReceiptMapping>,
     waiting: Vec<SubmissionWait>,
+    assessed_at: Option<tallyline_shared_kernel::api::model::Timestamp>,
     pending: Option<QueueCommand>,
     busy: Option<QueueCommand>,
     failure: Option<SubmissionApplicationError>,
@@ -143,6 +155,59 @@ impl SubmissionQueue {
                 })
             })
             .collect();
+    }
+    /// Retains the queue owner's injected assessment time without granting send authority.
+    pub fn received_schedule_time(&mut self, at: tallyline_shared_kernel::api::model::Timestamp) {
+        self.assessed_at = Some(at);
+    }
+    fn split_partition(
+        &self,
+        id: JobId,
+    ) -> Option<tallyline_submission::api::model::CooldownPartition> {
+        if !self.service_fences.is_empty() || !self.authenticated_quotas.is_empty() {
+            return None;
+        }
+        let job = self.jobs.iter().find(|job| job.id() == id)?;
+        if !self.waiting.iter().any(|wait| {
+            wait.job == id
+                && wait.revision == job.revision()
+                && matches!(
+                    wait.reason,
+                    tallyline_submission::api::model::SubmissionWaitReason::CooldownUntil(_)
+                )
+        }) {
+            return None;
+        }
+        let partition = tallyline_submission::api::SubmissionSchedule::cooldown_partition(
+            job,
+            &self.jobs,
+            self.assessed_at?,
+        )
+        .ok()?;
+        (!partition.ready_rows().is_empty() && !partition.cooling_rows().is_empty())
+            .then_some(partition)
+    }
+    /// Reports whether the exact displayed waiting revision has two nonempty cooldown groups.
+    #[must_use]
+    pub fn can_split(&self, id: JobId) -> bool {
+        self.busy.is_none() && self.split_partition(id).is_some()
+    }
+    /// Queues one explicit version-bound split without changing committed row values.
+    pub fn request_split(&mut self, id: JobId) -> bool {
+        if !self.can_split(id) {
+            return false;
+        }
+        let Some(job) = self.jobs.iter().find(|job| job.id() == id) else {
+            return false;
+        };
+        let command = QueueCommand::Split {
+            id,
+            expected_revision: job.revision(),
+        };
+        self.pending = Some(command);
+        self.busy = Some(command);
+        self.failure = None;
+        true
     }
     /// Publishes a persisted mapping only for the exact committed successful job already visible.
     pub fn received_mapping(&mut self, mapping: VerifiedReceiptMapping) -> bool {
@@ -291,6 +356,7 @@ pub fn show_submission_queue(
     let mut unknown_action = None;
     let mut cancel = None;
     let mut retry = None;
+    let mut split = None;
     for job in &state.jobs {
         ui.push_id(job.id().0, |ui| {
             let header = job.request().header();
@@ -338,6 +404,47 @@ pub fn show_submission_queue(
                     state.busy.is_none(),
                 ) {
                     unknown_action = Some((job.id(), action));
+                }
+                if let Some(partition) = state.split_partition(job.id()) {
+                    let ready = partition
+                        .ready_rows()
+                        .iter()
+                        .map(|row| row.0.to_string())
+                        .collect::<Vec<_>>()
+                        .join(", ");
+                    let cooling = partition
+                        .cooling_rows()
+                        .iter()
+                        .map(|row| row.row().0.to_string())
+                        .collect::<Vec<_>>()
+                        .join(", ");
+                    ui.label(format!("{} {ready}", catalogue.text("queue.split_ready")));
+                    ui.label(format!(
+                        "{} {cooling}",
+                        catalogue.text("queue.split_cooling")
+                    ));
+                    for row in partition.cooling_rows() {
+                        ui.label(format!(
+                            "{} {} · {} {}",
+                            catalogue.text("queue.split_row"),
+                            row.row().0,
+                            catalogue.text("queue.split_until"),
+                            crate::attachment_views::format_time(row.until())
+                        ));
+                    }
+                    if ui
+                        .add_enabled(
+                            state.busy.is_none(),
+                            egui::Button::new(tallyline_egui::button_text(format!(
+                                "{} {}",
+                                catalogue.text("queue.split"),
+                                job.id().0
+                            ))),
+                        )
+                        .clicked()
+                    {
+                        split = Some(job.id());
+                    }
                 }
                 let retry_policy = SubmissionRetrySettings::default();
                 if job.result().is_some_and(SubmissionResult::is_daily_quota)
@@ -412,6 +519,9 @@ pub fn show_submission_queue(
     }
     if let Some(id) = retry {
         state.request_retry(id);
+    }
+    if let Some(id) = split {
+        state.request_split(id);
     }
     state.take_command()
 }

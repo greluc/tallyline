@@ -1,6 +1,6 @@
 # Release and hotfix process
 
-> **Doc type:** Living spec — binding; followed from release 0.1 on. Last reviewed: 2026-11-04.
+> **Doc type:** Living spec — binding; followed from release 0.1 on. Last reviewed: 2026-11-06.
 
 Implements R-NF-11 and the release-related parts of [10-supply-chain-security.md](plan/10-supply-chain-security.md). This is a plan; it is followed from release 0.1 on and refined with experience. Amended 2026-10-12: the implementation language is Rust ([ADR-0005](adr/0005-rust-and-egui.md)), so the Java, Gradle, jlink and jpackage steps became their Rust equivalents (`cargo xtask`, `cargo-packager`, the Rust toolchain pin); commands and tool versions that ADR-0005 does not name are chosen and verified in M0.
 
@@ -157,3 +157,7 @@ Current database schema 12 supersedes the preceding schema11 checkpoint; configu
 Corrected 2026-11-04: database schema 13 supersedes the unreleased schema-12 writer; configuration stays at 6. A coordinated exact database/settings backup precedes forward migration. New tables/columns retain random nonsecret token bindings, exact-response reset metadata, authenticated-read quota evidence and independent expiry audit. Backup refusal and injected migration failure preserve prior payloads/schema; a source-bound twelve-reader guard refuses thirteen. The authentic twelve fixture was generated from signed integration cc4479bff15acacc33b61c48ca14c72760a0ce54 libraries through a separately fingerprinted temporary public-API harness, then frozen before the thirteen migration. Its JSON/source provenance files are REUSE annotated; no current writer is relabelled or downgraded and no old application binary execution is claimed.
 
 The protected association registry starts at bounded TLTR version 1 independently of the unchanged TLCR version-one credential bundle. Absent registry, future/corrupt format, locked provider, failed replacement, session-only input and loss of registry generation fail conservatively for pending quota; account removal is separate from the R-NF-9 whole-secret wipe. Native/provider, installed-package, real-service and complete mutation acceptance remain their existing gates. No release number is hand-edited.
+
+## Schema15 cooldown split gate - 2026-11-06
+
+Corrected 2026-11-06: the explicit mixed-cooldown split uses database schema 15/configuration 6. Coordinated pre-migration backup precedes the forward transaction; the genuine source-bound previous14 fixture retains original released payloads and attempts. Older schema14 readers refuse the migrated file. The additional split relationship and cancellation notification are never written under the older marker. [The source checkpoint](submission-queue.md#explicit-mixed-cooldown-split-checkpoint---2026-11-06) states fixture provenance and acceptance limits.

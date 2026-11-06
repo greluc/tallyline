@@ -1183,3 +1183,75 @@ fn r_sub_9__received_decision_retains_unknown_attempt_without_replay_authority()
 
 #[path = "queue/unknown_resolution.rs"]
 mod unknown_resolution;
+
+#[test]
+#[expect(
+    non_snake_case,
+    reason = "Requirement tags use a double underscore separator."
+)]
+fn r_sub_4__mixed_cooldown_partition_preserves_row_order_and_exact_deadlines() {
+    use tallyline_submission::api::SubmissionSchedule;
+    use tallyline_submission::api::model::SubmissionResult;
+
+    let first = row().unwrap();
+    let second = SubmissionRow::new(
+        RowId(2),
+        CommodityId(8),
+        first.price(),
+        first.stock(),
+        first.status(),
+    )
+    .unwrap();
+    let third = SubmissionRow::new(
+        RowId(3),
+        CommodityId(9),
+        first.price(),
+        first.stock(),
+        first.status(),
+    )
+    .unwrap();
+    let candidate = SubmissionJob::queued(
+        JobId(100),
+        SubmissionRequest::new(header(), vec![third.clone(), second, first.clone()]).unwrap(),
+    )
+    .unwrap();
+    let mut prior_header = header();
+    prior_header.observed_at = Timestamp::from_seconds(90);
+    prior_header.side = TradeSide::Buy;
+    prior_header.environment = UexEnvironment::Ptu;
+    let prior = SubmissionJob::queued(
+        JobId(99),
+        SubmissionRequest::new(prior_header, vec![first]).unwrap(),
+    )
+    .unwrap()
+    .begin(Timestamp::from_seconds(100), PayloadHash::new([1; 32]))
+    .unwrap()
+    .complete(
+        SubmissionResult::DryRunSucceeded,
+        Timestamp::from_seconds(110),
+    )
+    .unwrap();
+    let history = vec![prior];
+    let partition =
+        SubmissionSchedule::cooldown_partition(&candidate, &history, Timestamp::from_seconds(200))
+            .unwrap();
+    assert_eq!(partition.ready_rows(), &[RowId(3), RowId(2)]);
+    assert_eq!(
+        partition
+            .cooling_rows()
+            .iter()
+            .map(|row| (row.row(), row.until()))
+            .collect::<Vec<_>>(),
+        vec![(RowId(1), Timestamp::from_seconds(410))],
+    );
+    assert_eq!(
+        candidate
+            .request()
+            .rows()
+            .iter()
+            .map(SubmissionRow::id)
+            .collect::<Vec<_>>(),
+        vec![RowId(3), RowId(2), RowId(1)]
+    );
+    assert_eq!(history[0].attempts().len(), 1);
+}

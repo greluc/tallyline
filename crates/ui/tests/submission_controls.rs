@@ -93,6 +93,7 @@ fn r_sub_8_r_sub_9_r_ui_16__drawn_test_binds_displayed_account_and_passive_snaps
         .state_mut()
         .receive(BackgroundEvent::SubmissionUpdated(Box::new(
             SubmissionUpdate {
+                assessed_at: tallyline_shared_kernel::api::model::Timestamp::from_seconds(0),
                 client_version: None,
                 service_fences: vec![],
                 authenticated_quotas: vec![],
@@ -110,6 +111,7 @@ fn r_sub_8_r_sub_9_r_ui_16__drawn_test_binds_displayed_account_and_passive_snaps
         .state_mut()
         .receive(BackgroundEvent::SubmissionUpdated(Box::new(
             SubmissionUpdate {
+                assessed_at: tallyline_shared_kernel::api::model::Timestamp::from_seconds(0),
                 client_version: None,
                 service_fences: vec![],
                 authenticated_quotas: vec![],
@@ -192,6 +194,7 @@ fn r_val_8_r_sub_8_r_ui_16__older_row_choice_shows_exact_values_and_keeps_the_fa
         .state_mut()
         .receive(BackgroundEvent::SubmissionUpdated(Box::new(
             SubmissionUpdate {
+                assessed_at: tallyline_shared_kernel::api::model::Timestamp::from_seconds(0),
                 client_version: None,
                 service_fences: vec![],
                 authenticated_quotas: vec![],
@@ -234,5 +237,44 @@ fn r_val_8_r_sub_8_r_ui_16__older_row_choice_shows_exact_values_and_keeps_the_fa
     assert_eq!(evidence.environment(), UexEnvironment::Live);
     assert_eq!(evidence.observed_at(), Timestamp::from_seconds(950));
     assert_eq!(harness.state().manual().selected(), Some(&report));
+    assert!(!harness.state().dialogs().about_open());
+}
+
+#[test]
+#[expect(
+    non_snake_case,
+    reason = "Requirement tags use a double underscore separator."
+)]
+fn r_sub_4_r_ui_16__committed_split_shows_two_released_reports_without_opening_a_dialog() {
+    let mut shell = ShellState::default();
+    shell.receive(BackgroundEvent::SubmissionUpdated(Box::new(
+        tallyline_ui::api::model::SubmissionUpdate {
+            assessed_at: Timestamp::from_seconds(200),
+            client_version: None,
+            service_fences: vec![],
+            authenticated_quotas: vec![],
+            jobs: vec![],
+            waiting: vec![],
+            mappings: vec![],
+            reports: vec![],
+            completed: true,
+            background_feedback: None,
+            feedback: Some(tallyline_ui::api::model::SubmissionFeedback::Split),
+        },
+    )));
+    let catalogue = Catalogue::english().unwrap();
+    let mut fonts = Some(submission_support::font_files().unwrap());
+    let mut harness = Harness::builder().build_ui_state(
+        move |ui, shell: &mut ShellState| {
+            if let Some(fonts) = fonts.take() {
+                tallyline_ui::api::configure_fonts(ui.ctx(), fonts);
+            }
+            show_submission_controls(ui, shell, &catalogue);
+        },
+        shell,
+    );
+    harness.run();
+    harness.get_by_label("Split into two released Reports. Each repeats the normal send checks.");
+    assert!(!harness.state().submission_busy());
     assert!(!harness.state().dialogs().about_open());
 }

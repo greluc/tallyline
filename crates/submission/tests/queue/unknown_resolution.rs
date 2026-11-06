@@ -67,6 +67,97 @@ fn r_sub_9__late_positive_receipt_after_not_received_and_duplication_keeps_both_
     assert_eq!(late.result(), Some(&SubmissionResult::Unknown));
     assert!(!late.can_duplicate_unknown());
     assert!(late.retry().is_err());
+    use tallyline_submission::api::SubmissionSchedule;
+    use tallyline_submission::api::model::{ScheduleDecision, SubmissionCommand};
+    let mut copied = late.request().header().clone();
+    copied.report = ReportId(99);
+    let first = super::row().unwrap();
+    let second = tallyline_submission::api::model::SubmissionRow::new(
+        tallyline_shared_kernel::api::model::RowId(2),
+        CommodityId(8),
+        first.price(),
+        first.stock(),
+        first.status(),
+    )
+    .unwrap();
+    let third = tallyline_submission::api::model::SubmissionRow::new(
+        tallyline_shared_kernel::api::model::RowId(3),
+        CommodityId(9),
+        first.price(),
+        first.stock(),
+        first.status(),
+    )
+    .unwrap();
+    let split_source = SubmissionJob::queued(
+        JobId(99),
+        SubmissionRequest::new(copied.clone(), vec![first.clone(), second.clone(), third]).unwrap(),
+    )
+    .unwrap()
+    .begin(Timestamp::from_seconds(141), PayloadHash::new([4; 32]))
+    .unwrap()
+    .complete(
+        SubmissionResult::NotProcessed(
+            tallyline_submission::api::model::NotProcessed::ConnectFailure,
+        ),
+        Timestamp::from_seconds(142),
+    )
+    .unwrap()
+    .retry()
+    .unwrap();
+    let cancelled = split_source
+        .apply(SubmissionCommand::CancelForSplit {
+            report: ReportId(100),
+            at: Timestamp::from_seconds(145),
+        })
+        .unwrap()
+        .into_state();
+    assert_eq!(cancelled.attempts(), split_source.attempts());
+    assert_eq!(cancelled.attempts().len(), 1);
+    copied.report = ReportId(100);
+    let child = SubmissionJob::queued(
+        JobId(100),
+        SubmissionRequest::new(copied.clone(), vec![first, second]).unwrap(),
+    )
+    .unwrap();
+    assert_eq!(
+        SubmissionSchedule::assess(
+            &child,
+            &[late.clone(), cancelled.clone()],
+            Timestamp::from_seconds(1000)
+        ),
+        ScheduleDecision::Unavailable
+    );
+    let chained = child
+        .apply(SubmissionCommand::CancelForSplit {
+            report: ReportId(101),
+            at: Timestamp::from_seconds(146),
+        })
+        .unwrap()
+        .into_state();
+    copied.report = ReportId(101);
+    let grandchild = SubmissionJob::queued(
+        JobId(101),
+        SubmissionRequest::new(copied, vec![super::row().unwrap()]).unwrap(),
+    )
+    .unwrap();
+    assert_eq!(cancelled.verified_row_receipts().count(), 0);
+    assert_eq!(chained.verified_row_receipts().count(), 0);
+    assert_eq!(
+        SubmissionSchedule::assess(
+            &grandchild,
+            &[duplicated, cancelled.clone(), chained.clone()],
+            Timestamp::from_seconds(1000)
+        ),
+        ScheduleDecision::Ready
+    );
+    assert_eq!(
+        SubmissionSchedule::assess(
+            &grandchild,
+            &[late, cancelled, chained],
+            Timestamp::from_seconds(1000)
+        ),
+        ScheduleDecision::Unavailable
+    );
 }
 
 #[test]

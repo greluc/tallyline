@@ -141,7 +141,7 @@ pub(crate) fn save_report(
     }
     Ok(())
 }
-fn outbox(
+pub(crate) fn outbox(
     connection: &Connection,
     source: &str,
     id: EventId,
@@ -150,7 +150,7 @@ fn outbox(
     connection.execute("INSERT INTO domain_outbox(event_source,aggregate_id,revision,event_kind) VALUES(?1,?2,?3,?4)", (source, integer(id.aggregate_id())?, integer(id.version())?, kind)).map_err(unavailable)?;
     Ok(())
 }
-fn report_events(
+pub(crate) fn report_events(
     connection: &Connection,
     events: &[ReportEvent],
 ) -> Result<(), SubmissionRepositoryError> {
@@ -263,6 +263,16 @@ pub(crate) fn save_change_with_admission(
     admission: Option<&tallyline_submission::api::model::TokenAdmission>,
 ) -> Result<(), SubmissionRepositoryError> {
     let next = change.state();
+    if change.event().is_some_and(|event| {
+        matches!(
+            event.kind(),
+            SubmissionEventKind::Cancelled(
+                tallyline_submission::api::model::CancellationReason::Split
+            )
+        )
+    }) {
+        return Err(SubmissionRepositoryError::Invalid);
+    }
     let current = load_job(transaction, next.id())?.ok_or(SubmissionRepositoryError::Invalid)?;
     if &current == next {
         return Ok(());

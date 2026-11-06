@@ -104,7 +104,12 @@ impl SubmissionJob {
         }
         if job.phase != stored.phase {
             job = match stored.phase {
-                JobPhase::Cancelled => job.cancel(),
+                JobPhase::Cancelled => match stored.resolution_actions.as_slice() {
+                    [crate::api::model::SubmissionResolutionAction::Split { report, at }] => {
+                        job.cancel_for_split(*report, *at)
+                    }
+                    _ => job.cancel(),
+                },
                 JobPhase::Returned => job.recover(Timestamp::from_seconds(0)),
                 JobPhase::Queued
                 | JobPhase::Succeeded
@@ -128,6 +133,15 @@ impl SubmissionJob {
             .map_err(|_| InvalidSubmission)?;
         }
         for action in &stored.resolution_actions {
+            if matches!(
+                action,
+                crate::api::model::SubmissionResolutionAction::Split { .. }
+            ) {
+                if job.resolution_actions != stored.resolution_actions {
+                    return Err(InvalidSubmission);
+                }
+                continue;
+            }
             let previous_revision = job.revision();
             job = job
                 .resolve_delivery(action.clone())

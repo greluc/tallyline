@@ -4,6 +4,8 @@ All notable changes are recorded here.
 
 ## [Unreleased]
 
+- Explicitly send the ready rows of a mixed-cooldown Report as a separate released Report while preserving confirmations, observation time, screenshot evidence and optional affinity. Both replacements repeat normal send checks; original history remains intact (R-SUB-4). Database schema 15 requires a coordinated backup.
+
 - Enter optional faction affinity from -100 to 100 in manual capture and the Report editor; an explicit zero stays distinct from an empty field. Commodity submission, queue restart and selected-row copying preserve it, while choosing another terminal clears the terminal-specific value. Database schema 14 requires a coordinated backup; settings remain schema 6 (R-SUB-13, R-NF-11).
 
 - Wait for the exact app token's daily quota reset with visible UTC check times and durable receipt-read holds. Eligible work resumes through all current checks, while original attempts and restart review remain intact; schema 13 requires coordinated backup and settings remain schema 6 (R-SUB-2, R-SUB-11, R-API-3). A failed local save of a known quota answer keeps reads for that token held until the exact answer is saved and its own reset is due. Receipt checks stop their remaining requests and concurrent submissions for the same token as soon as quota exhaustion is known, including before the check returns and while its evidence transfers to the queue owner.
@@ -57,6 +59,8 @@ All notable changes are recorded here.
 - Preserve provably safe skewed terminal titles with full-width supporting-edge source-cell privacy before both filters. Refuse unsupported header labels; supplied-panel geometry and dumps use schema 2, requiring reviewed regeneration of schema-one inputs (R-CAP-7, R-SUB-7).
 
 ### Added
+
+- Explicitly send the ready rows of a mixed-cooldown Report as a separate released Report while preserving confirmations, observation time, screenshot evidence and optional affinity. Both replacements repeat normal send checks; original history remains intact (R-SUB-4). Database schema 15 requires a coordinated backup.
 
 - Recover from UEX refusals with bounded safe retries, durable queue-wide account/API-change/quota fences, explicit strictly-newer-release version recovery and Retry now and report-fixable Draft findings. Production refusals with uncertain prior rows stay held for read-only receipt checks; schema 10 requires a coordinated backup, while partial-row resolution and daily-quota reset scheduling remain separate gates (R-SUB-2, R-SUB-6, R-SUB-9, R-SUB-11, R-API-7).
 

@@ -26,6 +26,7 @@ impl Report {
                     time,
                     preview_confirmed: false,
                     working_copy: None,
+                    working_copy_owner: None,
                 });
             }
             AttachmentEdit::ConfirmPreview(binding) => {
@@ -41,6 +42,7 @@ impl Report {
                     return Err(InvalidReport);
                 }
                 attachment.working_copy = Some(digest);
+                attachment.working_copy_owner = Some(self.id);
             }
             AttachmentEdit::ConfirmTime(at) => {
                 let attachment = self.attachment.as_mut().ok_or(InvalidReport)?;

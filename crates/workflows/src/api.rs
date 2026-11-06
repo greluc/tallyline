@@ -263,4 +263,7 @@ pub use crate::event_outbox::{
     EventOutbox, OUTBOX_BATCH_LIMIT, OutboxError, OutboxEvent, OutboxKind, dispatch_pending_events,
 };
 
+pub use crate::cooldown_split::{
+    CooldownSplit, CooldownSplitIdentities, CooldownSplitPart, CooldownSplitStore,
+};
 pub use crate::resolution_draft::{ResolutionDraft, ResolutionDraftStore};

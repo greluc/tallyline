@@ -1901,3 +1901,104 @@ async fn r_sub_13__commodity_payload_contains_only_explicit_report_affinity_incl
         server.verify().await;
     }
 }
+
+#[tokio::test]
+#[expect(
+    non_snake_case,
+    reason = "Requirement tags use a double underscore separator."
+)]
+async fn r_sub_4_r_sub_13__cooldown_child_requests_keep_exact_partitioned_wire_values() {
+    use tallyline_submission::api::SubmissionSchedule;
+    use tallyline_submission::api::model::{
+        JobId, PayloadHash, ScheduleDecision, SubmissionCommand, SubmissionJob,
+    };
+    let first = released_request().unwrap();
+    let row = first.rows()[0].clone();
+    let second = SubmissionRow::new(
+        RowId(2),
+        CommodityId(8),
+        row.price(),
+        row.stock(),
+        row.status(),
+    )
+    .unwrap();
+    let mut header = first.header().clone();
+    header.faction_affinity = Some("0".parse().unwrap());
+    let request = SubmissionRequest::new(header, vec![row, second]).unwrap();
+    let original = SubmissionJob::queued(JobId(2), request.clone()).unwrap();
+    let previous = SubmissionJob::queued(JobId(1), first)
+        .unwrap()
+        .begin(Timestamp::from_seconds(110), PayloadHash::new([1; 32]))
+        .unwrap()
+        .complete(
+            SubmissionResult::DryRunSucceeded,
+            Timestamp::from_seconds(115),
+        )
+        .unwrap();
+    let partition = SubmissionSchedule::cooldown_partition(
+        &original,
+        std::slice::from_ref(&previous),
+        Timestamp::from_seconds(200),
+    )
+    .unwrap();
+    let cancelled = original
+        .apply(SubmissionCommand::CancelForSplit {
+            report: ReportId(3),
+            at: Timestamp::from_seconds(200),
+        })
+        .unwrap()
+        .into_state();
+    let history = vec![previous, cancelled];
+    let server = MockServer::start().await;
+    for commodity in [8, 7] {
+        Mock::given(method("POST")).and(path("/2.0/data_submit/"))
+            .and(body_json(json!({"id_terminal":89,"type":"commodity","is_production":0,"game_version":"4.10.2","date_added":100,"faction_affinity":0,"prices":[{"id_commodity":commodity,"price_sell":120.125,"status_sell":1}]})))
+            .respond_with(ResponseTemplate::new(200).set_body_json(json!({"status":"ok","data":{"ids_reports":null,"date_added":100}})))
+            .expect(1).mount(&server).await;
+    }
+    let settings = ReaderSettings::for_test_server(
+        &format!("{}/2.0/", server.uri()),
+        ClientIdentity::new("tallyline-test", "1.2.3"),
+    )
+    .unwrap()
+    .with_expert_host_confirmation();
+    let reader = UexReader::new(&settings).unwrap();
+    let credentials =
+        CredentialValues::new("dummy-key".to_owned(), Some("dummy-token".to_owned())).unwrap();
+    let cooling = partition
+        .cooling_rows()
+        .iter()
+        .map(|row| row.row())
+        .collect::<Vec<_>>();
+    for (id, rows, at) in [
+        (3, partition.ready_rows(), Timestamp::from_seconds(200)),
+        (4, cooling.as_slice(), Timestamp::from_seconds(415)),
+    ] {
+        let mut header = request.header().clone();
+        header.report = ReportId(id);
+        header.report_version = 4;
+        let child = SubmissionRequest::new(
+            header,
+            request
+                .rows()
+                .iter()
+                .filter(|row| rows.contains(&row.id()))
+                .cloned()
+                .collect(),
+        )
+        .unwrap();
+        let job = SubmissionJob::queued(JobId(id), child).unwrap();
+        assert_eq!(
+            SubmissionSchedule::assess(&job, &history, at),
+            ScheduleDecision::Ready
+        );
+        assert_eq!(
+            reader
+                .submit(reader.prepare(job.request()).unwrap().0, &credentials, None)
+                .await,
+            SubmissionResult::DryRunSucceeded
+        );
+    }
+    assert_eq!(original.request(), &request);
+    server.verify().await;
+}

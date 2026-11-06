@@ -253,6 +253,9 @@ impl ShellState {
                     .received_authenticated_quotas(update.authenticated_quotas);
                 self.submission.queue.received_waiting(update.waiting);
                 self.submission
+                    .queue
+                    .received_schedule_time(update.assessed_at);
+                self.submission
                     .accounts
                     .refresh(self.credentials.account(), self.submission.queue.jobs());
                 for mapping in update.mappings {
@@ -262,11 +265,13 @@ impl ShellState {
                     self.submission.busy = false;
                     self.manual.busy = false;
                     if let Some((id, expected)) = self.submission.cancel.take() {
-                        if update.feedback.is_some() {
+                        if update.feedback.as_ref().is_some_and(|feedback| {
+                            !matches!(feedback, crate::api::model::SubmissionFeedback::Split)
+                        }) {
                             let failure = match &update.feedback {
                             Some(crate::api::model::SubmissionFeedback::Refused(reason)) => tallyline_submission::api::model::SubmissionApplicationError::Refused(*reason),
                             Some(crate::api::model::SubmissionFeedback::Changed) => tallyline_submission::api::model::SubmissionApplicationError::Repository(tallyline_submission::api::model::SubmissionRepositoryError::Conflict),
-                            Some(crate::api::model::SubmissionFeedback::Blocked(_) | crate::api::model::SubmissionFeedback::Held(_) | crate::api::model::SubmissionFeedback::Returned(_) | crate::api::model::SubmissionFeedback::Unavailable | crate::api::model::SubmissionFeedback::AttachmentUnavailable) | None => tallyline_submission::api::model::SubmissionApplicationError::Repository(tallyline_submission::api::model::SubmissionRepositoryError::Unavailable),
+                            Some(crate::api::model::SubmissionFeedback::Blocked(_) | crate::api::model::SubmissionFeedback::Held(_) | crate::api::model::SubmissionFeedback::Returned(_) | crate::api::model::SubmissionFeedback::Unavailable | crate::api::model::SubmissionFeedback::AttachmentUnavailable) | Some(crate::api::model::SubmissionFeedback::Split) | None => tallyline_submission::api::model::SubmissionApplicationError::Repository(tallyline_submission::api::model::SubmissionRepositoryError::Unavailable),
                         };
                             self.submission.queue.failed(id, expected, failure);
                         } else {

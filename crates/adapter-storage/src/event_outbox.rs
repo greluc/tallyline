@@ -26,6 +26,9 @@ fn meaning(source: &str, kind: &str) -> Result<(EventSource, OutboxKind), Outbox
         ("submission", "deferred") => Ok((EventSource::Submission, OutboxKind::SubmissionDeferred)),
         ("submission", "rejected") => Ok((EventSource::Submission, OutboxKind::SubmissionRejected)),
         ("submission", "returned") => Ok((EventSource::Submission, OutboxKind::SubmissionReturned)),
+        ("submission", "cancelled_split") => {
+            Ok((EventSource::Submission, OutboxKind::SubmissionSplit))
+        }
         ("submission", "cancelled") => {
             Ok((EventSource::Submission, OutboxKind::SubmissionCancelled))
         }
@@ -44,6 +47,7 @@ fn names(kind: OutboxKind) -> (&'static str, &'static str) {
         OutboxKind::SubmissionRejected => ("submission", "rejected"),
         OutboxKind::SubmissionReturned => ("submission", "returned"),
         OutboxKind::SubmissionCancelled => ("submission", "cancelled"),
+        OutboxKind::SubmissionSplit => ("submission", "cancelled_split"),
     }
 }
 impl EventOutbox for SqliteReferenceCache {

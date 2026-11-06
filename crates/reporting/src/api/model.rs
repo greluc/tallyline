@@ -41,7 +41,8 @@ pub use crate::numeric_readiness::NumericBlock;
 
 pub use crate::report::{
     FixableReason, ReportChange, ReportDelivery, ReportEvent, ReportEventKind, ReportFinding,
-    ReportReleaseBinding, ReportState, StoredReportLifecycle, StoredReportReleaseBinding,
+    ReportReleaseBinding, ReportSplit, ReportState, StoredReportLifecycle,
+    StoredReportReleaseBinding,
 };
 pub use crate::submission_gate::{
     ReleaseAccountStanding, ReleaseBlockReason, ReleaseContext, ReleaseScreenshotPolicy,

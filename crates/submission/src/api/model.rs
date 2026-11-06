@@ -301,7 +301,7 @@ pub use crate::events::{
 };
 pub use crate::job::{StoredSubmissionAttempt, StoredSubmissionJob};
 pub use crate::request::NewerObservationConfirmation;
-pub use crate::schedule::ScheduleDecision;
+pub use crate::schedule::{CooldownPartition, RowCooldown, ScheduleDecision};
 pub use crate::server_time::ServerTimeEstimate;
 
 pub use crate::receipt_mapping::VerifiedReceiptMapping;

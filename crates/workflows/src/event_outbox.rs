@@ -30,6 +30,8 @@ pub enum OutboxKind {
     SubmissionRejected,
     /// An unsent submission was cancelled.
     SubmissionCancelled,
+    /// A cancelled origin was atomically replaced by two released row groups.
+    SubmissionSplit,
 }
 /// An immutable notification whose handler reads the current committed aggregate projection.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -51,7 +53,8 @@ impl OutboxEvent {
             | OutboxKind::SubmissionDeferred
             | OutboxKind::SubmissionRejected
             | OutboxKind::SubmissionReturned
-            | OutboxKind::SubmissionCancelled => EventSource::Submission,
+            | OutboxKind::SubmissionCancelled
+            | OutboxKind::SubmissionSplit => EventSource::Submission,
         };
         (id.source() == source).then_some(Self { id, kind })
     }

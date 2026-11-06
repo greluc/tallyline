@@ -89,7 +89,7 @@ fn r_sub_2_r_sub_11__genuine_twelve_migration_preserves_history_and_rolls_back_f
     assert_eq!(job.attempts().len(), 1);
     assert_eq!(
         reader::open(&path).err().map(|error| error.to_string()),
-        Some("database schema 14 is newer than supported schema 12".to_owned())
+        Some("database schema 15 is newer than supported schema 12".to_owned())
     );
     let db = rusqlite::Connection::open(&path).unwrap();
     assert_eq!(

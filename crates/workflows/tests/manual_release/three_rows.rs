@@ -29,6 +29,13 @@ pub(super) fn gate_with_affinity(
     path: &std::path::Path,
     affinity: Option<tallyline_shared_kernel::api::model::FactionAffinity>,
 ) -> Option<(SqliteReferenceCache, SubmissionGate)> {
+    configured_gate(path, affinity, None)
+}
+pub(super) fn configured_gate(
+    path: &std::path::Path,
+    affinity: Option<tallyline_shared_kernel::api::model::FactionAffinity>,
+    placeholder: Option<CommodityId>,
+) -> Option<(SqliteReferenceCache, SubmissionGate)> {
     let (mut store, initial) =
         support::stored_gate_with_mode(path, SubmissionMode::Production).ok()?;
     let commodities = [
@@ -87,9 +94,68 @@ pub(super) fn gate_with_affinity(
         report.set_stock(row, Some("0".parse().ok()?)).ok()?;
         report.set_status(row, NonZeroU8::new(3)).ok()?;
     }
+    if let Some(commodity) = placeholder {
+        report.add_commodity(commodity).ok()?;
+        let row = report.rows().first()?.id();
+        report.set_price(row, Some("200".parse().ok()?)).ok()?;
+    }
     store.save_draft(&report, initial.source().version()).ok()?;
+    if placeholder.is_some() {
+        store
+            .replace(&CachedReference::new(
+                Timestamp::from_seconds(800),
+                EndpointData::GameVersions(tallyline_reference_data::api::model::GameVersions {
+                    live: "4.10.2".to_owned(),
+                    ptu: None,
+                }),
+            ))
+            .ok()?;
+    }
     let records = ReferenceDataCache::load(&mut store).ok()?;
     let snapshot = support::snapshot_records(records, UexEnvironment::Live).ok()?;
+    let working_copy = if placeholder.is_some() {
+        use tallyline_reporting::api::model::{
+            AttachmentBinding, AttachmentRegion, AttachmentTime, ImageHash,
+        };
+        use tallyline_reporting::api::{AttachmentEdit, ReportingApplication};
+        let row = report.rows().first()?.id();
+        let mut application = ReportingApplication::new(store, support::Fixed);
+        report = application
+            .confirm_price(report.id(), report.version(), row, &snapshot)
+            .ok()?;
+        drop(application);
+        store = SqliteReferenceCache::open(path).ok()?;
+        let expected = report.version();
+        let binding = AttachmentBinding::new(
+            ImageHash::new([1; 32]),
+            AttachmentRegion::new(0, 0, 10, 10).ok()?,
+        );
+        let digest = ImageHash::new([2; 32]);
+        report
+            .edit_attachment(AttachmentEdit::Select(
+                binding,
+                AttachmentTime::ImportedFile(Timestamp::from_seconds(1000)),
+            ))
+            .ok()?;
+        report
+            .edit_attachment(AttachmentEdit::ConfirmPreview(binding))
+            .ok()?;
+        report
+            .edit_attachment(AttachmentEdit::BindWorkingCopy(binding, digest))
+            .ok()?;
+        report
+            .edit_attachment(AttachmentEdit::ConfirmTime(Timestamp::from_seconds(900)))
+            .ok()?;
+        report = report
+            .confirm_observation_age(Timestamp::from_seconds(1000))
+            .ok()?
+            .into_state();
+        store.save_draft(&report, expected).ok()?;
+        ReleaseWorkingCopy::Verified { binding, digest }
+    } else {
+        ReleaseWorkingCopy::Absent
+    };
+
     let reviewer = ManualReviewer::new(
         EnvironmentMapping::default(),
         StockSettings::default(),
@@ -102,7 +168,7 @@ pub(super) fn gate_with_affinity(
             ReleaseAccountStanding::Accepted("dummy-a".to_owned()),
             SubmissionMode::Production,
             ReleaseScreenshotPolicy::Unknown,
-            ReleaseWorkingCopy::Absent,
+            working_copy,
         ),
         ObservationAgeSettings::default(),
         Timestamp::from_seconds(1000),

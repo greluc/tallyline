@@ -13,6 +13,10 @@ use tallyline_submission::api::model::{
 #[derive(Serialize, Deserialize)]
 #[serde(rename_all = "snake_case", deny_unknown_fields)]
 pub(crate) enum ResolutionActionDocument {
+    Split {
+        report: u64,
+        at: String,
+    },
     RowsDuplicated {
         report: u64,
         rows: Vec<u64>,
@@ -47,6 +51,10 @@ pub(crate) enum DecisionDocument {
 impl From<&SubmissionResolutionAction> for ResolutionActionDocument {
     fn from(value: &SubmissionResolutionAction) -> Self {
         match value {
+            SubmissionResolutionAction::Split { report, at } => Self::Split {
+                report: report.0,
+                at: at.millis().to_string(),
+            },
             SubmissionResolutionAction::RowsDuplicated { report, rows, at } => {
                 Self::RowsDuplicated {
                     report: report.0,
@@ -101,6 +109,13 @@ impl ResolutionActionDocument {
         sent_at: Option<Timestamp>,
     ) -> Result<SubmissionResolutionAction, SubmissionRepositoryError> {
         let (decision, at) = match self {
+            Self::Split { report, at } => {
+                return Ok(SubmissionResolutionAction::Split {
+                    report: ReportId(report),
+                    at: crate::reference_cache::timestamp(&at)
+                        .map_err(|_| SubmissionRepositoryError::Invalid)?,
+                });
+            }
             Self::RowsDuplicated { report, rows, at } => {
                 return Ok(SubmissionResolutionAction::RowsDuplicated {
                     report: ReportId(report),

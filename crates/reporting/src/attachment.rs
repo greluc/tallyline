@@ -4,7 +4,7 @@
 //! Value-bound manual screenshot evidence.
 
 use crate::api::model::InvalidReport;
-use tallyline_shared_kernel::api::model::Timestamp;
+use tallyline_shared_kernel::api::model::{ReportId, Timestamp};
 
 /// SHA-256 of source image bytes or a private crop artifact, according to its owning binding.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -106,6 +106,7 @@ pub struct ManualAttachment {
     pub(crate) time: AttachmentTime,
     pub(crate) preview_confirmed: bool,
     pub(crate) working_copy: Option<ImageHash>,
+    pub(crate) working_copy_owner: Option<ReportId>,
 }
 impl ManualAttachment {
     /// Returns the exact content and geometry selected for this Report.
@@ -117,6 +118,11 @@ impl ManualAttachment {
     #[must_use]
     pub const fn working_copy(self) -> Option<ImageHash> {
         self.working_copy
+    }
+    /// Returns the Report namespace owning the exact persisted private crop.
+    #[must_use]
+    pub const fn working_copy_owner(self) -> Option<ReportId> {
+        self.working_copy_owner
     }
     /// Returns the attachment's time source and certainty.
     #[must_use]
@@ -165,4 +171,6 @@ pub struct StoredAttachment {
     pub preview_confirmed: bool,
     /// Digest of the persisted private region, absent for legacy selections.
     pub working_copy: Option<ImageHash>,
+    /// Original private-copy namespace, absent in legacy documents and unbound selections.
+    pub working_copy_owner: Option<ReportId>,
 }

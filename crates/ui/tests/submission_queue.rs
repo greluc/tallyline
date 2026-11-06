@@ -330,6 +330,7 @@ fn r_sub_12_r_ui_16__account_switch_offers_keep_or_review_without_rebinding_jobs
     shell.receive(account("test-account", 1000));
     shell.receive(BackgroundEvent::SubmissionUpdated(Box::new(
         SubmissionUpdate {
+            assessed_at: tallyline_shared_kernel::api::model::Timestamp::from_seconds(0),
             client_version: None,
             service_fences: vec![],
             authenticated_quotas: vec![],
@@ -705,4 +706,97 @@ fn r_sub_2_r_sub_11__quota_attempt_limit_offers_cancel_for_review_without_a_retr
             .accesskit_node()
             .is_disabled()
     );
+}
+
+#[test]
+#[expect(
+    non_snake_case,
+    reason = "Requirement tags use a double underscore separator."
+)]
+fn r_sub_4_r_ui_16__drawn_mixed_split_shows_both_groups_and_emits_only_keyboard_version_bound_intent()
+ {
+    use tallyline_submission::api::model::{SubmissionWait, SubmissionWaitReason};
+    let prior = queued(71, SubmissionMode::DryRun)
+        .unwrap()
+        .begin(Timestamp::from_seconds(110), PayloadHash::new([1; 32]))
+        .unwrap()
+        .complete(
+            SubmissionResult::DryRunSucceeded,
+            Timestamp::from_seconds(115),
+        )
+        .unwrap();
+    let template = queued(72, SubmissionMode::DryRun).unwrap();
+    let first = template.request().rows()[0].clone();
+    let second = SubmissionRow::new(
+        RowId(2),
+        CommodityId(8),
+        first.price(),
+        first.stock(),
+        first.status(),
+    )
+    .unwrap();
+    let candidate = SubmissionJob::queued(
+        template.id(),
+        SubmissionRequest::new(template.request().header().clone(), vec![first, second]).unwrap(),
+    )
+    .unwrap();
+    let mut state = SubmissionQueue::default();
+    state.received(vec![prior, candidate.clone()]);
+    state.received_waiting(vec![SubmissionWait {
+        job: candidate.id(),
+        revision: candidate.revision(),
+        reason: SubmissionWaitReason::CooldownUntil(Timestamp::from_seconds(415)),
+        next_check: None,
+    }]);
+    state.received_schedule_time(Timestamp::from_seconds(200));
+    assert!(state.can_split(candidate.id()));
+    let catalogue = Catalogue::english().unwrap();
+    let mut fonts = Some(font_files().unwrap());
+    let mut harness = Harness::builder().build_ui_state(
+        move |ui, (state, command): &mut (SubmissionQueue, Option<QueueCommand>)| {
+            if let Some(fonts) = fonts.take() {
+                tallyline_ui::api::configure_fonts(ui.ctx(), fonts);
+            }
+            let next = show_submission_queue(ui, state, &catalogue, tallyline_egui::Theme::Light);
+            if next.is_some() {
+                *command = next;
+            }
+        },
+        (state, None),
+    );
+    harness.run();
+    harness.get_by_label("Rows ready now: 2");
+    harness.get_by_label("Rows waiting for cooldown: 1");
+    let label = "Send the others now 72";
+    harness.get_by_label(label).focus();
+    harness.run();
+    assert!(harness.get_by_label(label).is_focused());
+    assert!(harness.state().0.can_split(candidate.id()));
+    harness.key_press(egui::Key::Enter);
+    harness.run();
+    assert!(!harness.state().0.can_split(candidate.id()));
+    assert_eq!(
+        harness.state().1,
+        Some(QueueCommand::Split {
+            id: candidate.id(),
+            expected_revision: candidate.revision()
+        })
+    );
+    assert_eq!(
+        harness
+            .state()
+            .0
+            .jobs()
+            .iter()
+            .find(|job| job.id() == candidate.id())
+            .unwrap(),
+        &candidate
+    );
+    harness.state_mut().0.received(vec![
+        candidate
+            .begin(Timestamp::from_seconds(200), PayloadHash::new([3; 32]))
+            .unwrap(),
+    ]);
+    harness.run();
+    assert!(harness.query_by_label(label).is_none());
 }

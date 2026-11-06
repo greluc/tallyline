@@ -285,6 +285,10 @@ impl SubmissionQueueController {
             .confirm_newer_observation(id, expected, row, evidence, credentials)
     }
 
+    pub(crate) fn schedule_time(&self) -> tallyline_shared_kernel::api::model::Timestamp {
+        self.clock.now()
+    }
+
     /// Borrows passive waits for exact committed job revisions without granting send authority.
     #[must_use]
     pub fn waiting(&self) -> &[SubmissionWait] {
@@ -419,3 +423,5 @@ impl SubmissionQueueController {
 mod resolution_control;
 
 mod quota_control;
+
+mod cooldown_split;
