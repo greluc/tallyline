@@ -51,3 +51,5 @@ The explicit `scu-policy --public <directory>` developer command analyses comple
 
 
 The [durable manual submission queue](submission-queue.md) records fixed release identity, actual refresh/send gates, transactional recovery/outbox delivery, schema 10/settings 6 and the remaining acceptance boundary.
+
+The [local metadata transport contract](local-metadata-contract.md) records the fixed credential-free version route, generation-bound actual-socket gate, explicit bounds and the distinction between harmless transport tests and actual OS/runtime admission.

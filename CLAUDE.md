@@ -388,3 +388,7 @@ Corrected 2026-11-06: optional explicitly entered faction affinity uses database
 ## Explicit mixed-cooldown source checkpoint - 2026-11-06
 
 Corrected 2026-11-06: schema 15/configuration 6 adds the explicit atomic R-SUB-4 split. Submission's shared schedule policy supplies exact row groups/deadlines; Reporting preserves released decisions and Workflows commits source SPLIT cancellation, two fresh owning jobs and outbox through one SQLite transaction. Original attempts and release snapshots remain immutable; every replacement repeats normal send guards and unfinished restart recovery remains Draft. Read [the queue checkpoint](docs/submission-queue.md#explicit-mixed-cooldown-split-checkpoint---2026-11-06) before changing split, queue or migration code. Full mutation/native/provider/package/approved real-service acceptance and issue92 lifecycle remain separate.
+
+## Local metadata source checkpoint — 2026-11-06
+
+Recognition and adapter-vlm now supply only the [fixed credential-free local version contract](docs/local-metadata-contract.md): the actual socket is held behind generation/tuple ownership observation, current-state rechecks and explicit total time/body bounds. Real loopback tests with a harmless observer establish transport ordering and session gates only. Actual OS ownership, runtime/profile admission and private-input use remain open; no Workflows, Files, Platform or App implementation or product activation is added.

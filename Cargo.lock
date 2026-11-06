@@ -3814,8 +3814,16 @@ dependencies = [
 name = "tallyline-adapter-vlm"
 version = "0.1.0"
 dependencies = [
+ "hyper-util",
+ "reqwest",
+ "rustls",
+ "rustls-platform-verifier",
+ "serde",
+ "serde_json",
  "tallyline-recognition",
  "tallyline-shared-kernel",
+ "tokio",
+ "tower",
 ]
 
 [[package]]

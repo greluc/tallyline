@@ -1,6 +1,6 @@
 # OCR concept
 
-> **Doc type:** Living spec — binding. Last reviewed: 2026-11-04.
+> **Doc type:** Living spec — binding. Last reviewed: 2026-11-06.
 
 Corrected 2026-11-04: the owner marked all seven existing public corpus entries verified; see [current corpus status](../../corpus/README.md#offline-inspection). The intake descriptions below retain their historical verification state; screenshot observations and recognition requirements are unchanged.
 
@@ -625,3 +625,7 @@ The pure `recognition` numeric interface and `adapter-vlm` answer/request contra
 Corrected 2026-11-04: the first [panel preparation slice](../panel-preparation.md) implements only caller-supplied manual/profile quads, upright projective layout rasters, observable source mappings and full-width upward-closed masking through the supplied header supporting bottom edge before any bilinear/area support is read. It does not implement the automatic coarse/native retry, anchors, frame fit, profile-derived glyph target or tone/text measurements specified above. The offline dump records unavailable measurements explicitly and leaves the recogniser's original-raster path unchanged. Before any new raw-read sweep, all 174 available public crops require independent placement/review; no such review or model run is claimed here.
 
 Corrected 2026-11-05: [supplied preparation](../panel-preparation.md) uses conservative closed-cell contact with the full-width upward supporting half-plane, retaining provably safe skewed title cells. Unsupported or ambiguous upright header geometry is refused; schema-two sidecars require versioned regeneration and review. Automatic locate and all-capture output acceptance remain open.
+
+## Local metadata source checkpoint — 2026-11-06
+
+The [fixed metadata adapter](../local-metadata-contract.md) now checks the actual connected loopback tuple through Recognition's generation-bound session port before HTTP receives that socket. Explicit total time/body bounds, cancellation/current-generation checks, strict version parsing and disabled proxy/redirect/retry/pooling are exercised through real harmless loopback contracts. This is transport-ordering evidence with a fake ownership observer, not actual Windows ownership, engine/profile admission, image/prompt inference, private-input permission or desktop activation. Recognition, fusion, model evaluation and delivery acceptance remain open.

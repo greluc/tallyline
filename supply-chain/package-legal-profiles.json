@@ -1,10 +1,10 @@
 {
   "schema_version": 1,
   "source_inputs": {
-    "Cargo.lock": "7cff059731ee7bac4f63daa63de841b49d694d7e5645c0156f6bea82bab33329",
+    "Cargo.lock": "2428e03bdd8a08cd11c81353b8fd4255992aa2492a6efd035ca1c3727f0333e5",
     "NOTICE": "40e8f4ce90323ebecde6f46726c76872c436b5921c19c48cc1625c5b49661b39",
     "supply-chain/notices.toml": "62897d7775f6106f4514b96d130b3775f324df0a02ba9d905349bbe7a7d87a25",
-    "Cargo.toml": "d6535db04900b06e68721b0a1c8fa95854a766ba0e4fe13af677263003ee5f07",
+    "Cargo.toml": "0342f294f512f1c06c3260ae9400f2d65bb88dc5ffcc2f7713ceecd65b6ddb84",
     "crates/adapter-files/Cargo.toml": "a1b47d81c64d797149d68d9b9a6f8fc359144cc317fbdc435d0c32e0071a4aa8",
     "crates/adapter-ocr/Cargo.toml": "be7c86c279822954cf8b6610d79bc631d1e7bbb57702f2178e8ee0384ee6b435",
     "crates/adapter-platform/Cargo.toml": "b33ae444971e5c50636e1a8af6f2ff0087bb84467c63f9bd24235947d4f7c5b9",
@@ -22,7 +22,7 @@
     "tools/ocr-eval/Cargo.toml": "f150e29f8c12c6c31c262253095cca031a2f84fa9aac7d775ee311b53128b2ca",
     "xtask/Cargo.toml": "de901941742c4fa7dd73512cd792d59dd892863c6a09cdac125d3cd53aee2811",
     "crates/recognition/Cargo.toml": "831534172ae613ebb85aba6b1dc99c41e4dbb0f317c55595de741754ed67e0e6",
-    "crates/adapter-vlm/Cargo.toml": "9db8538c6623c4bbe5b3c5369769af2b87781e92094d105502eec65fc4dc1223"
+    "crates/adapter-vlm/Cargo.toml": "3344d8bc0bac0d7bedc8291c5f25ce198cb09915b53d5c458ca45198539fa8ba"
   },
   "targets": {
     "windows": {
