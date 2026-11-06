@@ -55,6 +55,7 @@ impl Report {
             return Err(InvalidReport);
         }
         let mut draft = Self::manual(id, self.key(), self.observed_at(), self.game_version())?;
+        draft = draft.set_faction_affinity(self.faction_affinity())?;
         for source in rows {
             let row = draft.add_commodity(source.commodity())?;
             draft.set_price(row, source.price())?;

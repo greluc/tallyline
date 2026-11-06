@@ -1,6 +1,6 @@
 # UEX API 2.0 – working notes
 
-> **Doc type:** Living spec — binding. Last reviewed: 2026-11-04.
+> **Doc type:** Living spec — binding. Last reviewed: 2026-11-06.
 
 > **Sources.** Corrected 2026-10-09: the earlier notes were written without access to the official documentation and rested on search snippets, third-party copies and open-source clients ([3P]). On 2026-10-09 the official documentation and the live API were checked. Tags:
 >
@@ -339,3 +339,8 @@ The #89 client reuses the existing ID-filtered and account/terminal/type-filtere
 The accepted [UEX] answers in Basics and open point 25 remain the primary evidence for HTTP 429 `exceeded_daily_quota` and `data.reset` as Unix seconds. The public [documentation](https://uexcorp.space/api/documentation/) was read again: it still shows the older divided-per-minute figure and generic `requests_limit_reached`, without a reset shape. No authenticated exhaustion response was obtained, no quota was deliberately consumed and no write was made; a credential-free GET cannot establish that authenticated error payload.
 
 Adapter contracts decode reset only for `exceeded_daily_quota` and accept only a positive whole unsigned JSON integer, retaining the Date parsed from that exact response before body processing. Other refusal codes retain their positive `data.row` or `data.report` boundary even when `data.reset` is also present. Missing/invalid reset, absent/ambiguous Date and an originally non-future reset remain quota refusals without usable scheduling authority. No midnight, 24-hour bound, numeric-string acceptance or Retry-After is invented. The original reset/server observation survives delayed saving and later tracker changes. Existing authenticated `data_info` receipt/safety and token-access reads retain independent quota evidence; public references remain tokenless. Pending local evidence applies before each further authenticated request, including later IDs in the same operation; a proven distinct token remains eligible. Ownership transfer retains continuous admission until durable saving. Fresh monotonic server time controls expiry, and the full ordinary send gate remains mandatory. Synthetic local HTTP contracts establish mapping behaviour, not new live-service verification.
+
+
+### Optional affinity source recheck (2026-11-06)
+
+The live public [official data-submit documentation](https://uexcorp.space/api/documentation/id/post_data_submit/) was read again: `faction_affinity` is an optional report-level integer bounded by -100 and 100; the service permits commodity and item reports. Tallyline's narrower R-SUB-13 commodity-only policy remains binding. An attempted credential-free `GET https://api.uexcorp.space/2.0/parameters` was inaccessible through the research tool, so no fresh parameter-response verification is claimed. No POST or other UEX write was made. The gateway's local HTTP contract verifies omission, explicit zero and both bounds; none of these tests establishes live-service acceptance.

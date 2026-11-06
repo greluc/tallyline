@@ -1,6 +1,6 @@
 # Durable manual submission queue
 
-> **Doc type:** Living reference — implemented, acceptance gates open. Last reviewed: 2026-11-04.
+> **Doc type:** Living reference — implemented, acceptance gates open. Last reviewed: 2026-11-06.
 
 The manual slices of issues #86 and #87 compose Reporting, Submission, Workflows and the native shell. It does not complete screenshot capture, OCR release, withdrawal or recurring UEX lifecycle polling. The normative requirements remain in [01](plan/01-requirements.md), the context map in [02](plan/02-architecture.md), and the event contract in [11 §A6](plan/11-ddd-and-tdd.md).
 
@@ -114,3 +114,10 @@ Public contracts cover local HTTP, protected isolated providers, injected indepe
 
 
 Tokenless `GET /user` account checks and public reference/time requests remain available during a token hold. The existing token-bearing `GET /data_info` validation/receipt routes consult fresh shared admission immediately before each request. Public local-HTTP contracts verify these exact route/header boundaries, and real-SQLite controller contracts cover first-ever durable/session tokens, same-token and lost-registry holds.
+
+
+## Optional faction affinity checkpoint — 2026-11-06
+
+R-SUB-13 is implemented through the public Reporting command and the shared manual/Report editor. `FactionAffinity` is a Shared Kernel value restricted to integers from -100 to 100. New Drafts and requests have no affinity unless the user enters it; explicit zero remains present. Only commodity payloads exist in the submission gateway and carry the optional report-level field. Release captures the value in the immutable request header; durable job restoration validates it and selected-row copies retain it without altering the source attempt or applying a deviation exception. Changing terminal clears affinity with visible guidance; side and environment changes retain it.
+
+Database schema 14/configuration 6 gates the additional optional Report and queue document fields. Migration changes only the schema marker after coordinated backup, preserving existing released documents, attempts and decisions. The source-qualified schema-13 fixture was captured from the actual failing reopening contract before storage production code changed; its provenance explicitly records the already modified Reporting command and does not claim a pristine-parent application. Recorded production-source hashes identify LF-normalised parent Git blobs, not independently captured raw pre-change working-copy bytes. Existing genuine schema-12 history continues through migration unchanged. Real SQLite contracts cover empty creation, previous-version backup/refusal and unchanged payloads; public workflow, local HTTP and drawn egui contracts cover entry, release, restart and selected-row copying. Native visual and approved real-service acceptance remain separate; no live UEX write was performed.

@@ -308,7 +308,7 @@ fn r_sub_9_r_val_7_r_nf_11__original_refusal_proof_commits_with_first_partial_ou
     non_snake_case,
     reason = "Requirement tags use a double underscore separator."
 )]
-fn r_sub_9_r_sub_4_r_val_7__mixed_partial_copy_excludes_accepted_and_unmapped_rows_and_rejects_conflicting_proof()
+fn r_sub_9_r_sub_4_r_sub_13_r_val_7__mixed_partial_copy_excludes_accepted_and_unmapped_rows_and_rejects_conflicting_proof()
  {
     use tallyline_reporting::api::model::ReportState;
     use tallyline_reporting::api::{ReportHistoryRepository, ReportRepository};
@@ -319,7 +319,8 @@ fn r_sub_9_r_sub_4_r_val_7__mixed_partial_copy_excludes_accepted_and_unmapped_ro
     use tallyline_workflows::api::ResolutionDraftStore;
     let directory = TestDirectory::new().unwrap();
     let path = directory.0.join("mixed.db");
-    let (mut store, gate) = super::three_rows::gate(&path).unwrap();
+    let (mut store, gate) =
+        super::three_rows::gate_with_affinity(&path, Some("75".parse().unwrap())).unwrap();
     let released = store.release_manual(&gate).unwrap();
     let sending = released
         .job()
@@ -426,6 +427,7 @@ fn r_sub_9_r_sub_4_r_val_7__mixed_partial_copy_excludes_accepted_and_unmapped_ro
             .iter()
             .all(|row| row.price().unwrap().to_string() == "123.45")
     );
+    assert_eq!(copied.draft.faction_affinity().unwrap().value(), 75);
     assert_eq!(copied.draft.observed_at(), Timestamp::from_seconds(900));
     assert_eq!(copied.draft.game_version(), Some("4.10.2"));
     assert!(copied.draft.release_binding().is_none());

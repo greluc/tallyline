@@ -167,14 +167,14 @@ pub(super) fn verify(directory: &Path) -> TestResult {
     assert!(matches!(
         schema_nine_reader::open(&path),
         Err(StorageError::UnsupportedSchema {
-            found: 13,
+            found: 14,
             supported: 9
         })
     ));
     let after = rusqlite::Connection::open(&path)?;
     assert_eq!(
         after.pragma_query_value(None, "user_version", |row| row.get::<_, u32>(0))?,
-        13
+        14
     );
     assert_eq!(
         after.query_row(

@@ -60,6 +60,7 @@ pub struct ManualEditor {
     pub(crate) location_query: String,
     pub(crate) commodity_query: String,
     pub(crate) rows: Vec<RowInput>,
+    pub(crate) faction_affinity: String,
     pub(crate) ready: bool,
     pub(crate) busy: bool,
     pub(crate) notice: Option<String>,
@@ -257,6 +258,10 @@ impl ManualEditor {
             self.environment = Some(report.key().environment());
             self.terminal = Some(report.key().terminal());
             self.side = Some(report.key().side());
+            self.faction_affinity = report
+                .faction_affinity()
+                .map(|value| value.to_string())
+                .unwrap_or_default();
             self.rows = report
                 .rows()
                 .iter()
@@ -280,6 +285,7 @@ impl ManualEditor {
         self.terminal = None;
         self.side = None;
         self.rows.clear();
+        self.faction_affinity.clear();
     }
 }
 

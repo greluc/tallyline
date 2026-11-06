@@ -118,6 +118,7 @@ struct Document {
     environment: String,
     observed_at: String,
     game_version: Option<String>,
+    faction_affinity: Option<i8>,
     rows: Vec<RowDocument>,
     attachment: Option<AttachmentDocument>,
 }
@@ -149,6 +150,7 @@ pub(crate) fn encode(report: &Report) -> Result<String, RepositoryError> {
         environment: environment_name(report.key().environment()).to_owned(),
         observed_at: report.observed_at().millis().to_string(),
         game_version: report.game_version().map(str::to_owned),
+        faction_affinity: report.faction_affinity().map(|value| value.value()),
         rows: report
             .rows()
             .iter()
@@ -275,6 +277,11 @@ pub(crate) fn decode(id: ReportId, version: u64, payload: &str) -> Result<Report
         key,
         observed_at,
         game_version: document.game_version,
+        faction_affinity: document
+            .faction_affinity
+            .map(tallyline_shared_kernel::api::model::FactionAffinity::new)
+            .transpose()
+            .map_err(|_| RepositoryError::Invalid)?,
         version,
         rows,
         attachment: document

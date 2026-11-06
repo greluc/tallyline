@@ -94,6 +94,8 @@ pub struct SubmissionHeader {
     pub environment: UexEnvironment,
     /// The version observed for this observation and environment.
     pub game_version: String,
+    /// Explicit user-entered affinity with this commodity terminal's faction.
+    pub faction_affinity: Option<tallyline_shared_kernel::api::model::FactionAffinity>,
     /// The original observation time, never moved later at dispatch.
     pub observed_at: Timestamp,
 }

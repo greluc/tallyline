@@ -151,6 +151,11 @@ fn r_man_2_r_sub_2_r_sub_3_r_sub_8__valid_manual_release_is_immutable_and_queued
             .is_err()
     );
     assert_eq!(&immutable, queued.state());
+    assert!(
+        immutable
+            .set_faction_affinity(Some("25".parse().unwrap()))
+            .is_err()
+    );
     assert!(immutable.change_key(report.key()).is_err());
     assert_eq!(&immutable, queued.state());
     assert!(queued.state().release(&gate).is_err());

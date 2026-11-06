@@ -39,6 +39,7 @@ fn concurrent_account_update_and_storage_notices_keep_actions_visible_at_double_
                     side: TradeSide::Buy,
                     environment: UexEnvironment::Live,
                     game_version: "4.10.2".to_owned(),
+                    faction_affinity: None,
                     observed_at: Timestamp::from_seconds(100),
                 },
                 vec![

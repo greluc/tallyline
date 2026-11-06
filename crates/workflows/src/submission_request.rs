@@ -44,6 +44,7 @@ pub fn manual_submission_request(
             side: report.key().side(),
             environment,
             game_version: report.game_version().ok_or(InvalidSubmission)?.to_owned(),
+            faction_affinity: report.faction_affinity(),
             observed_at: report.observed_at(),
         },
         rows,

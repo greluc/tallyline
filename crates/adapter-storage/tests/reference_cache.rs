@@ -90,15 +90,15 @@ fn r_nf_11__future_database_is_refused_without_modifying_its_bytes() {
     let path = directory.0.join("future.db");
     {
         let database = rusqlite::Connection::open(&path).unwrap();
-        database.pragma_update(None, "user_version", 14).unwrap();
+        database.pragma_update(None, "user_version", 15).unwrap();
     }
     let before = std::fs::read(&path).unwrap();
     assert!(matches!(
         SqliteReferenceCache::open(&path),
         Err(
             tallyline_adapter_storage::api::StorageError::UnsupportedSchema {
-                found: 14,
-                supported: 13
+                found: 15,
+                supported: 14
             }
         )
     ));
@@ -251,7 +251,7 @@ fn r_nf_11__sqlite_backup_includes_uncheckpointed_wal_and_a_restore_marker() {
     let taken_at = Timestamp::from_millis(123_456_789);
     assert_eq!(
         cache.backup_into(&destination, taken_at, Some(3)).unwrap(),
-        13
+        14
     );
     let mut backup = SqliteReferenceCache::open(&destination).unwrap();
     assert_eq!(backup.load().unwrap(), vec![entry.clone()]);
@@ -259,7 +259,7 @@ fn r_nf_11__sqlite_backup_includes_uncheckpointed_wal_and_a_restore_marker() {
         backup.backup_metadata().unwrap(),
         Some(BackupMetadata {
             taken_at,
-            from_schema: 13,
+            from_schema: 14,
             configuration_schema: Some(3)
         })
     );
@@ -475,7 +475,7 @@ fn r_nf_11_r_api_6__schema_one_requires_backup_and_drops_ambiguous_legacy_averag
                 Some(4)
             )
             .unwrap(),
-        13
+        14
     );
     drop(migrated);
     assert!(SqliteReferenceCache::open(&path).is_ok());
@@ -622,7 +622,7 @@ fn r_nf_11_r_sub_9__partial_resolution_format_requires_schema_twelve() {
         .pragma_query_value(None, "user_version", |row| row.get(0))
         .unwrap();
     assert_eq!(
-        version, 13,
+        version, 14,
         "partial-resolution history must have an explicit older-reader format gate"
     );
 }
@@ -675,7 +675,7 @@ fn r_nf_11_r_sub_9__schema_ten_requires_exact_backup_and_its_reader_refuses_reso
     assert!(matches!(
         schema_ten_reader::open(&path),
         Err(StorageError::UnsupportedSchema {
-            found: 13,
+            found: 14,
             supported: 10
         })
     ));
@@ -684,7 +684,7 @@ fn r_nf_11_r_sub_9__schema_ten_requires_exact_backup_and_its_reader_refuses_reso
         migrated
             .pragma_query_value(None, "user_version", |row| row.get::<_, u32>(0))
             .unwrap(),
-        13
+        14
     );
     let backed_up = Connection::open(&backup).unwrap();
     assert_eq!(

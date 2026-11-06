@@ -46,6 +46,7 @@ fn r_sub_2_r_sub_9_r_ui_16__late_draft_lists_cannot_reopen_a_released_report_or_
                 side: TradeSide::Buy,
                 environment: UexEnvironment::Live,
                 game_version: "4.10.2".to_owned(),
+                faction_affinity: None,
                 observed_at: report.observed_at(),
             },
             vec![

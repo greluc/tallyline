@@ -48,6 +48,7 @@ async fn r_sub_1_r_sub_8_r_api_7__queue_dry_run_sends_exact_one_sided_values_and
             side: TradeSide::Sell,
             environment: UexEnvironment::Live,
             game_version: "4.10.2".to_owned(),
+            faction_affinity: None,
             observed_at: Timestamp::from_seconds(100),
         },
         vec![
@@ -84,6 +85,7 @@ pub(super) fn released_request() -> Option<SubmissionRequest> {
             side: TradeSide::Sell,
             environment: UexEnvironment::Live,
             game_version: "4.10.2".to_owned(),
+            faction_affinity: None,
             observed_at: Timestamp::from_seconds(100),
         },
         vec![
@@ -1830,4 +1832,54 @@ async fn r_sub_2_r_sub_9_r_api_3__partial_receipt_quota_stops_remaining_ids_and_
     );
     assert_eq!(job, original);
     server.verify().await;
+}
+
+#[tokio::test]
+#[expect(
+    non_snake_case,
+    reason = "Requirement tags use a double underscore separator."
+)]
+async fn r_sub_13__commodity_payload_contains_only_explicit_report_affinity_including_zero() {
+    for affinity in [Some(-100), Some(0), Some(100), None] {
+        let server = MockServer::start().await;
+        let mut expected = json!({"id_terminal":89,"type":"commodity","is_production":0,"game_version":"4.10.2","date_added":100,"prices":[{"id_commodity":7,"price_sell":120.125,"status_sell":1}]});
+        if let Some(value) = affinity {
+            expected
+                .as_object_mut()
+                .unwrap()
+                .insert("faction_affinity".to_owned(), json!(value));
+        }
+        Mock::given(method("POST"))
+            .and(path("/2.0/data_submit/"))
+            .and(body_json(expected))
+            .respond_with(
+                ResponseTemplate::new(200).set_body_json(
+                    json!({"status":"ok","data":{"ids_reports":null,"date_added":100}}),
+                ),
+            )
+            .expect(1)
+            .mount(&server)
+            .await;
+        let settings = ReaderSettings::for_test_server(
+            &format!("{}/2.0/", server.uri()),
+            ClientIdentity::new("tallyline-test", "1.2.3"),
+        )
+        .unwrap()
+        .with_expert_host_confirmation();
+        let reader = UexReader::new(&settings).unwrap();
+        let base = released_request().unwrap();
+        let mut header = base.header().clone();
+        header.faction_affinity = affinity
+            .map(|value| tallyline_shared_kernel::api::model::FactionAffinity::new(value).unwrap());
+        let request = SubmissionRequest::new(header, base.rows().to_vec()).unwrap();
+        let credentials =
+            CredentialValues::new("dummy-key".to_owned(), Some("dummy-token".to_owned())).unwrap();
+        assert_eq!(
+            reader
+                .submit(reader.prepare(&request).unwrap().0, &credentials, None)
+                .await,
+            SubmissionResult::DryRunSucceeded
+        );
+        server.verify().await;
+    }
 }

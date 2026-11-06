@@ -222,3 +222,88 @@ fn r_man_2_r_ui_16__context_refusal_restores_saved_choices_without_erasing_or_re
     );
     assert!(harness.state_mut().manual_mut().take_command().is_none());
 }
+
+#[test]
+#[expect(
+    non_snake_case,
+    reason = "Requirement tags use a double underscore separator."
+)]
+fn r_sub_13__drawn_affinity_starts_empty_rejects_invalid_values_and_commits_explicit_zero() {
+    use egui_kittest::kittest::NodeT;
+    let label = "Faction affinity (optional, -100 to 100)";
+    let mut harness = support::harness(&[42]).unwrap();
+    assert_eq!(
+        harness
+            .get_by_role_and_label(egui::Role::TextInput, label)
+            .accesskit_node()
+            .value()
+            .unwrap(),
+        ""
+    );
+    assert_eq!(
+        harness
+            .state()
+            .manual()
+            .selected()
+            .unwrap()
+            .faction_affinity(),
+        None
+    );
+    for invalid in ["-101", "101", "1.5", "no"] {
+        harness
+            .get_by_role_and_label(egui::Role::TextInput, label)
+            .focus();
+        harness.run();
+        harness.key_press_modifiers(egui::Modifiers::COMMAND, egui::Key::A);
+        harness.run();
+        harness
+            .get_by_role_and_label(egui::Role::TextInput, label)
+            .type_text(invalid);
+        harness.run();
+        harness.key_press(egui::Key::Tab);
+        harness.run();
+        assert!(harness.state_mut().manual_mut().take_command().is_none());
+        assert_eq!(
+            harness
+                .state()
+                .manual()
+                .selected()
+                .unwrap()
+                .faction_affinity(),
+            None
+        );
+    }
+    harness
+        .get_by_role_and_label(egui::Role::TextInput, label)
+        .focus();
+    harness.run();
+    harness.key_press_modifiers(egui::Modifiers::COMMAND, egui::Key::A);
+    harness.run();
+    harness
+        .get_by_role_and_label(egui::Role::TextInput, label)
+        .type_text("0");
+    harness.run();
+    harness.key_press(egui::Key::Tab);
+    harness.run();
+    let command = harness.state_mut().manual_mut().take_command().unwrap();
+    assert!(
+        matches!(&command, ManualCommand::Edit { edits, .. } if matches!(edits.as_slice(), [ManualEdit::FactionAffinity(Some(value))] if value.value() == 0))
+    );
+    let committed = harness
+        .state()
+        .manual()
+        .selected()
+        .unwrap()
+        .set_faction_affinity(Some("0".parse().unwrap()))
+        .unwrap();
+    support::result(harness.state_mut(), &command, Ok(committed)).unwrap();
+    harness.run();
+    assert_eq!(
+        harness
+            .get_by_role_and_label(egui::Role::TextInput, label)
+            .accesskit_node()
+            .value()
+            .unwrap(),
+        "0"
+    );
+}

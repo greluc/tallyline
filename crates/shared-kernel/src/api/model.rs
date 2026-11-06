@@ -176,5 +176,6 @@ impl EventId {
 }
 
 pub use crate::area_sample::AreaSampleError;
+pub use crate::faction_affinity::{FactionAffinity, InvalidFactionAffinity};
 pub use crate::projective_map::{InvalidGeometry, ProjectiveMap};
 pub use crate::release_version::ReleaseVersion;

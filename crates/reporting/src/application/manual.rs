@@ -62,6 +62,7 @@ impl<R: ReportRepository, C: Clock> ReportingApplication<R, C> {
         let key = match *edit {
             ManualEdit::ChangeKey(key) => key,
             ManualEdit::AddCommodity(_)
+            | ManualEdit::FactionAffinity(_)
             | ManualEdit::Price(..)
             | ManualEdit::Stock(..)
             | ManualEdit::Status(..)
@@ -90,6 +91,9 @@ impl<R: ReportRepository, C: Clock> ReportingApplication<R, C> {
                 report.add_commodity(commodity).map(|_| ())
             }
             ManualEdit::Price(row, value) => report.set_price(row, value),
+            ManualEdit::FactionAffinity(value) => report.set_faction_affinity(value).map(|state| {
+                *report = state;
+            }),
             ManualEdit::Stock(row, value) => report.set_stock(row, value),
             ManualEdit::Status(row, value) => {
                 if let Some(value) = value {

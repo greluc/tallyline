@@ -35,6 +35,7 @@ fn queued(id: u64, mode: SubmissionMode) -> Option<SubmissionJob> {
                 side: TradeSide::Sell,
                 environment: UexEnvironment::Live,
                 game_version: "4.10.2".to_owned(),
+                faction_affinity: None,
                 observed_at: Timestamp::from_seconds(100),
             },
             vec![

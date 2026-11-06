@@ -164,6 +164,11 @@ fn payload(
         prices.push(Value::Object(values));
     }
     let mut payload = json!({"id_terminal": header.terminal.0, "type":"commodity", "is_production":match header.mode {SubmissionMode::DryRun=>0, SubmissionMode::Production=>1}, "game_version":header.game_version, "date_added":date_added.seconds(), "prices":prices});
+    if let Some(affinity) = header.faction_affinity {
+        payload
+            .as_object_mut()?
+            .insert("faction_affinity".to_owned(), json!(affinity.value()));
+    }
     if let Some(image) = screenshot {
         payload
             .as_object_mut()?

@@ -31,6 +31,9 @@ impl ManualFrame {
     ) {
         if !self.actions.is_empty() {
             self.edits.clear();
+            if !self.actions.iter().any(|action| matches!(action, ManualEdit::ChangeKey(key) if key.terminal() != report.key().terminal())) {
+                collect(&editor.faction_affinity, report.faction_affinity(), ManualEdit::FactionAffinity, &mut self.edits, &mut self.invalid);
+            }
             for row in &editor.rows {
                 if self
                     .actions
@@ -65,6 +68,7 @@ impl ManualFrame {
             }
         }
         self.edits.retain(|edit| match edit {
+            ManualEdit::FactionAffinity(value) => report.faction_affinity() != *value,
             ManualEdit::Price(id, value) => report
                 .rows()
                 .iter()

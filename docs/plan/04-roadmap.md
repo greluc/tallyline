@@ -1,6 +1,6 @@
 # Roadmap
 
-> **Doc type:** Living plan — active. Last reviewed: 2026-11-04.
+> **Doc type:** Living plan — active. Last reviewed: 2026-11-06.
 
 Corrected 2026-11-04: the owner marked all seven existing public corpus entries verified; see [current corpus status](../../corpus/README.md#offline-inspection). Earlier checkpoint verification states and inspection results below remain historical; this decision supplies no missing metadata, frozen reference snapshot, class coverage or recognition accuracy measurement.
 
@@ -298,3 +298,8 @@ Issue #89 now has a source slice for R-SUB-9/R-SUB-11 and R-UI-1 :reports: exact
 ## Token quota coverage checkpoint — 2026-11-04
 
 Corrected 2026-11-04: M1 source coverage for R-SUB-2/R-SUB-11 now includes per-token daily reset parsing, protected opaque associations, durable authenticated-read holds, exact-source expiry and bounded full-gate resumption. R-SUB-4 production row budgeting/cooldown evidence is preserved, and R-API-3 reference reads stay tokenless. Schema 13/configuration 6 has a genuine source-bound prior12 fixture, coordinated backup and rollback/older-reader contracts. This is the first issue-90 unit; explicit atomic cooldown partition, native/provider/real-service and complete mutation acceptance remain open. [The queue checkpoint](../submission-queue.md#token-quota-reset-checkpoint--2026-11-04) is the evidence boundary; no original ticket or milestone is closed here.
+
+
+### Optional faction affinity checkpoint (2026-11-06)
+
+The R-SUB-13 source slice covers manual capture and the Report editor, integer bounds, absence versus explicit zero, immutable commodity-only submission, durable restart and selected-row copying. It adds no affinity-specific deviation exception. Database schema 14/configuration 6 covers the forward format gate and coordinated backup. Public application, real SQLite, local HTTP and drawn egui contracts are separate from native visual and approved real-service acceptance; the complete M1 submission lifecycle checkbox remains open.

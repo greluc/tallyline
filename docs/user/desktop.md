@@ -1,6 +1,6 @@
 # Desktop shell
 
-> **Doc type:** Living reference — M1 foundation. Last reviewed: 2026-11-04.
+> **Doc type:** Living reference — M1 foundation. Last reviewed: 2026-11-06.
 
 Tallyline starts with the onboarding welcome screen and its coupled Star Citizen Fan Kit unit. Choose **Continue** to acknowledge it and open the workspace. The workspace shows its empty capture state and keeps Settings and Help available. That acknowledgement and the selected theme survive a restart; subsequent starts open the workspace. **Done** or **Home** leaves Settings. If Settings was opened before the start-screen acknowledgement, Done returns to onboarding. The shell includes reviewed manual submission; capture and OCR workflows remain in progress. Account setup is available below the welcome acknowledgement and in Settings.
 
@@ -140,6 +140,10 @@ Files exceeding a hard size, metadata, pixel, profile or decoder-memory limit ar
 At startup Tallyline prepares the local OCR telemetry mitigation before opening storage or starting workers. It may relaunch the same executable once; no separate programme or launcher is required. On Windows a waiting bootstrap parent remains until the app closes and opens no helper console. Failed preparation stops startup before any OCR library can initialise. Native OCR loading and packaged telemetry checks are still in progress (R-NF-12).
 
 ## Manual commodity Drafts
+
+The **Faction affinity (optional, -100 to 100)** field accepts only your own whole-number affinity with the faction running this terminal. Leave it empty when unknown: Tallyline never fills it from a screenshot, terminal or UEX reference. An entered **0** is sent as zero; an empty field is omitted. The value belongs to this Report and terminal, survives saving, restart, release and later selected-row copying, and applies only to commodity submissions. Choosing another terminal clears it; changing only side or environment keeps it. Affinity never relaxes price, stock or status deviation review. Invalid or unsaved input must be resolved before release.
+
+Upgrading to database schema 14 first creates the coordinated database/settings backup. Settings remain schema 6, and an older application refuses the newer database.
 
 Open **Manual Report**, then choose the environment, terminal and Buy/Sell side explicitly and select **Create Draft**. On first use no environment or side is selected. The environment of the most recently edited manual Draft is offered on later starts. Terminal search covers names, nicknames, screen display names and location/system text, including fuzzy character sequences; the separate location filter narrows results. Previously used terminals appear first. Shared names still show each terminal and location separately; select the intended result explicitly.
 

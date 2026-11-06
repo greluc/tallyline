@@ -23,6 +23,8 @@ pub enum ManualEdit {
     Status(RowId, Option<std::num::NonZeroU8>),
     /// Explicitly take over this row's currently displayed reference values.
     TakeOver(RowId),
+    /// Enter or clear the player's affinity with the terminal's faction.
+    FactionAffinity(Option<tallyline_shared_kernel::api::model::FactionAffinity>),
     /// Change terminal, side or explicitly selected environment.
     ChangeKey(ReportKey),
 }

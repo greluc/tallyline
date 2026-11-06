@@ -23,6 +23,12 @@ use tallyline_shared_kernel::api::model::{
 };
 
 pub(super) fn gate(path: &std::path::Path) -> Option<(SqliteReferenceCache, SubmissionGate)> {
+    gate_with_affinity(path, None)
+}
+pub(super) fn gate_with_affinity(
+    path: &std::path::Path,
+    affinity: Option<tallyline_shared_kernel::api::model::FactionAffinity>,
+) -> Option<(SqliteReferenceCache, SubmissionGate)> {
     let (mut store, initial) =
         support::stored_gate_with_mode(path, SubmissionMode::Production).ok()?;
     let commodities = [
@@ -74,6 +80,7 @@ pub(super) fn gate(path: &std::path::Path) -> Option<(SqliteReferenceCache, Subm
         ))
         .ok()?;
     let mut report = initial.source().clone();
+    report = report.set_faction_affinity(affinity).ok()?;
     for id in [43, 44] {
         let row = report.add_commodity(CommodityId(id)).ok()?;
         report.set_price(row, Some("123.45".parse().ok()?)).ok()?;

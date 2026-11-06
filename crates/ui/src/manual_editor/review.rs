@@ -20,17 +20,18 @@ impl ManualEditor {
     }
     pub(crate) fn inputs_pending(&self) -> bool {
         self.selected().is_some_and(|report| {
-            self.rows.iter().any(|input| {
-                report
-                    .rows()
-                    .iter()
-                    .find(|row| row.id() == input.id)
-                    .is_none_or(|row| {
-                        !same(&input.price, row.price())
-                            || !same(&input.stock, row.stock())
-                            || !same(&input.status, row.status())
-                    })
-            })
+            !same(&self.faction_affinity, report.faction_affinity())
+                || self.rows.iter().any(|input| {
+                    report
+                        .rows()
+                        .iter()
+                        .find(|row| row.id() == input.id)
+                        .is_none_or(|row| {
+                            !same(&input.price, row.price())
+                                || !same(&input.stock, row.stock())
+                                || !same(&input.status, row.status())
+                        })
+                })
         })
     }
     pub(crate) fn request_review(&mut self, snapshot: &ReferenceSnapshot) {

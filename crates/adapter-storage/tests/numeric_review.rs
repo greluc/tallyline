@@ -366,7 +366,7 @@ fn r_nf_11_r_ui_12_q_manual__schema_six_requires_backup_and_preserves_legacy_pri
         current
             .query_row("PRAGMA user_version", [], |row| row.get::<_, u32>(0))
             .unwrap(),
-        13
+        14
     );
     assert_eq!(
         current

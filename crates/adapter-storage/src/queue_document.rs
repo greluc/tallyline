@@ -46,6 +46,7 @@ struct HeaderDocument {
     side: SideDocument,
     environment: EnvironmentDocument,
     game_version: String,
+    faction_affinity: Option<i8>,
     observed_at: String,
 }
 #[derive(Serialize, Deserialize)]
@@ -239,6 +240,7 @@ pub(crate) fn encode(job: &SubmissionJob) -> Result<String, SubmissionRepository
             side: header.side.into(),
             environment: header.environment.into(),
             game_version: header.game_version.clone(),
+            faction_affinity: header.faction_affinity.map(|value| value.value()),
             observed_at: header.observed_at.millis().to_string(),
         },
         rows: request
@@ -329,6 +331,11 @@ pub(crate) fn decode(
             side: header.side.into(),
             environment: header.environment.into(),
             game_version: header.game_version,
+            faction_affinity: header
+                .faction_affinity
+                .map(tallyline_shared_kernel::api::model::FactionAffinity::new)
+                .transpose()
+                .map_err(invalid)?,
             observed_at: timestamp(&header.observed_at)?,
         },
         rows,

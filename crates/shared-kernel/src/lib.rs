@@ -10,6 +10,7 @@ mod area_sample;
 mod container_sizes;
 mod decimal;
 mod delta;
+mod faction_affinity;
 mod image_raster;
 mod observation_age;
 mod projective_map;

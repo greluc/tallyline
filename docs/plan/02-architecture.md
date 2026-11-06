@@ -1,6 +1,6 @@
 # System architecture
 
-> **Doc type:** Living spec — binding. Last reviewed: 2026-11-04.
+> **Doc type:** Living spec — binding. Last reviewed: 2026-11-06.
 
 > Amended 2026-10-12 (ADR-0005): the implementation language is Rust with egui, native code only by registered exception. The context cut, the ports, the data flow and all behavioural rules of this document are unchanged; §2, §3, §4a, §4b, §7, §8, §9 (wording) and §10 name the Rust technology instead of Java, JavaFX and Gradle. Crates, versions and tools not named in ADR-0005 are chosen and verified at source in M0.
 
@@ -1129,3 +1129,8 @@ The shared HTTP admission state retains known quota evidence while durable saves
 
 
 The intact protected registry can prove a first-ever explicit token distinct from retained token associations without storing that input. This bounded in-memory TokenAdmission proof flows through validation, shared HTTP admission and the final SQLite write-ahead transaction; only known durable TokenScope identities are persisted. Registration follows successful validation. Missing/lost/unavailable registry state supplies no distinction. Tokenless account/reference requests remain outside the quota, while each token-bearing data-info request checks the live shared admission gate.
+
+
+### Optional faction affinity implementation (2026-11-06)
+
+The existing manual and Report editor share optional terminal-scoped affinity entry (R-SUB-13). Reporting and Submission use the range-validated Shared Kernel value; Workflows copies only explicit input into the fixed release header. The existing SQLite Report and job documents persist optional affinity under database schema 14/configuration 6, with coordinated pre-migration backup and no rewrite of released history. The documented UEX report-level data category and destination are unchanged. No reference/recognition source can fill affinity and no affinity-specific deviation exception exists; see [the queue checkpoint](../submission-queue.md#optional-faction-affinity-checkpoint--2026-11-06).

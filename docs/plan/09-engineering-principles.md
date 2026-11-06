@@ -1,6 +1,6 @@
 # Engineering Principles: Modularisation, Maintainability, Clean Code
 
-> **Doc type:** Living spec — binding. Last reviewed: 2026-11-05.
+> **Doc type:** Living spec — binding. Last reviewed: 2026-11-06.
 
 This document makes "best practices" **verifiable**: every rule states *how* it is enforced. Where possible this happens automatically (compiler, the Cargo crate graph, Clippy, `cargo-deny`, `xtask`, CI), otherwise via the review checklist and the Definition of Done.
 
@@ -61,6 +61,7 @@ The `unsafe` code of the platform adapter is registered here too. Corrected 2026
 
 | Location | Rule | Reason | Date | Revisit when |
 |---|---|---|---|---|
+| `crates/adapter-storage/tests/affinity_schema_migration.rs`, requirement-tagged migration contract | `non_snake_case`, local `#[expect]` per tagged test | The required traceability grammar contains a double underscore | 2026-11-06 | the requirement-tag grammar changes |
 | `crates/adapter-uex/src/quota_post_contract_tests.rs`, requirement-tagged local HTTP contract | `non_snake_case`, local `#[expect]` per tagged test | The required traceability grammar contains a double underscore | 2026-11-04 | the requirement-tag grammar changes |
 | `crates/submission/tests/error_code.rs` and `crates/workflows/tests/manual_release/row_failure_semantics.rs`, requirement-tagged tests | `non_snake_case`, local `#[expect(non_snake_case)]` per tagged test | The required traceability grammar contains a double underscore | 2026-11-04 | the requirement-tag grammar changes |
 | `crates/recognition/tests/panel_preparation.rs` and `tools/ocr-eval/tests/panel_dump_cli.rs`, requirement-tagged public preparation contracts | `non_snake_case`, local `#[expect]` per tagged test | Required traceability tags contain a double underscore | 2026-11-04 | the requirement-tag grammar changes |

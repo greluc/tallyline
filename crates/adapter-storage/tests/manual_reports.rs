@@ -378,7 +378,7 @@ fn r_nf_11_r_ui_12_q_manual__schema_six_requires_backup_and_preserves_legacy_pri
         current
             .query_row("PRAGMA user_version", [], |row| row.get::<_, u32>(0))
             .unwrap(),
-        13
+        14
     );
     assert_eq!(
         current
@@ -623,5 +623,33 @@ fn r_man_2_r_nf_11__later_invalid_edit_rolls_back_every_value_and_decision_acros
     let mut store = SqliteReferenceCache::open(&path).unwrap();
     assert_eq!(store.load_draft(report.id()).unwrap(), Some(report));
     drop(store);
+    std::fs::remove_file(path).unwrap();
+}
+
+#[test]
+#[expect(
+    non_snake_case,
+    reason = "Requirement tags use a double underscore separator."
+)]
+fn r_sub_13_r_nf_11__entered_affinity_survives_durable_draft_reopening() {
+    let path = test_path("tallyline-affinity-draft").unwrap();
+    let mut app = ReportingApplication::new(SqliteReferenceCache::open(&path).unwrap(), Fixed);
+    let key = ReportKey::new(TerminalId(11), TradeSide::Buy, GameEnvironment::Live).unwrap();
+    let mut report = app.create(key, Some("4.10.2")).unwrap();
+    for value in [Some("-100"), Some("0"), Some("100"), None] {
+        report = app
+            .edit(
+                report.id(),
+                report.version(),
+                ManualEdit::FactionAffinity(value.map(|v| v.parse().unwrap())),
+                &reference("100").unwrap(),
+            )
+            .unwrap();
+        drop(app);
+        let mut store = SqliteReferenceCache::open(&path).unwrap();
+        assert_eq!(store.load_draft(report.id()).unwrap(), Some(report.clone()));
+        app = ReportingApplication::new(store, Fixed);
+    }
+    drop(app);
     std::fs::remove_file(path).unwrap();
 }

@@ -6,8 +6,8 @@
 use crate::api::model::{Deviation, ManualAttachment, StatusConfirmation, StoredAttachment};
 use tallyline_game::api::model::GameEnvironment;
 use tallyline_shared_kernel::api::model::{
-    CommodityId, PricePerScu, ReportId, RowId, ScuQuantity, TerminalId, Timestamp, TradeSide,
-    UexEnvironment,
+    CommodityId, FactionAffinity, PricePerScu, ReportId, RowId, ScuQuantity, TerminalId, Timestamp,
+    TradeSide, UexEnvironment,
 };
 
 /// The source of an explicitly observed field.
@@ -134,6 +134,7 @@ pub struct Report {
     key: ReportKey,
     observed_at: Timestamp,
     game_version: Option<String>,
+    faction_affinity: Option<FactionAffinity>,
     version: u64,
     rows: Vec<ReportRow>,
     attachment: Option<ManualAttachment>,
@@ -158,6 +159,7 @@ impl Report {
             key,
             observed_at,
             game_version: game_version.map(str::to_owned),
+            faction_affinity: None,
             version: 0,
             rows: Vec::new(),
             attachment: None,
@@ -198,13 +200,16 @@ impl Report {
         self.version += 1;
         Ok(id)
     }
-    /// Changes the Draft key without changing user values or observation time.
+    /// Changes Draft context, clearing faction affinity only when the terminal changes.
     ///
     /// # Errors
     /// Refuses context changes after release.
     pub fn change_key(&mut self, key: ReportKey) -> Result<(), InvalidReport> {
         self.ensure_draft()?;
         if self.key != key {
+            if self.key.terminal != key.terminal {
+                self.faction_affinity = None;
+            }
             if self.key.environment != key.environment {
                 self.game_version = None;
             }
@@ -320,6 +325,27 @@ impl Report {
     pub fn game_version(&self) -> Option<&str> {
         self.game_version.as_deref()
     }
+    /// Returns only the player's explicitly entered terminal-faction affinity.
+    #[must_use]
+    pub const fn faction_affinity(&self) -> Option<FactionAffinity> {
+        self.faction_affinity
+    }
+    /// Returns a Draft with the player's explicitly entered terminal-faction affinity set or cleared.
+    ///
+    /// # Errors
+    /// Refuses changes after release.
+    pub fn set_faction_affinity(
+        &self,
+        value: Option<FactionAffinity>,
+    ) -> Result<Self, InvalidReport> {
+        self.ensure_draft()?;
+        let mut state = self.clone();
+        if state.faction_affinity != value {
+            state.faction_affinity = value;
+            state.version += 1;
+        }
+        Ok(state)
+    }
     /// Returns the optimistic concurrency version.
     #[must_use]
     pub const fn version(&self) -> u64 {
@@ -343,6 +369,8 @@ pub struct StoredReport {
     pub observed_at: Timestamp,
     /// Version assigned to the manual observation.
     pub game_version: Option<String>,
+    /// Only the explicitly entered terminal-faction affinity.
+    pub faction_affinity: Option<FactionAffinity>,
     /// Optimistic concurrency version.
     pub version: u64,
     /// Explicit rows.
@@ -461,6 +489,7 @@ impl Report {
         }) {
             return Err(InvalidReport);
         }
+        report.faction_affinity = stored.faction_affinity;
         report.version = stored.version;
         report.lifecycle = lifecycle::ReportLifecycle::restore(
             stored.lifecycle,

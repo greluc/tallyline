@@ -142,7 +142,7 @@ fn r_nf_11_r_sub_9__genuine_schema_eleven_requires_backup_preserves_payload_and_
         connection
             .pragma_query_value(None, "user_version", |row| row.get::<_, u32>(0))
             .unwrap(),
-        13
+        14
     );
     assert_eq!(
         connection
@@ -166,7 +166,7 @@ fn r_nf_11_r_sub_9__genuine_schema_eleven_requires_backup_preserves_payload_and_
     assert!(matches!(
         schema_eleven_reader::open(&path),
         Err(StorageError::UnsupportedSchema {
-            found: 13,
+            found: 14,
             supported: 11
         })
     ));

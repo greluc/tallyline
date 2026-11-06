@@ -211,7 +211,7 @@ fn r_man_3_r_ui_2__resumed_draft_keeps_empty_inputs_until_keyboard_entry_and_que
     assert!(harness.state_mut().manual_mut().take_command().is_none());
     assert!(
         harness
-            .query_by_label("Enter a valid non-negative number; a traded price must be positive.")
+            .query_by_label("Enter valid numbers. A traded price must be positive; faction affinity must be an integer from -100 to 100.")
             .is_some()
     );
     harness

@@ -1,6 +1,6 @@
 # Domain-Driven Design and Test-Driven Development
 
-> **Doc type:** Living spec — binding. Last reviewed: 2026-11-04.
+> **Doc type:** Living spec — binding. Last reviewed: 2026-11-06.
 
 Corrected 2026-11-04: the owner marked all seven existing public corpus entries verified; see [current corpus status](../../corpus/README.md#offline-inspection). Earlier checkpoint verification states and inspection results below remain historical; this decision supplies no missing metadata, frozen reference snapshot, class coverage or recognition accuracy measurement.
 
@@ -383,3 +383,8 @@ Submission owns semantic token identity/reset evidence, exact-source fences and 
 ### Skewed supplied-header seam correction (2026-11-05)
 
 The approved public Recognition seam captures the max-Y safe-title regression before the correction. Literal per-column contact rows for both skew signs test pre-filter noninterference and nonblack witnesses under bilinear enlargement and area minification. Fractional and adjacent-representable boundaries, unsupported labels, allocated translated thin-raster offsets, transforms, source immutability and typed limits remain public contracts. The real-file CLI verifies decoded safe PNG pixels, schema-two policy and exact hashes, schema-one regeneration guidance without output, exclusive destinations and unchanged source bytes. The private supporting-edge enclosure is explained in [the panel reference](../panel-preparation.md); no helper test or new public numerical seam is introduced. Source adoption does not establish all-174 crop acceptance or recognition accuracy.
+
+
+### Faction affinity implementation checkpoint (2026-11-06)
+
+`shared-kernel::api::model::FactionAffinity` is the range-validated published value shared by Reporting and Submission. Reporting owns explicit entry/clearing through `ManualEdit::FactionAffinity`; the optional value belongs to the Report's terminal and is empty on creation. A terminal change clears it, while side/environment changes preserve it. Released Reports refuse affinity edits. Workflows copies the value into the immutable submission header, and selected-row Draft copying retains it without copying review decisions or changing the original history. Affinity does not change any deviation rule (R-SUB-13). Public application, real SQLite, local HTTP and drawn egui seams cover these behaviours; storage schema 14 is the older-reader gate.

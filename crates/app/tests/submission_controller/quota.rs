@@ -476,6 +476,7 @@ fn r_sub_2_r_sub_11_r_api_3__shared_owner_stops_receipt_checks_as_soon_as_post_q
             side: TradeSide::Buy,
             environment: UexEnvironment::Live,
             game_version: "4.10.2".to_owned(),
+            faction_affinity: None,
             observed_at: Timestamp::from_seconds(900),
         },
         vec![

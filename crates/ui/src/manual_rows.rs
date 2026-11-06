@@ -107,6 +107,17 @@ pub(crate) fn show(
         })
         .collect();
     let mut frame = ManualFrame::new(actions);
+    if field(
+        ui,
+        &mut state.manual_mut().faction_affinity,
+        catalogue.text("manual.affinity").to_owned(),
+    ) {
+        match manual_frame::optional(&state.manual().faction_affinity) {
+            Ok(value) => frame.edits.push(ManualEdit::FactionAffinity(value)),
+            Err(()) => frame.invalid = true,
+        }
+    }
+    ui.label(catalogue.text("manual.affinity_help"));
     for row in &mut state.manual_mut().rows {
         ui.push_id(row.id.0, |ui| {
             ui.separator();

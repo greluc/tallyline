@@ -95,6 +95,7 @@ fn r_sub_2_r_sub_9__reserved_post_slot_waits_for_committed_preparation_and_drop_
             side: TradeSide::Buy,
             environment: UexEnvironment::Live,
             game_version: "4.10.2".to_owned(),
+            faction_affinity: None,
             observed_at: Timestamp::from_seconds(100),
         },
         vec![

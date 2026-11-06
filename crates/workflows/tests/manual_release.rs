@@ -99,7 +99,7 @@ fn r_sub_2_r_sub_3_r_sub_8__release_plan_keeps_exact_gate_source_and_final_queue
     non_snake_case,
     reason = "Requirement tags use a double underscore separator."
 )]
-fn r_sub_2_r_nf_11__manual_release_commits_report_job_and_outbox_atomically_and_reopens() {
+fn r_sub_2_r_sub_13_r_nf_11__manual_release_commits_report_job_and_outbox_atomically_and_reopens() {
     use tallyline_adapter_storage::api::SqliteReferenceCache;
     use tallyline_reference_data::api::ReferenceDataCache;
     use tallyline_reporting::api::ReportRepository;
@@ -126,6 +126,9 @@ fn r_sub_2_r_nf_11__manual_release_commits_report_job_and_outbox_atomically_and_
         .unwrap();
     report.set_stock(row, Some("0".parse().unwrap())).unwrap();
     report.set_status(row, std::num::NonZeroU8::new(3)).unwrap();
+    report = report
+        .set_faction_affinity(Some("0".parse().unwrap()))
+        .unwrap();
     store.save_draft(&report, 0).unwrap();
     let reviewer = ManualReviewer::new(
         EnvironmentMapping::default(),
@@ -145,6 +148,16 @@ fn r_sub_2_r_nf_11__manual_release_commits_report_job_and_outbox_atomically_and_
         Timestamp::from_seconds(1000),
     );
     let release = store.release_manual(&gate).unwrap();
+    assert_eq!(
+        release
+            .job()
+            .request()
+            .header()
+            .faction_affinity
+            .unwrap()
+            .value(),
+        0
+    );
     assert!(store.load_draft(report.id()).unwrap().is_none());
     assert!(store.release_manual(&gate).is_err());
     drop(store);
@@ -210,7 +223,7 @@ fn r_sub_2_r_nf_11__manual_release_commits_report_job_and_outbox_atomically_and_
         database
             .pragma_query_value(None, "user_version", |row| row.get::<_, u32>(0))
             .unwrap(),
-        13
+        14
     );
     drop(database);
     drop(reopened);

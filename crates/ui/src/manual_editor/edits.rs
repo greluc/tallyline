@@ -58,6 +58,7 @@ impl ManualEditor {
             .filter_map(|edit| match edit {
                 ManualEdit::TakeOver(row) => Some(*row),
                 ManualEdit::AddCommodity(_)
+                | ManualEdit::FactionAffinity(_)
                 | ManualEdit::Price(..)
                 | ManualEdit::Stock(..)
                 | ManualEdit::Status(..)
@@ -104,6 +105,15 @@ impl ManualEditor {
                     })
                 {
                     if self.selected == Some(id) {
+                        let affinity_input = std::mem::take(&mut self.faction_affinity);
+                        self.faction_affinity = text(report.faction_affinity());
+                        if before.key().terminal() == report.key().terminal() {
+                            retain(
+                                &mut self.faction_affinity,
+                                &affinity_input,
+                                before.faction_affinity(),
+                            );
+                        }
                         reconcile(&mut self.rows, before, &report, &pending.takeovers);
                         self.input_version = Some(report.version());
                         self.environment = Some(report.key().environment());
@@ -178,6 +188,7 @@ fn text<T: std::fmt::Display>(value: Option<T>) -> String {
 
 pub(super) fn same_input_values(before: &Report, after: &Report) -> bool {
     before.key() == after.key()
+        && before.faction_affinity() == after.faction_affinity()
         && before.rows().len() == after.rows().len()
         && before
             .rows()
