@@ -6,6 +6,8 @@
 pub mod model;
 
 use std::fmt;
+#[cfg(test)]
+use std::time::Duration;
 use tallyline_reference_data::api::model::Terminal;
 
 use crate::transport::Transport;
@@ -58,10 +60,12 @@ pub struct ReaderSettings {
     pub(crate) expert_host_confirmed: bool,
     #[cfg(test)]
     pub(crate) test_http: bool,
+    #[cfg(test)]
+    pub(crate) test_submission_timeout: Option<Duration>,
 }
 
 impl ReaderSettings {
-    /// Creates settings for `base_url` with a 16 MiB response cap; requests time out after 30 s.
+    /// Creates settings with a 16 MiB response cap, 30 s read and 90 s submission timeouts.
     ///
     /// The base URL ends with a slash, uses `https` and has no user information, query or
     /// fragment (R-API-3). Every request must retain its configured HTTPS origin.
@@ -101,6 +105,8 @@ impl ReaderSettings {
             expert_host_confirmed: false,
             #[cfg(test)]
             test_http: false,
+            #[cfg(test)]
+            test_submission_timeout: None,
         })
     }
 
@@ -121,6 +127,13 @@ impl ReaderSettings {
         settings.base_url = parsed;
         settings.test_http = true;
         Ok(settings)
+    }
+
+    #[cfg(test)]
+    pub(crate) fn with_test_submission_timeout(mut self, timeout: Duration) -> Self {
+        assert!(self.test_http);
+        self.test_submission_timeout = Some(timeout);
+        self
     }
 
     pub(crate) fn permits_url(&self, url: &reqwest::Url) -> bool {

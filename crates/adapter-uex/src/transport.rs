@@ -14,6 +14,7 @@ use rustls::crypto::aws_lc_rs;
 use rustls_platform_verifier::BuilderVerifierExt;
 use serde::Serialize;
 use serde_json::Value;
+use tallyline_submission::api::model::SubmissionRetrySettings;
 
 use crate::api::{BuildError, ReadError, ReaderSettings};
 use crate::envelope;
@@ -136,13 +137,11 @@ impl Transport {
         body: Vec<u8>,
         headers: &[(&str, &str)],
     ) -> Result<Value, SubmissionPostFailure> {
+        let timeout = SubmissionRetrySettings::default().send_timeout();
+        #[cfg(test)]
+        let timeout = self.settings.test_submission_timeout.unwrap_or(timeout);
         let request = self
-            .post_bytes(
-                resource,
-                body,
-                headers,
-                tallyline_submission::api::model::SubmissionRetrySettings::default().send_timeout(),
-            )
+            .post_bytes(resource, body, headers, timeout)
             .map_err(SubmissionPostFailure::Other)?;
         let response = request.send().await.map_err(submission_transport_error)?;
         let http_status = response.status().as_u16();

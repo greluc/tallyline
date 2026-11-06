@@ -10,7 +10,7 @@ use tallyline_shared_kernel::api::model::{
 };
 use tallyline_submission::api::model::{
     CredentialValues, JobPhase, SubmissionCorrection, SubmissionHeader, SubmissionPauseReason,
-    SubmissionRequest, SubmissionResult, SubmissionRow,
+    SubmissionRequest, SubmissionResult, SubmissionRetrySettings, SubmissionRow,
 };
 use tallyline_submission::api::{SubmissionGateway, SubmissionReceiptVerifier};
 use wiremock::matchers::{body_json, header, method, path};
@@ -1472,6 +1472,18 @@ async fn r_sub_6_r_sub_11__unclassified_authentication_answers_recheck_read_only
     }
 }
 
+#[test]
+#[expect(
+    non_snake_case,
+    reason = "Requirement tags use a double underscore separator."
+)]
+fn r_sub_2__submission_policy_preserves_the_ninety_second_send_timeout() {
+    assert_eq!(
+        SubmissionRetrySettings::default().send_timeout(),
+        Duration::from_secs(90)
+    );
+}
+
 #[tokio::test]
 #[expect(
     non_snake_case,
@@ -1482,8 +1494,8 @@ async fn r_sub_9__timeout_and_gateway_timeout_after_receipt_each_make_one_reques
     for response in [
         ResponseTemplate::new(504).set_body_string("gateway timeout"),
         ResponseTemplate::new(200)
-            .set_body_json(json!({"status":"ok","data":{"ids_reports":null,"date_added":100}}))
-            .set_delay(std::time::Duration::from_secs(91)),
+            .set_body_json(json!({"status":"ok","data":{"ids_reports":["0"],"date_added":100}}))
+            .set_delay(Duration::from_secs(2)),
     ] {
         let server = MockServer::start().await;
         Mock::given(method("POST"))
@@ -1496,7 +1508,8 @@ async fn r_sub_9__timeout_and_gateway_timeout_after_receipt_each_make_one_reques
             ClientIdentity::new("tallyline-test", "1.2.3"),
         )
         .unwrap()
-        .with_expert_host_confirmation();
+        .with_expert_host_confirmation()
+        .with_test_submission_timeout(Duration::from_millis(500));
         let reader = UexReader::new(&settings).unwrap();
         let request = released_request().unwrap();
         let credentials =
@@ -1511,7 +1524,12 @@ async fn r_sub_9__timeout_and_gateway_timeout_after_receipt_each_make_one_reques
         .unwrap();
         let completed = sending
             .complete(
-                reader.submit(prepared, &credentials, None).await,
+                tokio::time::timeout(
+                    Duration::from_secs(5),
+                    reader.submit(prepared, &credentials, None),
+                )
+                .await
+                .expect("the HTTP request timeout must complete before the contract deadline"),
                 Timestamp::from_seconds(192),
             )
             .unwrap();
