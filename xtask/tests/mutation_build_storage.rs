@@ -36,6 +36,7 @@ impl Fixture {
             .current_dir(self.0.join("workspace"))
             .env("CARGO_TARGET_DIR", self.0.join("build"))
             .env("CARGO_BUILD_BUILD_DIR", self.0.join("build"))
+            .env("CARGO_TERM_COLOR", "never")
             .env("CARGO_NET_OFFLINE", "true");
         command
     }
