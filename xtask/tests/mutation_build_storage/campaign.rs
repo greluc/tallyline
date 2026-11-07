@@ -10,18 +10,18 @@ use std::process::{Command, Output};
 
 use super::Fixture;
 
-fn json_file(path: &Path) -> serde_json::Value {
+pub(super) fn json_file(path: &Path) -> serde_json::Value {
     serde_json::from_str(&fs::read_to_string(path).unwrap()).unwrap()
 }
 
-fn aggregate_command(fixture: &Fixture, artifacts: &Path) -> Command {
+pub(super) fn aggregate_command(fixture: &Fixture, artifacts: &Path) -> Command {
     let mut command = fixture.cargo();
     command.args(["xtask", "mutation-aggregate"]);
     command.arg(artifacts).args(["fixture-head", "42", "1"]);
     command
 }
 
-fn assert_rejected(output: &Output, label: &str) {
+pub(super) fn assert_rejected(output: &Output, label: &str) {
     assert!(
         !output.status.success(),
         "aggregate accepted {label}:\n{}\n{}",
@@ -30,7 +30,7 @@ fn assert_rejected(output: &Output, label: &str) {
     );
 }
 
-fn reject_changed_evidence(
+pub(super) fn reject_changed_evidence(
     fixture: &Fixture,
     artifacts: &Path,
     path: &Path,
@@ -44,7 +44,7 @@ fn reject_changed_evidence(
     assert_rejected(&output.unwrap(), label);
 }
 
-fn reject_missing_evidence(fixture: &Fixture, artifacts: &Path, path: &Path) {
+pub(super) fn reject_missing_evidence(fixture: &Fixture, artifacts: &Path, path: &Path) {
     let retained = path.with_extension("retained");
     fs::rename(path, &retained).unwrap();
     let output = aggregate_command(fixture, artifacts).output();
@@ -76,7 +76,7 @@ fn write_partition_fixture(
         .unwrap();
     let mutant = original
         .iter()
-        .find(|outcome| outcome.pointer("/scenario/Mutant").is_some())
+        .find(|outcome| outcome["summary"] == "CaughtMutant")
         .unwrap();
     let mut outcomes = vec![baseline.clone()];
     for selected in &selected {
@@ -95,6 +95,7 @@ fn write_partition_fixture(
     let mut partition = report.clone();
     partition["total_mutants"] = selected.len().into();
     partition["caught"] = selected.len().into();
+    partition["unviable"] = 0.into();
     partition["outcomes"] = outcomes.into();
     fs::write(
         directory.join("identity.txt"),
@@ -117,21 +118,22 @@ fn write_partition_fixture(
 fn write_constructed_evidence(fixture: &Fixture, artifacts: &Path) {
     let campaign = fixture.0.join("build/core-mutation");
     let report = json_file(&campaign.join("mutants.out/outcomes.json"));
-    assert_eq!(report["caught"], 1);
+    assert_eq!(report["caught"], 3);
+    assert_eq!(report["unviable"], 1);
     assert!(!report["end_time"].is_null());
     let all: serde_json::Value = (0..33)
-        .map(|index| serde_json::json!({"name":format!("fixture-mutant-{index}")}))
+        .map(|index| serde_json::json!({"name":format!("fixture-mutant-{index}"),"file":"core/src/lib.rs"}))
         .collect();
     for index in 0..32 {
         write_partition_fixture(artifacts, &campaign, &all, &report, index);
     }
     assert_eq!(
         json_file(&artifacts.join("core-mutation-42-1-shard-0-of-32/selected-mutants.json")),
-        serde_json::json!([{"name":"fixture-mutant-0"},{"name":"fixture-mutant-32"}])
+        serde_json::json!([{"name":"fixture-mutant-0","file":"core/src/lib.rs"},{"name":"fixture-mutant-32","file":"core/src/lib.rs"}])
     );
     assert_eq!(
         json_file(&artifacts.join("core-mutation-42-1-shard-31-of-32/selected-mutants.json")),
-        serde_json::json!([{"name":"fixture-mutant-31"}])
+        serde_json::json!([{"name":"fixture-mutant-31","file":"core/src/lib.rs"}])
     );
     let mut covered = BTreeSet::new();
     for index in 0..32 {
@@ -290,5 +292,6 @@ pub(super) fn assert_constructed_partitions(fixture: &Fixture) {
     assert!(String::from_utf8_lossy(&result.stderr).contains("core mutation score: 100.00%"));
     reject_invalid_partition_evidence(fixture, &artifacts);
     reject_invalid_mutant_evidence(fixture, &artifacts);
+    super::uncoded::assert_causes(fixture, &artifacts);
     super::successful(&mut aggregate_command(fixture, &artifacts));
 }

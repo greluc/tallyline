@@ -99,12 +99,12 @@ fn write_workspace(fixture: &Fixture) {
             &format!("[package]\nname = \"{package}\"\nversion = \"0.0.0\"\nedition = \"2024\"\n"),
         );
         let selected = if directory == "core" {
-            "pub fn selected() -> bool { true }\n"
+            "pub fn selected() -> bool { true }\npub fn chained(ready: bool, value: Option<()>) -> bool {\n    if ready\n        && let Some(()) = value\n    { true } else { false }\n}\n"
         } else {
             ""
         };
         let check = if directory == "core" {
-            "assert!(super::selected());"
+            "assert!(super::selected());\nassert!(super::chained(true, Some(())));\nassert!(!super::chained(false, Some(())));\nassert!(!super::chained(true, None));\nassert!(!super::chained(false, None));"
         } else {
             ""
         };
@@ -231,3 +231,6 @@ fn public_mutation_bounds_build_storage_and_preserves_workspace_test_semantics()
 
 #[path = "mutation_build_storage/campaign.rs"]
 mod campaign;
+
+#[path = "mutation_build_storage/uncoded.rs"]
+mod uncoded;

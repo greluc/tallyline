@@ -77,6 +77,7 @@ mod mutation_tests;
 
 pub mod mutation;
 pub mod mutation_evidence;
+mod mutation_uncoded;
 
 #[cfg(test)]
 mod mutation_evidence_tests;

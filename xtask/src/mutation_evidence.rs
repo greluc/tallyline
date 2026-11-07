@@ -8,6 +8,8 @@ use std::path::{Component, Path};
 
 use serde_json::Value;
 
+use crate::mutation_uncoded;
+
 const MAX_CAUSE_LOG_BYTES: u64 = 16 * 1024 * 1024;
 
 /// Decodes a successful pinned-tool listing without inventing missing evidence.
@@ -93,7 +95,7 @@ fn verify_failure(directory: &Path, outcome: &Value, summary: &str) -> Result<()
             }
         }
         "Unviable" => {
-            if !text.lines().any(rust_error) {
+            if !text.lines().any(rust_error) && !mutation_uncoded::rust_error(&text, outcome) {
                 return Err("unviable mutation has no Rust compiler diagnostic".to_owned());
             }
         }
