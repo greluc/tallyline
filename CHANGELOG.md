@@ -60,6 +60,8 @@ All notable changes are recorded here.
 
 ### Added
 
+- Duplicate a permanent client-review refusal once into a separate unreviewed Draft, preserving original history and renewing review/screenshot decisions. New-capture refusals have no copy action; schema16 requires a coordinated database/settings backup before upgrading (R-SUB-11, R-SUB-10, R-VAL-7).
+
 - Explicitly send the ready rows of a mixed-cooldown Report as a separate released Report while preserving confirmations, observation time, screenshot evidence and optional affinity. Both replacements repeat normal send checks; original history remains intact (R-SUB-4). Database schema 15 requires a coordinated backup.
 
 - Recover from UEX refusals with bounded safe retries, durable queue-wide account/API-change/quota fences, explicit strictly-newer-release version recovery and Retry now and report-fixable Draft findings. Production refusals with uncertain prior rows stay held for read-only receipt checks; schema 10 requires a coordinated backup, while partial-row resolution and daily-quota reset scheduling remain separate gates (R-SUB-2, R-SUB-6, R-SUB-9, R-SUB-11, R-API-7).

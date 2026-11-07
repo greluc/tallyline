@@ -1,6 +1,6 @@
 # Desktop shell
 
-> **Doc type:** Living reference — M1 foundation. Last reviewed: 2026-11-06.
+> **Doc type:** Living reference — M1 foundation. Last reviewed: 2026-11-07.
 
 Tallyline starts with the onboarding welcome screen and its coupled Star Citizen Fan Kit unit. Choose **Continue** to acknowledge it and open the workspace. The workspace shows its empty capture state and keeps Settings and Help available. That acknowledgement and the selected theme survive a restart; subsequent starts open the workspace. **Done** or **Home** leaves Settings. If Settings was opened before the start-screen acknowledgement, Done returns to onboarding. The shell includes reviewed manual submission; capture and OCR workflows remain in progress. Account setup is available below the welcome acknowledgement and in Settings.
 
@@ -303,3 +303,10 @@ When a queued Report has both cooling rows and rows ready now, the queue shows b
 The original job remains cancelled in history with its complete original snapshot. Each replacement has its own job and repeats all current account, reference, age, image, quota, row-budget and serial-send checks. A displayed deadline is not a promise to send. If state changes before the action is saved, refresh the queue and review the current result. A failed atomic save creates neither replacement and sends nothing. After an application restart, unfinished replacements return to Draft for renewed release.
 
 Corrected 2026-11-06: the explicit mixed-cooldown split is implemented in source under database schema 15/configuration 6. Native visual and approved real-service acceptance remain separate; see [the source checkpoint](../submission-queue.md#explicit-mixed-cooldown-split-checkpoint---2026-11-06).
+
+
+## Copy a permanently refused Report
+
+Corrected 2026-11-07: when a permanent refusal asks you to review a suspected client defect, **Duplicate as new Draft** creates one separate Report for correction and review. The original refusal and attempts stay in history with a link to the new Draft. Its observation time, captured game version, values and optional faction affinity stay the same. Review the new Draft and renew its approvals and screenshot preview/working copy before release. Copying does not resend the original.
+
+A refusal requiring a new capture, including an invalid captured game version, has no copy action. Capture a new observation with a valid version instead. Database schema16 requires the coordinated database/settings backup before upgrading; settings remain at schema6.

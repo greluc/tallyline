@@ -1,6 +1,6 @@
 # System architecture
 
-> **Doc type:** Living spec — binding. Last reviewed: 2026-11-06.
+> **Doc type:** Living spec — binding. Last reviewed: 2026-11-07.
 
 > Amended 2026-10-12 (ADR-0005): the implementation language is Rust with egui, native code only by registered exception. The context cut, the ports, the data flow and all behavioural rules of this document are unchanged; §2, §3, §4a, §4b, §7, §8, §9 (wording) and §10 name the Rust technology instead of Java, JavaFX and Gradle. Crates, versions and tools not named in ADR-0005 are chosen and verified at source in M0.
 
@@ -1152,3 +1152,8 @@ For data-flow inventory N5, this source-only diagnostic sends the fixed GET and 
 ## Owned-process platform primitive — 2026-11-07
 
 The Windows x64 MSVC platform adapter supplies the independently reusable [owned-process primitive](../owned-process-contract.md): explicit suspended supplied command, create-time job/stdin/stdout/stderr ownership, read-back observations, one resume, synchronous revocation and measured bounded cleanup. It creates no runtime or worker pool. No context-map edge, Workflows/App/controller wiring or metadata identity is added; the OS TCP observer and Recognition session bridge remain a dependent unit. No engine/profile/private input is admitted.
+
+
+## Permanent-refusal copy source checkpoint — 2026-11-07
+
+Submission owns typed permanent-refusal copy eligibility; Reporting creates the fresh unreviewed values, and Workflows' existing ResolutionDraftStore port commits the new Report, original copy link and outbox in one SQLite transaction. App publishes committed Draft/history snapshots; UI emits only the displayed revision's explicit command. Schema16/configuration6 gates this additional replay meaning after coordinated backup. Original Report/request/result/attempts and independent service/account fences remain immutable. See [the queue contract](../submission-queue.md#permanent-refusal-copy-checkpoint--2026-11-07) before changing rejected duplication, attachment renewal or reader admission.

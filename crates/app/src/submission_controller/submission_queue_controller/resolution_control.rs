@@ -34,7 +34,7 @@ impl SubmissionQueueController {
         )
     }
 
-    /// Creates a separate unreviewed Draft after the displayed not-received decision.
+    /// Creates a separate unreviewed Draft from an eligible immutable origin.
     ///
     /// # Errors
     /// Refuses stale or ineligible origins and failed atomic persistence.

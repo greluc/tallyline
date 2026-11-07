@@ -30,7 +30,10 @@ impl ResolutionDraftStore for SqliteReferenceCache {
         let partial_rows = origin
             .partial_copy_rows()
             .map(|rows| rows.collect::<Vec<_>>());
-        if !origin.can_duplicate_unknown() && partial_rows.is_none() {
+        if !origin.can_duplicate_unknown()
+            && !origin.can_duplicate_rejected()
+            && partial_rows.is_none()
+        {
             return Err(SubmissionRepositoryError::Invalid);
         }
         let report = crate::queue::load_report(&transaction, origin.request().header().report)?;

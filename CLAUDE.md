@@ -396,3 +396,8 @@ Recognition and adapter-vlm now supply only the [fixed credential-free local ver
 ## Owned-process platform source checkpoint — 2026-11-07
 
 The [owned-process contract](docs/owned-process-contract.md) records the Windows x64 MSVC suspended/resume/revocation primitive and measured harmless job/pipe/private-state cleanup contracts. The first twenty approved APIs/four exact feature additions are registered in 09 §3a and checked through the owned-process source profile. No TCP ownership, Workflows/App wiring, selected engine/profile, inference or product activation is added; those remain dependent acceptance work.
+
+
+## Permanent-refusal copy source checkpoint — 2026-11-07
+
+Permanent ReviewClient refusals support one explicit unreviewed new-Draft copy behind database schema16/configuration6. Before changing rejected copying, review renewal or reader admission, read [the queue checkpoint](docs/submission-queue.md#permanent-refusal-copy-checkpoint--2026-11-07). General lifecycle/withdrawal and full M1 acceptance remain open.

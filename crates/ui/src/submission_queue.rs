@@ -405,6 +405,11 @@ pub fn show_submission_queue(
                 ) {
                     unknown_action = Some((job.id(), action));
                 }
+                if let Some(action) =
+                    crate::submission_rejected::show(ui, job, catalogue, state.busy.is_none())
+                {
+                    unknown_action = Some((job.id(), action));
+                }
                 if let Some(partition) = state.split_partition(job.id()) {
                     let ready = partition
                         .ready_rows()

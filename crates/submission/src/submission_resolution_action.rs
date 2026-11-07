@@ -84,7 +84,7 @@ impl SubmissionResolutionAction {
 }
 
 impl SubmissionJob {
-    /// Retains explicit evidence without changing the uncertain attempt.
+    /// Retains an explicit resolution action without changing the original attempt.
     ///
     /// # Errors
     /// Refuses ineligible jobs, rows and conflicting evidence.
@@ -94,8 +94,13 @@ impl SubmissionJob {
     ) -> Result<Self, QueueRefusal> {
         if !matches!(
             self.phase(),
-            JobPhase::OutcomeUnknown | JobPhase::PartiallyAccepted
+            JobPhase::OutcomeUnknown | JobPhase::PartiallyAccepted | JobPhase::Rejected
         ) {
+            return Err(QueueRefusal::InvalidTransition);
+        }
+        if self.phase() == JobPhase::Rejected
+            && !matches!(action, SubmissionResolutionAction::Duplicated { .. })
+        {
             return Err(QueueRefusal::InvalidTransition);
         }
         if self.resolution_actions.last() == Some(&action) {
@@ -114,7 +119,7 @@ impl SubmissionJob {
                 self.validate_row_receipts(receipts)?
             }
             SubmissionResolutionAction::Duplicated { report, .. }
-                if self.can_duplicate_unknown()
+                if (self.can_duplicate_unknown() || self.can_duplicate_rejected())
                     && report.0 != 0
                     && *report != self.request().header().report => {}
             SubmissionResolutionAction::Split { .. }
@@ -173,6 +178,19 @@ impl SubmissionJob {
             })
     }
 
+    /// Reports eligibility to copy a permanent client-review refusal into a new Draft.
+    #[must_use]
+    pub fn can_duplicate_rejected(&self) -> bool {
+        use crate::api::model::SubmissionCorrection;
+        self.phase() == JobPhase::Rejected
+            && matches!(self.result().map(SubmissionResult::final_result),
+                Some(SubmissionResult::Rejected(rejection))
+                    if rejection.correction() == SubmissionCorrection::ReviewClient)
+            && !self
+                .resolution_actions
+                .iter()
+                .any(|action| matches!(action, SubmissionResolutionAction::Duplicated { .. }))
+    }
     /// Reports eligibility for the separate explicit new-Draft action.
     #[must_use]
     pub fn can_duplicate_unknown(&self) -> bool {

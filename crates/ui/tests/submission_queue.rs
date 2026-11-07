@@ -800,3 +800,6 @@ fn r_sub_4_r_ui_16__drawn_mixed_split_shows_both_groups_and_emits_only_keyboard_
     harness.run();
     assert!(harness.query_by_label(label).is_none());
 }
+
+#[path = "submission_queue/rejected_copy.rs"]
+mod rejected_copy;

@@ -403,3 +403,8 @@ The implementation of A3/A6 uses the immutable request rows as the partition uni
 ## Local metadata public seam — 2026-11-06
 
 The existing approved local HTTP adapter seam now exercises fixed GET /api/version with real ephemeral sockets and a held generation-bound ownership observer. Only the OS ownership/session observation is fake; no private connector helper is called by a test. Recognition publishes closed generation, actual loopback-port tuple, attempt, session state, ownership and refusal values plus the cloneable session port. The [source contract](../local-metadata-contract.md) distinguishes actual compiler/behavioural RED from supplementary contracts that were already green and limits the result to transport ordering/session gates. Actual OS ownership and runtime/profile admission remain separate.
+
+
+## Permanent-refusal copy source checkpoint — 2026-11-07
+
+Submission's typed final correction permits one Rejected ReviewClient copy action without receipt or retry authority. Reporting copies values into a distinct unreviewed Draft; the existing Workflows/SQLite transaction preserves immutable original Report/request/result/attempts and commits the link/outbox atomically. Public vertical contracts cover typed exclusions/wrappers, stale revisions, injected outbox rollback, reopen, actual review/attachment renewal, app committed publication and focused drawn commands. Schema16 is the semantic older-reader gate. [The queue checkpoint](../submission-queue.md#permanent-refusal-copy-checkpoint--2026-11-07) records fixture provenance and separate milestone/native/real-service gates.

@@ -16,6 +16,7 @@ tallyline-reporting.workspace = true
 tallyline-submission.workspace = true
 
 [dev-dependencies]
+tempfile = { version = "=3.27.0", default-features = false }
 rusqlite.workspace = true
 tallyline-adapter-storage = { path = "../adapter-storage" }
 tallyline-game = { path = "../game" }

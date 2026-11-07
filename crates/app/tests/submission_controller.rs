@@ -2237,3 +2237,6 @@ mod quota_pending_post;
 mod cooldown_split;
 #[path = "../../workflows/tests/manual_release/three_rows.rs"]
 mod three_rows;
+
+#[path = "submission_controller/rejected_copy.rs"]
+mod rejected_copy;

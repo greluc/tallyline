@@ -10,12 +10,15 @@ use std::collections::BTreeSet;
 use tallyline_shared_kernel::api::model::RowId;
 
 impl Report {
-    /// Copies an explicitly not-received unknown origin into a separate unreviewed Draft.
+    /// Copies an eligible immutable origin into a separate unreviewed Draft.
     ///
     /// # Errors
     /// Refuses another source phase or a reused or missing identity.
     pub fn duplicate_as_draft(&self, id: ReportId) -> Result<Self, InvalidReport> {
-        if self.state() != ReportState::OutcomeUnknown {
+        if !matches!(
+            self.state(),
+            ReportState::OutcomeUnknown | ReportState::Rejected
+        ) {
             return Err(InvalidReport);
         }
         self.copied_draft(id, self.rows())

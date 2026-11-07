@@ -1281,3 +1281,6 @@ mod duplicate_ancestry;
 
 #[path = "queue/duplicate_row_proof.rs"]
 mod duplicate_row_proof;
+
+#[path = "queue/rejected_copy.rs"]
+mod rejected_copy;

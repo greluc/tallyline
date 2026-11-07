@@ -242,3 +242,6 @@ Corrected 2026-11-05: supplied-panel dumps preserve provably safe skewed title p
 ## Explicit mixed-cooldown Reports
 
 Corrected 2026-11-06: the queue's **Send the others now** action explicitly partitions mixed cooldowns into two released Reports while preserving values, decisions, screenshot evidence, observation time and optional affinity. It retains the original job history and repeats every normal send check for each replacement. Database schema 15/configuration 6 requires a coordinated backup before migration. See [the user guide](docs/user/desktop.md#send-the-other-rows-now) and [source checkpoint](docs/submission-queue.md#explicit-mixed-cooldown-split-checkpoint---2026-11-06). Complete M1, native and approved real-service acceptance remain open.
+
+
+Corrected 2026-11-07: a permanent client-review refusal now offers **Duplicate as new Draft** once, preserving the original Report and attempt history while renewing all review and screenshot ownership decisions. A refusal requiring a new capture has no copy action. Database schema16/configuration6 uses coordinated backups and older-reader refusal. See [the queue checkpoint](docs/submission-queue.md#permanent-refusal-copy-checkpoint--2026-11-07) and [user guide](docs/user/desktop.md#copy-a-permanently-refused-report); complete M1 and general lifecycle/withdrawal acceptance remain open.

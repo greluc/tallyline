@@ -1,6 +1,6 @@
 # Release and hotfix process
 
-> **Doc type:** Living spec — binding; followed from release 0.1 on. Last reviewed: 2026-11-06.
+> **Doc type:** Living spec — binding; followed from release 0.1 on. Last reviewed: 2026-11-07.
 
 Implements R-NF-11 and the release-related parts of [10-supply-chain-security.md](plan/10-supply-chain-security.md). This is a plan; it is followed from release 0.1 on and refined with experience. Amended 2026-10-12: the implementation language is Rust ([ADR-0005](adr/0005-rust-and-egui.md)), so the Java, Gradle, jlink and jpackage steps became their Rust equivalents (`cargo xtask`, `cargo-packager`, the Rust toolchain pin); commands and tool versions that ADR-0005 does not name are chosen and verified in M0.
 
@@ -161,3 +161,6 @@ The protected association registry starts at bounded TLTR version 1 independentl
 ## Schema15 cooldown split gate - 2026-11-06
 
 Corrected 2026-11-06: the explicit mixed-cooldown split uses database schema 15/configuration 6. Coordinated pre-migration backup precedes the forward transaction; the genuine source-bound previous14 fixture retains original released payloads and attempts. Older schema14 readers refuse the migrated file. The additional split relationship and cancellation notification are never written under the older marker. [The source checkpoint](submission-queue.md#explicit-mixed-cooldown-split-checkpoint---2026-11-06) states fixture provenance and acceptance limits.
+
+
+Corrected 2026-11-07: permanent-refusal copying requires database schema 16/configuration 6. This marker-only forward migration is a semantic reader gate: schema15 reconstitution cannot interpret a Rejected origin with its new Duplicated action. Coordinated verified database/settings backup precedes migration; the genuine previous15 fixture retains immutable public release/attempt/result history, and the source-bound previous reader refuses16 before mutation. [The queue checkpoint](submission-queue.md#permanent-refusal-copy-checkpoint--2026-11-07) records provenance and acceptance limits. No application release version is edited.

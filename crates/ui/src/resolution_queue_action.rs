@@ -19,7 +19,7 @@ pub enum ResolutionQueueAction {
     },
     /// Reads bounded positive remote evidence for the original attempt.
     CheckReceipt,
-    /// Creates a separate unreviewed Draft from the eligible resolved not-accepted rows.
+    /// Creates a separate unreviewed Draft from eligible immutable submission history.
     DuplicateAsDraft,
 }
 impl ResolutionQueueAction {
@@ -29,7 +29,9 @@ impl ResolutionQueueAction {
             Self::DecideRow { row, .. } => job.can_decide_row(row),
             Self::CheckReceipt => job.can_check_receipts(),
             Self::DuplicateAsDraft => {
-                job.can_duplicate_unknown() || job.partial_copy_rows().is_some()
+                job.can_duplicate_unknown()
+                    || job.can_duplicate_rejected()
+                    || job.partial_copy_rows().is_some()
             }
         }
     }

@@ -27,7 +27,7 @@ pub enum SubmissionControl {
         /// Committed revision displayed before the action.
         expected: u64,
     },
-    /// Applies an explicit action to the exact displayed partial or unknown origin.
+    /// Applies an explicit action to the exact displayed eligible immutable origin.
     Resolve {
         /// Stable original job identity.
         id: JobId,

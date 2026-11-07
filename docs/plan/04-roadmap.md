@@ -1,6 +1,6 @@
 # Roadmap
 
-> **Doc type:** Living plan — active. Last reviewed: 2026-11-06.
+> **Doc type:** Living plan — active. Last reviewed: 2026-11-07.
 
 Corrected 2026-11-04: the owner marked all seven existing public corpus entries verified; see [current corpus status](../../corpus/README.md#offline-inspection). Earlier checkpoint verification states and inspection results below remain historical; this decision supplies no missing metadata, frozen reference snapshot, class coverage or recognition accuracy measurement.
 
@@ -315,3 +315,8 @@ The [fixed metadata adapter](../local-metadata-contract.md) now checks the actua
 ## Owned-process source checkpoint — 2026-11-07
 
 R-VLM-7/R-NF-3 now have the [Windows owned-process source primitive](../owned-process-contract.md) and harmless public suspended/resume/descendant/output/deletion contracts. This is partial M2 lifetime/resource preparation, with twenty approved Win32 APIs and four exact Windows-x64 feature additions. TCP/session integration, engine/profile admission, abrupt supervisor-death acceptance, Linux/package/hardware verification and milestone completion remain open. No acceptance checkbox is promoted.
+
+
+## Permanent-refusal copy source checkpoint — 2026-11-07
+
+R-SUB-11/R-SUB-10's narrow permanent ReviewClient refusal now has explicit one-time new-Draft copying through typed domain policy, real SQLite, app publication and drawn keyboard controls. R-VAL-7 review decisions and attachment ownership renew. Genuine previous15 backup/admission contracts gate schema16/configuration6. This adds source coverage for issues87/92 without closing general Submitted copying, recurring lifecycle/withdrawal, full canonical/mutation or native/provider/package/approved real-service acceptance. The M1 lifecycle checkbox stays open. See [the queue checkpoint](../submission-queue.md#permanent-refusal-copy-checkpoint--2026-11-07).

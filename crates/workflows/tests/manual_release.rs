@@ -223,7 +223,7 @@ fn r_sub_2_r_sub_13_r_nf_11__manual_release_commits_report_job_and_outbox_atomic
         database
             .pragma_query_value(None, "user_version", |row| row.get::<_, u32>(0))
             .unwrap(),
-        15
+        16
     );
     drop(database);
     drop(reopened);
@@ -1242,3 +1242,6 @@ mod three_rows;
 
 #[path = "manual_release/cooldown_split.rs"]
 mod cooldown_split;
+
+#[path = "manual_release/rejected_copy.rs"]
+mod rejected_copy;

@@ -16,7 +16,7 @@ use tallyline_shared_kernel::api::model::{
     CommodityId, PricePerScu, TerminalId, Timestamp, TradeSide,
 };
 
-const SCHEMA_VERSION: u32 = 15;
+const SCHEMA_VERSION: u32 = 16;
 const SQLITE_BUSY_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(2);
 
 const MIGRATION:&str="CREATE TABLE ref_cache(endpoint TEXT PRIMARY KEY, fetched_at TEXT NOT NULL, payload TEXT NOT NULL);
@@ -103,6 +103,7 @@ impl SqliteReferenceCache {
                     13 => crate::migration::schema_thirteen(&transaction)?,
                     14 => crate::migration::schema_fourteen(&transaction)?,
                     15 => crate::migration::schema_fifteen(&transaction)?,
+                    16 => crate::migration::schema_sixteen(&transaction)?,
                     _ => return Err(StorageError::InvalidCache),
                 }
             }

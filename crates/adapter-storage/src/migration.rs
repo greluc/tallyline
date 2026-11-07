@@ -250,3 +250,8 @@ pub(crate) fn schema_fifteen(connection: &Connection) -> Result<(), StorageError
     connection.execute_batch("CREATE TABLE submission_splits(source_job INTEGER PRIMARY KEY REFERENCES submission_jobs(id),ready_job INTEGER NOT NULL UNIQUE REFERENCES submission_jobs(id),cooling_job INTEGER NOT NULL UNIQUE REFERENCES submission_jobs(id),created_at TEXT NOT NULL,CHECK(source_job<>ready_job AND source_job<>cooling_job AND ready_job<>cooling_job)); PRAGMA user_version=15;")?;
     Ok(())
 }
+
+pub(crate) fn schema_sixteen(connection: &Connection) -> Result<(), StorageError> {
+    connection.pragma_update(None, "user_version", 16)?;
+    Ok(())
+}

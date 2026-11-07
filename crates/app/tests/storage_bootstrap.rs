@@ -67,7 +67,7 @@ fn r_nf_11__existing_database_and_exact_config_are_backed_up_together_before_mig
     assert_eq!(marker.configuration_schema, Some(3));
     let manifest: serde_json::Value =
         serde_json::from_slice(&std::fs::read(backup.join("manifest.json")).unwrap()).unwrap();
-    assert_eq!(manifest["database_schema"], 15);
+    assert_eq!(manifest["database_schema"], 16);
     assert_eq!(manifest["config_schema"], 3);
     assert_eq!(manifest["database_file"], "tallyline.db");
 }
@@ -182,6 +182,75 @@ fn r_nf_11__joint_schema_upgrades_reuse_only_the_exact_original_config_backup() 
                 Some(6)
             )
             .unwrap(),
+        16
+    );
+}
+
+#[path = "../../adapter-storage/tests/support/schema_fifteen_fixture.rs"]
+mod schema_fifteen_fixture;
+
+#[test]
+#[expect(
+    non_snake_case,
+    reason = "Requirement tags use a double underscore separator."
+)]
+fn r_sub_11_r_nf_11__schema_fifteen_semantic_upgrade_backs_up_exact_database_and_current_config_together()
+ {
+    let directory = TestDirectory::new().unwrap();
+    let layout = StorageLayout::portable(&directory.0);
+    assert!(layout.self_test().is_empty());
+    let database = layout.data().join("tallyline.db");
+    schema_fifteen_fixture::restore(&database).unwrap();
+    let settings = layout.config().join("settings.json");
+    let config = br#"{ "schema_version":6,"app":{"theme":"dark","onboarding_complete":true}}"#;
+    std::fs::write(&settings, config).unwrap();
+    let original = std::fs::read(&database).unwrap();
+    let backup_root = layout.data().join("backup");
+    std::fs::write(&backup_root, b"injected obstruction").unwrap();
+    assert!(tallyline_app::api::initialise_storage(&layout, &FixedClock).is_err());
+    assert_eq!(std::fs::read(&database).unwrap(), original);
+    assert_eq!(std::fs::read(&settings).unwrap(), config);
+    std::fs::remove_file(&backup_root).unwrap();
+    let prepared = tallyline_app::api::initialise_storage(&layout, &FixedClock).unwrap();
+    drop(prepared);
+    let backup = backup_root.join("1234-v6");
+    assert_eq!(std::fs::read(backup.join("settings.json")).unwrap(), config);
+    let manifest: serde_json::Value =
+        serde_json::from_slice(&std::fs::read(backup.join("manifest.json")).unwrap()).unwrap();
+    assert_eq!(manifest["database_schema"], 15);
+    assert_eq!(manifest["config_schema"], 6);
+    let db = rusqlite::Connection::open(backup.join("tallyline.db")).unwrap();
+    assert_eq!(
+        db.pragma_query_value(None, "user_version", |row| row.get::<_, u32>(0))
+            .unwrap(),
         15
     );
+    let history: String = db
+        .query_row(
+            "SELECT payload FROM submission_jobs WHERE id=1",
+            [],
+            |row| row.get(0),
+        )
+        .unwrap();
+    drop(db);
+    let current = rusqlite::Connection::open(&database).unwrap();
+    assert_eq!(
+        current
+            .pragma_query_value(None, "user_version", |row| row.get::<_, u32>(0))
+            .unwrap(),
+        16
+    );
+    assert_eq!(
+        current
+            .query_row(
+                "SELECT payload FROM submission_jobs WHERE id=1",
+                [],
+                |row| row.get::<_, String>(0)
+            )
+            .unwrap(),
+        history
+    );
+    drop(current);
+    drop(tallyline_app::api::initialise_storage(&layout, &FixedClock).unwrap());
+    assert_eq!(std::fs::read_dir(&backup_root).unwrap().count(), 1);
 }

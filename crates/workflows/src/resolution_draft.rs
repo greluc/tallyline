@@ -16,7 +16,7 @@ pub struct ResolutionDraft {
     pub draft: Report,
 }
 
-/// Atomically creates a separate Draft from an eligible resolved not-accepted subset.
+/// Atomically creates a separate Draft from eligible immutable submission history.
 pub trait ResolutionDraftStore {
     /// Copies the exact displayed origin and retains both histories atomically.
     ///
