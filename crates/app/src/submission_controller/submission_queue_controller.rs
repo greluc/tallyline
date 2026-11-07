@@ -37,6 +37,7 @@ pub struct SubmissionQueueController {
     dispatch: DispatchState,
     client_version: Option<tallyline_shared_kernel::api::model::ReleaseVersion>,
     receipt: ReceiptEnrichment,
+    lifecycle: super::lifecycle_reads::LifecycleReads,
     recovery: super::refusal_recovery::RefusalRecovery,
     row_receipts: ReceiptResolution,
     pending_quotas: Vec<tallyline_submission::api::model::TokenQuotaObservation>,
@@ -101,6 +102,7 @@ impl SubmissionQueueController {
                 mappings.push(mapping);
             }
         }
+        let lifecycle = super::lifecycle_reads::LifecycleReads::new(&mut store, &jobs)?;
         Ok(Self {
             store,
             client,
@@ -111,6 +113,7 @@ impl SubmissionQueueController {
             dispatch: DispatchState::new(client_version),
             client_version,
             receipt: ReceiptEnrichment::new(mappings),
+            lifecycle,
             recovery: super::refusal_recovery::RefusalRecovery::default(),
             row_receipts: ReceiptResolution::default(),
             pending_quotas: Vec::new(),
@@ -325,7 +328,23 @@ impl SubmissionQueueController {
         let progress = result?;
         quota_control::publish(&mut self.store, &self.client)?;
         refreshed?;
-        Ok(quota_progress || resolved || recovered || progress || previous != self.queue.waiting())
+        let lifecycle_progress = self.lifecycle.automatic(
+            &mut super::lifecycle_reads::LifecycleReadContext {
+                store: &mut self.store,
+                client: &self.client,
+                clock: &*self.clock,
+                credentials,
+                token,
+            },
+            self.queue.jobs(),
+            self.receipt.mappings(),
+        );
+        Ok(quota_progress
+            || resolved
+            || recovered
+            || progress
+            || lifecycle_progress
+            || previous != self.queue.waiting())
     }
     fn advance(
         &mut self,
@@ -425,3 +444,73 @@ mod resolution_control;
 mod quota_control;
 
 mod cooldown_split;
+
+impl SubmissionQueueController {
+    /// Borrows only durable lifecycle admissions and committed positive observations.
+    #[must_use]
+    pub fn lifecycles(&self) -> &[tallyline_submission::api::model::SubmissionLifecycle] {
+        self.lifecycle.ledgers()
+    }
+    /// Reports whether one lifecycle read or a completed save-only retry is retained.
+    #[must_use]
+    pub const fn lifecycle_busy(&self) -> bool {
+        self.lifecycle.is_busy()
+    }
+    /// Borrows optional read feedback without changing known delivery success.
+    #[must_use]
+    pub const fn lifecycle_failure(&self) -> Option<&SubmissionControlError> {
+        self.lifecycle.failure()
+    }
+    /// Requests one account batch from an exact displayed source and lifecycle version.
+    ///
+    /// # Errors
+    /// Refuses stale display state, active lifecycle work or unavailable admission.
+    pub fn refresh_lifecycle(
+        &mut self,
+        id: JobId,
+        expected: u64,
+        expected_lifecycle: Option<u64>,
+        credentials: &CredentialApplication,
+        token: Option<&ReleaseToken>,
+    ) -> Result<bool, SubmissionControlError> {
+        let job = self
+            .queue
+            .jobs()
+            .iter()
+            .find(|job| job.id() == id && job.revision() == expected)
+            .ok_or(SubmissionControlError::Conflict)?;
+        if self
+            .lifecycles()
+            .iter()
+            .find(|ledger| ledger.job() == id)
+            .map(tallyline_submission::api::model::SubmissionLifecycle::revision)
+            != expected_lifecycle
+            || !super::lifecycle_reads::LifecycleReads::has_targets(job, self.receipt.mappings())
+        {
+            return Err(SubmissionControlError::Conflict);
+        }
+        let jobs = self
+            .queue
+            .jobs()
+            .iter()
+            .filter(|candidate| {
+                candidate.request().header().account == job.request().header().account
+                    && super::lifecycle_reads::LifecycleReads::has_targets(
+                        candidate,
+                        self.receipt.mappings(),
+                    )
+            })
+            .collect::<Vec<_>>();
+        self.lifecycle.begin(
+            &mut super::lifecycle_reads::LifecycleReadContext {
+                store: &mut self.store,
+                client: &self.client,
+                clock: &*self.clock,
+                credentials,
+                token,
+            },
+            &jobs,
+            tallyline_submission::api::model::LifecycleRefresh::Manual,
+        )
+    }
+}

@@ -147,7 +147,10 @@ pub(crate) fn outbox(
     id: EventId,
     kind: &str,
 ) -> Result<(), SubmissionRepositoryError> {
-    connection.execute("INSERT INTO domain_outbox(event_source,aggregate_id,revision,event_kind) VALUES(?1,?2,?3,?4)", (source, integer(id.aggregate_id())?, integer(id.version())?, kind)).map_err(unavailable)?;
+    let changed = connection.execute("INSERT INTO domain_outbox(event_source,aggregate_id,revision,event_kind) VALUES(?1,?2,?3,?4)", (source, integer(id.aggregate_id())?, integer(id.version())?, kind)).map_err(unavailable)?;
+    if changed != 1 {
+        return Err(SubmissionRepositoryError::Conflict);
+    }
     Ok(())
 }
 pub(crate) fn report_events(

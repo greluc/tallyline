@@ -19,6 +19,15 @@ use tallyline_submission::api::model::{
 /// An explicit queue action without credentials or mutable report values.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum QueueCommand {
+    /// Refreshes lifecycle evidence for the exact displayed source and ledger.
+    RefreshLifecycle {
+        /// Stable original job identity.
+        id: JobId,
+        /// Committed source revision displayed before the action.
+        expected_revision: u64,
+        /// Committed lifecycle revision, absent before its first admission.
+        expected_lifecycle: Option<u64>,
+    },
     /// Explicitly partitions the exact displayed queued revision into two releases.
     Split {
         /// Stable original job identity.
@@ -54,6 +63,11 @@ pub enum QueueCommand {
 impl QueueCommand {
     fn identity(self) -> (JobId, u64) {
         match self {
+            Self::RefreshLifecycle {
+                id,
+                expected_revision,
+                ..
+            } => (id, expected_revision),
             Self::Resolve {
                 id,
                 expected_revision,
@@ -83,6 +97,9 @@ pub struct SubmissionQueue {
     authenticated_quotas: Vec<tallyline_submission::api::model::TokenQuotaObservation>,
     jobs: Vec<SubmissionJob>,
     mappings: Vec<VerifiedReceiptMapping>,
+    lifecycles: Vec<tallyline_submission::api::model::SubmissionLifecycle>,
+    lifecycle_busy: bool,
+    lifecycle_account: Option<String>,
     waiting: Vec<SubmissionWait>,
     assessed_at: Option<tallyline_shared_kernel::api::model::Timestamp>,
     pending: Option<QueueCommand>,
@@ -357,6 +374,7 @@ pub fn show_submission_queue(
     let mut cancel = None;
     let mut retry = None;
     let mut split = None;
+    let mut lifecycle_refresh = None;
     for job in &state.jobs {
         ui.push_id(job.id().0, |ui| {
             let header = job.request().header();
@@ -391,6 +409,15 @@ pub fn show_submission_queue(
                     ui.label(catalogue.text(review_reason_key(reason)));
                 }
                 show_result(ui, job, state.verified_receipts(job.id()), catalogue);
+                if lifecycle::show(
+                    ui,
+                    job,
+                    state.lifecycle(job.id()),
+                    state.can_refresh_lifecycle(job.id()),
+                    catalogue,
+                ) {
+                    lifecycle_refresh = Some(job.id());
+                }
                 if let Some(action) =
                     crate::submission_partial::show(ui, job, catalogue, state.busy.is_none())
                 {
@@ -527,6 +554,9 @@ pub fn show_submission_queue(
     }
     if let Some(id) = split {
         state.request_split(id);
+    }
+    if let Some(id) = lifecycle_refresh {
+        state.request_lifecycle_refresh(id);
     }
     state.take_command()
 }
@@ -824,3 +854,5 @@ impl SubmissionQueue {
         }
     }
 }
+
+mod lifecycle;

@@ -136,6 +136,8 @@ pub enum EventSource {
     Reporting,
     /// A submission outcome or scheduling transition.
     Submission,
+    /// Independently versioned read-only evidence within Submission.
+    SubmissionLifecycle,
 }
 
 /// An outbox identity stable across retries and process restarts.

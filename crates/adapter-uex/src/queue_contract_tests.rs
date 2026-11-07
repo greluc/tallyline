@@ -2002,3 +2002,5 @@ async fn r_sub_4_r_sub_13__cooldown_child_requests_keep_exact_partitioned_wire_v
     assert_eq!(original.request(), &request);
     server.verify().await;
 }
+
+mod lifecycle_reads;

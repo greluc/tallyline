@@ -495,3 +495,19 @@ pub trait SubmissionQuotaRepository {
         now: Timestamp,
     ) -> Result<Vec<SubmissionJob>, model::SubmissionRepositoryError>;
 }
+
+/// Reads a bounded account batch without changing delivery or lifecycle persistence.
+pub trait SubmissionLifecycleReader {
+    /// Returns positive exact row values while retaining ownership of the admitted batch.
+    ///
+    /// # Errors
+    /// Returns `Unavailable` when admission, credentials, transport, quota or processing
+    /// prevents a usable answer, or `InvalidResponse` for malformed, ambiguous or
+    /// undocumented answer data; neither failure supplies lifecycle evidence.
+    fn read_lifecycle(
+        &self,
+        batch: model::LifecycleReadBatch,
+        credentials: &CredentialValues,
+        release_token: Option<&str>,
+    ) -> impl Future<Output = Result<model::LifecycleReadResponse, model::LifecycleReadFailure>> + Send;
+}

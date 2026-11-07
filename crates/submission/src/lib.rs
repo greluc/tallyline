@@ -72,3 +72,12 @@ mod token_quota_reset;
 mod token_quota_observation;
 
 mod token_admission;
+
+mod submission_lifecycle;
+mod uex_lifecycle_observation;
+
+mod submission_lifecycle_settings;
+
+mod lifecycle_read_batch;
+
+mod lifecycle_read_response;

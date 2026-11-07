@@ -333,3 +333,18 @@ pub use crate::token_quota_reset::TokenQuotaReset;
 pub use crate::token_quota_observation::{TokenQuotaObservation, TokenQuotaObservations};
 
 pub use crate::token_admission::TokenAdmission;
+
+pub use crate::submission_lifecycle::{
+    LifecycleReadClaim, StoredLifecycleRowAdmission, StoredSubmissionLifecycle, SubmissionLifecycle,
+};
+pub use crate::uex_lifecycle_observation::{
+    LifecycleRefresh, RowEditability, UexLifecycleObservation, UexLifecycleRow, UexReportStatus,
+};
+
+pub use crate::submission_lifecycle_settings::SubmissionLifecycleSettings;
+
+pub use crate::lifecycle_read_batch::LifecycleReadBatch;
+
+pub use crate::lifecycle_read_response::{
+    CompletedLifecycleClaim, CompletedLifecycleRead, LifecycleReadFailure, LifecycleReadResponse,
+};

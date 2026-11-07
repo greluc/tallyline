@@ -65,7 +65,7 @@ fn r_sub_13_r_nf_11__schema_thirteen_requires_backup_preserves_original_payload_
     assert!(matches!(
         reader::open(&path),
         Err(StorageError::UnsupportedSchema {
-            found: 16,
+            found: 17,
             supported: 13
         })
     ));
@@ -82,7 +82,7 @@ fn r_sub_13_r_nf_11__schema_thirteen_requires_backup_preserves_original_payload_
     assert_eq!(
         db.pragma_query_value(None, "user_version", |row| row.get::<_, u32>(0))
             .unwrap(),
-        16
+        17
     );
     drop(db);
     let backed_up = rusqlite::Connection::open(&backup).unwrap();
@@ -99,7 +99,7 @@ fn r_sub_13_r_nf_11__schema_thirteen_requires_backup_preserves_original_payload_
     assert_eq!(
         db.pragma_query_value(None, "user_version", |row| row.get::<_, u32>(0))
             .unwrap(),
-        16
+        17
     );
     drop(db);
     std::fs::remove_dir_all(root).unwrap();

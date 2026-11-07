@@ -26,7 +26,7 @@ Tallyline is a Windows and Linux desktop client for reviewing Star Citizen commo
 |---|---|
 | Capture | Manual commodity Drafts with optional user-entered faction affinity, resumable after restart; bounded image decoding and private screenshot-region foundations. The desktop capture and OCR workflow is still being integrated. |
 | Review | Exact decimal prices and SCU quantities, reference comparisons, price/stock/status counters, keyboard navigation and value-bound confirmation. Passive refreshes preserve user input. Manual field commits and explicit actions save together; refused requests keep unfinished text. |
-| Report | Explicit test mode, reviewed release into a durable serial queue, remembered account/mode and cancellation before sending. Uncertain sends never replay automatically; explicit row resolution and selective new-Draft copying retain the original attempt. Token-scoped quota reset and recovery are implemented; known unsaved quota answers keep applicable authenticated reads held. Cooldown partition, remote lifecycle and native acceptance remain open. |
+| Report | Explicit test mode, reviewed release into a durable serial queue, remembered account/mode and cancellation before sending. Uncertain sends never replay automatically; explicit row resolution and selective new-Draft copying retain the original attempt. Token-scoped quota reset and recovery are implemented; known unsaved quota answers keep applicable authenticated reads held. Cooldown partition and verified row lifecycle reads are implemented in source; withdrawal, general Submitted copying and native acceptance remain open. |
 
 Offline reference browsing and manual Drafts work without credentials. Onboarding and **Settings → UEX account** validate a masked key before saving it; session-only credentials are also supported. Actual OS-provider, real-service and native visual acceptance remain separate gates.
 
@@ -245,3 +245,7 @@ Corrected 2026-11-06: the queue's **Send the others now** action explicitly part
 
 
 Corrected 2026-11-07: a permanent client-review refusal now offers **Duplicate as new Draft** once, preserving the original Report and attempt history while renewing all review and screenshot ownership decisions. A refusal requiring a new capture has no copy action. Database schema16/configuration6 uses coordinated backups and older-reader refusal. See [the queue checkpoint](docs/submission-queue.md#permanent-refusal-copy-checkpoint--2026-11-07) and [user guide](docs/user/desktop.md#copy-a-permanently-refused-report); complete M1 and general lifecycle/withdrawal acceptance remain open.
+
+### Verified lifecycle read checkpoint
+
+Verified production rows now show their saved UEX status, editability and check time, with automatic checks and account-throttled **Refresh lifecycle**. A positive decline or expiry revokes only its matching accepted local prior; original delivery and history remain retained. Database schema17/configuration6 requires the coordinated backup. See [the user guide](docs/user/desktop.md#check-a-submitted-rows-lifecycle) and [implementation/evidence limits](docs/submission-queue.md#verified-lifecycle-read-checkpoint--2026-11-07). Withdrawal, general Submitted copying and full M1/native/real-service acceptance remain open.

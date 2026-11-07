@@ -267,3 +267,5 @@ pub use crate::cooldown_split::{
     CooldownSplit, CooldownSplitIdentities, CooldownSplitPart, CooldownSplitStore,
 };
 pub use crate::resolution_draft::{ResolutionDraft, ResolutionDraftStore};
+
+pub use crate::submission_lifecycle::{SubmissionLifecycleStore, lifecycle_prior_history};

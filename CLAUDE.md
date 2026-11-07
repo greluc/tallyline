@@ -401,3 +401,7 @@ The [owned-process contract](docs/owned-process-contract.md) records the Windows
 ## Permanent-refusal copy source checkpoint — 2026-11-07
 
 Permanent ReviewClient refusals support one explicit unreviewed new-Draft copy behind database schema16/configuration6. Before changing rejected copying, review renewal or reader admission, read [the queue checkpoint](docs/submission-queue.md#permanent-refusal-copy-checkpoint--2026-11-07). General lifecycle/withdrawal and full M1 acceptance remain open.
+
+## Verified lifecycle read source checkpoint — 2026-11-07
+
+Read [the lifecycle checkpoint](docs/submission-queue.md#verified-lifecycle-read-checkpoint--2026-11-07) before changing row polling/admission, append-only proof compatibility, prior revocation, lifecycle publication or schema17 admission. It defines the separate lifecycle revision/outbox namespace, account batching and shared quota, per-row timing, sealed save-only completion and genuine previous-schema provenance. Configuration remains6. Withdrawal, general Submitted copying and full M1/native/real-service acceptance remain open.

@@ -226,6 +226,20 @@ async fn route<B: HttpBackend + 'static>(
     quota: Arc<std::sync::Mutex<crate::http_quota::HttpQuota>>,
 ) {
     match command {
+        Command::ReadLifecycle(batch, values, token, reply) => {
+            let blocked = quota
+                .lock()
+                .map_or(true, |quota| quota.blocks(values.token_admission()));
+            let result = if blocked {
+                Err(tallyline_submission::api::model::LifecycleReadFailure::Unavailable)
+            } else {
+                backend.read_lifecycle(batch, values, token).await
+            };
+            record_quota(&*backend, &quota);
+            if reply.send(result).is_err() {
+                tracing::debug!("Lifecycle read reply receiver closed");
+            }
+        }
         Command::VerifyRowReceipts(job, values, token, reply) => {
             let result = backend.verify_row_receipts(job, values, token).await;
             record_quota(&*backend, &quota);

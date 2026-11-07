@@ -28,6 +28,14 @@ fn commands_cannot_reconstitute_through_aliases_function_values_or_macros() {
             violations(&[source("crates/app/src/worker.rs", text)]).len(),
             1
         );
+        assert_eq!(
+            violations(&[source(
+                "crates/submission/src/submission_lifecycle.rs",
+                text
+            )])
+            .len(),
+            1
+        );
         assert!(violations(&[source("crates/adapter-storage/src/queue.rs", text)]).is_empty());
         assert!(
             violations(&[source("crates/submission/tests/reconstitution.rs", text)]).is_empty()
@@ -40,6 +48,7 @@ fn owning_definitions_do_not_allow_command_calls_in_the_same_file() {
         "crates/reporting/src/report.rs",
         "crates/submission/src/job/reconstitution.rs",
         "crates/reference-data/src/prior_history.rs",
+        "crates/submission/src/submission_lifecycle.rs",
     ] {
         assert!(
             violations(&[source(

@@ -328,3 +328,37 @@ impl HttpClient {
         Ok(result)
     }
 }
+
+impl HttpClient {
+    pub(crate) fn begin_lifecycle_read(
+        &self,
+        batch: tallyline_submission::api::model::LifecycleReadBatch,
+        values: &CredentialValues,
+        release_token: Option<&str>,
+    ) -> Result<
+        Receiver<
+            Result<
+                tallyline_submission::api::model::LifecycleReadResponse,
+                tallyline_submission::api::model::LifecycleReadFailure,
+            >,
+        >,
+        HttpAdmissionFailure,
+    > {
+        if self.quota_blocks(values.token_admission()) {
+            return Err(HttpAdmissionFailure::Busy);
+        }
+        let (reply, result) = oneshot::channel();
+        self.requests
+            .try_send(Command::ReadLifecycle(
+                batch,
+                values.clone(),
+                release_token.map(str::to_owned),
+                reply,
+            ))
+            .map_err(|error| match error {
+                mpsc::error::TrySendError::Full(_) => HttpAdmissionFailure::Busy,
+                mpsc::error::TrySendError::Closed(_) => HttpAdmissionFailure::Stopped,
+            })?;
+        Ok(result)
+    }
+}

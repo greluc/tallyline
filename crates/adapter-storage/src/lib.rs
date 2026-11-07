@@ -50,3 +50,12 @@ mod report_history;
 mod token_quota;
 
 mod authenticated_quota;
+
+mod lifecycle_document;
+mod submission_lifecycle;
+
+mod lifecycle_record;
+mod lifecycle_source;
+
+mod lifecycle_binding;
+mod submission_request_document;

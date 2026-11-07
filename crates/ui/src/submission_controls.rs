@@ -67,6 +67,19 @@ impl ShellState {
             return;
         }
         let (id, expected_revision, control) = match command {
+            QueueCommand::RefreshLifecycle {
+                id,
+                expected_revision,
+                expected_lifecycle,
+            } => (
+                id,
+                expected_revision,
+                SubmissionControl::RefreshLifecycle {
+                    id,
+                    expected: expected_revision,
+                    expected_lifecycle,
+                },
+            ),
             QueueCommand::Split {
                 id,
                 expected_revision,

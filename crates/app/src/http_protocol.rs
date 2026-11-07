@@ -77,6 +77,25 @@ pub trait HttpBackend: Send + Sync {
     ) -> impl Future<Output = Option<Vec<VerifiedUexReport>>> + Send {
         async { None }
     }
+    /// Reads positive lifecycle values for one already committed account batch.
+    ///
+    /// # Errors
+    /// Returns `Unavailable` when admission, credentials, transport, quota or processing
+    /// prevents a usable answer, or `InvalidResponse` for malformed, ambiguous or
+    /// undocumented answer data; neither failure supplies lifecycle evidence.
+    fn read_lifecycle(
+        &self,
+        _batch: tallyline_submission::api::model::LifecycleReadBatch,
+        _values: CredentialValues,
+        _release_token: Option<String>,
+    ) -> impl Future<
+        Output = Result<
+            tallyline_submission::api::model::LifecycleReadResponse,
+            tallyline_submission::api::model::LifecycleReadFailure,
+        >,
+    > + Send {
+        async { Err(tallyline_submission::api::model::LifecycleReadFailure::Unavailable) }
+    }
     /// Repeats only a held refusal's read-only receipt safety check.
     fn recheck_refusal(
         &self,
@@ -111,6 +130,23 @@ impl HttpBackend for UexReader {
         UexReader::take_quota_observations(self)
     }
 
+    async fn read_lifecycle(
+        &self,
+        batch: tallyline_submission::api::model::LifecycleReadBatch,
+        values: CredentialValues,
+        release_token: Option<String>,
+    ) -> Result<
+        tallyline_submission::api::model::LifecycleReadResponse,
+        tallyline_submission::api::model::LifecycleReadFailure,
+    > {
+        tallyline_submission::api::SubmissionLifecycleReader::read_lifecycle(
+            self,
+            batch,
+            &values,
+            release_token.as_deref(),
+        )
+        .await
+    }
     async fn fetch(&self, endpoint: Endpoint) -> Result<EndpointData, ReadError> {
         ReferenceDataFetcher::fetch(self, endpoint).await
     }
@@ -169,6 +205,17 @@ impl HttpBackend for UexReader {
 }
 
 pub(crate) enum Command {
+    ReadLifecycle(
+        tallyline_submission::api::model::LifecycleReadBatch,
+        CredentialValues,
+        Option<String>,
+        Sender<
+            Result<
+                tallyline_submission::api::model::LifecycleReadResponse,
+                tallyline_submission::api::model::LifecycleReadFailure,
+            >,
+        >,
+    ),
     VerifyRowReceipts(
         SubmissionJob,
         CredentialValues,

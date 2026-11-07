@@ -344,3 +344,7 @@ Adapter contracts decode reset only for `exceeded_daily_quota` and accept only a
 ### Optional affinity source recheck (2026-11-06)
 
 The live public [official data-submit documentation](https://uexcorp.space/api/documentation/id/post_data_submit/) was read again: `faction_affinity` is an optional report-level integer bounded by -100 and 100; the service permits commodity and item reports. Tallyline's narrower R-SUB-13 commodity-only policy remains binding. An attempted credential-free `GET https://api.uexcorp.space/2.0/parameters` was inaccessible through the research tool, so no fresh parameter-response verification is claimed. No POST or other UEX write was made. The gateway's local HTTP contract verifies omission, explicit zero and both bounds; none of these tests establishes live-service acceptance.
+
+## Verified lifecycle adapter source checkpoint — 2026-11-07
+
+The read-only adapter uses one username/type/limit100 batch across admitted terminals, with the shared authenticated app-token quota and bounded CPU processor. Exact paired ID/date and released terminal/commodity proof precede the documented seven-status and binary editability parse. Missing/full windows remain positive-only evidence. Local HTTP contracts derive from this documentation and do not establish recorded or live UEX behaviour; withdrawal and approved real-wire acceptance remain open. See [the lifecycle checkpoint](../submission-queue.md#verified-lifecycle-read-checkpoint--2026-11-07).

@@ -258,6 +258,13 @@ impl ShellState {
                 self.submission
                     .accounts
                     .refresh(self.credentials.account(), self.submission.queue.jobs());
+                self.submission
+                    .queue
+                    .received_lifecycle_busy(update.lifecycle_busy);
+                self.submission.queue.received_lifecycle_account(update.lifecycle_account.filter(|name| matches!(self.credentials.account(), tallyline_submission::api::model::AccountState::Validated { username, .. } if username == name)));
+                for ledger in update.lifecycles {
+                    self.submission.queue.received_lifecycle(ledger);
+                }
                 for mapping in update.mappings {
                     self.submission.queue.received_mapping(mapping);
                 }
@@ -314,6 +321,7 @@ impl ShellState {
                 available_token,
                 fallback_available,
             } => {
+                self.submission.queue.received_lifecycle_account(None);
                 self.submission
                     .accounts
                     .changed(self.credentials.account(), &account);

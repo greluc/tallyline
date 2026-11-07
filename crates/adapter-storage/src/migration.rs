@@ -255,3 +255,8 @@ pub(crate) fn schema_sixteen(connection: &Connection) -> Result<(), StorageError
     connection.pragma_update(None, "user_version", 16)?;
     Ok(())
 }
+
+pub(crate) fn schema_seventeen(connection: &Connection) -> Result<(), StorageError> {
+    connection.execute_batch("CREATE TABLE submission_lifecycles(job_id INTEGER PRIMARY KEY REFERENCES submission_jobs(id),account TEXT NOT NULL CHECK(length(account)>0),admitted_at TEXT NOT NULL CHECK(length(admitted_at)>0),manual_admitted_at TEXT CHECK(manual_admitted_at IS NULL OR length(manual_admitted_at)>0),revision INTEGER NOT NULL CHECK(revision>0),payload TEXT NOT NULL); CREATE INDEX lifecycle_account_manual_admission ON submission_lifecycles(account,length(manual_admitted_at),manual_admitted_at); PRAGMA user_version=17;")?;
+    Ok(())
+}

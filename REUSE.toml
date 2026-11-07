@@ -20,6 +20,8 @@ path = [
   "crates/adapter-storage/tests/fixtures/schema-fourteen.json",
   "crates/adapter-storage/tests/fixtures/schema-fifteen-source.json",
   "crates/adapter-storage/tests/fixtures/schema-fifteen.json",
+  "crates/adapter-storage/tests/fixtures/schema-sixteen-source.json",
+  "crates/adapter-storage/tests/fixtures/schema-sixteen.json",
   "crates/adapter-storage/tests/fixtures/schema-thirteen-source.json",
   "crates/adapter-storage/tests/fixtures/schema-thirteen.json",
   "crates/adapter-uex/contracts/*.json",

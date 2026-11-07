@@ -29,3 +29,5 @@ mod event_outbox;
 
 mod cooldown_split;
 mod resolution_draft;
+
+mod submission_lifecycle;

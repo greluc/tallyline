@@ -439,5 +439,17 @@
   "queue.quota_reset_check": "Quota reset check:",
   "queue.quota_reset_unavailable": "Quota reset time unavailable; this token remains held.",
   "queue.quota_full_gate": "Sending still requires all current checks to pass.",
-  "queue.quota_attempts_exhausted": "Automatic attempts are exhausted. Cancel this report to review and release it again."
+  "queue.quota_attempts_exhausted": "Automatic attempts are exhausted. Cancel this report to review and release it again.",
+  "queue.lifecycle.row": "Lifecycle row",
+  "queue.lifecycle.pending": "Pending",
+  "queue.lifecycle.under_review": "Under review",
+  "queue.lifecycle.queued": "Queued for live version",
+  "queue.lifecycle.approved": "Approved",
+  "queue.lifecycle.consolidated": "Consolidated",
+  "queue.lifecycle.declined": "Declined",
+  "queue.lifecycle.expired": "Expired",
+  "queue.lifecycle.editable": "Editable at UEX",
+  "queue.lifecycle.not_editable": "Not editable at UEX",
+  "queue.lifecycle.checked": "Checked at:",
+  "queue.lifecycle.refresh": "Refresh lifecycle"
 }

@@ -20,6 +20,15 @@ pub enum SubmissionIntent {
 }
 /// Bounded explicit control without secret values or mutable row payloads.
 pub enum SubmissionControl {
+    /// Requests one account lifecycle read from the exact displayed versions.
+    RefreshLifecycle {
+        /// Stable local submission identity.
+        id: JobId,
+        /// Committed source revision displayed before the action.
+        expected: u64,
+        /// Committed lifecycle revision, absent before its first admission.
+        expected_lifecycle: Option<u64>,
+    },
     /// Explicitly partitions the exact displayed waiting job after fresh full checks.
     Split {
         /// Stable original job identity.
@@ -117,6 +126,12 @@ pub struct SubmissionUpdate {
     pub assessed_at: tallyline_shared_kernel::api::model::Timestamp,
     /// Persisted independently verified receipt mappings.
     pub mappings: Vec<VerifiedReceiptMapping>,
+    /// Durable lifecycle evidence independent of the delivery result.
+    pub lifecycles: Vec<tallyline_submission::api::model::SubmissionLifecycle>,
+    /// Whether the owner retains a lifecycle read or completed save-only retry.
+    pub lifecycle_busy: bool,
+    /// Current validated account whose credentials may admit a lifecycle read.
+    pub lifecycle_account: Option<String>,
     /// Current persisted Drafts after release, return or cancellation.
     pub reports: Vec<Report>,
     /// Whether this snapshot completes the one outstanding explicit control action.

@@ -310,3 +310,11 @@ Corrected 2026-11-06: the explicit mixed-cooldown split is implemented in source
 Corrected 2026-11-07: when a permanent refusal asks you to review a suspected client defect, **Duplicate as new Draft** creates one separate Report for correction and review. The original refusal and attempts stay in history with a link to the new Draft. Its observation time, captured game version, values and optional faction affinity stay the same. Review the new Draft and renew its approvals and screenshot preview/working copy before release. Copying does not resend the original.
 
 A refusal requiring a new capture, including an invalid captured game version, has no copy action. Capture a new observation with a valid version instead. Database schema16 requires the coordinated database/settings backup before upgrading; settings remain at schema6.
+
+## Check a submitted row's lifecycle
+
+Verified production rows show their latest saved UEX status, editability and check time in the queue. The seven statuses are Pending, Under review, Queued for live version, Approved, Consolidated, Declined and Expired. Missing or unverified rows have no invented status. Test submissions have no remote lifecycle.
+
+Checks start five minutes after sending, repeat every five minutes for the first hour and every thirty minutes thereafter, and stop for a final status or after fourteen days. **Refresh lifecycle** checks the current account's eligible rows at most once a minute. The button waits while a read or local save retry is pending; an account change requires current validated credentials. Quota or unavailable service can delay a check. A saved Declined or Expired observation removes only that row's accepted local prior, while the original submission and acceptance history remain visible.
+
+The remote window is limited to one hundred rows and has no documented pagination. A row missing from that window has no negative meaning; its last saved status stays visible. Schema17 requires the coordinated backup before upgrading; settings remain schema6. This source checkpoint covers read-only status history. Withdrawal and complete native/real-service acceptance remain open; see [the implementation evidence](../submission-queue.md#verified-lifecycle-read-checkpoint--2026-11-07).

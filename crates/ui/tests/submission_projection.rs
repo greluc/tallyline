@@ -70,6 +70,9 @@ fn r_sub_2_r_sub_9_r_ui_16__late_draft_lists_cannot_reopen_a_released_report_or_
     });
     shell.receive(BackgroundEvent::SubmissionUpdated(Box::new(
         SubmissionUpdate {
+            lifecycles: vec![],
+            lifecycle_busy: false,
+            lifecycle_account: None,
             assessed_at: tallyline_shared_kernel::api::model::Timestamp::from_seconds(0),
             client_version: None,
             service_fences: vec![],
@@ -102,6 +105,9 @@ fn r_sub_2_r_sub_9_r_ui_16__late_draft_lists_cannot_reopen_a_released_report_or_
     assert!(renewed.version() > job.request().header().report_version);
     shell.receive(BackgroundEvent::SubmissionUpdated(Box::new(
         SubmissionUpdate {
+            lifecycles: vec![],
+            lifecycle_busy: false,
+            lifecycle_account: None,
             assessed_at: tallyline_shared_kernel::api::model::Timestamp::from_seconds(0),
             client_version: None,
             service_fences: vec![],

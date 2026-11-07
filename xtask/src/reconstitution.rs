@@ -31,6 +31,7 @@ pub fn violations(files: &[SourceFile]) -> Vec<String> {
             "crates/reporting/src/report.rs"
                 | "crates/submission/src/job/reconstitution.rs"
                 | "crates/reference-data/src/prior_history.rs"
+                | "crates/submission/src/submission_lifecycle.rs"
         );
         for offset in reserved_identifiers(&file.text, definition) {
             let line = file.text.as_bytes().get(..offset).map_or(1, |prefix| {

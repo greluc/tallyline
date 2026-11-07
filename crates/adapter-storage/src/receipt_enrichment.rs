@@ -4,7 +4,7 @@
 //! Durable single-admission receipt proofs without altering known production acceptance.
 
 use crate::api::SqliteReferenceCache;
-use rusqlite::{OptionalExtension, TransactionBehavior};
+use rusqlite::{Connection, OptionalExtension, TransactionBehavior};
 use tallyline_submission::api::model::{
     JobId, JobPhase, SubmissionJob, SubmissionRepositoryError, SubmissionResult,
     VerifiedReceiptMapping,
@@ -99,23 +99,28 @@ impl ReceiptEnrichmentStore for SqliteReferenceCache {
         &mut self,
         job: JobId,
     ) -> Result<Option<VerifiedReceiptMapping>, SubmissionRepositoryError> {
-        let record: Option<(i64, Option<String>)> = self
-            .connection
-            .query_row(
-                "SELECT job_revision,payload FROM submission_receipt_enrichment WHERE job_id=?1",
-                [integer(job.0)?],
-                |row| Ok((row.get(0)?, row.get(1)?)),
-            )
-            .optional()
-            .map_err(unavailable)?;
-        let Some((revision, Some(payload))) = record else {
-            return Ok(None);
-        };
-        let current = crate::queue::load_job(&self.connection, job)?
-            .ok_or(SubmissionRepositoryError::Invalid)?;
-        if revision != integer(current.revision())? {
-            return Err(SubmissionRepositoryError::Invalid);
-        }
-        crate::queue_document::decode_mapping(&current, &payload).map(Some)
+        load_mapping(&self.connection, job)
     }
+}
+pub(crate) fn load_mapping(
+    connection: &Connection,
+    job: JobId,
+) -> Result<Option<VerifiedReceiptMapping>, SubmissionRepositoryError> {
+    let record: Option<(i64, Option<String>)> = connection
+        .query_row(
+            "SELECT job_revision,payload FROM submission_receipt_enrichment WHERE job_id=?1",
+            [integer(job.0)?],
+            |row| Ok((row.get(0)?, row.get(1)?)),
+        )
+        .optional()
+        .map_err(unavailable)?;
+    let Some((revision, Some(payload))) = record else {
+        return Ok(None);
+    };
+    let current =
+        crate::queue::load_job(connection, job)?.ok_or(SubmissionRepositoryError::Invalid)?;
+    if revision != integer(current.revision())? {
+        return Err(SubmissionRepositoryError::Invalid);
+    }
+    crate::queue_document::decode_mapping(&current, &payload).map(Some)
 }

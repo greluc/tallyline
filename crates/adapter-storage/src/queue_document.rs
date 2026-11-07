@@ -7,10 +7,10 @@ use crate::queue_account_evidence::{AccountCheckDocument, AccountEvidenceDocumen
 use crate::queue_client_version::ClientVersionDocument;
 use crate::queue_outcome_document::{OutcomeDocument, ReceiptDocument, ResultDocument};
 use crate::resolution_action_document::ResolutionActionDocument;
+pub(crate) use crate::submission_request_document::{EnvironmentDocument, SideDocument};
+use crate::submission_request_document::{HeaderDocument, RowDocument};
 use serde::{Deserialize, Serialize};
-use tallyline_shared_kernel::api::model::{
-    CommodityId, ReportId, RowId, SubmissionMode, TerminalId, Timestamp, TradeSide, UexEnvironment,
-};
+use tallyline_shared_kernel::api::model::{CommodityId, ReportId, RowId, TerminalId, Timestamp};
 use tallyline_submission::api::model::SubmissionRepositoryError;
 use tallyline_submission::api::model::{
     JobId, JobPhase, PayloadHash, SendReturnReason, StoredSubmissionAttempt, StoredSubmissionJob,
@@ -34,29 +34,6 @@ struct JobDocument {
     service_pause_acknowledged: bool,
     #[serde(default)]
     client_update: Option<ClientVersionDocument>,
-}
-#[derive(Serialize, Deserialize)]
-#[serde(deny_unknown_fields)]
-struct HeaderDocument {
-    report: u64,
-    report_version: u64,
-    account: String,
-    mode: ModeDocument,
-    terminal: u32,
-    side: SideDocument,
-    environment: EnvironmentDocument,
-    game_version: String,
-    faction_affinity: Option<i8>,
-    observed_at: String,
-}
-#[derive(Serialize, Deserialize)]
-#[serde(deny_unknown_fields)]
-struct RowDocument {
-    id: u64,
-    commodity: u32,
-    price: String,
-    stock: String,
-    status: u8,
 }
 #[derive(Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -124,72 +101,6 @@ impl From<PhaseDocument> for JobPhase {
 }
 #[derive(Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
-enum ModeDocument {
-    DryRun,
-    Production,
-}
-impl From<SubmissionMode> for ModeDocument {
-    fn from(value: SubmissionMode) -> Self {
-        match value {
-            SubmissionMode::DryRun => Self::DryRun,
-            SubmissionMode::Production => Self::Production,
-        }
-    }
-}
-impl From<ModeDocument> for SubmissionMode {
-    fn from(value: ModeDocument) -> Self {
-        match value {
-            ModeDocument::DryRun => Self::DryRun,
-            ModeDocument::Production => Self::Production,
-        }
-    }
-}
-#[derive(Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub(crate) enum SideDocument {
-    Buy,
-    Sell,
-}
-impl From<TradeSide> for SideDocument {
-    fn from(value: TradeSide) -> Self {
-        match value {
-            TradeSide::Buy => Self::Buy,
-            TradeSide::Sell => Self::Sell,
-        }
-    }
-}
-impl From<SideDocument> for TradeSide {
-    fn from(value: SideDocument) -> Self {
-        match value {
-            SideDocument::Buy => Self::Buy,
-            SideDocument::Sell => Self::Sell,
-        }
-    }
-}
-#[derive(Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub(crate) enum EnvironmentDocument {
-    Live,
-    Ptu,
-}
-impl From<UexEnvironment> for EnvironmentDocument {
-    fn from(value: UexEnvironment) -> Self {
-        match value {
-            UexEnvironment::Live => Self::Live,
-            UexEnvironment::Ptu => Self::Ptu,
-        }
-    }
-}
-impl From<EnvironmentDocument> for UexEnvironment {
-    fn from(value: EnvironmentDocument) -> Self {
-        match value {
-            EnvironmentDocument::Live => Self::Live,
-            EnvironmentDocument::Ptu => Self::Ptu,
-        }
-    }
-}
-#[derive(Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
 enum ReturnDocument {
     ReviewRequired,
     GameVersionChanged,
@@ -231,29 +142,8 @@ pub(crate) fn encode(job: &SubmissionJob) -> Result<String, SubmissionRepository
     let header = request.header();
     let document = JobDocument {
         resolution_actions: job.resolution_actions().iter().map(Into::into).collect(),
-        header: HeaderDocument {
-            report: header.report.0,
-            report_version: header.report_version,
-            account: header.account.clone(),
-            mode: header.mode.into(),
-            terminal: header.terminal.0,
-            side: header.side.into(),
-            environment: header.environment.into(),
-            game_version: header.game_version.clone(),
-            faction_affinity: header.faction_affinity.map(|value| value.value()),
-            observed_at: header.observed_at.millis().to_string(),
-        },
-        rows: request
-            .rows()
-            .iter()
-            .map(|row| RowDocument {
-                id: row.id().0,
-                commodity: row.commodity().0,
-                price: row.price().to_string(),
-                stock: row.stock().to_string(),
-                status: row.status(),
-            })
-            .collect(),
+        header: header.into(),
+        rows: request.rows().iter().map(Into::into).collect(),
         newer_approvals: request
             .newer_observation_confirmations()
             .iter()

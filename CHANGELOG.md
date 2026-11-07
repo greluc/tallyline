@@ -4,6 +4,8 @@ All notable changes are recorded here.
 
 ## [Unreleased]
 
+- Show saved lifecycle status, editability and check time for verified production rows, with automatic checks and account-throttled manual refresh. Positive decline or expiry atomically revokes only the matching accepted local prior; failed local saves retry without another HTTP read. Database schema17 requires a coordinated backup; settings remain schema6. Withdrawal and full native/real-service acceptance remain open (R-SUB-4, R-VAL-7).
+
 - Explicitly send the ready rows of a mixed-cooldown Report as a separate released Report while preserving confirmations, observation time, screenshot evidence and optional affinity. Both replacements repeat normal send checks; original history remains intact (R-SUB-4). Database schema 15 requires a coordinated backup.
 
 - Enter optional faction affinity from -100 to 100 in manual capture and the Report editor; an explicit zero stays distinct from an empty field. Commodity submission, queue restart and selected-row copying preserve it, while choosing another terminal clears the terminal-specific value. Database schema 14 requires a coordinated backup; settings remain schema 6 (R-SUB-13, R-NF-11).

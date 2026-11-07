@@ -96,3 +96,6 @@ mod authenticated_read_gate;
 
 #[cfg(test)]
 mod quota_post_contract_tests;
+
+mod lifecycle_reads;
+mod lifecycle_wire;

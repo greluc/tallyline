@@ -95,7 +95,7 @@ fn r_sub_4_r_nf_11__previous_fourteen_requires_backup_and_preserves_immutable_hi
     assert!(matches!(
         reader::open(&path),
         Err(StorageError::UnsupportedSchema {
-            found: 16,
+            found: 17,
             supported: 14
         })
     ));
@@ -113,7 +113,7 @@ fn r_sub_4_r_nf_11__previous_fourteen_requires_backup_and_preserves_immutable_hi
     assert_eq!(
         db.pragma_query_value(None, "user_version", |row| row.get::<_, u32>(0))
             .unwrap(),
-        16
+        17
     );
     drop(db);
     let db = rusqlite::Connection::open(&backup).unwrap();

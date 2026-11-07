@@ -30,6 +30,7 @@ pub struct SubmissionQueueBridge {
     notification_published: bool,
     release_refresh: Option<Box<dyn crate::api::ReleaseReferenceRefresh>>,
     release_pending: Option<SubmissionControl>,
+    projected_account: Option<String>,
     projected_scope: Option<tallyline_submission::api::model::TokenAdmission>,
 }
 impl SubmissionQueueBridge {
@@ -56,6 +57,7 @@ impl SubmissionQueueBridge {
             release_refresh: None,
             release_pending: None,
             projected_scope: None,
+            projected_account: None,
         }
     }
     /// Requires an owned reference-attempt acknowledgement before a manual or test release.
@@ -166,7 +168,8 @@ impl SubmissionQueueBridge {
             .map_err(|_| io::Error::other("submission notifications unavailable"))?;
         self.notification_published = false;
         self.publication_pending |= self.notifications.iter().any(|event| {
-            event.kind() == OutboxKind::SubmissionSucceeded
+            event.kind() == OutboxKind::UexReportStatusChanged
+                || event.kind() == OutboxKind::SubmissionSucceeded
                 && self.controller.jobs().iter().any(|job| {
                     job.id().0 == event.id().aggregate_id()
                         && job.phase() == tallyline_submission::api::model::JobPhase::Succeeded
@@ -198,6 +201,14 @@ impl SubmissionQueueBridge {
         token: Option<&ReleaseToken>,
     ) -> Result<(), SubmissionControlError> {
         match command {
+            SubmissionControl::RefreshLifecycle {
+                id,
+                expected,
+                expected_lifecycle,
+            } => self
+                .controller
+                .refresh_lifecycle(id, expected, expected_lifecycle, application, token)
+                .map(|_| ()),
             SubmissionControl::Split { id, expected } => {
                 self.controller
                     .split_cooldown(id, expected, application, token)?;
@@ -300,6 +311,9 @@ impl CredentialQueue for SubmissionQueueBridge {
             .unwrap_or_default();
         let mut changed = self.initial || self.projected_scope.as_ref() != Some(&selected_scope);
         self.projected_scope = Some(selected_scope.clone());
+        let current_account = application.release_account();
+        changed |= self.projected_account.as_deref() != current_account;
+        self.projected_account = current_account.map(str::to_owned);
         self.initial = false;
         let mut feedback = None;
         let mut completed = false;
@@ -337,6 +351,13 @@ impl CredentialQueue for SubmissionQueueBridge {
             Ok(progress) => {
                 changed |= progress;
                 background_changed = progress;
+                if progress {
+                    background_feedback = self
+                        .controller
+                        .lifecycle_failure()
+                        .cloned()
+                        .map(feedback_for);
+                }
             }
             Err(error) => {
                 changed = true;
@@ -383,6 +404,9 @@ impl CredentialQueue for SubmissionQueueBridge {
                         .collect(),
                     jobs: self.controller.jobs().to_vec(),
                     mappings: self.controller.mappings().to_vec(),
+                    lifecycles: self.controller.lifecycles().to_vec(),
+                    lifecycle_busy: self.controller.lifecycle_busy(),
+                    lifecycle_account: application.release_account().map(str::to_owned),
                     waiting: self.controller.waiting().to_vec(),
                     reports,
                     feedback,

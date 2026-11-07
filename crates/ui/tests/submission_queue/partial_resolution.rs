@@ -25,7 +25,7 @@ fn partial_with_code(code: &str, kind: RowFailureKind) -> Option<SubmissionJob> 
         receipts: Vec::new(),
     })
 }
-fn partial_with_result(result: SubmissionResult) -> Option<SubmissionJob> {
+pub(super) fn partial_with_result(result: SubmissionResult) -> Option<SubmissionJob> {
     let base = super::queued(89, SubmissionMode::Production)?;
     let rows = [(31, 7), (42, 8), (53, 9)]
         .into_iter()

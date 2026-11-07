@@ -9,6 +9,10 @@ use tallyline_workflows::api::{EventOutbox, OutboxError, OutboxEvent, OutboxKind
 
 fn meaning(source: &str, kind: &str) -> Result<(EventSource, OutboxKind), OutboxError> {
     match (source, kind) {
+        ("submission_lifecycle", "status_changed") => Ok((
+            EventSource::SubmissionLifecycle,
+            OutboxKind::UexReportStatusChanged,
+        )),
         ("reporting", "released") => Ok((EventSource::Reporting, OutboxKind::ReportReleased)),
         ("reporting", "submitted") => Ok((EventSource::Reporting, OutboxKind::ReportSubmitted)),
         ("reporting", "discarded") => Ok((EventSource::Reporting, OutboxKind::ReportDiscarded)),
@@ -37,6 +41,7 @@ fn meaning(source: &str, kind: &str) -> Result<(EventSource, OutboxKind), Outbox
 }
 fn names(kind: OutboxKind) -> (&'static str, &'static str) {
     match kind {
+        OutboxKind::UexReportStatusChanged => ("submission_lifecycle", "status_changed"),
         OutboxKind::ReportReleased => ("reporting", "released"),
         OutboxKind::ReportSubmitted => ("reporting", "submitted"),
         OutboxKind::ReportDiscarded => ("reporting", "discarded"),

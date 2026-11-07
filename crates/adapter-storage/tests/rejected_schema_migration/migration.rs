@@ -10,7 +10,7 @@ use super::{fixture, reader};
     non_snake_case,
     reason = "Requirement tags use a double underscore separator."
 )]
-fn r_sub_11_r_nf_11__genuine_fifteen_requires_backup_and_old_reader_refuses_sixteen() {
+fn r_sub_11_r_nf_11__genuine_fifteen_requires_backup_and_old_reader_refuses_seventeen() {
     use tallyline_adapter_storage::api::{SqliteReferenceCache, StorageError};
     use tallyline_reporting::api::ReportHistoryRepository;
     use tallyline_shared_kernel::api::model::Timestamp;
@@ -71,7 +71,7 @@ fn r_sub_11_r_nf_11__genuine_fifteen_requires_backup_and_old_reader_refuses_sixt
     assert!(matches!(
         reader::open(&path),
         Err(StorageError::UnsupportedSchema {
-            found: 16,
+            found: 17,
             supported: 15
         })
     ));

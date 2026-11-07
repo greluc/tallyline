@@ -2240,3 +2240,6 @@ mod three_rows;
 
 #[path = "submission_controller/rejected_copy.rs"]
 mod rejected_copy;
+
+#[path = "submission_controller/lifecycle_reads.rs"]
+mod lifecycle_reads;

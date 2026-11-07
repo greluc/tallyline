@@ -183,3 +183,37 @@ impl AcceptedPriorHistoryStore for SqliteReferenceCache {
         load(&self.connection)
     }
 }
+
+fn projection_name(projection: LocalPriorProjection) -> &'static str {
+    match projection {
+        LocalPriorProjection::Active => "active",
+        LocalPriorProjection::Refreshed => "refreshed",
+        LocalPriorProjection::Revoked(LocalPriorRevocation::Withdrawn) => "withdrawn",
+        LocalPriorProjection::Revoked(LocalPriorRevocation::Declined) => "declined",
+        LocalPriorProjection::Revoked(LocalPriorRevocation::Expired) => "expired",
+    }
+}
+pub(crate) fn save_projection(
+    connection: &Connection,
+    current: &AcceptedPriorHistory,
+    next: &AcceptedPriorHistory,
+) -> Result<(), StorageError> {
+    if current.records().len() != next.records().len() {
+        return Err(StorageError::InvalidCache);
+    }
+    let paired_records = current.records().iter().zip(next.records());
+    for (previous, record) in paired_records {
+        if previous.prior() != record.prior() {
+            return Err(StorageError::InvalidCache);
+        }
+        if previous.projection() == record.projection() {
+            continue;
+        }
+        let prior = record.prior();
+        let changed = connection.execute("UPDATE accepted_priors SET projection=?3 WHERE submission_id=?1 AND commodity=?2 AND projection=?4", (i64::try_from(prior.context().submission.0).map_err(invalid)?, prior.commodity().0, projection_name(record.projection()), projection_name(previous.projection())))?;
+        if changed != 1 {
+            return Err(StorageError::InvalidCache);
+        }
+    }
+    Ok(())
+}

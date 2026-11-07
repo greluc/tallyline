@@ -32,6 +32,8 @@ pub enum OutboxKind {
     SubmissionCancelled,
     /// A cancelled origin was atomically replaced by two released row groups.
     SubmissionSplit,
+    /// Committed lifecycle evidence and its accepted-prior projection changed.
+    UexReportStatusChanged,
 }
 /// An immutable notification whose handler reads the current committed aggregate projection.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -44,6 +46,7 @@ impl OutboxEvent {
     #[must_use]
     pub fn new(id: EventId, kind: OutboxKind) -> Option<Self> {
         let source = match kind {
+            OutboxKind::UexReportStatusChanged => EventSource::SubmissionLifecycle,
             OutboxKind::ReportReleased
             | OutboxKind::ReportSubmitted
             | OutboxKind::ReportDiscarded => EventSource::Reporting,

@@ -74,6 +74,9 @@ fn concurrent_account_update_and_storage_notices_keep_actions_visible_at_double_
             .shell
             .receive(BackgroundEvent::SubmissionUpdated(Box::new(
                 SubmissionUpdate {
+                    lifecycles: vec![],
+                    lifecycle_busy: false,
+                    lifecycle_account: None,
                     assessed_at: tallyline_shared_kernel::api::model::Timestamp::from_seconds(0),
                     client_version: None,
                     service_fences: vec![],

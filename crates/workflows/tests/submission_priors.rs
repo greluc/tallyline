@@ -96,3 +96,90 @@ fn r_val_7_r_sub_8__dry_run_unknown_and_unmapped_partial_outcomes_leave_local_pr
         assert_eq!(records[0].values().stock.to_string(), "0");
     }
 }
+
+#[test]
+#[expect(
+    non_snake_case,
+    reason = "Requirement tags use a double underscore separator."
+)]
+fn r_sub_4_r_val_7_q_manual__decline_and_expiry_revoke_only_the_matching_submission_prior() {
+    use tallyline_reference_data::api::model::{
+        AcceptedPriorHistory, LocalPriorProjection, LocalPriorRevocation,
+    };
+    use tallyline_shared_kernel::api::model::UexReportId;
+    use tallyline_submission::api::model::{
+        LifecycleRefresh, RowEditability, SubmissionLifecycle, UexLifecycleObservation,
+        UexReportStatus, VerifiedReceiptMapping, VerifiedUexReport,
+    };
+    use tallyline_workflows::api::lifecycle_prior_history;
+    let accepted = sending(SubmissionMode::Production, UexEnvironment::Live)
+        .unwrap()
+        .complete(
+            SubmissionResult::ProductionAccepted(vec![
+                UexReportId::new(42, Timestamp::from_seconds(100)).unwrap(),
+            ]),
+            Timestamp::from_seconds(120),
+        )
+        .unwrap();
+    let other = SubmissionJob::queued(JobId(8), accepted.request().clone())
+        .unwrap()
+        .begin(Timestamp::from_seconds(111), PayloadHash::new([5; 32]))
+        .unwrap()
+        .complete(
+            SubmissionResult::ProductionAccepted(vec![
+                UexReportId::new(43, Timestamp::from_seconds(100)).unwrap(),
+            ]),
+            Timestamp::from_seconds(121),
+        )
+        .unwrap();
+    let receipt = VerifiedUexReport::from_lookup(
+        42,
+        TerminalId(89),
+        CommodityId(7),
+        Timestamp::from_seconds(100),
+        accepted.request(),
+    )
+    .unwrap();
+    let mapping = VerifiedReceiptMapping::new(&accepted, vec![receipt.clone()]).unwrap();
+    let lifecycle = SubmissionLifecycle::try_new(&accepted, &mapping).unwrap();
+    let original = AcceptedPriorHistory::default()
+        .accepted(&accepted_submission_priors(&accepted).unwrap())
+        .unwrap()
+        .accepted(&accepted_submission_priors(&other).unwrap())
+        .unwrap();
+    for (status, reason) in [
+        (UexReportStatus::Declined, LocalPriorRevocation::Declined),
+        (UexReportStatus::Expired, LocalPriorRevocation::Expired),
+    ] {
+        let claim = lifecycle
+            .claim(LifecycleRefresh::Manual, Timestamp::from_seconds(120))
+            .unwrap()
+            .unwrap();
+        let observed = claim
+            .observed(&[UexLifecycleObservation::new(
+                receipt.clone(),
+                status,
+                RowEditability::NotEditable,
+                Timestamp::from_seconds(121),
+            )])
+            .unwrap();
+        let next = lifecycle_prior_history(&observed, &original).unwrap();
+        assert_eq!(
+            next.records()[0].projection(),
+            LocalPriorProjection::Revoked(reason)
+        );
+        assert_eq!(next.records()[0].prior(), original.records()[0].prior());
+        assert_eq!(next.records()[1], original.records()[1]);
+        assert_eq!(
+            next.active(UexEnvironment::Live)[0].context().submission,
+            JobId(8)
+        );
+        let refreshed = original.refreshed(UexEnvironment::Live);
+        assert!(
+            lifecycle_prior_history(&observed, &refreshed)
+                .unwrap()
+                .active(UexEnvironment::Live)
+                .is_empty()
+        );
+    }
+}

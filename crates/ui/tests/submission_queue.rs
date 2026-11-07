@@ -330,6 +330,9 @@ fn r_sub_12_r_ui_16__account_switch_offers_keep_or_review_without_rebinding_jobs
     shell.receive(account("test-account", 1000));
     shell.receive(BackgroundEvent::SubmissionUpdated(Box::new(
         SubmissionUpdate {
+            lifecycles: vec![],
+            lifecycle_busy: false,
+            lifecycle_account: None,
             assessed_at: tallyline_shared_kernel::api::model::Timestamp::from_seconds(0),
             client_version: None,
             service_fences: vec![],
@@ -803,3 +806,6 @@ fn r_sub_4_r_ui_16__drawn_mixed_split_shows_both_groups_and_emits_only_keyboard_
 
 #[path = "submission_queue/rejected_copy.rs"]
 mod rejected_copy;
+
+#[path = "submission_queue/lifecycle.rs"]
+mod lifecycle;

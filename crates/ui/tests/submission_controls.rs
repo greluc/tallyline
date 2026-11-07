@@ -93,6 +93,9 @@ fn r_sub_8_r_sub_9_r_ui_16__drawn_test_binds_displayed_account_and_passive_snaps
         .state_mut()
         .receive(BackgroundEvent::SubmissionUpdated(Box::new(
             SubmissionUpdate {
+                lifecycles: vec![],
+                lifecycle_busy: false,
+                lifecycle_account: None,
                 assessed_at: tallyline_shared_kernel::api::model::Timestamp::from_seconds(0),
                 client_version: None,
                 service_fences: vec![],
@@ -111,6 +114,9 @@ fn r_sub_8_r_sub_9_r_ui_16__drawn_test_binds_displayed_account_and_passive_snaps
         .state_mut()
         .receive(BackgroundEvent::SubmissionUpdated(Box::new(
             SubmissionUpdate {
+                lifecycles: vec![],
+                lifecycle_busy: false,
+                lifecycle_account: None,
                 assessed_at: tallyline_shared_kernel::api::model::Timestamp::from_seconds(0),
                 client_version: None,
                 service_fences: vec![],
@@ -194,6 +200,9 @@ fn r_val_8_r_sub_8_r_ui_16__older_row_choice_shows_exact_values_and_keeps_the_fa
         .state_mut()
         .receive(BackgroundEvent::SubmissionUpdated(Box::new(
             SubmissionUpdate {
+                lifecycles: vec![],
+                lifecycle_busy: false,
+                lifecycle_account: None,
                 assessed_at: tallyline_shared_kernel::api::model::Timestamp::from_seconds(0),
                 client_version: None,
                 service_fences: vec![],
@@ -249,6 +258,9 @@ fn r_sub_4_r_ui_16__committed_split_shows_two_released_reports_without_opening_a
     let mut shell = ShellState::default();
     shell.receive(BackgroundEvent::SubmissionUpdated(Box::new(
         tallyline_ui::api::model::SubmissionUpdate {
+            lifecycles: vec![],
+            lifecycle_busy: false,
+            lifecycle_account: None,
             assessed_at: Timestamp::from_seconds(200),
             client_version: None,
             service_fences: vec![],

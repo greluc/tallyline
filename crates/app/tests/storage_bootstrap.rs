@@ -67,7 +67,7 @@ fn r_nf_11__existing_database_and_exact_config_are_backed_up_together_before_mig
     assert_eq!(marker.configuration_schema, Some(3));
     let manifest: serde_json::Value =
         serde_json::from_slice(&std::fs::read(backup.join("manifest.json")).unwrap()).unwrap();
-    assert_eq!(manifest["database_schema"], 16);
+    assert_eq!(manifest["database_schema"], 17);
     assert_eq!(manifest["config_schema"], 3);
     assert_eq!(manifest["database_file"], "tallyline.db");
 }
@@ -182,7 +182,7 @@ fn r_nf_11__joint_schema_upgrades_reuse_only_the_exact_original_config_backup() 
                 Some(6)
             )
             .unwrap(),
-        16
+        17
     );
 }
 
@@ -238,7 +238,7 @@ fn r_sub_11_r_nf_11__schema_fifteen_semantic_upgrade_backs_up_exact_database_and
         current
             .pragma_query_value(None, "user_version", |row| row.get::<_, u32>(0))
             .unwrap(),
-        16
+        17
     );
     assert_eq!(
         current
