@@ -96,3 +96,5 @@ mod check_paths_tests;
 #[cfg(test)]
 mod property_scope_tests;
 pub mod reconstitution;
+
+pub mod owned_process_scope;

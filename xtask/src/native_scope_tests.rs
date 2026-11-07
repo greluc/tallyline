@@ -443,3 +443,108 @@ fn ort_native_scope_requires_the_reviewed_version_and_complete_feature_closure()
         assert!(!violations(&duplicate.to_string()).unwrap().is_empty());
     }
 }
+
+#[test]
+fn owned_process_job_scope_requires_exact_owner_target_version_and_features() {
+    let mut input = metadata("windows-sys", "0.61.2", &["Win32_System_JobObjects"], true);
+    input["packages"][0]["name"] = json!("tallyline-adapter-platform");
+    input["packages"][0]["version"] = json!("0.1.0");
+    input["packages"][0]["source"] = Value::Null;
+    input["packages"][0]["dependencies"] = json!([{
+        "name": "windows-sys", "req": "=0.61.2", "uses_default_features": false,
+        "features": ["Win32_Security", "Win32_System_JobObjects", "Win32_System_Pipes", "Win32_System_IO"],
+        "target": "x86_64-pc-windows-msvc",
+        "kind": null, "rename": null, "optional": false, "registry": null,
+        "source": "registry+https://github.com/rust-lang/crates.io-index"
+    }]);
+    let review: Value = serde_json::from_str(include_str!(
+        "../../supply-chain/owned-process-windows.json"
+    ))
+    .unwrap();
+    input["resolve"]["nodes"][1]["features"] = review["resolved_features"].clone();
+    input["packages"]
+        .as_array_mut()
+        .unwrap()
+        .push(json!({"id": "link", "name": "windows-link", "version": "0.2.1"}));
+    input["resolve"]["nodes"]
+        .as_array_mut()
+        .unwrap()
+        .push(json!({"id": "link", "features": [], "deps": []}));
+    let inspect = |value: &Value, target: &str| {
+        crate::owned_process_scope::violations(&value.to_string(), target).unwrap()
+    };
+    assert!(inspect(&input, "x86_64-pc-windows-msvc").is_empty());
+    let mut additional_owner = input.clone();
+    additional_owner["packages"]
+        .as_array_mut()
+        .unwrap()
+        .push(json!({
+            "id": "foreign", "name": "tallyline-app", "version": "0.0.0", "source": null,
+            "dependencies": [{
+                "name": "windows-sys", "req": "=0.61.2", "uses_default_features": false,
+                "features": ["Win32_System_Pipes"], "target": "x86_64-pc-windows-msvc",
+                "kind": null, "rename": null, "optional": false, "registry": null,
+            "source": "registry+https://github.com/rust-lang/crates.io-index"
+            }]
+        }));
+    additional_owner["workspace_members"]
+        .as_array_mut()
+        .unwrap()
+        .push(json!("foreign"));
+    assert!(
+        !inspect(&additional_owner, "x86_64-pc-windows-msvc").is_empty(),
+        "an additional Pipes-only owner must be rejected while the approved edge remains"
+    );
+    assert!(!inspect(&input, "x86_64-unknown-linux-gnu").is_empty());
+    for feature in ["Win32_Security", "Win32_System_Pipes", "Win32_System_IO"] {
+        for owner in ["tallyline-app", "tallyline-adapter-platform"] {
+            let mut changed = additional_owner.clone();
+            changed["packages"][3]["name"] = json!(owner);
+            changed["packages"][3]["version"] = json!("0.1.0");
+            changed["packages"][3]["dependencies"][0]["features"] = json!([feature]);
+            changed["packages"][3]["dependencies"][0]["target"] = json!("cfg(windows)");
+            assert!(
+                !inspect(&changed, "x86_64-pc-windows-msvc").is_empty(),
+                "{feature}: {owner}"
+            );
+        }
+    }
+    for (field, bad) in [
+        ("target", json!("cfg(windows)")),
+        ("req", json!("=0.61.1")),
+        ("uses_default_features", json!(true)),
+        (
+            "features",
+            json!(["Win32_System_JobObjects", "Win32_Security_Authorization"]),
+        ),
+        ("source", json!("git+https://example.invalid/sdk")),
+    ] {
+        let mut changed = input.clone();
+        changed["packages"][0]["dependencies"][0][field] = bad;
+        assert!(
+            !inspect(&changed, "x86_64-pc-windows-msvc").is_empty(),
+            "{field}"
+        );
+    }
+    for owner in ["renamed-platform", "zbus", "tallyline-app"] {
+        let mut changed = input.clone();
+        changed["packages"][0]["name"] = json!(owner);
+        assert!(
+            !inspect(&changed, "x86_64-pc-windows-msvc").is_empty(),
+            "{owner}"
+        );
+    }
+    let mut foreign_owner = input.clone();
+    foreign_owner["packages"][0]["source"] =
+        json!("registry+https://github.com/rust-lang/crates.io-index");
+    assert!(!inspect(&foreign_owner, "x86_64-pc-windows-msvc").is_empty());
+    let mut nonmember_owner = input.clone();
+    nonmember_owner["workspace_members"] = json!(["restricted"]);
+    assert!(!inspect(&nonmember_owner, "x86_64-pc-windows-msvc").is_empty());
+    let mut wrong_version = input.clone();
+    wrong_version["packages"][1]["version"] = json!("99.0.0");
+    assert!(!inspect(&wrong_version, "x86_64-pc-windows-msvc").is_empty());
+    let mut extra = input.clone();
+    extra["resolve"]["nodes"][1]["features"] = json!(["Win32_System_JobObjects", "unexpected"]);
+    assert!(!inspect(&extra, "x86_64-pc-windows-msvc").is_empty());
+}

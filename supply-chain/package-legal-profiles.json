@@ -7,7 +7,7 @@
     "Cargo.toml": "0342f294f512f1c06c3260ae9400f2d65bb88dc5ffcc2f7713ceecd65b6ddb84",
     "crates/adapter-files/Cargo.toml": "a1b47d81c64d797149d68d9b9a6f8fc359144cc317fbdc435d0c32e0071a4aa8",
     "crates/adapter-ocr/Cargo.toml": "be7c86c279822954cf8b6610d79bc631d1e7bbb57702f2178e8ee0384ee6b435",
-    "crates/adapter-platform/Cargo.toml": "b33ae444971e5c50636e1a8af6f2ff0087bb84467c63f9bd24235947d4f7c5b9",
+    "crates/adapter-platform/Cargo.toml": "0e92312c30ff112459f55ad8f0c370f4b85a64bcb720f459a38c7ba7110a836f",
     "crates/adapter-storage/Cargo.toml": "7d9955872d65e94cd9d2fc3780e0244f630309591cab747e4fac33630442c5de",
     "crates/adapter-uex/Cargo.toml": "cb0c60e031d9fe851ad219c7ab599bb07c30007b311d305f99eb895ab8374420",
     "crates/app/Cargo.toml": "eb1f7d08b0c84add062bb82bda1f46cb251e276cb492d461092c5dfc36f14e3a",

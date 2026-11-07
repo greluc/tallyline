@@ -866,8 +866,11 @@ fn native_assembly_passes(root: &Path, review: &Path) -> io::Result<bool> {
         )?;
         let resolved =
             xtask::target_graph::resolved_metadata(&metadata, &tree).map_err(io::Error::other)?;
-        let credential_findings =
+        let mut credential_findings =
             xtask::native::resolved_credential_violations(&resolved).map_err(io::Error::other)?;
+        credential_findings.extend(
+            xtask::owned_process_scope::violations(&resolved, target).map_err(io::Error::other)?,
+        );
         if !credential_findings.is_empty() {
             return Err(io::Error::other(credential_findings.join("; ")));
         }

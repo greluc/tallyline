@@ -311,3 +311,7 @@ Corrected 2026-11-06: the issue90 source slice implements R-SUB-4's explicit two
 ## Local metadata source checkpoint — 2026-11-06
 
 The [fixed metadata adapter](../local-metadata-contract.md) now checks the actual connected loopback tuple through Recognition's generation-bound session port before HTTP receives that socket. Explicit total time/body bounds, cancellation/current-generation checks, strict version parsing and disabled proxy/redirect/retry/pooling are exercised through real harmless loopback contracts. This is transport-ordering evidence with a fake ownership observer, not actual Windows ownership, engine/profile admission, image/prompt inference, private-input permission or desktop activation. The M5 acceptance checkboxes and R-VLM-6/7 assignments remain open.
+
+## Owned-process source checkpoint — 2026-11-07
+
+R-VLM-7/R-NF-3 now have the [Windows owned-process source primitive](../owned-process-contract.md) and harmless public suspended/resume/descendant/output/deletion contracts. This is partial M2 lifetime/resource preparation, with twenty approved Win32 APIs and four exact Windows-x64 feature additions. TCP/session integration, engine/profile admission, abrupt supervisor-death acceptance, Linux/package/hardware verification and milestone completion remain open. No acceptance checkbox is promoted.

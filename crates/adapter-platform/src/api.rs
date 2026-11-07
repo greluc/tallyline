@@ -29,3 +29,6 @@ pub use crate::linux_credentials::LinuxCredentialStore;
 
 #[cfg(target_os = "linux")]
 pub use crate::linux_fallback::LinuxFallbackStore;
+
+#[cfg(all(target_os = "windows", target_arch = "x86_64", target_env = "msvc"))]
+pub use crate::local_model_process::OwnedProcess;

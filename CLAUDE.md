@@ -392,3 +392,7 @@ Corrected 2026-11-06: schema 15/configuration 6 adds the explicit atomic R-SUB-4
 ## Local metadata source checkpoint — 2026-11-06
 
 Recognition and adapter-vlm now supply only the [fixed credential-free local version contract](docs/local-metadata-contract.md): the actual socket is held behind generation/tuple ownership observation, current-state rechecks and explicit total time/body bounds. Real loopback tests with a harmless observer establish transport ordering and session gates only. Actual OS ownership, runtime/profile admission and private-input use remain open; no Workflows, Files, Platform or App implementation or product activation is added.
+
+## Owned-process platform source checkpoint — 2026-11-07
+
+The [owned-process contract](docs/owned-process-contract.md) records the Windows x64 MSVC suspended/resume/revocation primitive and measured harmless job/pipe/private-state cleanup contracts. The first twenty approved APIs/four exact feature additions are registered in 09 §3a and checked through the owned-process source profile. No TCP ownership, Workflows/App wiring, selected engine/profile, inference or product activation is added; those remain dependent acceptance work.

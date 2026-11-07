@@ -40,3 +40,6 @@ mod linux_credentials;
 mod linux_fallback;
 
 mod token_registry;
+
+#[cfg(all(target_os = "windows", target_arch = "x86_64", target_env = "msvc"))]
+mod local_model_process;

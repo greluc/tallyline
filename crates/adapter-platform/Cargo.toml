@@ -24,6 +24,9 @@ keyring-core.workspace = true
 windows-native-keyring-store.workspace = true
 windows-sys = { version = "=0.61.2", default-features = false, features = ["Win32_Networking_WinSock", "Win32_System_LibraryLoader", "Win32_Storage_FileSystem", "Win32_System_Threading"] }
 
+[target.x86_64-pc-windows-msvc.dependencies]
+windows-sys = { version = "=0.61.2", default-features = false, features = ["Win32_Security", "Win32_System_JobObjects", "Win32_System_Pipes", "Win32_System_IO"] }
+
 [target.'cfg(target_os = "linux")'.dependencies]
 secret-service.workspace = true
 zbus.workspace = true
