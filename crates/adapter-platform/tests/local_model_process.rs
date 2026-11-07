@@ -296,16 +296,9 @@ struct Fixture {
 
 impl Fixture {
     fn new() -> TestResult<Self> {
-        let root = PathBuf::from(
-            std::env::var_os("TALLYLINE_OWNED_FIXTURE_ROOT")
-                .ok_or("Cargo contract requires an explicit task fixture root")?,
-        );
-        if !root.is_absolute() || !root.is_dir() {
-            return Err("fixture root must be an existing absolute directory".into());
-        }
         let directory = tempfile::Builder::new()
             .prefix("owned-process-")
-            .tempdir_in(root)?;
+            .tempdir()?;
         let evidence = directory.path().join("evidence");
         let private = directory.path().join("private");
         fs::create_dir(&evidence)?;
