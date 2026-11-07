@@ -481,20 +481,37 @@ fn r_nf_10__simultaneous_modes_elect_exactly_one_writer() {
     reason = "Requirement tags use a double underscore separator."
 )]
 fn r_nf_10__data_lock_contention_also_refuses_a_writer() {
+    use std::fs::{DirBuilder, OpenOptions};
+
     let root = std::env::temp_dir().join(format!("tl95-data-{}", std::process::id()));
     std::fs::create_dir(&root).unwrap();
-    let first = elect(paths(&root, "installed")).unwrap();
-    let data = std::fs::OpenOptions::new()
-        .read(true)
-        .write(true)
+    let directory = DirBuilder::new();
+    #[cfg(unix)]
+    let directory = {
+        use std::os::unix::fs::DirBuilderExt;
+        let mut directory = directory;
+        directory.mode(0o700);
+        directory
+    };
+    directory
+        .create(root.join("installed"))
+        .expect("create the private data-lock fixture directory");
+    let mut options = OpenOptions::new();
+    options.read(true).write(true).create_new(true);
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::OpenOptionsExt;
+        options.mode(0o600);
+    }
+    let data = options
         .open(root.join("installed/instance.lock"))
-        .unwrap();
-    drop(first);
+        .expect("create the independent data-lock fixture file");
     data.try_lock().unwrap();
     assert!(matches!(
         elect(paths(&root, "installed")).unwrap(),
         Election::Secondary(crate::api::ActivationOutcome::Unavailable)
     ));
+    data.unlock().expect("release the fixture-owned data lock");
     drop(data);
     let next = elect(paths(&root, "installed")).unwrap();
     assert!(matches!(next, Election::Primary(_)));
