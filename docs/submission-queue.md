@@ -1,6 +1,6 @@
 # Durable manual submission queue
 
-> **Doc type:** Living reference — implemented, acceptance gates open. Last reviewed: 2026-11-06.
+> **Doc type:** Living reference — implemented, acceptance gates open. Last reviewed: 2026-11-07.
 
 The manual slices of issues #86 and #87 compose Reporting, Submission, Workflows and the native shell. It does not complete screenshot capture, OCR release, withdrawal or recurring UEX lifecycle polling. The normative requirements remain in [01](plan/01-requirements.md), the context map in [02](plan/02-architecture.md), and the event contract in [11 §A6](plan/11-ddd-and-tdd.md).
 
@@ -137,5 +137,6 @@ Database schema 15/configuration 6 adds the split relation and distinct cancella
 Public acceptance covers the real SQLite workflow, owned controller backend and drawn egui keyboard intent; local HTTP adapter contracts check exact child wire requests separately. These are not a fully composed app-to-live-HTTP test. Full repository/mutation evidence, native/provider/package acceptance and approved real-service acceptance retain their own gates. Issue 92's recurring lifecycle, withdrawal and general duplication remain separate. No real UEX write was performed.
 
 Split ancestry is append-only typed metadata on the cancelled source job, covered by the schema-15 format gate. Existing positive-proof blocking for resolved partial/unknown copies follows this ancestry through every later split; creating a fresh ready Report identity cannot remove an origin evidence hold. The original request, outcome and attempts remain unchanged.
+The ancestry assessment consumes reverse adjacency keyed by typed `ReportId`, visiting each discovered Report once and removing each parent list once. Its result preserves the first positively proved origin in supplied history order, including the exact copied-row proof intersection. Public aggregate contracts cover both chain orders, disconnected Reports, repeated edges, shared parents and constructible cross-job cycles; these robustness inputs do not grant app-owned durable histories permission to reuse identities. Self-split remains refused by the public command. The [termination diagnosis](mutation-evidence.md#ancestry-termination-diagnosis) records the exact convergence-guard mutant and the separate local evidence limits.
 
 Attachment metadata retains the exact original private-copy owner as well as its digest, geometry, source hash, preview approval and confirmed time. Both parts use that one already-verified crop inside the existing private directory; no file is copied, scanned for or recovered from an original screenshot. Legacy documents without an explicit owner retain their own Report namespace. Detaching or replacing either descendant's metadata never deletes the retained crop. Hash/header verification still refuses changed bytes. This adds no wipe location or automatic crop deletion; whole-application R-NF-9 wipe acceptance remains separate.

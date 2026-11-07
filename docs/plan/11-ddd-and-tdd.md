@@ -1,6 +1,6 @@
 # Domain-Driven Design and Test-Driven Development
 
-> **Doc type:** Living spec — binding. Last reviewed: 2026-11-06.
+> **Doc type:** Living spec — binding. Last reviewed: 2026-11-07.
 
 Corrected 2026-11-04: the owner marked all seven existing public corpus entries verified; see [current corpus status](../../corpus/README.md#offline-inspection). Earlier checkpoint verification states and inspection results below remain historical; this decision supplies no missing metadata, frozen reference snapshot, class coverage or recognition accuracy measurement.
 
@@ -263,6 +263,7 @@ The price in the example lies above the effective tolerance of the prior. Furthe
 - **Never red on `main`:** red/green happens locally or in the feature branch; every commit on `main` is green.
 - **The refactor step is mandatory:** after green, clean up (names according to the Ubiquitous Language, remove duplicates) while the tests stay green.
 
+Corrected 2026-11-07: the public scheduling/evidence contracts preserve split ancestry, supplied-history origin order and copied-row proof precision through chains and constructible cyclic/repeated-edge aggregate inputs. An exact local convergence-guard mutant is reproduced through Cargo with bounded external process supervision and a pristine/mutant/restored sequence; this is separate from a scored mutation campaign. The [ancestry diagnosis](../mutation-evidence.md#ancestry-termination-diagnosis) records measured bounds and limits. No private-field fixture, HTTP cancellation change or timeout/floor relaxation is introduced.
 ### B4. Traceability
 
 - Every M requirement from 01 is covered either by at least one acceptance test that carries its requirement ID or by an entry in the list of checks outside the test suite under "Requirement coverage" in [04-roadmap.md](04-roadmap.md) (called "Verified outside JUnit" before ADR-0005). That list is only for requirements, or parts of requirements, that are enforced by the build, CI, repository settings or the release checklist, and each entry names an existing check. Requirements that are code always need a tagged test (e.g. R-SEC-7, R-SEC-8, the portable mode of R-NF-2, the corpus schema of R-QA-1).

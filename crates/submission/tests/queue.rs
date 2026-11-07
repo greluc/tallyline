@@ -1255,3 +1255,29 @@ fn r_sub_4__mixed_cooldown_partition_preserves_row_order_and_exact_deadlines() {
     );
     assert_eq!(history[0].attempts().len(), 1);
 }
+
+#[test]
+#[expect(
+    non_snake_case,
+    reason = "Requirement tags use a double underscore separator."
+)]
+fn r_sub_4_r_sub_9__unrelated_queued_report_is_ready_without_history() {
+    use tallyline_submission::api::SubmissionSchedule;
+    use tallyline_submission::api::model::ScheduleDecision;
+
+    let candidate = SubmissionJob::queued(
+        JobId(1),
+        SubmissionRequest::new(header(), vec![row().unwrap()]).unwrap(),
+    )
+    .unwrap();
+    assert_eq!(
+        SubmissionSchedule::assess(&candidate, &[], Timestamp::from_seconds(1000)),
+        ScheduleDecision::Ready
+    );
+}
+
+#[path = "queue/duplicate_ancestry.rs"]
+mod duplicate_ancestry;
+
+#[path = "queue/duplicate_row_proof.rs"]
+mod duplicate_row_proof;

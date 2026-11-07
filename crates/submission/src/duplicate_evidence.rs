@@ -3,6 +3,8 @@
 
 //! Duplicate evidence bound to an earlier uncertain same-account row key.
 
+use std::collections::{BTreeMap, BTreeSet};
+
 use crate::api::model::SubmissionResolutionAction;
 use crate::api::model::{JobId, JobPhase, SubmissionJob};
 use tallyline_shared_kernel::api::model::{ReportId, Timestamp};
@@ -51,30 +53,36 @@ impl SubmissionEvidence {
     /// Finds positive origin evidence that closes release of its already created duplicate.
     #[must_use]
     pub fn resolved_duplicate_origin(report: ReportId, history: &[SubmissionJob]) -> Option<JobId> {
-        let mut reports = std::collections::BTreeSet::from([report.0]);
-        loop {
-            let mut changed = false;
-            for source in history
-                .iter()
-                .filter(|job| job.phase() == JobPhase::Cancelled)
-            {
-                for action in source.resolution_actions() {
-                    match action {
-                        SubmissionResolutionAction::Split { report: child, .. } => {
-                            if reports.contains(&child.0) {
-                                changed |= reports.insert(source.request().header().report.0);
-                            }
-                        }
-                        SubmissionResolutionAction::RowsDuplicated { .. }
-                        | SubmissionResolutionAction::RowDecision { .. }
-                        | SubmissionResolutionAction::Decision { .. }
-                        | SubmissionResolutionAction::Duplicated { .. }
-                        | SubmissionResolutionAction::Verified { .. } => {}
+        let mut parents_by_child = BTreeMap::<ReportId, Vec<ReportId>>::new();
+        for source in history
+            .iter()
+            .filter(|job| job.phase() == JobPhase::Cancelled)
+        {
+            for action in source.resolution_actions() {
+                match action {
+                    SubmissionResolutionAction::Split { report: child, .. } => {
+                        parents_by_child
+                            .entry(*child)
+                            .or_default()
+                            .push(source.request().header().report);
                     }
+                    SubmissionResolutionAction::RowsDuplicated { .. }
+                    | SubmissionResolutionAction::RowDecision { .. }
+                    | SubmissionResolutionAction::Decision { .. }
+                    | SubmissionResolutionAction::Duplicated { .. }
+                    | SubmissionResolutionAction::Verified { .. } => {}
                 }
             }
-            if !changed {
-                break;
+        }
+        let mut reports = BTreeSet::from([report]);
+        let mut pending = vec![report];
+        while let Some(child) = pending.pop() {
+            if let Some(parents) = parents_by_child.remove(&child) {
+                for parent in parents {
+                    if reports.insert(parent) {
+                        pending.push(parent);
+                    }
+                }
             }
         }
 
@@ -85,13 +93,13 @@ impl SubmissionEvidence {
                     && job.resolution_actions().iter().any(|action| match action {
                         SubmissionResolutionAction::Duplicated {
                             report: duplicate, ..
-                        } => reports.contains(&duplicate.0),
+                        } => reports.contains(duplicate),
                         SubmissionResolutionAction::RowsDuplicated {
                             report: duplicate,
                             rows,
                             ..
                         } => {
-                            reports.contains(&duplicate.0)
+                            reports.contains(duplicate)
                                 && job
                                     .verified_row_receipts()
                                     .any(|proof| rows.contains(&proof.row()))

@@ -61,6 +61,7 @@ The `unsafe` code of the platform adapter is registered here too. Corrected 2026
 
 | Location | Rule | Reason | Date | Revisit when |
 |---|---|---|---|---|
+| `crates/submission/tests/queue.rs::r_sub_4_r_sub_9__unrelated_queued_report_is_ready_without_history`, and requirement-tagged tests in `crates/submission/tests/queue/duplicate_ancestry.rs` and `crates/submission/tests/queue/duplicate_row_proof.rs` | `non_snake_case`, local `#[expect]` per tagged test | The required traceability grammar contains a double underscore | 2026-11-07 | the tag grammar changes or rustc accepts consecutive underscores |
 | `crates/adapter-storage/tests/cooldown_schema_migration.rs::r_sub_4_r_nf_11__previous_fourteen_requires_backup_and_preserves_immutable_history` | `non_snake_case`, local `#[expect]` | The required traceability grammar contains a double underscore | 2026-11-06 | the requirement-tag grammar changes or rustc accepts consecutive underscores |
 | `crates/adapter-storage/tests/affinity_schema_migration.rs`, requirement-tagged migration contract | `non_snake_case`, local `#[expect]` per tagged test | The required traceability grammar contains a double underscore | 2026-11-06 | the requirement-tag grammar changes |
 | `crates/adapter-uex/src/queue_contract_tests.rs`, requirement-tagged queue contracts | `non_snake_case`, local `#[expect]` per tagged test | The required traceability grammar contains a double underscore | 2026-11-06 | the requirement-tag grammar changes |
